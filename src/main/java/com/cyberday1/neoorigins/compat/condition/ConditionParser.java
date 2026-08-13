@@ -31,6 +31,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -564,9 +565,19 @@ public final class ConditionParser {
                 return isAnd;
             };
         }
-        // Fallback: unknown block_condition type — pass through as always-on-ground
-        NeoOrigins.LOGGER.debug("[CompatB] on_block: unknown block_condition type '{}' in {} — falling back to onGround()", bcType, contextId);
-        return p -> p != null && p.onGround();
+        // Anything the arms above do not recognise — block_state, height,
+        // adjacent, offset, fluid — is handed to the shared block-condition
+        // compiler, evaluated against the block below. The arms above are left
+        // alone on purpose: they are what every authoring in the pack corpus
+        // actually uses, and rerouting a working path buys nothing.
+        BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
+        // Dropping the filter and passing through as bare onGround() was the old
+        // behaviour, and it is fail-OPEN: the power fires while standing on
+        // anything at all, which is not what "on this block" was asked for. The
+        // compiler already reports the unreadable verb, so fail closed here.
+        if (pred == null) return EntityCondition.alwaysFalse();
+        return player -> player != null && player.onGround()
+            && pred.test(player.level(), player.blockPosition().below());
     }
 
     // ---- Phase 1: New condition parsers ----
@@ -931,24 +942,31 @@ public final class ConditionParser {
         };
     }
 
+    /**
+     * {@code neoorigins:block} — the block at the player's own position. This is
+     * the same test {@code in_block} performs, so it shares that compiler rather
+     * than keeping a second, narrower copy: the hand-rolled version understood
+     * only {@code block}/{@code id}/{@code tag} and returned always-true for
+     * everything else, silently, while its {@code FieldSpec} advertised the whole
+     * {@code block_condition.schema.json}. An editor could therefore author an
+     * {@code and} / {@code height} / {@code adjacent} node that the runtime ignored.
+     *
+     * <p>The one behaviour deliberately preserved is the bare wrapper: a node with
+     * no discriminating field (and no type beyond {@code block} itself) still means
+     * "any block", which is what the field docs promise and what packs rely on.
+     */
     static EntityCondition parseBlockCondition(JsonObject json, String contextId) {
-        // Block condition at player position
-        JsonObject blockCond = json.has("block_condition") ? json.getAsJsonObject("block_condition") : json;
-        String blockId = blockCond.has("block") ? blockCond.get("block").getAsString() : null;
-        if (blockId == null) blockId = blockCond.has("id") ? blockCond.get("id").getAsString() : null;
-        if (blockId != null) {
-            ResourceLocation bid = ResourceLocation.parse(blockId);
-            return player -> {
-                Block block = player.level().getBlockState(player.blockPosition()).getBlock();
-                return BuiltInRegistries.BLOCK.getKey(block).equals(bid);
-            };
-        }
-        String blockTag = blockCond.has("tag") ? blockCond.get("tag").getAsString() : null;
-        if (blockTag != null) {
-            var tagKey = TagKey.create(Registries.BLOCK, ResourceLocation.parse(blockTag));
-            return player -> player.level().getBlockState(player.blockPosition()).is(tagKey);
-        }
-        return EntityCondition.alwaysTrue();
+        JsonObject blockCond = json.has("block_condition") && json.get("block_condition").isJsonObject()
+            ? json.getAsJsonObject("block_condition") : json;
+
+        String type = blockCond.has("type") ? blockCond.get("type").getAsString() : "";
+        String bare = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
+        boolean hasLeaf = blockCond.has("block") || blockCond.has("id") || blockCond.has("tag");
+        if (!hasLeaf && (bare.isEmpty() || bare.equals("block"))) return EntityCondition.alwaysTrue();
+
+        BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
+        if (pred == null) return EntityCondition.alwaysFalse();
+        return player -> pred.test(player.level(), player.blockPosition());
     }
 
     static EntityCondition parseLightLevel(JsonObject json) {
@@ -1191,11 +1209,19 @@ public final class ConditionParser {
         // `block`/`id` was handled and `in_tag`/`inverted`/combinators silently
         // fell through to always-true, which made tag-gated energy-drains
         // (Seer's seer:intangible inverted check) fire unconditionally.
+        //
+        // An ABSENT block_condition still means "any block" (always true) — that
+        // is authored intent. An UNCOMPILABLE one does not: the compiler reports
+        // match-none by returning null, and honouring that is the whole point of
+        // the fail-closed policy. Returning always-true here used to invert it,
+        // so an unknown type fired the power unconditionally — and because
+        // `inverted` is only applied to a non-null base, the negated twin of the
+        // same node fired too, leaving both halves of a wet/dry pair permanently on.
         JsonObject blockCond = json.has("block_condition") && json.get("block_condition").isJsonObject()
             ? json.getAsJsonObject("block_condition") : null;
         if (blockCond == null) return EntityCondition.alwaysTrue();
         BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
-        if (pred == null) return EntityCondition.alwaysTrue();
+        if (pred == null) return EntityCondition.alwaysFalse();
         return player -> pred.test(player.level(), player.blockPosition());
     }
 
@@ -1212,7 +1238,10 @@ public final class ConditionParser {
             ? json.getAsJsonObject("block_condition") : null;
         if (blockCond == null) return EntityCondition.alwaysTrue();
         BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
-        if (pred == null) return EntityCondition.alwaysTrue();
+        // Fail closed, not "count zero". Substituting a zero count would still
+        // satisfy an at-most comparison (`<= 2` on an unknown type reads true),
+        // which is the same fail-open trap in a different shape.
+        if (pred == null) return EntityCondition.alwaysFalse();
 
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 1;
@@ -1337,6 +1366,46 @@ public final class ConditionParser {
             TagKey<Block> tag = parseBlockTag(bc.get("tag").getAsString());
             return (level, pos) -> level.getBlockState(pos).is(tag);
         }
+        // fluid — test the FLUID occupying the position rather than the block.
+        // Waterlogged blocks are the reason this is not the same as a `block`
+        // match: a waterlogged slab is `minecraft:oak_slab` as a block and
+        // `minecraft:water` as a fluid, and a "am I wet" power means the latter.
+        if (bare.equals("fluid")) {
+            JsonObject fc = bc.has("fluid_condition") && bc.get("fluid_condition").isJsonObject()
+                ? bc.getAsJsonObject("fluid_condition") : null;
+            if (fc == null) return null;
+            java.util.function.Predicate<FluidState> fluidPred = compileFluidPredicate(fc, contextId);
+            if (fluidPred == null) return null;
+            return (level, pos) -> fluidPred.test(level.getFluidState(pos));
+        }
+        // light_level / exposed_to_sky need the light engine, which a bare
+        // BlockGetter does not carry — every real caller hands us the entity's
+        // Level, so narrow to it and match nothing if some future caller does
+        // not. Silently answering true would put the fail-open bug straight back.
+        if (bare.equals("light_level")) {
+            ComparisonType comparison = ComparisonType.fromString(
+                bc.has("comparison") ? bc.get("comparison").getAsString() : ">=");
+            int target = bc.has("compare_to") ? bc.get("compare_to").getAsInt() : 0;
+            String lightType = bc.has("light_type") ? bc.get("light_type").getAsString() : "";
+            return (level, pos) -> {
+                if (!(level instanceof Level l)) return false;
+                int light = switch (lightType) {
+                    case "sky"   -> l.getBrightness(net.minecraft.world.level.LightLayer.SKY, pos);
+                    case "block" -> l.getBrightness(net.minecraft.world.level.LightLayer.BLOCK, pos);
+                    default      -> l.getMaxLocalRawBrightness(pos);
+                };
+                return comparison.test(light, target);
+            };
+        }
+        if (bare.equals("exposed_to_sky")) {
+            return (level, pos) -> level instanceof Level l && l.canSeeSky(pos);
+        }
+        // movement_blocking — "is this block solid enough to stand in the way".
+        // Not the same as "not air": a torch and tall grass are both non-air and
+        // both non-blocking, which is exactly the distinction Giant's slam wants.
+        if (bare.equals("movement_blocking")) {
+            return (level, pos) -> level.getBlockState(pos).blocksMotion();
+        }
         if (bare.equals("and") || bare.equals("all_of") || bare.equals("or") || bare.equals("any_of")) {
             boolean isAnd = bare.equals("and") || bare.equals("all_of");
             JsonArray conditions = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(bc, "conditions");
@@ -1344,7 +1413,12 @@ public final class ConditionParser {
             for (JsonElement el : conditions) {
                 if (!el.isJsonObject()) continue;
                 var sub = compileInBlockPredicate(el.getAsJsonObject(), contextId);
-                if (sub != null) subs.add(sub);
+                // Propagate, don't drop. Skipping an uncompilable branch silently
+                // rewrites the author's condition: an `and` loses a clause and
+                // gets BROADER, which is the fail-open direction. Treat the whole
+                // node as uncompilable instead and let the caller fail closed.
+                if (sub == null) return null;
+                subs.add(sub);
             }
             return (level, pos) -> {
                 for (var s : subs) {
@@ -1405,7 +1479,84 @@ public final class ConditionParser {
                 return comparison.test(count, target);
             };
         }
-        NeoOrigins.LOGGER.debug("[CompatB] in_block: unknown block_condition type '{}' in {} — treating as match-none", type, contextId);
+        // Route through the collector, not a bare debug line. This used to log at
+        // DEBUG only, with no WARN-level counterpart, so a headless pack gate that
+        // reads the `[CompatB] Compatibility summary` block could report a clean
+        // run while an unsupported block condition was live in the pack.
+        com.cyberday1.neoorigins.compat.CompatWarningCollector.recordUnsupportedCondition(
+            type.isEmpty() ? "<no type>" : type, contextId,
+            "unsupported block_condition type — block condition matches nothing");
+        return null;
+    }
+
+    /**
+     * Compiles the {@code fluid_condition} sub-grammar carried by a {@code fluid}
+     * block condition into a {@link FluidState} predicate.
+     *
+     * <p>Only {@code in_tag} is attested in the pack corpus (Mycelium Construct's
+     * {@code hal:wet} gates on {@code minecraft:water}); the id / {@code empty} /
+     * {@code still} leaves and the boolean combinators are the unambiguous
+     * siblings, added so the common authorings do not each become a new gap. The
+     * upstream Apoli verb list was NOT verified against the jar, so anything not
+     * handled here fails closed and is reported rather than guessed at.
+     *
+     * @return the predicate, or {@code null} if the node is not compilable — the
+     *         caller must treat that as match-none, never as match-all.
+     */
+    private static java.util.function.Predicate<FluidState> compileFluidPredicate(
+            JsonObject fc, String contextId) {
+        boolean inverted = fc.has("inverted") && fc.get("inverted").getAsBoolean();
+        java.util.function.Predicate<FluidState> base = compileFluidLeaf(fc, contextId);
+        if (base == null) return null;
+        return inverted ? base.negate() : base;
+    }
+
+    private static java.util.function.Predicate<FluidState> compileFluidLeaf(
+            JsonObject fc, String contextId) {
+        String type = fc.has("type") ? fc.get("type").getAsString() : "";
+        String bare = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
+
+        if (bare.equals("in_tag") && fc.has("tag")) {
+            String raw = fc.get("tag").getAsString();
+            if (raw.startsWith("#")) raw = raw.substring(1);
+            TagKey<net.minecraft.world.level.material.Fluid> tag =
+                TagKey.create(Registries.FLUID, ResourceLocation.parse(raw));
+            return state -> state.is(tag);
+        }
+        String fluidId = fc.has("fluid") ? fc.get("fluid").getAsString()
+                       : fc.has("id") ? fc.get("id").getAsString() : null;
+        if ((bare.equals("fluid") || fluidId != null) && fluidId != null && !fluidId.isBlank()) {
+            ResourceLocation fid = ResourceLocation.parse(fluidId);
+            return state -> BuiltInRegistries.FLUID.getKey(state.getType()).equals(fid);
+        }
+        if (bare.equals("empty")) return FluidState::isEmpty;
+        if (bare.equals("still")) return FluidState::isSource;
+        if (bare.equals("constant")) {
+            boolean value = fc.has("value") && fc.get("value").getAsBoolean();
+            return state -> value;
+        }
+        if (bare.equals("and") || bare.equals("all_of") || bare.equals("or") || bare.equals("any_of")) {
+            boolean isAnd = bare.equals("and") || bare.equals("all_of");
+            JsonArray conditions = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(fc, "conditions");
+            List<java.util.function.Predicate<FluidState>> subs = new ArrayList<>();
+            for (JsonElement el : conditions) {
+                if (!el.isJsonObject()) continue;
+                var sub = compileFluidPredicate(el.getAsJsonObject(), contextId);
+                if (sub == null) return null;
+                subs.add(sub);
+            }
+            return state -> {
+                for (var s : subs) {
+                    boolean r = s.test(state);
+                    if (isAnd && !r) return false;
+                    if (!isAnd && r) return true;
+                }
+                return isAnd;
+            };
+        }
+        com.cyberday1.neoorigins.compat.CompatWarningCollector.recordUnsupportedCondition(
+            type.isEmpty() ? "<no type>" : type, contextId,
+            "unsupported fluid_condition type — fluid condition matches nothing");
         return null;
     }
 

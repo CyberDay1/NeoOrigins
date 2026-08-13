@@ -32,6 +32,13 @@ import java.util.Map;
  * <ul>
  *   <li>{@code block} — exact block id via {@code block} (or legacy {@code id}).</li>
  *   <li>{@code in_tag} — block-tag membership via {@code tag}.</li>
+ *   <li>{@code fluid} — the fluid at the position rather than the block, via a nested
+ *       {@code fluid_condition}. Not the same test as {@code block}: a waterlogged slab
+ *       reads as {@code minecraft:oak_slab} as a block and {@code minecraft:water} as a
+ *       fluid, and a "am I wet" power means the latter.</li>
+ *   <li>{@code light_level} — the light reaching the tested position, compared
+ *       numerically; {@code exposed_to_sky} — nothing between it and the sky;
+ *       {@code movement_blocking} — the block obstructs movement.</li>
  *   <li>{@code and} / {@code or} — recursive combinators over {@code conditions[]},
  *       each element a nested {@code block_condition} (explicit cross-doc
  *       {@code itemsRef} rather than {@code "#"}, so the in-game editor's
@@ -76,6 +83,26 @@ public final class BuiltinBlockConditions {
         define("in_tag", List.of(
             new FieldSpec("tag", FormFieldSpec.Kind.STRING, true)
                 .doc("Block tag the block must be in (e.g. minecraft:ice).")));
+        // fluid — the fluid occupying the position, not the block sitting in it.
+        define("fluid", List.of(
+            new FieldSpec("fluid_condition", FormFieldSpec.Kind.OBJECT, true)
+                .doc("Condition on the fluid at the tested position. Types: `in_tag` (with `tag`), "
+                   + "`fluid` (with `fluid`/`id`), `empty`, `still`, `constant` (with `value`), "
+                   + "and `and`/`or` over `conditions[]`. Every node also honours `inverted`.")));
+        // light_level — the light reaching the tested position.
+        define("light_level", List.of(
+            new FieldSpec("comparison", FormFieldSpec.Kind.ENUM, false)
+                .options("==", "!=", ">", ">=", "<", "<=").def(">=")
+                .doc("Comparison operator against the light level (default >=)."),
+            new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(0)
+                .doc("Light level to compare against, 0..15 (default 0)."),
+            new FieldSpec("light_type", FormFieldSpec.Kind.ENUM, false)
+                .options("sky", "block", "any").def("any")
+                .doc("Which light to read (default any — the effective local brightness).")));
+        // exposed_to_sky — nothing between the tested position and the sky.
+        define("exposed_to_sky", List.of());
+        // movement_blocking — the block obstructs movement.
+        define("movement_blocking", List.of());
         // and — every nested block condition must match.
         define("and", List.of(
             new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
