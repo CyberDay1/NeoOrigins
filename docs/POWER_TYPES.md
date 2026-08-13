@@ -2949,7 +2949,7 @@ Read the current value with `neoorigins:power_active { power: "mypack:my_toggle"
 
 `hidden: true` keeps the toggle out of the origin info panel, recommended for any purely-internal flag a player doesn't need to see listed.
 
-See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
+See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#15-toggleable-abilities-no-keybind-slot) for full recipes.
 
 ---
 
@@ -3732,7 +3732,7 @@ Recipes that compose existing power types to cover use cases the built-in types 
 
 ## Periodic feed / heal via `neoorigins:action_over_time`
 
-NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_ON_DAMAGE` behaviour. For any other periodic action (periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action), use `neoorigins:action_over_time`. It is an alias for [`neoorigins:condition_passive`](#neoorigins_condition_passive) (identical fields), so an optional `condition` gates whether the action runs each interval.
+NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_ON_DAMAGE` behaviour. For any other periodic action (periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action), use `neoorigins:action_over_time`. It is an alias for [`neoorigins:condition_passive`](#neooriginscondition_passive) (identical fields), so an optional `condition` gates whether the action runs each interval.
 
 **Periodic hunger restoration** (e.g. for an origin that doesn't eat conventionally):
 ```json
