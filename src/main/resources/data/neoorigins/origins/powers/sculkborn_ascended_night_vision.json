@@ -1,1 +1,1 @@
-{ "type": "neoorigins:persistent_effect", "cooldown_icon": "minecraft:golden_carrot", "effect": "minecraft:night_vision", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
+{ "type": "neoorigins:persistent_effect", "toggleable": false, "cooldown_icon": "minecraft:golden_carrot", "effect": "minecraft:night_vision", "amplifier": 0, "ambient": true, "show_particles": false, "show_icon": false }
