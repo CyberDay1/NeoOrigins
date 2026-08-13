@@ -10,8 +10,8 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Block-condition verb (adjacent / and / block / block_state / height / in_tag / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:adjacent|and|block|block_state|height|in_tag|offset|or)$"
+      "description": "Block-condition verb (adjacent / and / block / block_state / exposed_to_sky / fluid / height / in_tag / light_level / movement_blocking / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:adjacent|and|block|block_state|exposed_to_sky|fluid|height|in_tag|light_level|movement_blocking|offset|or)$"
     }
   },
   "oneOf": [
@@ -152,6 +152,45 @@
       ]
     },
     {
+      "$comment": "neoorigins:exposed_to_sky",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:exposed_to_sky",
+            "apace:exposed_to_sky",
+            "origins:exposed_to_sky",
+            "apoli:exposed_to_sky",
+            "apugli:exposed_to_sky"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:fluid",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:fluid",
+            "apace:fluid",
+            "origins:fluid",
+            "apoli:fluid",
+            "apugli:fluid"
+          ]
+        },
+        "fluid_condition": {
+          "description": "Condition on the fluid at the tested position. Types: `in_tag` (with `tag`), `fluid` (with `fluid`/`id`), `empty`, `still`, `constant` (with `value`), and `and`/`or` over `conditions[]`. Every node also honours `inverted`.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "fluid_condition"
+      ]
+    },
+    {
       "$comment": "neoorigins:height",
       "properties": {
         "type": {
@@ -206,6 +245,68 @@
       "required": [
         "type",
         "tag"
+      ]
+    },
+    {
+      "$comment": "neoorigins:light_level",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:light_level",
+            "apace:light_level",
+            "origins:light_level",
+            "apoli:light_level",
+            "apugli:light_level"
+          ]
+        },
+        "comparison": {
+          "description": "Comparison operator against the light level (default >=).",
+          "type": "string",
+          "enum": [
+            "==",
+            "!=",
+            ">",
+            ">=",
+            "<",
+            "<="
+          ],
+          "default": ">="
+        },
+        "compare_to": {
+          "description": "Light level to compare against, 0..15 (default 0).",
+          "type": "integer",
+          "default": 0
+        },
+        "light_type": {
+          "description": "Which light to read (default any — the effective local brightness).",
+          "type": "string",
+          "enum": [
+            "sky",
+            "block",
+            "any"
+          ],
+          "default": "any"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:movement_blocking",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:movement_blocking",
+            "apace:movement_blocking",
+            "origins:movement_blocking",
+            "apoli:movement_blocking",
+            "apugli:movement_blocking"
+          ]
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -278,40 +379,60 @@
               "apace:and",
               "apace:block",
               "apace:block_state",
+              "apace:exposed_to_sky",
+              "apace:fluid",
               "apace:height",
               "apace:in_tag",
+              "apace:light_level",
+              "apace:movement_blocking",
               "apace:offset",
               "apace:or",
               "apoli:adjacent",
               "apoli:and",
               "apoli:block",
               "apoli:block_state",
+              "apoli:exposed_to_sky",
+              "apoli:fluid",
               "apoli:height",
               "apoli:in_tag",
+              "apoli:light_level",
+              "apoli:movement_blocking",
               "apoli:offset",
               "apoli:or",
               "apugli:adjacent",
               "apugli:and",
               "apugli:block",
               "apugli:block_state",
+              "apugli:exposed_to_sky",
+              "apugli:fluid",
               "apugli:height",
               "apugli:in_tag",
+              "apugli:light_level",
+              "apugli:movement_blocking",
               "apugli:offset",
               "apugli:or",
               "neoorigins:adjacent",
               "neoorigins:and",
               "neoorigins:block",
               "neoorigins:block_state",
+              "neoorigins:exposed_to_sky",
+              "neoorigins:fluid",
               "neoorigins:height",
               "neoorigins:in_tag",
+              "neoorigins:light_level",
+              "neoorigins:movement_blocking",
               "neoorigins:offset",
               "neoorigins:or",
               "origins:adjacent",
               "origins:and",
               "origins:block",
               "origins:block_state",
+              "origins:exposed_to_sky",
+              "origins:fluid",
               "origins:height",
               "origins:in_tag",
+              "origins:light_level",
+              "origins:movement_blocking",
               "origins:offset",
               "origins:or"
             ]
