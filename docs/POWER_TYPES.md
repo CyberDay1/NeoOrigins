@@ -524,12 +524,28 @@ True creative-style hover flight, as a **toggle**. Unlike `neoorigins:flight` an
 
 The flight abilities are re-pushed to the client every tick to survive sync races. When the power is removed or toggled off, survival defaults are restored, but never for a creative or spectator player, so toggling off can't lock them out of their own game mode.
 
-Accepts only the standard toggle HUD fields beyond `name` and `description`:
+Beyond `name` and `description`:
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
+| `condition` | condition | no | always true | EntityCondition gating the flight, re-tested every tick |
 | `cooldown_icon` | string | no | `""` | HUD icon resource path (joins the ability-icon cluster) |
 | `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while toggled off |
+
+**Requiring something of the flier.** With a `condition`, the flight is granted only while the condition passes, and — because it is re-tested every tick — a player who breaks it in mid-air has the ability stripped and falls. That drop is the point: it turns the condition into a real cost rather than a check made once at takeoff. Toggling on while the condition fails leaves the power armed but grounded; the flight begins the moment the condition is met. The built-in Sword Immortal uses this to bind flight to the blade in hand:
+
+```json
+{
+  "type": "neoorigins:creative_flight",
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  }
+}
+```
+
+Pair a conditional flight with a fall-damage immunity (see `neoorigins:prevent_action`) if the drop should be survivable.
 
 **Disabling it server-side.** `creative_flight` honors a top-level `enabled` flag (default `true`) that server owners can flip off in `config/neoorigins/power_overrides.toml`, keyed by the power id. When `enabled = false` the flight is stripped every tick and never re-granted; the origin keeps all its other powers. This is the intended way to ground a flying origin without editing datapacks; for example, the built-in Sword Immortal and Windwalker flights are:
 
@@ -1899,6 +1915,7 @@ Active ability that launches the player in their look direction. With the option
 | `damage` | float | no | `0` | Flat damage dealt to entities along the dash path. The damage sweep runs when either this or `weapon_damage_scale` is above `0` |
 | `damage_radius` | float | no | `2.0` | Radius of the capsule swept along the dash path |
 | `weapon_damage_scale` | float | no | `0` | Adds a fraction of the held weapon's attack damage on top of `damage` (e.g. `1.0` = full weapon damage) |
+| `condition` | condition | no | always true | EntityCondition gating the dash. While it fails the keypress does nothing and no cooldown is spent |
 
 **Example:**
 ```json

@@ -1,5 +1,10 @@
 {
   "type": "neoorigins:creative_flight",
   "name": { "text": "Riding the Sword" },
-  "description": { "text": "Step onto your blade and take to the sky. Toggle the art on, then double-tap jump to fly freely; jump to rise, sneak to descend." }
+  "description": { "text": "Step onto your blade and take to the sky. Toggle the art on, then double-tap jump to fly freely; jump to rise, sneak to descend. Sheathe the blade and the sky lets go of you." },
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  }
 }

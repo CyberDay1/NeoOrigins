@@ -8,5 +8,10 @@
   "allow_vertical": true,
   "damage": 6.0,
   "weapon_damage_scale": 0.5,
-  "damage_radius": 2.5
+  "damage_radius": 2.5,
+  "condition": {
+    "type": "neoorigins:equipped_item",
+    "equipment_slot": "mainhand",
+    "item_condition": { "tag": "minecraft:swords" }
+  }
 }

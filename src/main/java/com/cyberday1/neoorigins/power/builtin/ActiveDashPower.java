@@ -1,8 +1,15 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.compat.condition.ConditionParser;
+import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
@@ -18,30 +25,76 @@ public class ActiveDashPower extends AbstractActivePower<ActiveDashPower.Config>
         float damage,
         float damageRadius,
         float weaponDamageScale,
+        EntityCondition condition,
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
         boolean alwaysShowIcon
     ) implements AbstractActivePower.Config {
-        public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            Codec.FLOAT.optionalFieldOf("power", 1.5f).forGetter(Config::power),
-            Codec.INT.optionalFieldOf("cooldown_ticks", 40).forGetter(Config::cooldownTicks),
-            Codec.BOOL.optionalFieldOf("allow_vertical", false).forGetter(Config::allowVertical),
-            Codec.BOOL.optionalFieldOf("set_velocity", false).forGetter(Config::setVelocity),
-            Codec.FLOAT.optionalFieldOf("damage", 0f).forGetter(Config::damage),
-            Codec.FLOAT.optionalFieldOf("damage_radius", 2.0f).forGetter(Config::damageRadius),
-            Codec.FLOAT.optionalFieldOf("weapon_damage_scale", 0f).forGetter(Config::weaponDamageScale),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
-            Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
-            Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
-            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
-        ).apply(inst, Config::new));
+        // Hand-rolled rather than a RecordCodecBuilder group because `condition`
+        // compiles through ConditionParser, which reads raw JSON.
+        public static final Codec<Config> CODEC = new Codec<>() {
+            @Override
+            public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
+                JsonElement json;
+                try {
+                    json = ops.convertTo(JsonOps.INSTANCE, input);
+                } catch (Exception e) {
+                    return DataResult.error(() -> "active_dash: could not convert to JSON: " + e.getMessage());
+                }
+                if (!json.isJsonObject()) {
+                    return DataResult.error(() -> "active_dash: expected JSON object");
+                }
+                JsonObject obj = json.getAsJsonObject();
+                String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:active_dash";
+
+                // A malformed field (say "power": "fast") must come back as a
+                // DataResult error the loader logs and skips, the way the
+                // RecordCodecBuilder group this replaced did. Left unguarded,
+                // getAsFloat's NumberFormatException would escape decode() and
+                // take the whole power reload down with it.
+                try {
+                    float power = obj.has("power") ? obj.get("power").getAsFloat() : 1.5f;
+                    int cooldown = obj.has("cooldown_ticks") ? obj.get("cooldown_ticks").getAsInt() : 40;
+                    boolean allowVertical = obj.has("allow_vertical") && obj.get("allow_vertical").getAsBoolean();
+                    boolean setVelocity = obj.has("set_velocity") && obj.get("set_velocity").getAsBoolean();
+                    float damage = obj.has("damage") ? obj.get("damage").getAsFloat() : 0f;
+                    float damageRadius = obj.has("damage_radius") ? obj.get("damage_radius").getAsFloat() : 2.0f;
+                    float weaponScale = obj.has("weapon_damage_scale")
+                        ? obj.get("weapon_damage_scale").getAsFloat() : 0f;
+                    String cooldownIcon = obj.has("cooldown_icon") && obj.get("cooldown_icon").isJsonPrimitive()
+                        ? obj.get("cooldown_icon").getAsString() : "";
+                    boolean cooldownCountdown = !obj.has("cooldown_countdown")
+                        || obj.get("cooldown_countdown").getAsBoolean();
+                    boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
+
+                    // Absent condition parses to alwaysTrue(), i.e. an ungated dash.
+                    EntityCondition cond = ConditionParser.parseField(obj, "condition", t);
+
+                    return DataResult.success(Pair.of(
+                        new Config(power, cooldown, allowVertical, setVelocity, damage, damageRadius,
+                            weaponScale, cond, t, cooldownIcon, cooldownCountdown, alwaysShowIcon),
+                        ops.empty()));
+                } catch (RuntimeException e) {
+                    return DataResult.error(() -> "active_dash: malformed field: " + e.getMessage());
+                }
+            }
+
+            @Override
+            public <T> DataResult<T> encode(Config input, DynamicOps<T> ops, T prefix) {
+                return DataResult.success(prefix);
+            }
+        };
     }
 
     @Override public Codec<Config> codec() { return Config.CODEC; }
 
     @Override
     protected boolean execute(ServerPlayer player, Config config) {
+        // Returning false keeps the cooldown un-consumed (base-class contract), so
+        // a blocked dash costs the player nothing.
+        if (!config.condition().test(player)) return false;
+
         Vec3 look = player.getLookAngle();
         Vec3 dash = config.allowVertical()
             ? look.scale(config.power())
