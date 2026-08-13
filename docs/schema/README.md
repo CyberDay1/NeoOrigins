@@ -10,6 +10,7 @@ Machine-readable schemas for pack JSON. Point your IDE or datapack validator at 
 | `origin.schema.json` | `data/<namespace>/origins/origins/*.json` |
 | `mob_origin.schema.json` | `data/<namespace>/origins/mob_origins/*.json` |
 | `power.schema.json` | `data/<namespace>/origins/powers/*.json` |
+| `morph.schema.json` | `data/<namespace>/neoorigins/morphs/*.json` |
 | `condition.schema.json` | Referenced internally by `power.schema.json`. No direct file mapping. |
 | `action.schema.json` | Referenced internally by `power.schema.json`. No direct file mapping. |
 
@@ -35,6 +36,10 @@ Machine-readable schemas for pack JSON. Point your IDE or datapack validator at 
     {
       "fileMatch": ["data/*/origins/origin_layers/*.json"],
       "url": "./docs/schema/origin_layer.schema.json"
+    },
+    {
+      "fileMatch": ["data/*/neoorigins/morphs/*.json"],
+      "url": "./docs/schema/morph.schema.json"
     }
   ]
 }
@@ -43,7 +48,7 @@ Machine-readable schemas for pack JSON. Point your IDE or datapack validator at 
 ## Wiring up IntelliJ IDEA
 
 1. Settings → Languages & Frameworks → Schemas and DTDs → JSON Schema Mappings
-2. Add three mappings, one per schema file, matching the file patterns above.
+2. Add one mapping per schema file, matching the file patterns above.
 
 ## Coverage
 

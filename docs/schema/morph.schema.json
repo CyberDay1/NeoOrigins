@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/morph.schema.json",
+  "title": "NeoOrigins Morph Definition",
+  "description": "A named, reusable morph — what a morphed player looks and sounds like. File path: data/<namespace>/neoorigins/morphs/<morph>.json. A neoorigins:entity_model power references one by id instead of restating the same entity type, variant NBT and scale in every origin. A file here overrides the built-in morph of the same id (neoorigins:slime, magma_cube, sheep, cat, villager, creeper, zombie, skeleton, enderman, spider). Every field is optional: a morph may swap the model, restyle the player's own skin, or only retune sounds.",
+  "type": "object",
+  "properties": {
+    "entity_type": {
+      "description": "Entity whose model replaces the player's. Omit for a morph that changes no model — a skin-only or sound-only morph.",
+      "$ref": "#/$defs/resource_location"
+    },
+    "nbt": {
+      "description": "Partial NBT applied once to the render stand-in, to pick a variant: sheep Color, cat variant, villager profession, slime Size. Ignored without an entity_type.",
+      "type": "object"
+    },
+    "scale": {
+      "description": "Uniform scale on the morph model, and on the collision box with it when hitbox is true. Default 1.0.",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "hitbox": {
+      "description": "Whether the player collides at the morph target's size rather than their own. Default true.",
+      "type": "boolean"
+    },
+    "render_held_item": {
+      "description": "Whether the player's held items are drawn on the morph. Default true.",
+      "type": "boolean"
+    },
+    "render_armor": {
+      "description": "Whether the player's worn armour is drawn on the morph. Default true.",
+      "type": "boolean"
+    },
+    "first_person": {
+      "description": "What the morphed player sees in their own view: `item` draws the held item with no arm, `arm` draws the morph's own arm holding it, `hidden` draws nothing. Default `item`. `arm` is a request — a model with no arm bone falls back to `item`.",
+      "enum": ["item", "arm", "hidden"]
+    },
+    "arm": {
+      "description": "Name of the model bone to treat as the morph's arm, for first_person `arm`. Omit to work it out from the model.",
+      "type": "string"
+    },
+    "skin": {
+      "description": "Textures layered over the player's own skin. Independent of entity_type: this restyles the player's real model rather than replacing it, so the two can be combined or used alone.",
+      "$ref": "#/$defs/skin"
+    },
+    "entity_sounds": {
+      "description": "Whether the player borrows the voice of entity_type. Default true.",
+      "type": "boolean"
+    },
+    "sounds": {
+      "description": "Explicit sound overrides, layered on top of that voice. For what the mob can't cover: a silent morph, a pack's own sound, or a skin-only morph with no mob to borrow from.",
+      "$ref": "#/$defs/sounds"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "resource_location": {
+      "type": "string",
+      "pattern": "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+    },
+    "skin": {
+      "type": "object",
+      "properties": {
+        "texture": {
+          "description": "Body texture, as an asset id: `ns:foo/bar` addresses `ns:textures/foo/bar.png`.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "cape": {
+          "description": "Cape texture, same addressing. Absent leaves the player's real cape alone rather than clearing it.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "elytra": {
+          "description": "Elytra texture, same addressing. Absent falls back to the cape texture, as vanilla does.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "model": {
+          "description": "Arm width: `slim` is three-pixel arms, `wide` is four. Absent keeps the player's own, which is usually what a texture-only reskin wants.",
+          "enum": ["slim", "wide"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "sounds": {
+      "description": "Sound-event ids (minecraft:entity.fox.hurt), not sound files. An unregistered id is reported once and then ignored, so a typo in a cosmetic field cannot silence a player permanently. Step sounds are absent by design — those come from the block being walked on, not the entity.",
+      "type": "object",
+      "properties": {
+        "hurt": {
+          "description": "Played when the player takes damage.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "death": {
+          "description": "Played once when the player dies.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "fall_small": {
+          "description": "Short fall, four blocks or less.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "fall_big": {
+          "description": "Long fall.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "swim": {
+          "description": "Looping sound while swimming.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "splash": {
+          "description": "Entering or leaving water.",
+          "$ref": "#/$defs/resource_location"
+        },
+        "splash_high_speed": {
+          "description": "The faster splash used when hitting water hard.",
+          "$ref": "#/$defs/resource_location"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
