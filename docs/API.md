@@ -12,7 +12,7 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types): 104 types
+- [Power types](#power-types): 118 types + 29 retired
 - [Condition verbs](#condition-verbs): 94 conditions
 - [Action verbs](#action-verbs): 84 actions
 - [Event keys](#event-keys): 49 events
@@ -92,29 +92,46 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`condition_passive`](POWER_TYPES.md#neooriginscondition_passive) | Run an action on an interval while a condition holds. Workhorse passive. |
 | [`conditional`](POWER_TYPES.md#neooriginsconditional) | Gate another power on a static condition enum. |
 | [`edible_item`](POWER_TYPES.md#neooriginsedible_item) | Make arbitrary items edible for this player. |
+| [`effect_over_time`](POWER_TYPES.md#neooriginseffect_over_time) | Sustained aura pulsing an action on an interval. Passive (always on) or active (keybind + upkeep). |
 | [`modify_damage`](POWER_TYPES.md#neooriginsmodify_damage) | Scale damage the player deals or takes. Direction + type/tag filter. |
+| [`multiple`](POWER_TYPES.md#neooriginsmultiple) | Bundle several powers into one file. Sub-powers are flattened to their own ids at load. |
 | [`persistent_effect`](POWER_TYPES.md#neooriginspersistent_effect) | Refresh a status effect every tick. Replaces legacy `status_effect`. |
 | [`prevent_action`](POWER_TYPES.md#neooriginsprevent_action) | Cancel a specific player action (FALL_DAMAGE, DROWN, FIRE, SWIM, etc.). |
+| [`resource`](POWER_TYPES.md#neooriginsresource) | Named persistent value with a HUD bar. Regeneration, threshold actions, `change_resource` compatible. |
+| [`simple`](POWER_TYPES.md#neooriginssimple) | Does nothing. Display-only marker, the equivalent of `origins:simple`. |
+| [`tick_action`](POWER_TYPES.md#neooriginstick_action) | Run an action on a repeating interval. Prefer `action_on_event` with `event: tick`. |
 | [`toggle`](POWER_TYPES.md#neooriginstoggle) | Boolean state cycled by the skill key, readable via `neoorigins:power_active`. |
+| [`variable`](POWER_TYPES.md#neooriginsvariable) | Hidden persistent integer counter. No bar, no regen: written only by actions. |
 
 ### Movement & body
 
 | Type | Summary |
 |---|---|
+| [`bounce_on_land`](POWER_TYPES.md#neooriginsbounce_on_land) | Reflect fall impact back upward on landing, like a slime block. |
+| [`creative_flight`](POWER_TYPES.md#neooriginscreative_flight) | True hover flight as a toggle. Keeps collision and gravity when not flying. |
 | [`elytra_boost`](POWER_TYPES.md#neooriginselytra_boost) | Add forward thrust while elytra-flying. |
+| [`elytra_flight`](POWER_TYPES.md#neooriginselytra_flight) | Elytra-style fall-flight with no elytra equipped. Can draw wings while gliding. |
 | [`enhanced_vision`](POWER_TYPES.md#neooriginsenhanced_vision) | Permanent brightness floor. Replaces legacy `night_vision`. |
 | [`flight`](POWER_TYPES.md#neooriginsflight) | Creative-style flight. |
+| [`modify_flight_speed`](POWER_TYPES.md#neooriginsmodify_flight_speed) | Scale flight speed for any flight source. In-mod replacement for Pehkui. |
+| [`natural_glide`](POWER_TYPES.md#neooriginsnatural_glide) | Glide by pressing jump while falling, with no elytra equipped. |
 | [`phantom_form`](POWER_TYPES.md#neooriginsphantom_form) | Mayfly + noPhysics + no-fall: walk through walls. |
 | [`size_scaling`](POWER_TYPES.md#neooriginssize_scaling) | Scale player dimensions. Optional reach-scaling + flat reach bonus. |
 | [`wall_climbing`](POWER_TYPES.md#neooriginswall_climbing) | Scale walls like a spider. |
+| [`walk_on_fluid`](POWER_TYPES.md#neooriginswalk_on_fluid) | Walk on water, lava or both, like a Strider. Jump in to dive. |
 | [`water_breathing`](POWER_TYPES.md#neooriginswater_breathing) | Never loses air underwater. |
+| [`wraith_phase`](POWER_TYPES.md#neooriginswraith_phase) | Toggleable phasing through solid blocks, with flight while inside one. |
 | [`cobweb_affinity`](POWER_TYPES.md#neooriginscobweb_affinity) | Web mobility + 10× cobweb break speed. |
 | [`burn`](POWER_TYPES.md#neooriginsburn) | Set the player on fire at a configurable interval. |
 | [`ignore_water`](POWER_TYPES.md#neooriginsignore_water) | Full land speed in water + no current pushing. |
 | [`ignore_fluid`](POWER_TYPES.md#neooriginsignore_fluid) | Totally ignore named fluids (incl. modded): no buoyancy, drag, push, drowning, burn, fog or swim pose. |
 | [`lava_vision`](POWER_TYPES.md#neooriginslava_vision) | Increase vision distance in lava. |
+| [`modify_lava_speed`](POWER_TYPES.md#neooriginsmodify_lava_speed) | Change movement speed while submerged in lava. |
 | [`overlay`](POWER_TYPES.md#neooriginsoverlay) | Full-screen texture overlay with configurable opacity. |
 | [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. |
+| [`entity_model`](POWER_TYPES.md#neooriginsentity_model) | Replace the player's model with another entity's: a morph. Changes hitbox and voice with it. |
+| [`invisibility`](POWER_TYPES.md#neooriginsinvisibility) | Turn the player invisible, optionally hiding worn armour too. |
+| [`particle`](POWER_TYPES.md#neooriginsparticle) | Emit vanilla particles on the player at a fixed cadence. Server-side. |
 | [`shader`](POWER_TYPES.md#neooriginsshader) | Post-processing shader on the player's view. |
 
 ### Minions & entities
@@ -128,7 +145,14 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`entity_group`](POWER_TYPES.md#neooriginsentity_group) | Mark the player as part of a built-in or datapack-defined entity group. Affects effect/enchant interactions and which mobs ignore, hunt, or flee you. |
 | [`entity_set`](POWER_TYPES.md#neooriginsentity_set) | Named UUID set per power id. Pair with `neoorigins:in_set` / `add_to_set` / `remove_from_set`. |
 | [`mobs_ignore_player`](POWER_TYPES.md#neooriginsmobs_ignore_player) | Mobs don't aggro. Retaliation window preserved. |
+| [`sneaky`](POWER_TYPES.md#neooriginssneaky) | Cut mob detection range: hostiles only target from much closer. |
+| [`stealth`](POWER_TYPES.md#neooriginsstealth) | Invisibility after sneaking continuously for a threshold. Clears when you stop. |
+| [`mobs_target_player`](POWER_TYPES.md#neooriginsmobs_target_player) | The inverse: listed mobs proactively hunt the holder on sight. |
+| [`mob_behavior`](POWER_TYPES.md#neooriginsmob_behavior) | Rewrite a **mob origin's** AI so it hunts players or a named entity type. |
+| [`attract_mobs`](POWER_TYPES.md#neooriginsattract_mobs) | Pull nearby mobs toward the holder, as though holding their favourite food. |
 | [`scare_entities`](POWER_TYPES.md#neooriginsscare_entities) | Listed entity types flee from the player. |
+| [`muffle_sound`](POWER_TYPES.md#neooriginsmuffle_sound) | Emit no game-event vibrations: sculk sensors and wardens stop noticing you. |
+| [`mount`](POWER_TYPES.md#neooriginsmount) | Active ability that seats the player on the entity in front of them. Player targets need consent. |
 | [`no_mob_spawns_nearby`](POWER_TYPES.md#neooriginsno_mob_spawns_nearby) | Cancel natural spawns in a radius. |
 | [`twin_breeding`](POWER_TYPES.md#neooriginstwin_breeding) | Chance for breeding to yield two babies. |
 
@@ -141,6 +165,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`projectile_immunity`](POWER_TYPES.md#neooriginsprojectile_immunity) | Filter projectile types the player is immune to. |
 | [`effect_immunity`](POWER_TYPES.md#neooriginseffect_immunity) | Block specific status effects. |
 | [`dodge_chance`](POWER_TYPES.md#neooriginsdodge_chance) | Percentage chance to dodge incoming damage. |
+| [`no_projectile_divergence`](POWER_TYPES.md#neooriginsno_projectile_divergence) | Perfect accuracy on projectiles the player shoots. Prefer `attribute_modifier` on `minecraft:projectile_accuracy`. |
 | [`thorns_on_hit`](POWER_TYPES.md#neooriginsthorns_on_hit) | Passive thorns: attacker takes damage back. |
 | [`light_level_effect`](POWER_TYPES.md#neooriginslight_level_effect) | Apply effect at/below a light level. |
 | [`low_hp_threshold`](POWER_TYPES.md#neooriginslow_hp_threshold) | Apply effects when HP drops below a threshold. |
@@ -154,9 +179,12 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | Type | Summary |
 |---|---|
 | [`break_speed_modifier`](POWER_TYPES.md#neooriginsbreak_speed_modifier) | Multiply block break speed with block/tool/condition filters. |
+| [`bare_hand_tool`](POWER_TYPES.md#neooriginsbare_hand_tool) | Empty hand mines as a named tool, for both drop eligibility and speed. |
 | [`underwater_mining_speed`](POWER_TYPES.md#neooriginsunderwater_mining_speed) | Remove underwater mining penalty. |
 | [`tree_felling`](POWER_TYPES.md#neooriginstree_felling) | Chop connected logs in one swing. |
-| [`crop_growth_accelerator`](POWER_TYPES.md#neoorigincrop_growth_accelerator) | Periodic tick boost to nearby crops. |
+| [`ultimine`](POWER_TYPES.md#neooriginsultimine) | Vein-mining via FTB Ultimine. Inert when that mod is absent. |
+| [`fortune_when_effect`](POWER_TYPES.md#neooriginsfortune_when_effect) | Virtual Fortune level while a named status effect is active. |
+| [`crop_growth_accelerator`](POWER_TYPES.md#neooriginscrop_growth_accelerator) | Periodic tick boost to nearby crops. |
 | [`crop_harvest_bonus`](POWER_TYPES.md#neooriginscrop_harvest_bonus) | +N drops per crop break. |
 | [`quality_equipment`](POWER_TYPES.md#neooriginsquality_equipment) | Starting tool quality uplift. |
 | [`craft_amount_bonus`](POWER_TYPES.md#neooriginscraft_amount_bonus) | Extra output on crafted items. |
@@ -167,8 +195,11 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | Type | Summary |
 |---|---|
 | [`starting_equipment`](POWER_TYPES.md#neooriginsstarting_equipment) | Grant items on origin chosen. |
+| [`extra_inventory`](POWER_TYPES.md#neooriginsextra_inventory) | Extra chest-style inventory on the skill key. 1-6 rows, persisted. |
 | [`keep_inventory`](POWER_TYPES.md#neooriginskeep_inventory) | Slot/item filter for inventory kept across death. |
 | [`restrict_armor`](POWER_TYPES.md#neooriginsrestrict_armor) | Slot-scoped gate on wearable items. |
+| [`restrict_items`](POWER_TYPES.md#neooriginsrestrict_items) | Gate equipping *and* using items. Allow-list or blacklist, any slot or hand. |
+| [`prevent_item_damage`](POWER_TYPES.md#neooriginsprevent_item_damage) | Matching items never lose durability, on every durability path. |
 | [`item_magnetism`](POWER_TYPES.md#neooriginsitem_magnetism) | Pull item entities to the player. |
 | [`hide_hud_bar`](POWER_TYPES.md#neooriginshide_hud_bar) | Hide the food or air bar. |
 
@@ -179,14 +210,19 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`horde_regen`](POWER_TYPES.md#neooriginshorde_regen) | Regen scales with nearby allied mob count. |
 | [`no_natural_regen`](POWER_TYPES.md#neooriginsno_natural_regen) | Kill food-driven regen; potion/beacon heals still work. |
 | [`exhaustion_filter`](POWER_TYPES.md#neooriginsexhaustion_filter) | Selective hunger-drain modifier. |
+| [`modify_food_nutrition`](POWER_TYPES.md#neooriginsmodify_food_nutrition) | Override the hunger value of matching food. Saturation scales with it. |
 | [`no_slowdown`](POWER_TYPES.md#neooriginsno_slowdown) | Immune to specific slowdown sources. |
 | [`breath_in_fluid`](POWER_TYPES.md#neooriginsbreath_in_fluid) | Air supply drains in named fluids. |
+| [`breath_out_of_fluid`](POWER_TYPES.md#neooriginsbreath_out_of_fluid) | Air drains while *out* of a named fluid: a fish out of water. |
+| [`slime_moisture`](POWER_TYPES.md#neooriginsslime_moisture) | Moisture bar draining over time, faster when dry or on fire. Threshold effects. |
+| [`slime_level_hp`](POWER_TYPES.md#neooriginsslime_level_hp) | Bonus max HP from XP level, reset on death. |
 
 ### Respawn & lifecycle
 
 | Type | Summary |
 |---|---|
 | [`modify_player_spawn`](POWER_TYPES.md#neooriginsmodify_player_spawn) | Per-power respawn override. Optional bed override. |
+| [`slime_death_save`](POWER_TYPES.md#neooriginsslime_death_save) | Split instead of dying while moisture is high: teleport away at 2 hearts. |
 
 ### Merchant & loot
 
@@ -194,12 +230,24 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 |---|---|
 | [`trade_availability`](POWER_TYPES.md#neooriginstrade_availability) | Extend villager trade offers. |
 | [`rare_wandering_loot`](POWER_TYPES.md#neooriginsrare_wandering_loot) | Bonus wandering-trader drops. |
+| [`kill_loot_drops`](POWER_TYPES.md#neooriginskill_loot_drops) | Extra drops on mobs the holder kills, through the real loot pipeline. |
+| [`loot_pool_grant`](POWER_TYPES.md#neooriginsloot_pool_grant) | Active ability that rolls a loot table and grants what it produces. |
 
 ### Command integration
 
 | Type | Summary |
 |---|---|
 | [`command_pack`](POWER_TYPES.md#neooriginscommand_pack) | Package of `execute_command` actions behind a single power id. |
+
+### Mod compatibility
+
+Hooks into another mod. Each is an inert marker when that mod is absent. See
+[COMPATIBILITY.md](COMPATIBILITY.md).
+
+| Type | Summary |
+|---|---|
+| [`become_dragon`](POWER_TYPES.md#neooriginsbecome_dragon) | Dragon Survival: the holder is a dragon of the named species while the power is granted. |
+| [`xeno_passive`](POWER_TYPES.md#neooriginsxeno_passive) | Aliens vs Predator: facehuggers stop treating the holder as a viable host. |
 
 ### Active abilities (specialised)
 
@@ -216,15 +264,41 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 
 ### Deprecated & retired
 
-Retired concrete types that still load via alias. See
-[MIGRATION.md](MIGRATION.md) for the remap table.
+Retired concrete types that still load, remapped onto a live type. Existing packs
+keep working unchanged; prefer the replacement in new ones. See
+[MIGRATION.md](MIGRATION.md) for the full remap table.
 
 | Type | Replaced by |
 |---|---|
-| `less_item_use_slowdown` | `attribute_modifier` + `neoorigins:using_item` condition |
-| `no_projectile_divergence` | `attribute_modifier` on `minecraft:projectile_accuracy` |
-| `sneaky` / `stealth` | `mobs_ignore_player` + sneak gate |
-| `tick_action` | `action_on_event` with `event: tick` |
+| [`action_on_hit_taken`](POWER_TYPES.md#neooriginsaction_on_hit_taken) | `action_on_event` |
+| [`action_on_kill`](POWER_TYPES.md#neooriginsaction_on_kill) | `action_on_event` |
+| [`active_aoe_effect`](POWER_TYPES.md#neooriginsactive_aoe_effect) | `active_ability` |
+| [`active_launch`](POWER_TYPES.md#neooriginsactive_launch) | `active_ability` |
+| [`better_bone_meal`](POWER_TYPES.md#neooriginsbetter_bone_meal) | `action_on_event` |
+| [`better_crafted_food`](POWER_TYPES.md#neooriginsbetter_crafted_food) | `action_on_event` |
+| [`better_enchanting`](POWER_TYPES.md#neooriginsbetter_enchanting) | `action_on_event` |
+| [`biome_buff`](POWER_TYPES.md#neooriginsbiome_buff) | `condition_passive` |
+| [`burn_at_health_threshold`](POWER_TYPES.md#neooriginsburn_at_health_threshold) | `condition_passive` |
+| [`damage_in_biome`](POWER_TYPES.md#neooriginsdamage_in_biome) | `condition_passive` |
+| [`damage_in_daylight`](POWER_TYPES.md#neooriginsdamage_in_daylight) | `condition_passive` |
+| [`damage_in_water`](POWER_TYPES.md#neooriginsdamage_in_water) | `condition_passive` |
+| [`efficient_repairs`](POWER_TYPES.md#neooriginsefficient_repairs) | `action_on_event` |
+| [`food_restriction`](POWER_TYPES.md#neooriginsfood_restriction) | `action_on_event` |
+| [`glow`](POWER_TYPES.md#neooriginsglow) | `persistent_effect` |
+| [`healing_mist`](POWER_TYPES.md#neooriginshealing_mist) | `active_ability` |
+| [`hunger_drain_modifier`](POWER_TYPES.md#neooriginshunger_drain_modifier) | `action_on_event` |
+| [`knockback_modifier`](POWER_TYPES.md#neooriginsknockback_modifier) | `action_on_event` |
+| [`less_item_use_slowdown`](POWER_TYPES.md#neooriginsless_item_use_slowdown) | `attribute_modifier` + `neoorigins:using_item` condition |
+| [`longer_potions`](POWER_TYPES.md#neooriginslonger_potions) | `action_on_event` |
+| [`more_animal_loot`](POWER_TYPES.md#neooriginsmore_animal_loot) | `action_on_event` |
+| [`natural_regen_modifier`](POWER_TYPES.md#neooriginsnatural_regen_modifier) | `action_on_event` |
+| [`night_vision`](POWER_TYPES.md#neooriginsnight_vision) | `persistent_effect` (or `enhanced_vision` for a brightness floor) |
+| [`regen_in_fluid`](POWER_TYPES.md#neooriginsregen_in_fluid) | `condition_passive` |
+| [`repulse`](POWER_TYPES.md#neooriginsrepulse) | `active_ability` |
+| [`stacking_status_effects`](POWER_TYPES.md#neooriginsstacking_status_effects) | `persistent_effect` |
+| [`status_effect`](POWER_TYPES.md#neooriginsstatus_effect) | `persistent_effect` |
+| [`teleport_range_modifier`](POWER_TYPES.md#neooriginsteleport_range_modifier) | `action_on_event` |
+| [`thorns_aura`](POWER_TYPES.md#neooriginsthorns_aura) | `action_on_event` |
 
 ---
 
@@ -623,6 +697,7 @@ datapack validator at:
 - `schema/power.schema.json`: for files under `data/*/origins/powers/`
 - `schema/origin.schema.json`: for files under `data/*/origins/origins/`
 - `schema/origin_layer.schema.json`: for files under `data/*/origins/origin_layers/`
+- `schema/morph.schema.json`: for files under `data/*/neoorigins/morphs/`
 
 Schemas are derived from the Java Config records and are authoritative
 against what the loader accepts. If the schema disagrees with a prose
