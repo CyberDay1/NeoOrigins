@@ -21,6 +21,11 @@ your-pack/
         origins/       <name>.json                 # origin definitions
         powers/        <name>.json                 # power definitions
         origin_layers/ <name>.json                 # layer definitions
+        mob_origins/   <name>.json                 # mob origins (optional)
+      neoorigins/
+        morphs/        <name>.json                 # morph definitions (optional)
+        entity_groups/ <name>.json                 # entity groups (optional)
+      global_powers/   <name>.json                 # global power sets (optional)
   assets/
     <namespace>/
       lang/
@@ -28,6 +33,21 @@ your-pack/
 ```
 
 The `<namespace>` is your mod/pack ID (lowercase, no spaces). Choose something unique to avoid collisions with other packs.
+
+The first three folders are all most packs need; the rest are separate registries
+documented elsewhere:
+
+| Folder | Contents | Reference |
+|---|---|---|
+| `origins/mob_origins/` | Origins granted to mobs rather than players | [MOB_ORIGINS.md](MOB_ORIGINS.md) |
+| `neoorigins/morphs/` | Reusable morph definitions for `neoorigins:entity_model` | [POWER_TYPES.md](POWER_TYPES.md#morph-definitions) |
+| `neoorigins/entity_groups/` | Entity groups for `neoorigins:entity_group` | [POWER_TYPES.md](POWER_TYPES.md#neooriginsentity_group) |
+| `global_powers/` | Powers granted to every player regardless of origin | [GLOBAL_POWERS.md](GLOBAL_POWERS.md) |
+
+**The original Origins mod layout is also accepted**, so a legacy pack loads without
+being rearranged: `data/<namespace>/origins/`, `powers/` and `origin_layers/` are read
+as origins, powers and layers respectively. Prefer the NeoOrigins layout above in new
+packs: the shorter paths exist for compatibility, not as an alternative style.
 
 ---
 
