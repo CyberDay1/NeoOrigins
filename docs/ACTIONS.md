@@ -1414,7 +1414,7 @@ Flips or sets a named toggle state on the target. Used by 2.0's `toggle` alias f
 { "type": "neoorigins:toggle", "power": "examplepack:flight_toggle" }
 ```
 
-See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#toggleable-abilities-no-keybind-slot) for full recipes.
+See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#15-toggleable-abilities-no-keybind-slot) for full recipes.
 
 ---
 
@@ -1767,7 +1767,7 @@ Drops items from the target player's vanilla inventory. By default it scatters e
 
 ## Block-target verbs
 
-These act on the **block on the other side of the interaction** (the block a projectile or raycast impacted) rather than on an entity. They resolve the impacted block from the active dispatch context (a projectile `on_hit_action` that lands on a block, or a `raycast` `block_action`), so you can write them directly as an `on_hit_action` / `block_action` and they self-resolve the hit block. Each no-ops cleanly when no block resolves or the block isn't applicable. To run one against a specific resolved block context explicitly, wrap it in [`block_target_action`](#neoorigins-block_target_action).
+These act on the **block on the other side of the interaction** (the block a projectile or raycast impacted) rather than on an entity. They resolve the impacted block from the active dispatch context (a projectile `on_hit_action` that lands on a block, or a `raycast` `block_action`), so you can write them directly as an `on_hit_action` / `block_action` and they self-resolve the hit block. Each no-ops cleanly when no block resolves or the block isn't applicable. To run one against a specific resolved block context explicitly, wrap it in [`block_target_action`](#neooriginsblock_target_action).
 
 ## `neoorigins:strip`
 
