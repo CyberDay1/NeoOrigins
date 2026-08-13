@@ -912,18 +912,16 @@ Deals periodic drown damage to the player while they are in water, and, when `in
 
 > **Deprecated in 2.0**: this type is now an alias for `neoorigins:action_on_event`. See [MIGRATION.md](MIGRATION.md).
 
-Multiplies knockback dealt or received.
+Multiplies the knockback the player *receives*. There is no outgoing form: the alias always emits `event: mod_knockback`, which fires on the knockback applied to the player.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `direction` | string | no | `out` | `out` (knockback dealt) or `in` (knockback received) |
-| `multiplier` | float | no | `1.0` | Knockback multiplier |
+| `multiplier` | float | no | `1.0` | Knockback multiplier. `0` or less cancels the knockback outright. |
 
 **Example: halve knockback taken**
 ```json
 {
   "type": "neoorigins:knockback_modifier",
-  "direction": "in",
   "multiplier": 0.5,
   "name": "Sturdy",
   "description": "Resistant to knockback."
@@ -1380,7 +1378,7 @@ Multiplies the player's mining speed when breaking blocks in the specified tag. 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `block_tag` | Identifier | no | _(all blocks)_ | Block tag to restrict the modifier to, e.g. `minecraft:stone` |
-| `multiplier` | float | no | `1.0` | Speed multiplier (`2.0` = double speed) |
+| `multiplier` | float | no | `2.0` | Speed multiplier (`2.0` = double speed) |
 
 **Example: 2× speed on stone and deepslate**
 ```json
@@ -1403,13 +1401,13 @@ Reflects a portion of incoming melee damage back to the attacker.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `reflect_ratio` | float | no | `0.5` | Fraction of damage dealt back (0.5 = 50%) |
+| `return_ratio` | float | no | `0.25` | Fraction of damage dealt back (`0.25` = 25%) |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:thorns_aura",
-  "reflect_ratio": 0.5,
+  "return_ratio": 0.5,
   "name": "Thorny Hide",
   "description": "Reflects half of incoming melee damage."
 }
@@ -1469,26 +1467,27 @@ Triggers an action each time the player takes damage.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `action` | string | no | `teleport` | Action to perform: `teleport`, `restore_health`, `restore_hunger`, `grant_effect`, `ignite_attacker`, `effect_on_attacker` |
+| `action` | string | no | `teleport` | Action to perform: `teleport` (random teleport, 16 blocks horizontal / 8 vertical), `ignite_attacker`, or `effect_on_attacker`. Any other value falls back to `teleport`. |
 | `min_damage` | float | no | `0.0` | Only fires when incoming damage ≥ this |
 | `chance` | float | no | `1.0` | Probability to fire, from 0.0 to 1.0 |
-| `amount` | float | no | `2.0` | Health or hunger to restore (where applicable) |
-| `effect` | Identifier | no | — | Effect to apply (for `grant_effect` / `effect_on_attacker`) |
-| `amplifier` | int | no | `0` | Effect level |
-| `duration` | int | no | `100` | Effect duration in ticks |
+| `effect` | Identifier | no | — | Effect to apply to the attacker. Read only by `effect_on_attacker`. |
+| `amplifier` | int | no | `0` | Effect level. Read only by `effect_on_attacker`. |
+| `duration` | int | no | `100` | Effect duration in ticks for `effect_on_attacker`, or burn time for `ignite_attacker` — where it defaults to `60` instead. |
 
-**Example: gain Speed II briefly when hit**
+**Example: poison whoever hits you**
 ```json
 {
   "type": "neoorigins:action_on_hit_taken",
-  "action": "grant_effect",
-  "effect": "minecraft:speed",
+  "action": "effect_on_attacker",
+  "effect": "minecraft:poison",
   "amplifier": 1,
   "duration": 60,
-  "name": "Combat Rush",
-  "description": "Gains a burst of speed when struck."
+  "name": "Toxic Blood",
+  "description": "Poisons attackers who draw blood."
 }
 ```
+
+This type can only act on the attacker. To buff *yourself* when hit, use [`neoorigins:action_on_event`](#neooriginsaction_on_event) with `"event": "hit_taken"` and an `entity_action`, which runs against the player.
 
 ---
 
@@ -1881,7 +1880,7 @@ Active ability that teleports the player to the block they are looking at, up to
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `max_distance` | float | no | `32.0` | Maximum teleport range in blocks |
+| `range` | float | no | `32.0` | Maximum teleport range in blocks |
 | `cooldown_ticks` | int | no | `60` | Cooldown in ticks after each use |
 | `hunger_cost` | int | no | `0` | Food points removed per use |
 
@@ -1889,7 +1888,7 @@ Active ability that teleports the player to the block they are looking at, up to
 ```json
 {
   "type": "neoorigins:active_teleport",
-  "max_distance": 32.0,
+  "range": 32.0,
   "cooldown_ticks": 60,
   "hunger_cost": 2,
   "name": "Blink",
@@ -1937,7 +1936,7 @@ Active ability that launches the player straight upward. Useful paired with `ely
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `power` | float | no | `1.8` | Upward launch velocity |
+| `power` | float | no | `1.5` | Upward launch velocity |
 | `cooldown_ticks` | int | no | `60` | Cooldown in ticks |
 
 **Example:**
@@ -2030,14 +2029,14 @@ Active ability that swaps positions with the entity the player is looking at.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `max_distance` | float | no | `16.0` | Maximum range to target an entity |
+| `range` | float | no | `20.0` | Maximum range to target an entity |
 | `cooldown_ticks` | int | no | `80` | Cooldown in ticks |
 
 **Example:**
 ```json
 {
   "type": "neoorigins:active_swap",
-  "max_distance": 16.0,
+  "range": 16.0,
   "cooldown_ticks": 80,
   "name": "Swap",
   "description": "Swap positions with your target."
@@ -2055,7 +2054,7 @@ Active ability that shoots a small fireball in the player's look direction. The 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `speed` | float | no | `1.5` | Projectile speed multiplier |
-| `cooldown_ticks` | int | no | `80` | Cooldown in ticks |
+| `cooldown_ticks` | int | no | `100` | Cooldown in ticks |
 
 **Example:**
 ```json
@@ -2106,7 +2105,7 @@ Active ability that applies a mob effect to all living entities within a radius 
 | `amplifier` | int | no | `0` | Effect level |
 | `duration_ticks` | int | no | `100` | Duration of the applied effect |
 | `radius` | float | no | `8.0` | Range in blocks |
-| `cooldown_ticks` | int | no | `200` | Cooldown in ticks |
+| `cooldown_ticks` | int | no | `60` | Cooldown in ticks |
 
 **Example: root all nearby mobs**
 ```json
@@ -2130,8 +2129,8 @@ Active ability that phases the player through a solid wall in their look directi
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `max_depth` | int | no | `8` | Maximum solid-block scan depth in blocks |
-| `cooldown_ticks` | int | no | `80` | Cooldown in ticks |
+| `max_depth` | int | no | `16` | Maximum solid-block scan depth in blocks |
+| `cooldown_ticks` | int | no | `40` | Cooldown in ticks |
 | `hunger_cost` | int | no | `0` | Food points removed per use (2 = 1 shank) |
 
 **Example:**
@@ -2558,8 +2557,8 @@ For action-style events set `entity_action`; for modifier-style events set `modi
   "event": "kill",
   "condition": {
     "type": "neoorigins:equipped_item",
-    "slot": "mainhand",
-    "item": "minecraft:wooden_sword"
+    "equipment_slot": "mainhand",
+    "item_condition": { "id": "minecraft:wooden_sword" }
   },
   "entity_action": {
     "type": "neoorigins:heal",

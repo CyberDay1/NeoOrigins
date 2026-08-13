@@ -905,7 +905,7 @@ Creates an explosion centred on the target.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `power` | float | no | `3.0` | Explosion radius/strength |
-| `destruction_type` | string | no | `"break"` | If set to `"none"`, no blocks break; any other value (or absent) lets blocks break |
+| `destruction_type` | string | no | `"none"` | Absent or `"none"` leaves blocks intact; any other value (e.g. `"break"`) lets the explosion break blocks |
 | `create_fire` | bool | no | `false` | Leave fire behind |
 
 **Example:**
@@ -2167,7 +2167,8 @@ True when the stack has the given enchantment at or above a minimum level.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `enchantment` | resource id | yes | — | Enchantment ID |
-| `min_level` | int | no | `1` | Minimum level |
+| `comparison` | string | no | `>=` | Operator against the enchantment level: `==`, `!=`, `>`, `>=`, `<`, `<=` |
+| `compare_to` | int | no | `1` | Enchantment level threshold |
 
 ## `neoorigins:ingredient`
 
