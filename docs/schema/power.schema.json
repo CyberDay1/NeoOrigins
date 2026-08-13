@@ -1899,6 +1899,20 @@
           "type": "number",
           "default": 0.0
         },
+        "condition": {
+          "description": "Optional EntityCondition gating the dash: while it fails the keypress does nothing and no cooldown is spent (default always-true).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
           "type": "string",
@@ -2891,6 +2905,20 @@
       "properties": {
         "type": {
           "const": "neoorigins:creative_flight"
+        },
+        "condition": {
+          "description": "Optional EntityCondition gating the flight, re-tested every tick: while it fails the ability is stripped, so a player already airborne falls. Omit for unconditional flight.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         },
         "enabled": {
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
