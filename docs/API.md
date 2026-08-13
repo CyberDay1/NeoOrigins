@@ -99,7 +99,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`prevent_action`](POWER_TYPES.md#neooriginsprevent_action) | Cancel a specific player action (FALL_DAMAGE, DROWN, FIRE, SWIM, etc.). |
 | [`resource`](POWER_TYPES.md#neooriginsresource) | Named persistent value with a HUD bar. Regeneration, threshold actions, `change_resource` compatible. |
 | [`simple`](POWER_TYPES.md#neooriginssimple) | Does nothing. Display-only marker, the equivalent of `origins:simple`. |
-| [`tick_action`](POWER_TYPES.md#neooriginstick_action) | Legacy no-op: it dispatches nothing. Use `action_on_event` with `event: tick`, paced by `cooldown_ticks`. |
+| [`tick_action`](POWER_TYPES.md#neooriginstick_action) | Legacy no-op: it dispatches nothing. Use `condition_passive`, which takes the same `interval`. |
 | [`toggle`](POWER_TYPES.md#neooriginstoggle) | Boolean state cycled by the skill key, readable via `neoorigins:power_active`. |
 | [`variable`](POWER_TYPES.md#neooriginsvariable) | Hidden persistent integer counter. No bar, no regen: written only by actions. |
 

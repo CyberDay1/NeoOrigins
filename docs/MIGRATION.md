@@ -449,6 +449,32 @@ After (gated by `neoorigins:in_water`, not toggleable, icon hidden):
 
 Tick-based condition + action pairs. Default `interval` is 20 ticks.
 
+### `neoorigins:action_over_time`
+
+This one was never a registered type: an older revision of the power reference
+described the name, but nothing implemented it, so a pack copied from those docs
+lost the whole power at load rather than just that behaviour. The fields line up
+1:1 with `condition_passive`, so the migration is a rename and nothing else.
+
+Before:
+```json
+{
+  "type": "neoorigins:action_over_time",
+  "interval": 40,
+  "condition": { "type": "neoorigins:in_rain" },
+  "entity_action": { "type": "neoorigins:heal", "amount": 1.0 }
+}
+```
+After:
+```json
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 40,
+  "condition": { "type": "neoorigins:in_rain" },
+  "entity_action": { "type": "neoorigins:heal", "amount": 1.0 }
+}
+```
+
 ### `neoorigins:biome_buff`
 
 Before:
