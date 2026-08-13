@@ -4992,3 +4992,66 @@ The hook is a global loot modifier, so it has to be switched on by a carrier fil
 ```
 
 `replace: false` makes NeoForge merge the entry list additively across packs, so this coexists with the mod's own `mob_origin_drops` carrier and any other pack's modifiers. The per-power `drops` live in the power file, not here: this carrier is a data-free on-switch, so one carrier covers every `kill_loot_drops` power in the pack.
+
+---
+
+# KubeJS bridge powers
+
+These two types delegate power behavior to JavaScript handlers registered from a KubeJS `startup_scripts/` file. They only function when KubeJS is on the mod list: the power JSON references a `js_id`, and the script registers the matching handler via the `NeoOrigins.*` bindings. If no handler is registered for the id, the power is inert.
+
+They are registered on 1.21.1 and, from 2.2.24, on 26.1. They are absent from the 26.2 build because KubeJS itself has no 26.2 release to build against, and a power file naming an unregistered type is dropped whole at load. See [KUBEJS.md](KUBEJS.md).
+
+## `neoorigins:js_custom`
+
+A passive power whose lifecycle hooks run JS. Register the handler with `NeoOrigins.registerPower(id, {onGranted, onRevoked, onTick})`; any hook the JS object doesn't supply defaults to a no-op.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `js_id` | string | yes | — | ID of the JS handler registered via `NeoOrigins.registerPower` |
+
+```json
+{
+  "type": "neoorigins:js_custom",
+  "name": "Scripted Aura",
+  "description": "Behavior supplied by the pack's startup script.",
+  "js_id": "mypack:aura"
+}
+```
+
+```js
+// startup_scripts/powers.js
+NeoOrigins.registerPower('mypack:aura', {
+    onTick: player => { /* runs each power tick */ }
+})
+```
+
+## `neoorigins:js_active`
+
+A keybind-activated power whose `onUse` runs JS. Register with `NeoOrigins.registerActivePower(id, {onUse, onGranted, onRevoked})`. `onUse(player)` must return a boolean: `true` consumes the cooldown and hunger cost, `false` is a no-op (nothing is consumed). Cooldown and hunger cost behave exactly like every other active power.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `js_id` | string | yes | — | ID of the JS handler registered via `NeoOrigins.registerActivePower` |
+| `cooldown_ticks` | int | no | `20` | Cooldown between uses in ticks (20 = 1s), consumed only when `onUse` returns `true` |
+| `hunger_cost` | int | no | `0` | Food/exhaustion points consumed on a successful activation (`onUse` returns `true`) |
+
+```json
+{
+  "type": "neoorigins:js_active",
+  "name": "Scripted Blink",
+  "description": "Teleports via the pack's startup script.",
+  "js_id": "mypack:blink",
+  "cooldown_ticks": 100
+}
+```
+
+```js
+// startup_scripts/powers.js
+NeoOrigins.registerActivePower('mypack:blink', {
+    onUse: player => {
+        // return true to consume cooldown + hunger, false to no-op
+        return true
+    }
+})
+```
+

@@ -2042,6 +2042,21 @@ Opens a 3×3 crafting menu for the target player, anchored at the player's posit
 
 ---
 
+## `neoorigins:kubejs_callback`
+
+Invokes a KubeJS-registered callback by id, handing it the acting player. Use it to run custom script logic from a power. With no callback registered for the id — KubeJS absent, or the script has not run yet — the action is silently dropped rather than erroring. See [KUBEJS.md](KUBEJS.md).
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `id` | string | yes | — | Id the script passed to `NeoOrigins.registerCallback` |
+
+**Example:**
+```json
+{ "type": "neoorigins:kubejs_callback", "id": "examplepack:on_dash" }
+```
+
+---
+
 # Item actions
 
 Item actions operate on a single `ItemStack` and are used inside `equipped_item_action`, `modify_inventory`, and other per-stack contexts. They use the `ItemActionParser` verb set.

@@ -12,7 +12,7 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types): 118 types + 29 retired
+- [Power types](#power-types): 120 types + 29 retired
 - [Condition verbs](#condition-verbs): 94 conditions
 - [Action verbs](#action-verbs): 84 actions
 - [Event keys](#event-keys): 49 events
@@ -99,7 +99,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`prevent_action`](POWER_TYPES.md#neooriginsprevent_action) | Cancel a specific player action (FALL_DAMAGE, DROWN, FIRE, SWIM, etc.). |
 | [`resource`](POWER_TYPES.md#neooriginsresource) | Named persistent value with a HUD bar. Regeneration, threshold actions, `change_resource` compatible. |
 | [`simple`](POWER_TYPES.md#neooriginssimple) | Does nothing. Display-only marker, the equivalent of `origins:simple`. |
-| [`tick_action`](POWER_TYPES.md#neooriginstick_action) | Legacy no-op: it dispatches nothing. Use `action_on_event` with `event: tick`, paced by `cooldown_ticks`. |
+| [`tick_action`](POWER_TYPES.md#neooriginstick_action) | Legacy no-op: it dispatches nothing. Use `condition_passive`, which takes the same `interval`. |
 | [`toggle`](POWER_TYPES.md#neooriginstoggle) | Boolean state cycled by the skill key, readable via `neoorigins:power_active`. |
 | [`variable`](POWER_TYPES.md#neooriginsvariable) | Hidden persistent integer counter. No bar, no regen: written only by actions. |
 
@@ -238,6 +238,15 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | Type | Summary |
 |---|---|
 | [`command_pack`](POWER_TYPES.md#neooriginscommand_pack) | Package of `execute_command` actions behind a single power id. |
+
+### Scripting
+
+Power types whose behaviour is supplied by a KubeJS script. See [KUBEJS.md](KUBEJS.md).
+
+| Type | Summary |
+|---|---|
+| [`js_active`](POWER_TYPES.md#neooriginsjs_active) | Keybind ability whose `onUse` runs JS. Returning false consumes nothing. |
+| [`js_custom`](POWER_TYPES.md#neooriginsjs_custom) | Passive power whose grant / revoke / tick hooks run JS. |
 
 ### Mod compatibility
 
