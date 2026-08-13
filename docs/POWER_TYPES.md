@@ -5053,4 +5053,4 @@ NeoOrigins.registerActivePower('mypack:blink', {
 })
 ```
 
-These types exist on the 1.21.1 branch only: the KubeJS integration is parked on 26.1 until KubeJS itself ships there.
+These types are registered on 1.21.1 and, from 2.2.24, on 26.1. They are absent from the 26.2 build because KubeJS itself has no 26.2 release to build against, and a power file naming an unregistered type is dropped whole at load. See [KUBEJS.md](KUBEJS.md).

@@ -2012,7 +2012,7 @@ Opens a 3×3 crafting menu for the target player, anchored at the player's posit
 
 ## `neoorigins:kubejs_callback`
 
-Invokes a KubeJS-registered callback by id, handing it the dispatch context. Use it to run custom script logic from a power. Requires the registered callback to exist; no-ops otherwise.
+Invokes a KubeJS-registered callback by id, handing it the acting player. Use it to run custom script logic from a power. Requires the registered callback to exist; no-ops otherwise.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
