@@ -703,7 +703,13 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
             if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
-                NeoOrigins.LOGGER.warn("Player {} requested the creator without permission",
+                // DEBUG, not WARN. Unlike the save/apply denials below — which are
+                // only reachable from inside the creator screen, so a denial there
+                // means a forged packet — this request is sent straight from a
+                // keybind, one packet per press. A player who has the creator key
+                // bound to a key they use in normal play was filling the server log
+                // with operator-facing warnings just by playing.
+                NeoOrigins.LOGGER.debug("Player {} requested the creator without permission",
                     sp.getName().getString());
                 sendCreatorResult(sp, false, "You don't have permission to use the origin creator.");
                 return;
@@ -813,7 +819,9 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
             if (!com.cyberday1.neoorigins.service.CreatorAccess.canUse(sp)) {
-                NeoOrigins.LOGGER.warn("Player {} requested the mob creator without permission",
+                // DEBUG for the same reason as handleRequestOpenCreator above:
+                // keybind-triggered, one packet per press, not operator-actionable.
+                NeoOrigins.LOGGER.debug("Player {} requested the mob creator without permission",
                     sp.getName().getString());
                 sendCreatorResult(sp, false, "You don't have permission to use the mob origin creator.");
                 return;
