@@ -1329,7 +1329,7 @@ public class NeoOriginsNetwork {
         broadcastMorphState(player, morphSpecFrom(activeHolders));
         // Same for the invisibility armor-hide flag (neoorigins:invisibility with
         // render_armor:false) — every viewer's armor-layer mixin needs it.
-        broadcastInvisibilityArmor(player, hidesArmorFrom(capabilities));
+        broadcastInvisibilityArmor(player, hidesArmorWhenInvisible(powerMap));
         // Same for the cosmetic wings (render_elytra + optional texture, from any
         // flight power that asks) — every viewer's elytra render layer needs it.
         broadcastElytraFlight(player, capabilities);
@@ -1567,15 +1567,40 @@ public class NeoOriginsNetwork {
     }
 
     /**
-     * True if the capability set carries the {@code neoorigins:invisibility}
-     * armor-hide tag (render_armor:false while active). Reuses the same caps
-     * already computed for {@link #syncActivePowersToPlayer} so armor-hide stays
-     * in lockstep with the power's actual active state (the top-level condition
-     * gate is applied when the caps are collected).
+     * True if any power the player currently has toggled ON is a
+     * {@code neoorigins:invisibility} authored with {@code render_armor: false}.
+     *
+     * <p>Reads the power map rather than the capability set, and so deliberately
+     * ignores each power's top-level {@code power_condition}. This flag is only
+     * published on a sync trigger (login, origin change, toggle, dimension change),
+     * so deriving it from the condition-gated capability set froze it at whatever
+     * the condition happened to be at login — normally false. A conditioned
+     * invisibility power therefore vanished the body while the armor and held item
+     * stayed put for the rest of the session, which is the "render_armor is bugged"
+     * report.
+     *
+     * <p>Publishing it ungated is correct, not a shortcut: the flag does not mean
+     * "this player is invisible", it means "hide this player's armor WHEN they are
+     * invisible". Both consumers ({@code HumanoidArmorLayerMixin} and
+     * {@code ItemInHandLayerMixin}) already require a live {@code isInvisible()}
+     * before they cancel anything, and invisibility itself rides the vanilla mob
+     * effect, which {@code PowerHolder.onTick} already condition-gates and which
+     * syncs to every client for free. That live check is what does the condition
+     * gating — exactly the contract {@code InvisibilityPower} and both mixins were
+     * already documented against.
      */
-    private static boolean hidesArmorFrom(Set<String> capabilities) {
-        return capabilities.contains(
-            com.cyberday1.neoorigins.power.builtin.InvisibilityPower.CAP_HIDE_ARMOR);
+    private static boolean hidesArmorWhenInvisible(Map<Identifier, Boolean> powerMap) {
+        for (Map.Entry<Identifier, Boolean> entry : powerMap.entrySet()) {
+            if (!Boolean.TRUE.equals(entry.getValue())) continue;
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(entry.getKey());
+            if (holder != null
+                    && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.InvisibilityPower
+                    && holder.config() instanceof com.cyberday1.neoorigins.power.builtin.InvisibilityPower.Config cfg
+                    && !cfg.renderArmor()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Broadcast a player's invisibility armor-hide flag to all tracking clients and the player. */
@@ -1594,7 +1619,7 @@ public class NeoOriginsNetwork {
         Map<Identifier, Boolean> powerMap = new HashMap<>();
         Set<String> capabilities = new HashSet<>();
         collectActivePowers(tracked, powerMap, capabilities);
-        if (!hidesArmorFrom(capabilities)) return;
+        if (!hidesArmorWhenInvisible(powerMap)) return;
         PacketDistributor.sendToPlayer(observer,
             new SyncInvisibilityArmorPayload(tracked.getId(), true));
     }
@@ -1609,9 +1634,15 @@ public class NeoOriginsNetwork {
      * True if the capability set carries the render-elytra tag, meaning some active
      * power asked for cosmetic wings. Any of {@code elytra_flight}, {@code natural_glide}
      * or {@code flight} can set it, and the tag deliberately does not record which one
-     * did: the client only needs to know whether to draw. Same lockstep guarantee as
-     * {@link #hidesArmorFrom} — the caps were collected with the top-level condition
-     * gate applied.
+     * did: the client only needs to know whether to draw. The caps were collected
+     * with the top-level condition gate applied, so this stays in lockstep with the
+     * power's actual active state.
+     *
+     * <p>Deliberately NOT published ungated the way {@link #hidesArmorWhenInvisible}
+     * is. That flag only claims "hide the armor WHEN this player is invisible", and
+     * both of its client consumers re-check {@code isInvisible()} live, so ungating
+     * it costs nothing. Cosmetic wings have no equivalent second check: an ungated
+     * flag would draw them whenever the power's condition was unmet.
      */
     private static boolean rendersElytraFrom(Set<String> capabilities) {
         return capabilities.contains(
