@@ -34,16 +34,24 @@ import java.util.Set;
  * the remainder of that timer after the gate closed.)
  *
  * <p><b>Armor hiding</b> can't ride a vanilla mechanism — vanilla renders armor on
- * invisible entities. When {@code render_armor} is false this power emits the
- * {@link #CAP_HIDE_ARMOR} capability tag while granted; that tag is broadcast to
- * tracking clients alongside the morph state and read by the client armor-layer
- * mixin ({@code HumanoidArmorLayerMixin}). The mixin hides armor only when the
- * player carries this flag AND is currently invisible — so armor is hidden only
- * for players made invisible by THIS power with {@code render_armor:false} (never
- * for a vanilla potion / other source), and reappears the instant the
- * {@code power_condition} gate stops holding and the invisibility effect lapses
- * (the live {@code isInvisible()} check does the condition gating, so the flag
- * itself only has to track grant/revoke/toggle, not every condition tick).
+ * invisible entities. When {@code render_armor} is false, {@code NeoOriginsNetwork}
+ * broadcasts an armor-hide flag for this player to every tracking client, where
+ * {@code HumanoidArmorLayerMixin} and {@code ItemInHandLayerMixin} cancel the
+ * worn-armor and held-item layers. Both cancel only when the player carries the
+ * flag AND is currently invisible, so armor is hidden only for players made
+ * invisible by THIS power with {@code render_armor:false} — never for a vanilla
+ * potion or another source — and it reappears the instant the
+ * {@code power_condition} gate stops holding and the invisibility effect lapses.
+ *
+ * <p>That live {@code isInvisible()} check is what applies the condition gating,
+ * so the flag itself only has to track grant/revoke/toggle. The server therefore
+ * derives it from the player's toggled-on power map, NOT from the condition-gated
+ * capability set: the flag is published on sync triggers (login, origin change,
+ * toggle, dimension) rather than per tick, so reading a per-tick-varying source
+ * froze it at its login value and left conditioned invisibility powers wearing
+ * floating armor all session. The {@link #CAP_HIDE_ARMOR} tag is still emitted
+ * into the capability set — condition-gated, for addons reading the synced
+ * capability list — but rendering no longer derives anything from it.
  */
 public class InvisibilityPower extends PowerType<InvisibilityPower.Config> {
 
@@ -87,9 +95,11 @@ public class InvisibilityPower extends PowerType<InvisibilityPower.Config> {
 
     /**
      * Emit the armor-hide tag only when the author asked to hide armor. The tag is
-     * collected into the player's active-capability set (condition-gated by
-     * {@code PowerHolder.hasCapability}) and broadcast to tracking clients, where
-     * the armor-layer mixin consumes it.
+     * collected into the player's active-capability set (condition-gated) and
+     * synced as part of that set, so addons can see whether this player's
+     * invisibility hides armor and whether its condition currently holds. The
+     * render path does not read it — see the class javadoc for why that flag is
+     * derived from the power map instead.
      */
     @Override
     public Set<String> capabilities(Config config) {
