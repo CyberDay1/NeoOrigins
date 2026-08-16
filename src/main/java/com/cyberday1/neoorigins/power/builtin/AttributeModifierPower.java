@@ -228,21 +228,40 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         return instance.getModifier(modIdFor(resolved.id, config)) != null;
     }
 
+    /**
+     * Attribute ids already reported as unresolvable or unattached, so a
+     * misconfigured power warns once per server run instead of once per tick.
+     *
+     * <p>{@link #onTick} edge-triggers on {@code shouldBeActive && !isActive}, but
+     * a modifier that can never be attached leaves {@code isActive} false forever —
+     * so the warn below is not an edge at all, it re-fires every 5 ticks for as
+     * long as the player holds the power. One live report of {@code minecraft:haste}
+     * (a mob effect, not an attribute) put 1472 identical lines into a server log,
+     * 77% of the whole file, at roughly four a second.
+     */
+    private static final java.util.Set<String> WARNED_ATTRIBUTES =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** True the first time this (attribute, failure) pair is seen; false after. */
+    private static boolean warnOnce(ResourceLocation attribute, String failure) {
+        return WARNED_ATTRIBUTES.add(attribute + "|" + failure);
+    }
+
     private void applyModifier(ServerPlayer player, Config config, boolean add) {
         ResolvedAttribute resolved = resolveAttribute(config);
         if (resolved == null) {
-            if (add) {
+            if (add && warnOnce(config.attribute(), "unresolved")) {
                 NeoOrigins.LOGGER.warn(
-                    "attribute_modifier power references unknown attribute '{}' — tried with no prefix, 'generic.', and 'player.' variants. Check the JSON.",
+                    "attribute_modifier power references unknown attribute '{}' — tried with no prefix, 'generic.', and 'player.' variants. If that id is a mob effect (haste, night_vision, …) it is not an attribute: grant it with an apply_effect action instead. Further reports for this id are suppressed.",
                     config.attribute());
             }
             return;
         }
         AttributeInstance instance = player.getAttribute(resolved.holder);
         if (instance == null) {
-            if (add) {
+            if (add && warnOnce(resolved.id, "unattached")) {
                 NeoOrigins.LOGGER.warn(
-                    "attribute_modifier power references attribute '{}' which exists in the registry but is not attached to the player — no-op.",
+                    "attribute_modifier power references attribute '{}' which exists in the registry but is not attached to the player — no-op. Further reports for this id are suppressed.",
                     resolved.id);
             }
             return;
