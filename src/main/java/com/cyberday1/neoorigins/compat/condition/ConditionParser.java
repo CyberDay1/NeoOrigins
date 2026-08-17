@@ -1364,7 +1364,7 @@ public final class ConditionParser {
      * {@code null} for an unrecognised leaf so callers can fall back to
      * always-true. Honours a per-node {@code inverted} flag.
      */
-    private static BlockPosCondition compileInBlockPredicate(JsonObject bc, String contextId) {
+    static BlockPosCondition compileInBlockPredicate(JsonObject bc, String contextId) {
         boolean inverted = bc.has("inverted") && bc.get("inverted").getAsBoolean();
         BlockPosCondition base = compileInBlockLeaf(bc, contextId);
         if (base == null) return null;
