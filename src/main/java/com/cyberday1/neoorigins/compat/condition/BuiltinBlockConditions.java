@@ -39,7 +39,8 @@ import java.util.Map;
  *   <li>{@code light_level} — the light reaching the tested position, compared
  *       numerically; {@code exposed_to_sky} — nothing between it and the sky;
  *       {@code movement_blocking} — the block obstructs movement.</li>
- *   <li>{@code and} / {@code or} — recursive combinators over {@code conditions[]},
+ *   <li>{@code and} / {@code or} (Apoli 2.9+ spellings {@code all_of} / {@code any_of},
+ *       carried as aliases) — recursive combinators over {@code conditions[]},
  *       each element a nested {@code block_condition} (explicit cross-doc
  *       {@code itemsRef} rather than {@code "#"}, so the in-game editor's
  *       name-heuristic ref resolver routes the list to this doc — not the entity
@@ -70,6 +71,20 @@ public final class BuiltinBlockConditions {
     private static void define(String path, List<FieldSpec> fields) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         DESCRIPTORS.put(id, new ConditionType(id, PASSTHROUGH, fields));
+    }
+
+    /**
+     * Define a descriptor that also answers to {@code aliasPaths}. Only the
+     * canonical id is counted toward the type total; the aliases ride along so the
+     * generated schema's discriminator accepts them, which is what stops an editor
+     * marking a working file invalid.
+     */
+    private static void define(String path, List<String> aliasPaths, List<FieldSpec> fields) {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
+        List<ResourceLocation> aliases = aliasPaths.stream()
+            .map(p -> ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, p))
+            .toList();
+        DESCRIPTORS.put(id, new ConditionType(id, PASSTHROUGH, fields, aliases));
     }
 
     static {
@@ -104,12 +119,15 @@ public final class BuiltinBlockConditions {
         // movement_blocking — the block obstructs movement.
         define("movement_blocking", List.of());
         // and — every nested block condition must match.
-        define("and", List.of(
+        // `all_of` is the Apoli 2.9+ rename, accepted by ConditionParser's block
+        // combinator arm; declared here so the editors stop rejecting a file that
+        // the loader has always read.
+        define("and", List.of("all_of"), List.of(
             new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
                 .itemsRef(DOC)
                 .doc("Nested block conditions; all must match (evaluated against the same block).")));
-        // or — at least one nested block condition must match.
-        define("or", List.of(
+        // or — at least one nested block condition must match. `any_of` as above.
+        define("or", List.of("any_of"), List.of(
             new FieldSpec("conditions", FormFieldSpec.Kind.ARRAY, false)
                 .itemsRef(DOC)
                 .doc("Nested block conditions; at least one must match.")));

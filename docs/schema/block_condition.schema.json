@@ -10,8 +10,8 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Block-condition verb (adjacent / and / block / block_state / exposed_to_sky / fluid / height / in_tag / light_level / movement_blocking / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:adjacent|and|block|block_state|exposed_to_sky|fluid|height|in_tag|light_level|movement_blocking|offset|or)$"
+      "description": "Block-condition verb (adjacent / all_of / and / any_of / block / block_state / exposed_to_sky / fluid / height / in_tag / light_level / movement_blocking / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:adjacent|all_of|and|any_of|block|block_state|exposed_to_sky|fluid|height|in_tag|light_level|movement_blocking|offset|or)$"
     }
   },
   "oneOf": [
@@ -61,10 +61,15 @@
         "type": {
           "enum": [
             "neoorigins:and",
+            "neoorigins:all_of",
             "apace:and",
+            "apace:all_of",
             "origins:and",
+            "origins:all_of",
             "apoli:and",
-            "apugli:and"
+            "apoli:all_of",
+            "apugli:and",
+            "apugli:all_of"
           ]
         },
         "conditions": {
@@ -351,10 +356,15 @@
         "type": {
           "enum": [
             "neoorigins:or",
+            "neoorigins:any_of",
             "apace:or",
+            "apace:any_of",
             "origins:or",
+            "origins:any_of",
             "apoli:or",
-            "apugli:or"
+            "apoli:any_of",
+            "apugli:or",
+            "apugli:any_of"
           ]
         },
         "conditions": {
@@ -376,7 +386,9 @@
           "not": {
             "enum": [
               "apace:adjacent",
+              "apace:all_of",
               "apace:and",
+              "apace:any_of",
               "apace:block",
               "apace:block_state",
               "apace:exposed_to_sky",
@@ -388,7 +400,9 @@
               "apace:offset",
               "apace:or",
               "apoli:adjacent",
+              "apoli:all_of",
               "apoli:and",
+              "apoli:any_of",
               "apoli:block",
               "apoli:block_state",
               "apoli:exposed_to_sky",
@@ -400,7 +414,9 @@
               "apoli:offset",
               "apoli:or",
               "apugli:adjacent",
+              "apugli:all_of",
               "apugli:and",
+              "apugli:any_of",
               "apugli:block",
               "apugli:block_state",
               "apugli:exposed_to_sky",
@@ -412,7 +428,9 @@
               "apugli:offset",
               "apugli:or",
               "neoorigins:adjacent",
+              "neoorigins:all_of",
               "neoorigins:and",
+              "neoorigins:any_of",
               "neoorigins:block",
               "neoorigins:block_state",
               "neoorigins:exposed_to_sky",
@@ -424,7 +442,9 @@
               "neoorigins:offset",
               "neoorigins:or",
               "origins:adjacent",
+              "origins:all_of",
               "origins:and",
+              "origins:any_of",
               "origins:block",
               "origins:block_state",
               "origins:exposed_to_sky",
