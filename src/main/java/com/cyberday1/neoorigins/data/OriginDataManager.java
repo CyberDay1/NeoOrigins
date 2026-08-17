@@ -84,6 +84,48 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Resour
         }
     }
 
+    /**
+     * Drops {@code null} entries from an origin's power-id lists, returning how
+     * many were removed.
+     *
+     * <p>A single null in {@code powers} fails the whole {@link Origin} codec, so
+     * the origin does not load at all: it is absent from the picker, and the only
+     * trace is {@code "Not a string: null"} repeated once per null with no key
+     * name and no id. A live server ran an origin with five null power entries and
+     * lost the entire origin to it.
+     *
+     * <p>Dropping them instead keeps every power the author actually named, which
+     * matches how the rest of the compat layer treats a bad leaf — one unreadable
+     * entry should cost that entry, not the whole file. The caller warns with the
+     * origin id so the author can still find and fix it.
+     */
+    static int stripNullPowerEntries(JsonObject json) {
+        int removed = stripNulls(json, "powers");
+        removed += stripNulls(json, "upgrades");
+        if (json.has("tier_powers") && json.get("tier_powers").isJsonArray()) {
+            for (JsonElement overlay : json.getAsJsonArray("tier_powers")) {
+                if (!overlay.isJsonObject()) continue;
+                removed += stripNulls(overlay.getAsJsonObject(), "add");
+                removed += stripNulls(overlay.getAsJsonObject(), "remove");
+            }
+        }
+        return removed;
+    }
+
+    /** Rewrites {@code owner[field]} without its null entries; returns the count dropped. */
+    private static int stripNulls(JsonObject owner, String field) {
+        if (!owner.has(field) || !owner.get(field).isJsonArray()) return 0;
+        com.google.gson.JsonArray original = owner.getAsJsonArray(field);
+        com.google.gson.JsonArray kept = new com.google.gson.JsonArray();
+        int removed = 0;
+        for (JsonElement el : original) {
+            if (el == null || el.isJsonNull()) removed++;
+            else kept.add(el);
+        }
+        if (removed > 0) owner.add(field, kept);
+        return removed;
+    }
+
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
         Map<ResourceLocation, Origin> loaded = new HashMap<>();
@@ -110,6 +152,15 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Resour
                 // sub-powers registered but referenced by nobody. Idempotent after
                 // normalize (synthetic IDs are not expansion-map keys).
                 OriginsOriginTranslator.rewriteMultiplePowerRefs(json);
+
+                // Drop null power ids before parsing — a single null fails the
+                // whole codec and costs the entire origin (see stripNullPowerEntries).
+                int droppedNulls = stripNullPowerEntries(json);
+                if (droppedNulls > 0) {
+                    NeoOrigins.LOGGER.warn("Origin {} lists {} null power entr{} — dropping them and loading the rest. "
+                        + "Check the file for a trailing comma or an empty slot in \"powers\"/\"upgrades\"/\"tier_powers\".",
+                        id, droppedNulls, droppedNulls == 1 ? "y" : "ies");
+                }
 
                 // Always add the id field after normalization
                 json.addProperty("id", id.toString());
