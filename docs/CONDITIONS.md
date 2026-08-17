@@ -249,7 +249,7 @@ True when the entity's bounding box, shifted by `offset_x`/`offset_y`/`offset_z`
 | `offset_x` | float | no | `0.0` | Box X shift as a multiple of the entity's width |
 | `offset_y` | float | no | `0.0` | Box Y shift as a multiple of the entity's height |
 | `offset_z` | float | no | `0.0` | Box Z shift as a multiple of the entity's width |
-| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `and`/`or`, `block_state`, `height`, `adjacent`, and the `offset` wrapper |
+| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the `offset` wrapper |
 
 **Example: touching an iron-tagged block on either side**
 ```json
@@ -600,7 +600,7 @@ True when the entity is on ground and the block directly below matches the neste
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, or an `and`/`or` combinator); absent → on any ground |
+| `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, or an `and`/`or` combinator (aliases `all_of`/`any_of`)); absent → on any ground |
 | `block_condition.id` | resource location | no | — | Block ID to match (also accepts `block`) |
 
 ## `neoorigins:block`
@@ -609,7 +609,7 @@ Block check at the entity's current position: accepts either a nested `block_con
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | no | — | Optional wrapper; the full block-condition grammar (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or`) |
+| `block_condition` | object | no | — | Optional wrapper; the full block-condition grammar (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)) |
 | `block` / `id` | resource location | no | — | Exact block ID |
 | `tag` | resource location | no | — | Block tag (used when ID absent) |
 
@@ -1244,7 +1244,7 @@ Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-ne
 | `blocks` | list of resource location | no | `[]` | Additional block IDs to match |
 | `tag` | block tag | no | — | Single block tag (with or without leading `#`) |
 | `tags` | list of block tag | no | `[]` | Additional block tags |
-| `block_condition` | object | no | — | Origins-format nested block condition (`block`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or`) |
+| `block_condition` | object | no | — | Origins-format nested block condition (`block`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)) |
 | `radius` | int (1–8) | no | `4` | Cubic radius to scan around the player |
 
 At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empty.
