@@ -182,12 +182,17 @@ public final class LegacyAliasPowerSpecs {
             new FieldSpec("amplifier", Kind.INTEGER, false)
                 .def(0).range(0.0, null)
                 .doc("Effect level minus one for the root-level `effect` (0 = level I, 1 = level II); default 0. Also cascades as the default amplifier onto every `effects` entry that omits its own."),
+            // Both defaults follow PersistentEffectPower's EffectSpec decode, which
+            // is ambient=true / show_particles=false — the beacon-style presentation
+            // the legacy status_effect shape has always had. They were declared the
+            // other way round until 2.2.25, so the editors and the generated schemas
+            // advertised the opposite of what the loader does.
             new FieldSpec("ambient", Kind.BOOLEAN, false)
-                .def(false)
-                .doc("When true the effect renders as ambient (faint beacon-style particles); default false. Cascades onto `effects` entries that omit it."),
-            new FieldSpec("show_particles", Kind.BOOLEAN, false)
                 .def(true)
-                .doc("When false the effect's swirling particles are suppressed; default true. Cascades onto `effects` entries that omit it."),
+                .doc("When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it."),
+            new FieldSpec("show_particles", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it."),
             new FieldSpec("show_icon", Kind.BOOLEAN, false)
                 .def(true)
                 .doc("When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.")),

@@ -6045,14 +6045,14 @@
           "minimum": 0
         },
         "ambient": {
-          "description": "When true the effect renders as ambient (faint beacon-style particles); default false. Cascades onto `effects` entries that omit it.",
-          "type": "boolean",
-          "default": false
-        },
-        "show_particles": {
-          "description": "When false the effect's swirling particles are suppressed; default true. Cascades onto `effects` entries that omit it.",
+          "description": "When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it.",
           "type": "boolean",
           "default": true
+        },
+        "show_particles": {
+          "description": "When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": false
         },
         "show_icon": {
           "description": "When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.",
