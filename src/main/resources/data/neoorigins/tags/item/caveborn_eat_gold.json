@@ -2,6 +2,10 @@
   "values": [
     "minecraft:gold_ingot",
     "minecraft:raw_gold",
-    "minecraft:gold_nugget"
+    "minecraft:gold_nugget",
+    "minecraft:gold_ore",
+    "minecraft:deepslate_gold_ore",
+    "minecraft:nether_gold_ore",
+    "minecraft:raw_gold_block"
   ]
 }
