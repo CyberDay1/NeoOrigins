@@ -1629,7 +1629,7 @@
   "neoorigins.configuration.warden_sonic_boom": "Warden Sonic Boom",
   "neoorigins.configuration.warden_strength": "Warden Strength",
   "origins.neoorigins.wraith.name": "Wraith",
-  "origins.neoorigins.wraith.description": "A tormented spirit that drifts through solid matter. Phases through most blocks but cannot pass obsidian. Sustaining a physical form drains hunger, and sunlight sears its spectral flesh.",
+  "origins.neoorigins.wraith.description": "A tormented spirit that drifts through solid matter. Phases through most blocks but cannot pass obsidian until it reaches its apex form. Sustaining a physical form drains hunger, and sunlight sears its spectral flesh.",
   "power.neoorigins.wraith_phase.name": "Spectral Form",
   "power.neoorigins.wraith_phase.description": "Toggle: walk through solid blocks. While inside a block, fly freely (jump = up, shift = down). Obsidian, crying obsidian, and bedrock block your passage. Phasing drains hunger.",
   "power.neoorigins.wraith_water_breathing.name": "Breathless",
