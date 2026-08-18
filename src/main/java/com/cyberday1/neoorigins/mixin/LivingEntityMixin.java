@@ -37,21 +37,28 @@ public abstract class LivingEntityMixin {
             if (!self.level().isClientSide) {
                 // Stop flight on ground, in water, or as passenger (same as vanilla canGlide)
                 if (self.onGround() || self.isInWater() || self.isPassenger()) {
-                    sp.stopFallFlying();
-                    this.fallFlyTicks = 0;
-                    // Broadcast stop-elytra-sound to all nearby clients.
-                    // Vanilla's ElytraOnPlayerSoundInstance checks isFallFlying()
-                    // each tick, but network sync delay can leave the loop running
-                    // for remote players — the sound stacks and gets louder (#42).
-                    var stopPacket = new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(
-                        net.minecraft.sounds.SoundEvents.ELYTRA_FLYING.getLocation(),
-                        net.minecraft.sounds.SoundSource.PLAYERS);
-                    for (var nearby : ((net.minecraft.server.level.ServerLevel) sp.level())
-                            .players()) {
-                        if (nearby.distanceToSqr(sp) < 64 * 64) {
-                            nearby.connection.send(stopPacket);
+                    // Only act on the tick flight actually ends. Running this
+                    // unconditionally re-sent the stop-sound packet to every
+                    // player within 64 blocks twenty times a second, which also
+                    // silenced the elytra of bystanders who were genuinely
+                    // gliding past (#116).
+                    if (self.isFallFlying()) {
+                        sp.stopFallFlying();
+                        // Broadcast stop-elytra-sound to all nearby clients.
+                        // Vanilla's ElytraOnPlayerSoundInstance checks isFallFlying()
+                        // each tick, but network sync delay can leave the loop running
+                        // for remote players — the sound stacks and gets louder (#42).
+                        var stopPacket = new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(
+                            net.minecraft.sounds.SoundEvents.ELYTRA_FLYING.getLocation(),
+                            net.minecraft.sounds.SoundSource.PLAYERS);
+                        for (var nearby : ((net.minecraft.server.level.ServerLevel) sp.level())
+                                .players()) {
+                            if (nearby.distanceToSqr(sp) < 64 * 64) {
+                                nearby.connection.send(stopPacket);
+                            }
                         }
                     }
+                    this.fallFlyTicks = 0;
                 } else {
                     // Don't check canGlide() — allow flight without elytra.
                     // Don't damage equipment — there's no elytra to damage.
@@ -72,7 +79,16 @@ public abstract class LivingEntityMixin {
                     || PowerCapabilities.hasActive(self, "natural_glide"))) {
             self.checkSlowFallDistance();
             if (self.onGround() || self.isInWater() || self.isPassenger()) {
-                clientPlayer.stopFallFlying();
+                // Guarded for the same reason as the server branch, and this is
+                // the half the player actually hears. Player.stopFallFlying()
+                // sets shared-flag 7 true and then false, and LocalPlayer starts
+                // a fresh ElytraOnPlayerSoundInstance on that rising edge
+                // whenever its once-per-tick wasFallFlying snapshot is stale.
+                // Calling it every tick on the ground therefore stacked twenty
+                // overlapping elytra sounds a second (#116).
+                if (self.isFallFlying()) {
+                    clientPlayer.stopFallFlying();
+                }
                 this.fallFlyTicks = 0;
             } else {
                 this.fallFlyTicks++;
