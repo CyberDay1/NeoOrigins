@@ -132,6 +132,17 @@ public final class AsyncSpawnLocator {
 
         Optional<ServerLevel> resolved = spec.resolveTargetLevel(player);
         if (resolved.isEmpty()) {
+            // Name the dimension. An unresolvable id used to return here in
+            // total silence, so an origin pointed at a modded dimension that
+            // is misspelled — or whose mod is not installed — presented to the
+            // player as the origin simply doing nothing on selection, with
+            // nothing in the log to chase (#107).
+            com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                "spawn_location names dimension '{}', but no loaded level provides it — "
+                    + "check the id spelling and that the mod owning it is installed. "
+                    + "Leaving {} where they are.",
+                spec.dimension().map(Object::toString).orElse("<none>"),
+                player.getName().getString());
             onResolved.accept(player, Optional.empty());
             return;
         }
