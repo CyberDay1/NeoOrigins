@@ -67,4 +67,28 @@ public abstract class EntityMountEndMixin {
                 new net.minecraft.network.protocol.game.ClientboundSetPassengersPacket(vehiclePlayer));
         }
     }
+
+    /**
+     * Mount-side mirror of {@link #neoorigins$resyncVehicleOnDismount}, for the
+     * same self-tracking reason: the ridden player is the one client the
+     * tracker's broadcast never reaches, so without this they alone cannot see
+     * their own rider.
+     *
+     * <p>{@code MountConsentManager#doMount} already sends this explicitly, but
+     * it is not the only way a player ends up ridden — the Apoli compat
+     * bi-entity {@code mount} action, the builtin mount action, and
+     * {@code SummonMinionPower} all call {@code startRiding} directly and had
+     * no such resend. Injecting at the common sink covers every present and
+     * future call site instead of each one remembering.
+     */
+    @Inject(
+        method = "addPassenger(Lnet/minecraft/world/entity/Entity;)V",
+        at = @At("RETURN")
+    )
+    private void neoorigins$resyncVehicleOnMount(Entity passenger, CallbackInfo ci) {
+        if ((Object) this instanceof ServerPlayer vehiclePlayer) {
+            vehiclePlayer.connection.send(
+                new net.minecraft.network.protocol.game.ClientboundSetPassengersPacket(vehiclePlayer));
+        }
+    }
 }
