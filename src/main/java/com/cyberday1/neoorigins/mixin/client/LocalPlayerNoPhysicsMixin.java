@@ -173,9 +173,52 @@ public abstract class LocalPlayerNoPhysicsMixin {
             }
         }
         if (!shapes.isEmpty()) {
-            return Entity.collideBoundingBox(entity, movement, entity.getBoundingBox(), entity.level(), shapes);
+            return neoorigins$collideAgainstOnly(movement, entity.getBoundingBox(), shapes);
         }
         return movement;
+    }
+
+    /**
+     * Axis-wise collision against {@code shapes} and nothing else.
+     *
+     * <p>{@link Entity#collideBoundingBox} cannot be used for this. It funnels
+     * through {@code collectColliders}, which unconditionally appends
+     * {@code level.getBlockCollisions(...)} to whatever list it is handed, so
+     * passing it the blacklisted shapes still collided the player against EVERY
+     * block in range — including the ordinary ones they are legitimately phasing
+     * through. The effect was that a wraith froze solid inside a wall whenever a
+     * blacklisted block happened to be within reach, which is the opposite of
+     * what the blacklist is for. Vanilla's own shapes-only routine
+     * ({@code Entity.collideWithShapes}) is private, so its axis order is
+     * mirrored here.
+     */
+    @Unique
+    private static Vec3 neoorigins$collideAgainstOnly(
+            Vec3 movement, AABB box, java.util.List<VoxelShape> shapes) {
+        double dx = movement.x;
+        double dy = movement.y;
+        double dz = movement.z;
+        if (dy != 0.0) {
+            dy = net.minecraft.world.phys.shapes.Shapes.collide(
+                net.minecraft.core.Direction.Axis.Y, box, shapes, dy);
+            if (dy != 0.0) box = box.move(0.0, dy, 0.0);
+        }
+        boolean zFirst = Math.abs(dx) < Math.abs(dz);
+        if (zFirst && dz != 0.0) {
+            dz = net.minecraft.world.phys.shapes.Shapes.collide(
+                net.minecraft.core.Direction.Axis.Z, box, shapes, dz);
+            if (dz != 0.0) box = box.move(0.0, 0.0, dz);
+        }
+        if (dx != 0.0) {
+            dx = net.minecraft.world.phys.shapes.Shapes.collide(
+                net.minecraft.core.Direction.Axis.X, box, shapes, dx);
+            if (!zFirst && dx != 0.0) box = box.move(dx, 0.0, 0.0);
+        }
+        if (!zFirst && dz != 0.0) {
+            dz = net.minecraft.world.phys.shapes.Shapes.collide(
+                net.minecraft.core.Direction.Axis.Z, box, shapes, dz);
+        }
+        return new Vec3(dx, dy, dz);
     }
 
     @Unique
