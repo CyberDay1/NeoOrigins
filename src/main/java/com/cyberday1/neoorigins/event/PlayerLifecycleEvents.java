@@ -95,6 +95,23 @@ public class PlayerLifecycleEvents {
             }
         }
 
+        // Drain deferred trinket re-equip: a Curios/Accessories slot that wasn't
+        // writable at respawn gets retried each tick until it is. Only once the
+        // grace window is spent do we fall back to the inventory and then the
+        // ground, so a slow-rebuilding slot handler no longer costs the player the
+        // item keep_inventory promised to keep.
+        var trinketRetry = pendingTrinketRestore.get(sp.getUUID());
+        if (trinketRetry != null) {
+            trinketRetry.entries.removeIf(t -> restoreTrinketSlot(sp, t));
+            if (trinketRetry.entries.isEmpty()) {
+                pendingTrinketRestore.remove(sp.getUUID());
+            } else if (trinketRetry.ticksLeft <= 0) {
+                flushPendingTrinkets(sp);
+            } else {
+                trinketRetry.ticksLeft--;
+            }
+        }
+
         CompatTickScheduler.tick(sp);
         MinionTracker.tick(sp);
         // KubeJS power_tick: opt-in via hasListeners() — skip the per-power
@@ -352,6 +369,10 @@ public class PlayerLifecycleEvents {
         pendingOriginCheck.remove(uuid);
         pendingPowerReapply.remove(uuid);
         pendingResync.remove(uuid);
+        // Not a plain remove: a pending trinket is an item the player still owns,
+        // so settle it (slot, then inventory, then ground) before dropping the
+        // bookkeeping. Logging out mid-retry must not delete it.
+        flushPendingTrinkets(sp);
         lastOnGround.remove(uuid);
         NeoOriginsNetwork.clearPhaseGate(uuid);
         com.cyberday1.neoorigins.power.morph.ServerMorphState.remove(uuid);
@@ -466,17 +487,19 @@ public class PlayerLifecycleEvents {
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.RESPAWN);
 
-        // Re-equip trinkets kept via keep_inventory. The new ServerPlayer's
-        // Curios/Accessories handlers are ready by respawn; re-equip into the
-        // original slot when it's empty, otherwise fall back to the inventory so
-        // the item is never lost.
+        // Re-equip trinkets kept via keep_inventory, into the exact slot they died
+        // in. A slot that isn't writable yet is NOT failed over to the inventory
+        // here: Curios/Accessories rebuild their slot counts on their own schedule
+        // after respawn, so an unready slot is usually a timing miss rather than a
+        // real one, and the inventory fallback drops the item outright once the
+        // inventory is full. Defer instead and retry over a grace window.
         var trinkets = KEPT_TRINKETS.remove(sp.getUUID());
         if (trinkets != null) {
+            var deferred = new java.util.ArrayList<KeptTrinket>();
             for (var t : trinkets) {
-                boolean placed = com.cyberday1.neoorigins.compat.condition.AccessoryInspector.restoreSlot(
-                    sp, t.source(), t.slotId(), t.index(), t.stack());
-                if (!placed && !sp.getInventory().add(t.stack())) sp.drop(t.stack(), false);
+                if (!restoreTrinketSlot(sp, t)) deferred.add(t);
             }
+            deferTrinkets(sp.getUUID(), deferred);
         }
 
         // Recall surviving tamed pets to the respawned tamer (vanilla-pet
@@ -631,12 +654,36 @@ public class PlayerLifecycleEvents {
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.WAKE_UP);
     }
 
+    /** One inventory stack kept across death, with the slot it was taken from. */
+    private record KeptStack(int slot, net.minecraft.world.item.ItemStack stack) {}
+
     /** Per-player stash for items kept across death via KeepInventoryPower. */
-    private static final java.util.Map<java.util.UUID, java.util.List<net.minecraft.world.item.ItemStack>> KEPT_STASH
+    private static final java.util.Map<java.util.UUID, java.util.List<KeptStack>> KEPT_STASH
         = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /**
+     * Puts a stashed stack back in the slot it died in, if that slot is still free.
+     *
+     * <p>Restoring by slot rather than via {@code Inventory.add} matters twice over.
+     * {@code add} only ever fills the main inventory (0-35), so armour (36-39) and the
+     * offhand (40) came back as loose inventory items instead of staying equipped; and
+     * once the inventory was full {@code add} failed outright and the item was dropped
+     * on the ground, which is the opposite of what keep_inventory promises. The original
+     * slot is free by construction here, because death emptied it.
+     *
+     * @return true when the stack was placed
+     */
+    static boolean restoreToOriginalSlot(net.minecraft.world.Container inv, int slot,
+                                         net.minecraft.world.item.ItemStack stack) {
+        if (inv == null || stack.isEmpty()) return false;
+        if (slot < 0 || slot >= inv.getContainerSize()) return false;
+        if (!inv.getItem(slot).isEmpty()) return false;
+        inv.setItem(slot, stack);
+        return true;
+    }
+
     /** One Curios/Accessories stack kept across death, with the slot to re-equip into. */
-    private record KeptTrinket(
+    record KeptTrinket(
         com.cyberday1.neoorigins.compat.condition.AccessoryInspector.Source source,
         String slotId, int index, net.minecraft.world.item.ItemStack stack) {}
 
@@ -644,11 +691,74 @@ public class PlayerLifecycleEvents {
     private static final java.util.Map<java.util.UUID, java.util.List<KeptTrinket>> KEPT_TRINKETS
         = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /**
+     * How long a kept trinket may wait for its slot to become writable before we
+     * give up and fall back. Three seconds is far longer than any handler needs to
+     * rebuild its slots, and the cost of waiting is nothing — the stack is held in
+     * the stash, not in the world.
+     */
+    private static final int TRINKET_RETRY_TICKS = 60;
+
+    /** Kept trinkets whose slot wasn't writable yet, with the grace window left. */
+    static final class PendingTrinkets {
+        final java.util.List<KeptTrinket> entries;
+        int ticksLeft;
+
+        PendingTrinkets(java.util.List<KeptTrinket> entries, int ticksLeft) {
+            this.entries = entries;
+            this.ticksLeft = ticksLeft;
+        }
+    }
+
+    /** Per-player trinkets awaiting a retry (drained in {@link #onPlayerTick}). */
+    static final java.util.Map<java.util.UUID, PendingTrinkets> pendingTrinketRestore
+        = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Re-equips a kept trinket into its original slot. True when it went back. */
+    private static boolean restoreTrinketSlot(ServerPlayer sp, KeptTrinket t) {
+        return com.cyberday1.neoorigins.compat.condition.AccessoryInspector.restoreSlot(
+            sp, t.source(), t.slotId(), t.index(), t.stack());
+    }
+
+    /**
+     * Queues trinkets whose slot wasn't writable yet for a retry.
+     *
+     * <p>Accumulates rather than replaces. Dying again inside the grace window is
+     * ordinary (respawning into lava, or the void), and a plain {@code put} would
+     * discard the first death's stash and destroy those items outright — the stash
+     * is the only remaining reference to them.
+     */
+    static void deferTrinkets(java.util.UUID uuid, java.util.List<KeptTrinket> deferred) {
+        if (deferred.isEmpty()) return;
+        var existing = pendingTrinketRestore.get(uuid);
+        if (existing == null) {
+            pendingTrinketRestore.put(uuid, new PendingTrinkets(
+                new java.util.ArrayList<>(deferred), TRINKET_RETRY_TICKS));
+        } else {
+            existing.entries.addAll(deferred);
+            existing.ticksLeft = TRINKET_RETRY_TICKS;
+        }
+    }
+
+    /**
+     * Last resort once the grace window is spent, and on logout so nothing is lost
+     * when the retry never got to finish: original slot, then the inventory, then
+     * the ground.
+     */
+    private static void flushPendingTrinkets(ServerPlayer sp) {
+        var pending = pendingTrinketRestore.remove(sp.getUUID());
+        if (pending == null) return;
+        for (var t : pending.entries) {
+            if (restoreTrinketSlot(sp, t)) continue;
+            if (!sp.getInventory().add(t.stack())) sp.drop(t.stack(), false);
+        }
+    }
+
     @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGH)
     public static void onLivingDeath(net.neoforged.neoforge.event.entity.living.LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var inv = sp.getInventory();
-        var kept = new java.util.ArrayList<net.minecraft.world.item.ItemStack>();
+        var kept = new java.util.ArrayList<KeptStack>();
         int total = inv.getContainerSize();
         for (int i = 0; i < total; i++) {
             var stack = inv.getItem(i);
@@ -663,7 +773,7 @@ public class PlayerLifecycleEvents {
                 match[0] = true;
             });
             if (match[0]) {
-                kept.add(stack.copy());
+                kept.add(new KeptStack(i, stack.copy()));
                 inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
             }
         }
@@ -703,8 +813,10 @@ public class PlayerLifecycleEvents {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
         var stash = KEPT_STASH.remove(sp.getUUID());
         if (stash == null) return;
-        for (var stack : stash) {
-            if (!sp.getInventory().add(stack)) sp.drop(stack, false);
+        var inv = sp.getInventory();
+        for (var kept : stash) {
+            if (restoreToOriginalSlot(inv, kept.slot(), kept.stack())) continue;
+            if (!inv.add(kept.stack())) sp.drop(kept.stack(), false);
         }
     }
 }
