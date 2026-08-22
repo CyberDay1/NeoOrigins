@@ -36,6 +36,7 @@ public class TickActionPower extends PowerType<TickActionPower.Config> {
     @Override
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % config.interval() != 0) return;
-        // Action dispatched by OriginEventHandler based on actionType
+        // Nothing is dispatched: actionType is parsed and accepted, but no action
+        // runs on this interval. condition_passive is the working replacement.
     }
 }

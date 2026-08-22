@@ -720,21 +720,24 @@ Boss-tier mobs (the Warden, Ender Dragon and Wither) are never scared, regardles
 
 ## `neoorigins:tick_action`
 
-Runs a named action on a repeating interval while the origin is active.
+Legacy no-op: it dispatches nothing. The type still loads and its fields still parse, so an existing pack keeps booting, but no action ever runs on the interval. Use [`neoorigins:condition_passive`](#neooriginscondition_passive) instead: it takes the same `interval` field and actually runs an `entity_action`, with an optional `condition` gating each run.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `interval` | int | no | `20` | Ticks between action executions (20 ticks = 1 second) |
-| `action_type` | string | no | `none` | Action to perform each interval. Currently: `teleport_on_damage`, `none` |
+| `interval` | int | no | `20` | Parsed and ignored: nothing is dispatched on the interval. |
+| `action_type` | string | no | `none` | Parsed and ignored. `teleport_on_damage` is accepted by the codec but has no behaviour behind it. |
 
-**Example: teleport to safety on damage every 2 seconds**
+**Replacement: the same shape on `condition_passive`**
 ```json
 {
-  "type": "neoorigins:tick_action",
+  "type": "neoorigins:condition_passive",
   "interval": 40,
-  "action_type": "teleport_on_damage",
-  "name": "Dimensional Escape",
-  "description": "Teleports away when taking damage."
+  "entity_action": {
+    "type": "neoorigins:heal",
+    "amount": 1.0
+  },
+  "name": "Slow Mend",
+  "description": "Knits itself back together every two seconds."
 }
 ```
 
@@ -2510,7 +2513,7 @@ The 2.0 generic event hook: fires an action and/or applies a float modifier when
 |---|---|---|
 | `block` | `block` (or legacy `id`) | The block is exactly that id. |
 | `in_tag` | `tag` | The block is in that block tag (leading `#` optional). |
-| `and` / `or` | `conditions` | All / at least one nested condition matches. |
+| `and` / `all_of` / `or` / `any_of` | `conditions` | All / at least one nested condition matches. |
 | `offset` | `x`, `y`, `z`, `condition` | The nested condition matches at the shifted position. |
 | `block_state` | `property`, plus `value`/`enum` or `comparison`+`compare_to` | The block carries that blockstate property and its value matches. A block without the property never matches. |
 | `height` | `comparison` (default `>=`), `compare_to` | The *block's* own Y level compares true; `{ "comparison": "<=", "compare_to": 63 }` is "at or below sea level". |
@@ -2877,15 +2880,19 @@ The single decision is `match → forbidden`: in blacklist mode a matched item i
 
 ## `neoorigins:keep_inventory`
 
-On death, selectively retain inventory items matching the power's filters. Matching items are removed from drops and restored to the player's inventory on respawn.
+On death, selectively retain inventory items matching the power's filters. Matching items are removed from drops and restored on respawn into the exact slot they were taken from, trinket slots included: armour comes back worn, the hotbar keeps its layout, and a full inventory can no longer push the leftovers onto the ground.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `slots` | list of string | no | `["*"]` | Slot categories to keep from: `hotbar`, `main`, `armor`, `offhand`, `all` (alias `*`). `main` also includes `hotbar`. |
+| `slots` | list of string | no | `["*"]` | Slot categories to keep from: `hotbar`, `main`, `armor`, `offhand`, `all` (alias `*`). `main` also includes `hotbar`. Also accepts trinket slots: `curio`, `accessory`, or `trinket` cover every Curios slot, or name a specific slot id like `ring` or `necklace`. |
 | `items` | list of Identifier | no | `[]` | Specific items to keep |
 | `tags` | list of Identifier | no | `[]` | Item tags to keep |
 
 If both `items` and `tags` are empty, every item in the configured slots is kept.
+
+**Curios:** trinket slots are covered when the [Curios](https://www.curseforge.com/minecraft/mc-mods/curios) mod is installed; without it these slot tokens simply match nothing. The wildcard `*`/`all` includes trinkets too.
+
+A kept trinket is re-equipped into its original slot on respawn. Curios rebuilds its slot counts on its own schedule after a respawn, so if the slot isn't writable yet the trinket is held and retried for three seconds rather than given up on. Only once that window is spent does it fall back to the regular inventory, and to the ground only if the inventory is full as well. Logging out mid-retry settles it the same way instead of losing it.
 
 **Example: always keep tools**
 ```json
@@ -3731,7 +3738,7 @@ Recipes that compose existing power types to cover use cases the built-in types 
 
 ## Periodic feed / heal via `neoorigins:action_over_time`
 
-NeoOrigins' built-in `neoorigins:tick_action` only ships a hardcoded `TELEPORT_ON_DAMAGE` behaviour. For any other periodic action (periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action), use `neoorigins:action_over_time`. It is an alias for [`neoorigins:condition_passive`](#neooriginscondition_passive) (identical fields), so an optional `condition` gates whether the action runs each interval.
+NeoOrigins' built-in `neoorigins:tick_action` ships no behaviour at all: it dispatches nothing. For any periodic action (periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action), use `neoorigins:action_over_time`. It is an alias for [`neoorigins:condition_passive`](#neooriginscondition_passive) (identical fields), so an optional `condition` gates whether the action runs each interval.
 
 **Periodic hunger restoration** (e.g. for an origin that doesn't eat conventionally):
 ```json
@@ -4605,7 +4612,7 @@ Origins compat: translates `origins:shader`.
 
 ## `neoorigins:wraith_phase`
 
-Toggleable spectral phasing. When active the player walks through solid blocks horizontally. While inside a solid block, flight enables (jump = up, shift = down). Holding shift on the surface phases downward into the ground. Certain blocks cannot be phased through.
+Toggleable spectral phasing. When active the player walks through solid blocks horizontally. While inside a solid block, jump and sneak give vertical control (jump = up, shift = down): that movement is velocity, and the power never grants flight. Holding shift on the surface phases downward into the ground. Certain blocks cannot be phased through.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4822,7 +4829,7 @@ Death prevention mechanic for slime-themed origins. When the player would die wi
 
 ## `neoorigins:slime_level_hp`
 
-Grants bonus max HP based on the player's experience level. The bonus resets on death (since vanilla drops XP on death).
+Grants bonus max HP based on the player's experience level. The bonus tracks your current level: it is recomputed from the level you have right now, so it falls when you lose levels and comes back when you earn them again.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4836,7 +4843,7 @@ Grants bonus max HP based on the player's experience level. The bonus resets on 
   "levels_per_hp": 10,
   "max_bonus_hp": 20,
   "name": "Growth",
-  "description": "Grows tougher with experience. Resets on death."
+  "description": "Grows tougher with experience."
 }
 ```
 
@@ -4856,7 +4863,7 @@ Each piece is a separate power entry in the origin's `powers` array. The `entity
 
 ## `neoorigins:loot_pool_grant`
 
-Active power that rolls a vanilla loot table on activation and grants every rolled stack to the player. Lets pack authors deliver weighted, conditional, function-driven rewards through the full vanilla loot infrastructure instead of a flat item list, and (when FTB Quests is installed) reuse the same loot table as a quest reward via a tag-marker.
+Active power that rolls a vanilla loot table on activation and grants every rolled stack to the player. Lets pack authors deliver weighted, conditional, function-driven rewards through the full vanilla loot infrastructure instead of a flat item list, and (when FTB Quests is installed) reuse the same loot table as a quest reward via a tag-marker. The grant fires once per `grant_id`: after it lands, further activations with the same id do nothing until an origin reset clears the record.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
