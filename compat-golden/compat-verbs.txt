@@ -3,7 +3,7 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 922   typed-objects: 1380   distinct-types: 151
+# files-scanned: 921   typed-objects: 1379   distinct-types: 150
 
 == RECOGNIZED VERBS ==
 [action] (93)
@@ -371,7 +371,6 @@ neoorigins:tame_mob	x1	recognized=-	fields={cooldown_icon,cooldown_ticks,death_d
 neoorigins:tamed_potion_diffusal	x1	recognized=-	fields={}
 neoorigins:target_group	x1	recognized=condition	fields={group}
 neoorigins:thorns_on_hit	x4	recognized=-	fields={damage,description,fire_ticks,name}
-neoorigins:tick_action	x1	recognized=-	fields={action_type,description,interval,name}
 neoorigins:tidal_wave	x1	recognized=-	fields={cone_angle,cooldown_icon,cooldown_ticks,damage,knockback_strength,range,resource_cost,resource_cost_amount}
 neoorigins:trade_availability	x1	recognized=-	fields={}
 neoorigins:tree_felling	x1	recognized=-	fields={}
