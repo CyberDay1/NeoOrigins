@@ -1,9 +1,0 @@
-{
-  "values": [
-    "#minecraft:gold_ores",
-    {
-      "id": "#forge:ores/gold",
-      "required": false
-    }
-  ]
-}

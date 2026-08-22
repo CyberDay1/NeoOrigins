@@ -1,9 +1,0 @@
-{
-  "values": [
-    "minecraft:netherrack",
-    {
-      "id": "#forge:ore_bearing_ground/netherrack",
-      "required": false
-    }
-  ]
-}

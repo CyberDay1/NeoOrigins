@@ -30,6 +30,15 @@ logs/
 # Reference sources (local only)
 reference/
 
+# Extracted vanilla/NeoForge jar contents at the repo root. A broad `git add`
+# once swept 7k of these in (92e0a65a). Root-anchored, so src/main/java/com,
+# src/main/resources/data and src/main/resources/META-INF are unaffected.
+/net/
+/com/
+/assets/
+/data/
+/META-INF/
+
 # Scratch / local-only artifacts at repo root
 /*.zip
 /stuff.txt

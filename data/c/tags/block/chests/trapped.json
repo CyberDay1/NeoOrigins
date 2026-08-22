@@ -1,9 +1,0 @@
-{
-  "values": [
-    "minecraft:trapped_chest",
-    {
-      "id": "#forge:chests/trapped",
-      "required": false
-    }
-  ]
-}

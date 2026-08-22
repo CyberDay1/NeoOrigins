@@ -1,7 +1,0 @@
-{
-    "parent": "neoforge:item/default",
-    "textures": {
-        "base": "item/bucket",
-        "fluid": "neoforge:item/mask/bucket_fluid_drip"
-    }
-}
