@@ -75,6 +75,28 @@ public class KeepInventoryPower extends PowerType<KeepInventoryPower.Config> {
         return false;
     }
 
+    /**
+     * Whether a Curios slot is covered by this power's {@code slots} filter.
+     * Matches the {@code *}/{@code all} wildcard, the umbrella tokens
+     * {@code curio}/{@code accessory}/{@code trinket} (which cover every trinket
+     * slot), or a specific trinket slot identifier (e.g. {@code ring},
+     * {@code necklace}, {@code belt}).
+     *
+     * <p>The {@code accessory} spellings are accepted alongside {@code curio}
+     * even though only Curios is supported on this Minecraft version, so a pack
+     * written against either mod's vocabulary works unchanged.
+     */
+    public static boolean matchesAccessorySlot(Config config, String slotId) {
+        for (String s : config.slots()) {
+            if (s.equalsIgnoreCase("*") || s.equalsIgnoreCase("all")) return true;
+            if (s.equalsIgnoreCase("curio") || s.equalsIgnoreCase("curios")
+                || s.equalsIgnoreCase("accessory") || s.equalsIgnoreCase("accessories")
+                || s.equalsIgnoreCase("trinket") || s.equalsIgnoreCase("trinkets")) return true;
+            if (slotId != null && s.equalsIgnoreCase(slotId)) return true;
+        }
+        return false;
+    }
+
     public static boolean matchesItem(Config config, ItemStack stack) {
         if (stack.isEmpty()) return false;
         // Empty item/tag lists with a slots filter → keep everything in the slots.
