@@ -12,8 +12,9 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 
 /**
  * Slime Level HP — grants +1 max HP per N experience levels.
- * The bonus resets on death (handled by onGranted recalculating from level 0
- * after respawn, since the player loses XP on death).
+ * The bonus tracks the player's current level: onTick recomputes it from
+ * {@code experienceLevel} every 20 ticks, so it follows levels up and down
+ * rather than resetting at any particular event.
  */
 public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
 

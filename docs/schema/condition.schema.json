@@ -962,7 +962,7 @@
           ]
         },
         "equipment_slot": {
-          "description": "Equipment slot to inspect (default mainhand). `accessory` inspects equipped Curios/Accessories slots (soft-dep, 1.21.1 only).",
+          "description": "Equipment slot to inspect (default mainhand). `accessory` inspects equipped trinket slots from Curios and Accessories (Wisp Forest); both are soft deps.",
           "type": "string",
           "enum": [
             "head",
