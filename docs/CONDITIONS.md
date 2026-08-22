@@ -188,7 +188,7 @@ True while horizontal delta-movement is nonzero. No fields.
 
 ## `neoorigins:in_rain`
 
-True when rain is falling at the entity's block position with sky access (server-side only); returns false while mounted. If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios slot blocks the rain entirely (mirroring `exposed_to_sun`), so rain/water-damage origins like Wet Fur and True Hydrophobia stop hurting while you carry one.
+True when rain is falling at the entity's block position with sky access (server-side only); returns false while mounted. An umbrella held in either hand or worn in a Curios slot blocks the rain entirely (mirroring `exposed_to_sun`), so rain/water-damage origins like Wet Fur and True Hydrophobia stop hurting while you carry one. See [Umbrella items](#umbrella-items) for what counts as an umbrella.
 
 ## `neoorigins:daytime`
 
@@ -200,7 +200,30 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. If **Vampires Need Umbrellas** is installed, holding an umbrella in either hand or a Curios slot blocks sun damage entirely (checked before helmets).
+True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
+
+
+### Umbrella items
+
+Both weather-damage conditions — `exposed_to_sun` and `in_rain` — share one umbrella check, so a single umbrella shields the holder from sun and rain alike. It is found in the main hand, the off hand, or any Curios slot.
+
+An item counts as an umbrella if either of these holds:
+
+- It is in the `neoorigins:umbrellas` item tag. This is the datapack-facing route: declare `data/<your-pack>/tags/item/umbrellas.json` with `"replace": false` and append your own items. NeoOrigins ships the tag with `artifacts:umbrella` (from the **Artifacts** mod) as an optional entry, so it resolves when Artifacts is installed and silently no-ops when it is not.
+- **Vampires Need Umbrellas** is installed and the item comes from the `vampiresneedumbrellas` namespace. The whole namespace is accepted, so items from that mod need no tag entry.
+
+The tag is consulted regardless of which mods are loaded, so it is the supported way to register an umbrella NeoOrigins does not know about:
+
+```json
+{
+  "replace": false,
+  "values": [
+    { "id": "somemod:parasol", "required": false }
+  ]
+}
+```
+
+Use `"required": false` for items from mods that may not be installed, so tag loading does not error when they are absent.
 
 ## `neoorigins:on_fire` (alias `neoorigins:fire`)
 
@@ -644,7 +667,8 @@ Inspects an item in a given equipment slot.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, or `"mainhand"` |
+| `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, `"mainhand"`, or `"accessory"` |
+| `slot_type` | string | no | — | Only used when `equipment_slot` is `"accessory"`: narrows to a named accessory/curio slot type (e.g. `ring`, `belt`, `hands`); absent → any accessory slot |
 | `item_condition` | object | no | — | Nested condition (see below) |
 
 **Unusual:** `item_condition` has its own internal shape. Accepts any of:
@@ -654,6 +678,8 @@ Inspects an item in a given equipment slot.
 - `{ "ingredient": { "item": "..." } }` or `{ "ingredient": { "tag": "..." } }` — ingredient-style wrapper
 
 Always-true when `item_condition` is absent.
+
+**Accessory slots:** `"accessory"` inspects worn trinkets from Curios, a soft dependency — without it installed the `accessory` slot matches nothing. When `item_condition` is present it passes if *any* equipped accessory stack matches; absent, it is a presence check (any accessory equipped) rather than the always-true above. `slot_type` narrows the scan to a single named slot: `ring`, `necklace`, `belt` and so on, matched case-insensitively against the Curios slot identifier. The **Accessories** mod (Wisp Forest) is aggregated alongside Curios on 1.21.1, but publishes no build for this Minecraft version.
 
 ## `neoorigins:inventory`
 
