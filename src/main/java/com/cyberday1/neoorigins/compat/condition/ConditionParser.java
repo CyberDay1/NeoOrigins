@@ -105,6 +105,18 @@ public final class ConditionParser {
         TagKey.create(Registries.ITEM,
             ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "sun_permeable"));
 
+    /**
+     * Items in this tag act as umbrellas: held in either hand or worn in a
+     * Curios/Accessories slot they block both {@code exposed_to_sun} and
+     * {@code in_rain}. Datapack-extensible: add any modded umbrella by appending
+     * to {@code data/<ns>/tags/item/umbrellas.json}. The tag is consulted
+     * regardless of which mods are installed, so it is the supported way to
+     * register an umbrella that NeoOrigins does not know about.
+     */
+    private static final TagKey<net.minecraft.world.item.Item> UMBRELLAS =
+        TagKey.create(Registries.ITEM,
+            ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "umbrellas"));
+
     public static EntityCondition parse(JsonObject json, String contextId) {
         if (json == null) {
             return failClosed("root", contextId, "missing condition object");
@@ -306,8 +318,10 @@ public final class ConditionParser {
 
     /**
      * True if {@code p} is currently taking sun damage: daytime, sky-exposed,
-     * not raining, not shielded by an umbrella or (when {@code helmet_protection}
-     * is on) a non-{@code sun_permeable} helmet. Shared by the
+     * not raining, not shielded by an umbrella (any item in the
+     * {@code neoorigins:umbrellas} tag, or any Vampires Need Umbrellas item when
+     * that mod is installed) or — when {@code helmet_protection} is on — by a
+     * non-{@code sun_permeable} helmet. Shared by the
      * {@code exposed_to_sun} condition and the {@code entity_group}
      * {@code burns_in_sunlight} behaviour so both honour the identical rules
      * (including the helmet-durability wear side effect). NB: evaluating this
@@ -326,9 +340,9 @@ public final class ConditionParser {
             if (time >= 12000L
                 || !sl.canSeeSky(p.blockPosition())
                 || sl.isRaining()) return false;
-            // Umbrella protection — if Vampires Need Umbrellas is loaded,
-            // holding an umbrella in either hand blocks sun damage entirely
-            // (takes priority over helmet protection).
+            // Umbrella protection — an umbrella held in either hand or worn in
+            // a Curios/Accessories slot blocks sun damage entirely, and takes
+            // priority over helmet protection (so it costs no helmet durability).
             if (neoorigins$isHoldingUmbrella(p)) return false;
             // Helmet protection — any helmet blocks sun damage, but only
             // when the helmet_protection flag is enabled. When the flag is
@@ -2723,9 +2737,13 @@ public final class ConditionParser {
         return CompatPolicy.FALSE_CONDITION;
     }
 
-    // ── Vampires Need Umbrellas compat ──────────────────────────────────
+    // ── Umbrella detection (weather-damage shielding) ───────────────────
 
-    /** Cached result of mod-loaded check so we don't query ModList every tick. */
+    /**
+     * Cached result of the Vampires Need Umbrellas mod-loaded check so we don't
+     * query ModList every tick. It gates only the VNU whole-namespace shortcut;
+     * the {@link #UMBRELLAS} item tag is consulted whether or not VNU is present.
+     */
     private static final boolean VNU_LOADED = neoorigins$modLoaded("vampiresneedumbrellas");
 
     /**
@@ -2741,16 +2759,18 @@ public final class ConditionParser {
     }
 
     /**
-     * Returns true if the player has an umbrella from Vampires Need Umbrellas
-     * equipped — either hand or any Curios/Accessories slot.
+     * Returns true if the entity has an umbrella equipped — in either hand or in
+     * any Curios/Accessories slot. Used by both weather-damage conditions
+     * ({@code exposed_to_sun} and {@code in_rain}) so one umbrella shields the
+     * holder from both.
      *
      * <p>The accessory-slot scan is delegated to {@link AccessoryInspector},
      * which aggregates both Curios (reflection) and Accessories (typed) sources,
-     * so an umbrella worn in an Accessories slot now also blocks sun damage.
-     * Hand checks and the umbrella item-detection predicate are unchanged.
+     * so an umbrella worn in an Accessories slot also counts.
+     *
+     * @see #neoorigins$isUmbrella for what counts as an umbrella
      */
     static boolean neoorigins$isHoldingUmbrella(net.minecraft.world.entity.LivingEntity entity) {
-        if (!VNU_LOADED) return false;
         if (neoorigins$isUmbrella(entity.getMainHandItem())) return true;
         if (neoorigins$isUmbrella(entity.getOffhandItem())) return true;
         for (net.minecraft.world.item.ItemStack stack
@@ -2760,8 +2780,18 @@ public final class ConditionParser {
         return false;
     }
 
+    /**
+     * An item counts as an umbrella if it is in the {@code neoorigins:umbrellas}
+     * item tag — which ships {@code artifacts:umbrella} as an optional entry and
+     * is open for datapacks to extend — or, when Vampires Need Umbrellas is
+     * installed, if it comes from that mod's namespace at all. That whole-namespace
+     * match is inherited unchanged from the original check.
+     * Neither mod is a dependency: detection is by tag and item id only.
+     */
     private static boolean neoorigins$isUmbrella(net.minecraft.world.item.ItemStack stack) {
         if (stack.isEmpty()) return false;
+        if (stack.is(UMBRELLAS)) return true;
+        if (!VNU_LOADED) return false;
         net.minecraft.resources.ResourceLocation id =
             net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
         return "vampiresneedumbrellas".equals(id.getNamespace());

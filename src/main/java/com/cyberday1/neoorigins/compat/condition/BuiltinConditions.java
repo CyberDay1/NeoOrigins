@@ -224,9 +224,12 @@ public final class BuiltinConditions {
         define("night",
             (json, ctx) -> p -> p.level().getDayTime() % 24000L >= 13000L, List.of());
         // in_rain — raining at the player's exposed position (canSeeSky-gated).
-        // Umbrella-aware: holding a Vampires Need Umbrellas umbrella shields the
-        // player from rain, mirroring exposed_to_sun's sun shielding, so rain-damage
-        // origins (Wet Fur, True Hydrophobia) stop hurting while carrying one.
+        // Umbrella-aware: an umbrella held in either hand or worn in a
+        // Curios/Accessories slot shields the player from rain, mirroring
+        // exposed_to_sun's sun shielding, so rain-damage origins (Wet Fur, True
+        // Hydrophobia) stop hurting while carrying one. What counts as an umbrella
+        // is decided by ConditionParser (the neoorigins:umbrellas item tag, plus
+        // Vampires Need Umbrellas items when that mod is installed).
         define("in_rain", (json, ctx) -> p -> {
             if (!(p.level() instanceof ServerLevel sl)) return false;
             if (p.isPassenger()) return false;
@@ -602,7 +605,7 @@ public final class BuiltinConditions {
             (json, ctx) -> ConditionParser.parseEquippedItem(json, ctx),
             List.of(new FieldSpec("equipment_slot", FormFieldSpec.Kind.ENUM, false)
                         .options("head", "chest", "legs", "feet", "mainhand", "offhand", "accessory").def("mainhand")
-                        .doc("Equipment slot to inspect (default mainhand). `accessory` inspects equipped Curios/Accessories slots (soft-dep, 1.21.1 only)."),
+                        .doc("Equipment slot to inspect (default mainhand). `accessory` inspects equipped trinket slots from Curios and Accessories (Wisp Forest); both are soft deps."),
                     new FieldSpec("slot_type", FormFieldSpec.Kind.STRING, false)
                         .doc("Only used when equipment_slot is `accessory`: narrows to a named accessory/curio slot type (e.g. ring, belt, hands); absent → any accessory slot."),
                     new FieldSpec("item_condition", FormFieldSpec.Kind.REF, false)
