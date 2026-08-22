@@ -496,7 +496,9 @@ public final class BuiltinPowers {
                 .def(0.7).range(0.0, 1.0).doc("Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7).")));
         define("keep_inventory", KeepInventoryPower.class, List.of(
             new FieldSpec("slots", Kind.ARRAY, false)
-                .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *)."),
+                .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *). "
+                    + "Also accepts curio/accessory/trinket (all Curios slots, when Curios is "
+                    + "present) or a specific trinket slot id like ring or necklace."),
             new FieldSpec("items", Kind.ARRAY, false)
                 .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("Item ids to keep on death; empty (with empty tags) keeps everything."),
@@ -1636,10 +1638,10 @@ public final class BuiltinPowers {
         define("tick_action", TickActionPower.class, List.of(
             new FieldSpec("interval", Kind.INTEGER, false)
                 .def(20).range(1.0, null)
-                .doc("Ticks between each action run (20 = 1s; default 20)."),
+                .doc("Interval in ticks, parsed but inert: tick_action dispatches nothing on it (default 20). condition_passive takes the same interval field and does run."),
             new FieldSpec("action_type", Kind.ENUM, false)
                 .options("teleport_on_damage", "none").def("none")
-                .doc("Periodic action dispatched by OriginEventHandler: teleport_on_damage or none (default none).")));
+                .doc("Action name, parsed but inert: nothing is dispatched, teleport_on_damage included (default none). Use condition_passive's entity_action instead.")));
 
         //   • conditional: NO schema branch (permissive fallback). The codec reads
         //     condition (a Condition enum: climbing/in_water/on_ground/always,

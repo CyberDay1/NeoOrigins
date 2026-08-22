@@ -606,7 +606,7 @@ another power:
 ```
 
 - Use this for abilities that should only ever be reached programmatically,
-  e.g. a passive `condition` or `tick_action` power that fires
+  e.g. a passive `condition_passive` power that fires
   `neoorigins:activate_power` at the hotkey-less power when its own trigger
   conditions are met.
 - Omitting `key` on an `origins:active_self` normally drops the power into the

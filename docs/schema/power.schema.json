@@ -4021,7 +4021,7 @@
           "const": "neoorigins:keep_inventory"
         },
         "slots": {
-          "description": "Slot categories kept: hotbar, main, armor, offhand, or * for all (default *).",
+          "description": "Slot categories kept: hotbar, main, armor, offhand, or * for all (default *). Also accepts curio/accessory/trinket (all Curios slots, when Curios is present) or a specific trinket slot id like ring or necklace.",
           "type": "array",
           "items": {}
         },
@@ -6474,13 +6474,13 @@
           "const": "neoorigins:tick_action"
         },
         "interval": {
-          "description": "Ticks between each action run (20 = 1s; default 20).",
+          "description": "Interval in ticks, parsed but inert: tick_action dispatches nothing on it (default 20). condition_passive takes the same interval field and does run.",
           "type": "integer",
           "default": 20,
           "minimum": 1
         },
         "action_type": {
-          "description": "Periodic action dispatched by OriginEventHandler: teleport_on_damage or none (default none).",
+          "description": "Action name, parsed but inert: nothing is dispatched, teleport_on_damage included (default none). Use condition_passive's entity_action instead.",
           "type": "string",
           "enum": [
             "teleport_on_damage",

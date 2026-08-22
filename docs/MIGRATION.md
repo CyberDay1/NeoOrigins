@@ -451,10 +451,11 @@ Tick-based condition + action pairs. Default `interval` is 20 ticks.
 
 ### `neoorigins:action_over_time`
 
-This one was never a registered type: an older revision of the power reference
-described the name, but nothing implemented it, so a pack copied from those docs
-lost the whole power at load rather than just that behaviour. The fields line up
-1:1 with `condition_passive`, so the migration is a rename and nothing else.
+This one was documented before it existed: an older revision of the power
+reference described the name with nothing behind it. It is a registered alias
+today, so a pack copied from those docs loads and runs as written. The fields
+line up 1:1 with `condition_passive`, so the rename is optional tidying rather
+than a fix: it points the pack at the real type name.
 
 Before:
 ```json
