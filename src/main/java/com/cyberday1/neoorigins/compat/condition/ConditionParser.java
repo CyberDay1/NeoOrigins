@@ -107,6 +107,18 @@ public final class ConditionParser {
         TagKey.create(Registries.ITEM,
             Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "sun_permeable"));
 
+    /**
+     * Items in this tag act as umbrellas: held in either hand or worn in a
+     * Curios/Accessories slot they block both {@code exposed_to_sun} and
+     * {@code in_rain}. Datapack-extensible: add any modded umbrella by appending
+     * to {@code data/<ns>/tags/item/umbrellas.json}. The tag is consulted
+     * regardless of which mods are installed, so it is the supported way to
+     * register an umbrella that NeoOrigins does not know about.
+     */
+    private static final TagKey<net.minecraft.world.item.Item> UMBRELLAS =
+        TagKey.create(Registries.ITEM,
+            Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, "umbrellas"));
+
     public static EntityCondition parse(JsonObject json, String contextId) {
         if (json == null) {
             return failClosed("root", contextId, "missing condition object");
@@ -296,8 +308,10 @@ public final class ConditionParser {
 
     /**
      * True if {@code p} is currently taking sun damage: daytime, sky-exposed,
-     * not raining, not shielded by an umbrella or (when {@code helmet_protection}
-     * is on) a non-{@code sun_permeable} helmet. Shared by the
+     * not raining, not shielded by an umbrella (any item in the
+     * {@code neoorigins:umbrellas} tag, or any Vampires Need Umbrellas item when
+     * that mod is installed) or — when {@code helmet_protection} is on — by a
+     * non-{@code sun_permeable} helmet. Shared by the
      * {@code exposed_to_sun} condition and the {@code entity_group}
      * {@code burns_in_sunlight} behaviour so both honour the identical rules
      * (including the helmet-durability wear side effect). NB: evaluating this
@@ -316,9 +330,9 @@ public final class ConditionParser {
             if (time >= 12000L
                 || !sl.canSeeSky(p.blockPosition())
                 || sl.isRaining()) return false;
-            // Umbrella protection — if Vampires Need Umbrellas is loaded,
-            // holding an umbrella in either hand blocks sun damage entirely
-            // (takes priority over helmet protection).
+            // Umbrella protection — an umbrella held in either hand or worn in
+            // a Curios/Accessories slot blocks sun damage entirely, and takes
+            // priority over helmet protection (so it costs no helmet durability).
             if (neoorigins$isHoldingUmbrella(p)) return false;
             // Helmet protection — any helmet blocks sun damage, but only
             // when the helmet_protection flag is enabled. When the flag is
@@ -784,10 +798,35 @@ public final class ConditionParser {
 
     static EntityCondition parseEquippedItem(JsonObject json, String contextId) {
         String slot = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
-        EquipmentSlot eqSlot = mapEquipmentSlot(slot);
 
         // Check for item_condition sub-object
         JsonObject itemCond = json.has("item_condition") ? json.getAsJsonObject("item_condition") : null;
+
+        // Accessory branch, intercepted BEFORE mapEquipmentSlot: that maps any
+        // unrecognised slot name to MAINHAND, so "accessory" used to be answered
+        // with whatever the player was holding. Equipped accessory stacks come
+        // from the shared, soft-dep AccessoryInspector; the optional slot_type
+        // narrows to one named curio slot (ring, belt, hands, ...).
+        if ("accessory".equalsIgnoreCase(slot)) {
+            String slotType = json.has("slot_type") && !json.get("slot_type").isJsonNull()
+                ? json.get("slot_type").getAsString() : null;
+            if (itemCond == null) {
+                // Slot-presence check: any accessory equipped, optionally in the
+                // named slot type. Deliberately not the alwaysTrue() the vanilla
+                // branch below falls back to — a condition that cannot fail is no
+                // condition, and there is no pack behaviour to preserve here.
+                return player -> !AccessoryInspector.getEquippedAccessories(player, slotType).isEmpty();
+            }
+            ItemCondition accPredicate = ItemConditionParser.parse(itemCond);
+            return player -> {
+                for (ItemStack stack : AccessoryInspector.getEquippedAccessories(player, slotType)) {
+                    if (accPredicate.test(stack)) return true;
+                }
+                return false;
+            };
+        }
+
+        EquipmentSlot eqSlot = mapEquipmentSlot(slot);
         if (itemCond == null) return EntityCondition.alwaysTrue();
 
         // Simplified item condition: check item id or tag
@@ -2750,11 +2789,14 @@ public final class ConditionParser {
         return CompatPolicy.FALSE_CONDITION;
     }
 
-    // ── Vampires Need Umbrellas compat ──────────────────────────────────
+    // ── Umbrella detection (weather-damage shielding) ───────────────────
 
-    /** Cached result of mod-loaded check so we don't query ModList every tick. */
+    /**
+     * Cached result of the Vampires Need Umbrellas mod-loaded check so we don't
+     * query ModList every tick. It gates only the VNU whole-namespace shortcut;
+     * the {@link #UMBRELLAS} item tag is consulted whether or not VNU is present.
+     */
     private static final boolean VNU_LOADED = neoorigins$modLoaded("vampiresneedumbrellas");
-    private static final boolean CURIOS_LOADED = neoorigins$modLoaded("curios");
 
     /**
      * Null-safe mod-loaded check. {@code ModList.get()} returns null outside a
@@ -2769,60 +2811,42 @@ public final class ConditionParser {
     }
 
     /**
-     * Returns true if the player has an umbrella from Vampires Need Umbrellas
-     * equipped — either hand or any Curios/Accessories slot.
+     * Returns true if the entity has an umbrella equipped — in either hand or in
+     * any Curios/Accessories slot. Used by both weather-damage conditions
+     * ({@code exposed_to_sun} and {@code in_rain}) so one umbrella shields the
+     * holder from both.
+     *
+     * <p>The accessory-slot scan is delegated to {@link AccessoryInspector},
+     * which owns the Curios reflection this method used to inline, so the
+     * umbrella check, {@code equipped_item} and {@code keep_inventory} all read
+     * the same slots.
+     *
+     * @see #neoorigins$isUmbrella for what counts as an umbrella
      */
     static boolean neoorigins$isHoldingUmbrella(net.minecraft.world.entity.LivingEntity entity) {
-        if (!VNU_LOADED) return false;
         if (neoorigins$isUmbrella(entity.getMainHandItem())) return true;
         if (neoorigins$isUmbrella(entity.getOffhandItem())) return true;
-        if (CURIOS_LOADED) {
-            return neoorigins$checkCuriosForUmbrella(entity);
+        for (net.minecraft.world.item.ItemStack stack
+                : AccessoryInspector.getEquippedAccessories(entity, null)) {
+            if (neoorigins$isUmbrella(stack)) return true;
         }
         return false;
-    }
-
-    private static boolean neoorigins$isUmbrella(net.minecraft.world.item.ItemStack stack) {
-        if (stack.isEmpty()) return false;
-        net.minecraft.resources.Identifier id =
-            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
-        return "vampiresneedumbrellas".equals(id.getNamespace());
     }
 
     /**
-     * Scan all equipped Curios slots for an umbrella via reflection.
-     * Curios is not a compile-time dependency so we resolve the API at
-     * runtime. The reflected method handle is cached after the first call.
+     * An item counts as an umbrella if it is in the {@code neoorigins:umbrellas}
+     * item tag — which ships {@code artifacts:umbrella} as an optional entry and
+     * is open for datapacks to extend — or, when Vampires Need Umbrellas is
+     * installed, if it comes from that mod's namespace at all. That whole-namespace
+     * match is inherited unchanged from the original check.
+     * Neither mod is a dependency: detection is by tag and item id only.
      */
-    private static java.lang.reflect.Method CURIOS_GET_INVENTORY;
-    private static java.lang.reflect.Method CURIOS_GET_EQUIPPED;
-    private static boolean CURIOS_REFLECT_FAILED = false;
-
-    private static boolean neoorigins$checkCuriosForUmbrella(net.minecraft.world.entity.LivingEntity entity) {
-        if (CURIOS_REFLECT_FAILED) return false;
-        try {
-            if (CURIOS_GET_INVENTORY == null) {
-                Class<?> api = Class.forName("top.theillusivec4.curios.api.CuriosApi");
-                CURIOS_GET_INVENTORY = api.getMethod("getCuriosInventory", net.minecraft.world.entity.LivingEntity.class);
-                // ICuriosItemHandler.getEquippedCurios() returns IItemHandlerModifiable
-                Class<?> handlerClass = Class.forName("top.theillusivec4.curios.api.type.capability.ICuriosItemHandler");
-                CURIOS_GET_EQUIPPED = handlerClass.getMethod("getEquippedCurios");
-            }
-            // CuriosApi.getCuriosInventory(entity) -> Optional<ICuriosItemHandler>
-            @SuppressWarnings("unchecked")
-            java.util.Optional<?> opt = (java.util.Optional<?>) CURIOS_GET_INVENTORY.invoke(null, entity);
-            if (opt.isPresent()) {
-                Object handler = opt.get();
-                // handler.getEquippedCurios() -> IItemHandlerModifiable
-                var equipped = (net.neoforged.neoforge.items.IItemHandlerModifiable) CURIOS_GET_EQUIPPED.invoke(handler);
-                for (int i = 0; i < equipped.getSlots(); i++) {
-                    if (neoorigins$isUmbrella(equipped.getStackInSlot(i))) return true;
-                }
-            }
-        } catch (Exception e) {
-            // Curios API not available or changed — disable further attempts
-            CURIOS_REFLECT_FAILED = true;
-        }
-        return false;
+    private static boolean neoorigins$isUmbrella(net.minecraft.world.item.ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (stack.is(UMBRELLAS)) return true;
+        if (!VNU_LOADED) return false;
+        net.minecraft.resources.Identifier id =
+            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return "vampiresneedumbrellas".equals(id.getNamespace());
     }
 }
