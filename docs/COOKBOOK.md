@@ -1329,7 +1329,12 @@ origin and `swim_speed` for a true open-water one; the built-in ocean origins
 carry both.
 
 **Moisture system:** ocean origins with `breath_out_of_fluid` replenish
-moisture from water blocks, rain, bubble columns, and water cauldrons.
+moisture from water blocks, rain, bubble columns, and water cauldrons, and
+Water Breathing pauses the drain for as long as it lasts. An active conduit
+holds them too, and it reaches them on dry land inside its normal radius, which
+makes one worth building as the dry heart of an ocean base. With Create
+installed, a charged backtank worn in the chest slot holds the drain off as
+well, spending one air a second, the rate it costs underwater.
 
 ### Suppression
 

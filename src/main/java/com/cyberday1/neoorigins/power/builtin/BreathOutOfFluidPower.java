@@ -149,7 +149,9 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
      * the player is in water — and the row reappears the moment they surface
      * so dry-out depletion is visible as expected.
      */
-    private static final java.util.Set<String> CAPS = java.util.Set.of("dries_out_of_water");
+    public static final String DRIES_OUT_CAPABILITY = "dries_out_of_water";
+
+    private static final java.util.Set<String> CAPS = java.util.Set.of(DRIES_OUT_CAPABILITY);
 
     @Override
     public java.util.Set<String> capabilities(Config config) { return CAPS; }
@@ -217,6 +219,15 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 // Water Breathing and Conduit Power effects act as a magical air
                 // supply — pauses the land drain entirely so aquatic players can
                 // explore on land with a potion or near an active conduit.
+                //
+                // The Conduit Power clause only means anything because of
+                // ConduitBlockEntityMixin. Vanilla's ConduitBlockEntity gates
+                // the effect behind isInWaterOrRain(), so a player standing on
+                // dry land beside an active conduit is never granted it and
+                // this test could only ever pass in a state the
+                // isInWaterRainOrBubble() clause above had already returned on.
+                // The mixin lifts that gate for players carrying this power,
+                // which is what puts the effect on a dry-land player at all.
                 inFluid = sp.isInWaterRainOrBubble()
                     || sp.level().getBlockState(sp.blockPosition())
                            .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON)
