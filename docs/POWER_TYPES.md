@@ -114,7 +114,7 @@ Adds or multiplies a player attribute while the origin is active. Optionally gat
 | `attribute` | Identifier | yes | — | Attribute to modify, e.g. `minecraft:generic.movement_speed` |
 | `amount` | double | yes | — | Amount to add or multiply |
 | `operation` | string | no | `add_value` | `add_value`, `add_multiplied_base`, or `add_multiplied_total` |
-| `condition` | string | no | — | Environment gate: `in_water`, `on_land`, or `in_lava`. Tick-driven apply/remove. |
+| `condition` | string | no | — | Environment gate: `in_water`, `on_land`, or `in_lava`. Tick-driven apply/remove. See the note below on what `on_land` counts. |
 | `equipment_condition` | object | no | — | Equipment gate (see below). Tick-driven apply/remove. |
 | `location_condition` | object | no | — | Location gate: dimension / biome / structure (see below). Tick-driven apply/remove. |
 
@@ -171,6 +171,13 @@ All fields are optional and combine with AND. So `{ "dimension": "minecraft:the_
   "description": "Moves slower while out of water."
 }
 ```
+
+> **`on_land` treats an active conduit as still being in water.** A player carrying
+> Conduit Power does not count as on land, so a land penalty written this way lifts
+> while they are in a conduit's range instead of punishing them inside their own
+> base. `in_water` is the literal check and is unaffected, which means the two are
+> not exact opposites: a player with Conduit Power on dry ground satisfies neither.
+> Rain is not water for either gate — a player out in a storm is on land.
 
 **Example: +1 attack when wearing any helmet**
 ```json
@@ -1619,7 +1626,7 @@ Drains the player's air supply when their eyes are submerged in the specified fl
 
 ## `neoorigins:breath_out_of_fluid`
 
-Drains the player's air supply while they are **not** submerged in the specified fluid: a fish out of water. Once the air supply reaches 0, vanilla drown damage applies. Water Breathing and Conduit Power effects pause the drain, and drinking a water bottle restores half the air bar. Compatible with Create's Copper Backtank (worn in chestplate slot, consumes pressurized air to pause drain). Respiration enchantment extends land time using the same probability curve vanilla uses underwater.
+Drains the player's air supply while they are **not** submerged in the specified fluid: a fish out of water. Once the air supply reaches 0, vanilla drown damage applies. For the water form, rain, a bubble column and standing in a water cauldron all count as being in the fluid. Water Breathing and Conduit Power effects pause the drain, and drinking a water bottle restores half the air bar. Vanilla only grants Conduit Power to a player who is already in water or rain, which would put it out of reach of the one situation this power creates; the mod lifts that restriction for players holding this power, so an active conduit reaches them anywhere in its normal radius and the air bar refills while they stand there. Compatible with Create's Copper Backtank (worn in chestplate slot, consumes pressurized air to pause drain). Respiration enchantment extends land time using the same probability curve vanilla uses underwater. `fluid: lava` is the bare check: none of these reprieves reach it, only being in lava itself.
 
 The drain rate is per-power. Set one of the three fields below and that power drains at your rate; omit all three and the power falls back to the global `ocean_origins.drain_rate_ticks` config, which is how the four built-in `*_dries_out` powers are written. If a player holds more than one of these powers, the tightest interval wins.
 

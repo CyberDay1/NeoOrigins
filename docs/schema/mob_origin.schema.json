@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neoorigins.example/schema/mob_origin.schema.json",
+  "title": "NeoOrigins Mob Origin",
+  "description": "A bundle of powers, spawn rules, and drops attached to a non-player entity. File path: data/<namespace>/origins/mob_origins/<mob_origin>.json. The id field is omitted from the file — MobOriginDataManager injects it from the path.",
+  "type": "object",
+  "required": ["name", "target"],
+  "$defs": {
+    "resourceLocation": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+    },
+    "text": {
+      "description": "Display text — a literal string or a chat-component object (e.g. {\"text\": \"...\"} or {\"translate\": \"...\"}).",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "object" }
+      ]
+    },
+    "intRange": {
+      "description": "Inclusive integer range. A bare number n is shorthand for {min: n, max: n}.",
+      "oneOf": [
+        { "type": "integer" },
+        {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "integer" },
+            "max": { "type": "integer" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "location": {
+      "description": "Reused LocationCondition — dimension/structure combine with AND, biome fields with OR. Every field is optional.",
+      "type": "object",
+      "properties": {
+        "dimension": { "$ref": "#/$defs/resourceLocation" },
+        "biome": { "$ref": "#/$defs/resourceLocation" },
+        "biome_tag": { "$ref": "#/$defs/resourceLocation" },
+        "biomes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/resourceLocation" }
+        },
+        "structure": { "$ref": "#/$defs/resourceLocation" },
+        "structure_tag": { "$ref": "#/$defs/resourceLocation" },
+        "allow_water_surface": { "type": "boolean" },
+        "allow_ocean_floor": { "type": "boolean" },
+        "min_y": { "type": "integer" },
+        "max_y": { "type": "integer" },
+        "can_see_sky": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "name": {
+      "description": "Display name shown in the mob-origin browser (never shown in-world).",
+      "$ref": "#/$defs/text"
+    },
+    "description": {
+      "description": "Flavor text for the mob-origin browser.",
+      "$ref": "#/$defs/text"
+    },
+    "icon": {
+      "description": "Item ID used as the browser icon. String form is shorthand for {item: ...}.",
+      "oneOf": [
+        { "$ref": "#/$defs/resourceLocation" },
+        {
+          "type": "object",
+          "required": ["item"],
+          "properties": { "item": { "$ref": "#/$defs/resourceLocation" } },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "target": {
+      "description": "Which entities this mob origin may roll onto. Set EXACTLY ONE of entity_type, entity_tag, or entity_types.",
+      "type": "object",
+      "properties": {
+        "entity_type": { "$ref": "#/$defs/resourceLocation" },
+        "entity_tag": { "$ref": "#/$defs/resourceLocation" },
+        "entity_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/resourceLocation" }
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": ["entity_type"],
+          "not": { "anyOf": [{ "required": ["entity_tag"] }, { "required": ["entity_types"] }] }
+        },
+        {
+          "required": ["entity_tag"],
+          "not": { "anyOf": [{ "required": ["entity_type"] }, { "required": ["entity_types"] }] }
+        },
+        {
+          "required": ["entity_types"],
+          "not": { "anyOf": [{ "required": ["entity_type"] }, { "required": ["entity_tag"] }] }
+        }
+      ]
+    },
+    "powers": {
+      "description": "Power IDs granted to a mob carrying this origin. All must resolve to power JSONs under data/<namespace>/origins/powers/.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/resourceLocation" }
+    },
+    "spawn_rules": {
+      "description": "Weighted, condition-gated rules deciding whether this origin rolls onto a freshly-spawned matching entity.",
+      "type": "object",
+      "properties": {
+        "weight": {
+          "description": "Relative chance this origin is picked at spawn. 0 = never.",
+          "type": "number",
+          "minimum": 0
+        },
+        "time_of_day": {
+          "description": "Coarse day/night gate. \"any\" never restricts.",
+          "type": "string",
+          "enum": ["any", "day", "night"]
+        },
+        "spawn_reasons": {
+          "description": "Spawn reasons this origin allows (empty/absent = any). Lowercase MobSpawnType / EntitySpawnReason names.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+        },
+        "mutex_group": {
+          "description": "Mutual-exclusion group — origins sharing a group can't co-apply.",
+          "type": "string"
+        },
+        "replace": {
+          "description": "If true, replaces an already-applied origin instead of being skipped.",
+          "type": "boolean"
+        },
+        "y_range": {
+          "description": "Inclusive Y band the spawn must fall within.",
+          "$ref": "#/$defs/intRange"
+        },
+        "light_range": {
+          "description": "Inclusive block-light band the spawn must fall within.",
+          "$ref": "#/$defs/intRange"
+        },
+        "location": { "$ref": "#/$defs/location" }
+      },
+      "additionalProperties": false
+    },
+    "drops": {
+      "description": "Per-origin drop table layered onto (or replacing) the mob's vanilla loot.",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "description": "additive appends to vanilla drops; replace clears them.",
+          "type": "string",
+          "enum": ["additive", "replace"]
+        },
+        "strategy": {
+          "description": "independent_chance rolls each entry's chance/rolls; weighted_pool makes pool_rolls weighted picks across entries.",
+          "type": "string",
+          "enum": ["independent_chance", "weighted_pool"]
+        },
+        "pool_rolls": {
+          "description": "Number of weighted picks (weighted_pool strategy only).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["item"],
+            "properties": {
+              "item": { "$ref": "#/$defs/resourceLocation" },
+              "count": { "$ref": "#/$defs/intRange" },
+              "chance": {
+                "description": "Per-roll drop probability (independent_chance only).",
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "rolls": {
+                "description": "Independent roll count (independent_chance only).",
+                "type": "integer",
+                "minimum": 0
+              },
+              "weight": {
+                "description": "Relative pick weight (weighted_pool only).",
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "hidden": {
+      "description": "If true, hidden from the mob-origin browser but still valid if applied.",
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}
