@@ -49,11 +49,17 @@ public abstract class LivingEntityAirRefillMixin {
         // Water Breathing effect acts as a magical air supply — let vanilla
         // refill the bar so the HUD recovers while the potion is active.
         if (player.hasEffect(MobEffects.WATER_BREATHING)) return false;
+        // Conduit Power likewise, which ConduitBlockEntityMixin now puts on
+        // dry-land players carrying this power. Without this clause the drain
+        // stops but the refill stays suppressed, so the bubble row freezes at
+        // whatever it had drained to instead of recovering — the exemption
+        // would look half-applied to the player standing beside the conduit.
+        if (player.hasEffect(MobEffects.CONDUIT_POWER)) return false;
 
         if (self.level().isClientSide()) {
             // Client / integrated server. Capability tag is set on the local
             // player when an aquatic origin is selected.
-            return ClientActivePowers.hasCapability("dries_out_of_water");
+            return ClientActivePowers.hasCapability(BreathOutOfFluidPower.DRIES_OUT_CAPABILITY);
         }
         if (self instanceof ServerPlayer sp) {
             boolean[] has = {false};

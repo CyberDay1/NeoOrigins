@@ -697,6 +697,7 @@ datapack validator at:
 - `schema/power.schema.json`: for files under `data/*/origins/powers/`
 - `schema/origin.schema.json`: for files under `data/*/origins/origins/`
 - `schema/origin_layer.schema.json`: for files under `data/*/origins/origin_layers/`
+- `schema/mob_origin.schema.json`: for files under `data/*/origins/mob_origins/`
 - `schema/morph.schema.json`: for files under `data/*/neoorigins/morphs/`
 
 Schemas are derived from the Java Config records and are authoritative

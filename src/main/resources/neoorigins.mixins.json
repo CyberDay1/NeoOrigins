@@ -8,6 +8,7 @@
     "LivingEntityUndeadPotionMixin",
     "LivingEntityTotemGateMixin",
     "LivingEntityAirRefillMixin",
+    "ConduitBlockEntityMixin",
     "LivingEntityClimbMixin",
     "LivingEntityLavaSpeedMixin",
     "FoodDataMixin",

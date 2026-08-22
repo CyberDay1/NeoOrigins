@@ -388,6 +388,9 @@ processResources {
     from('docs/schema/field_docs.json') {
         into 'data/neoorigins/schema'
     }
+    // CC BY 4.0 requires the credit to travel with the asset, so the
+    // attribution ships inside the jar rather than only in the repo.
+    from('CREDITS.md')
 }
 
 // Headless guard that the schema is actually packaged AND parses into the

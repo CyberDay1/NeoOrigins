@@ -38,7 +38,7 @@ A creature of the deep: armored, swift in water, and able to call guardian allie
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
 - *Landwalker*: reduced walk speed on dry ground
-- *Dries Out*: damage when out of water in hot biomes
+- *Dries Out*: air drains on land in any biome, and suffocates once it empties
 - *Natural Swimmer*: built-in Depth Strider
 - *Essence*: resource gauge for active abilities
 
@@ -809,7 +809,7 @@ A colossal deep-sea predator born in the open ocean: devastating underwater with
 - *Beached*: reduced walk speed on dry ground
 - *Surface Agony*: damage in direct sunlight
 - *Colossal*: larger hitbox
-- *Dries Out*: damage when out of water in hot biomes
+- *Dries Out*: air drains on land in any biome, and suffocates once it empties
 - *Aqua Affinity*: no mining-speed penalty submerged
 - *Natural Swimmer*: built-in Depth Strider
 - *Essence*: resource gauge for active abilities
@@ -840,7 +840,7 @@ An aquatic people born in the open ocean: breathes water and swims with ease, bu
 - *Raw Adapted*: bonus saturation from fish
 - *Deep Sight*: natural night vision
 - *Landlubber*: reduced walk speed on dry ground
-- *Dries Out*: damage when out of water in hot biomes
+- *Dries Out*: air drains on land in any biome, and suffocates once it empties
 - *Aqua Affinity*: no mining-speed penalty submerged
 - *Natural Swimmer*: built-in Depth Strider
 
@@ -1097,7 +1097,7 @@ An aquatic enchantress born in the open ocean: charms creatures with an alluring
 - *Ocean Eyes*: natural night vision
 - *Beached*: reduced walk speed on dry ground
 - *Delicate Form*: reduced max health
-- *Dries Out*: damage when out of water in hot biomes
+- *Dries Out*: air drains on land in any biome, and suffocates once it empties
 - *Aqua Affinity*: no mining-speed penalty submerged
 - *Natural Swimmer*: built-in Depth Strider
 
