@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.compat;
 import com.mojang.brigadier.StringReader;
 import net.minecraft.SharedConstants;
 import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.arguments.NbtPathArgument;
 import net.minecraft.commands.arguments.ParticleArgument;
 import net.minecraft.commands.arguments.item.ItemInput;
 import net.minecraft.commands.arguments.item.ItemParser;
@@ -29,6 +30,9 @@ import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.NumericTag;
+import net.minecraft.nbt.TagParser;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -72,11 +76,12 @@ class LegacyMcFunctionRewriteTest {
         // datapack-reload step (ReloadableServerResources binds them via
         // DataComponentInitializers), so after a bare Bootstrap every Item holder
         // is unbound and `new ItemStack(...)` throws "Components not bound yet".
-        // Only one stack is actually built here and only its custom_data is read,
-        // so an empty default map is bound rather than running the whole
+        // Only the two stacks below are built and only their custom_data is
+        // read, so an empty default map is bound rather than running the whole
         // initializer pass — which NeoForge's component validator rejects outside
         // a real reload anyway.
         Items.POTION.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
+        Items.PAPER.builtInRegistryHolder().bindComponents(DataComponentMap.EMPTY);
     }
 
     private static ParticleOptions parseParticle(String command) {
@@ -300,6 +305,94 @@ class LegacyMcFunctionRewriteTest {
             "HideFlags bit 1 must hide the enchantment list");
     }
 
+    // ── tier three: dead item→tag paths ──────────────────────────────────
+
+    /**
+     * The somniabh Sculk Rune: the pack spawns the rune as an item entity and
+     * then finds it again by {@code nbt={Item:{tag:{…}}}}, and reads its id back
+     * through {@code SelectedItem.tag.…}. On 1.21 an item stack has no
+     * {@code tag} field at all, so both spellings parse, run, and resolve to
+     * nothing — the rune stays at y=1000 forever and the id reads 0.
+     *
+     * <p>Asserted against the real {@link NbtPathArgument} and
+     * {@link NbtUtils#compareNbt} rather than against golden strings alone, so
+     * the emitted path is proven to resolve and the emitted selector blob is
+     * proven to match a genuinely 1.21-shaped stack.
+     */
+    @Test
+    void deadItemTagPathsArePointedAtCustomData() throws Exception {
+        // A 1.21-shaped rune: free-form pack NBT lives under custom_data.
+        CompoundTag custom = new CompoundTag();
+        custom.putInt("SomniaBH", 1);
+        custom.putInt("SomniaRuneID", 7);
+        ItemStack rune = new ItemStack(Items.PAPER);
+        rune.set(DataComponents.CUSTOM_DATA, CustomData.of(custom));
+        CompoundTag holder = new CompoundTag();
+        // 26.1: ItemStack.save(Provider) is gone; encode through ItemStack.CODEC.
+        net.minecraft.nbt.Tag runeNbt = ItemStack.CODEC
+            .encodeStart(registries.createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE), rune)
+            .getOrThrow();
+        holder.put("SelectedItem", runeNbt);
+        holder.put("Item", runeNbt);
+
+        // 1. the dot form — powers/global/rune.json's execute_command, verbatim.
+        String dot = LegacyCommandRewriter.rewriteDeadItemTagPaths(
+            "execute store result score @s SomniaBH_Link run data get entity @s SelectedItem.tag.SomniaRuneID");
+        assertEquals("execute store result score @s SomniaBH_Link run data get entity @s "
+                + "SelectedItem.components.\"minecraft:custom_data\".SomniaRuneID", dot);
+        NbtPathArgument.NbtPath path = new NbtPathArgument().parse(new StringReader(
+            dot.substring(dot.lastIndexOf(' ') + 1)));
+        assertEquals(7, ((NumericTag) path.get(holder).getFirst()).intValue(),
+            "the rewritten path must actually resolve against a 1.21 stack");
+
+        // 2. the brace form — carve/rune.mcfunction line 3, verbatim.
+        String brace = LegacyCommandRewriter.rewriteDeadItemTagPaths(
+            "execute positioned ~ 1000 ~ run tp @e[type=item,sort=nearest,limit=1,"
+                + "nbt={Item:{tag:{SomniaBH:1}}}] @s");
+        assertEquals("execute positioned ~ 1000 ~ run tp @e[type=item,sort=nearest,limit=1,"
+                + "nbt={Item:{components:{\"minecraft:custom_data\":{SomniaBH:1}}}}] @s", brace);
+        CompoundTag selector = TagParser.parseCompoundFully(
+            brace.substring(brace.indexOf("nbt=") + 4, brace.indexOf("] @s")));
+        assertTrue(NbtUtils.compareNbt(selector, holder, true),
+            "the rewritten selector must still match the item entity it was written for");
+
+        // Both spellings on one line — carve/rune.mcfunction line 2, verbatim.
+        assertEquals("execute positioned ~ 1000 ~ store result entity @e[type=item,sort=nearest,limit=1,"
+                + "nbt={Item:{components:{\"minecraft:custom_data\":{SomniaBH:1}}}}] "
+                + "Item.components.\"minecraft:custom_data\".SomniaRuneID int 1 "
+                + "run scoreboard players get @s SomniaBH_ID",
+            LegacyCommandRewriter.rewriteDeadItemTagPaths(
+                "execute positioned ~ 1000 ~ store result entity @e[type=item,sort=nearest,limit=1,"
+                    + "nbt={Item:{tag:{SomniaBH:1}}}] Item.tag.SomniaRuneID int 1 "
+                    + "run scoreboard players get @s SomniaBH_ID"));
+
+        // 3. a component-backed key would not be found under custom_data, so the
+        //    blob is left alone rather than swapped for a differently-dead path.
+        String componentBacked = "tp @e[nbt={Item:{tag:{Damage:5,SomniaBH:1}}}] @s";
+        assertEquals(componentBacked, LegacyCommandRewriter.rewriteDeadItemTagPaths(componentBacked));
+
+        // 4. the literal characters as *prose* are not a path. This is the whole
+        //    reason the rule is quote-aware instead of being folded into
+        //    rewriteForCompile — see the tier-two javadoc for the casualties.
+        for (String prose : new String[] {
+            "tellraw @a {\"text\":\"Item.tag.foo\"}",
+            "tellraw @a [{\"text\":\"read Inventory[0].tag.Bar\"},{\"text\":\"!\"}]",
+            "title @s actionbar {\"text\":\"SelectedItem.tag.Baz\"}",
+            "say Item.tag.foo",
+            "me holds Item.tag.foo",
+            "data modify block ~ ~ ~ Text1 set value '{\"text\":\"Item.tag.foo\"}'",
+        }) {
+            assertEquals(prose, LegacyCommandRewriter.rewriteDeadItemTagPaths(prose),
+                "quoted / free-text prose must not be rewritten");
+        }
+
+        // …and the selector ahead of a free-text tail is still repaired.
+        assertEquals("execute if entity @e[nbt={Item:{components:{\"minecraft:custom_data\":{Foo:1}}}}] "
+                + "run say Item.tag.foo",
+            LegacyCommandRewriter.rewriteDeadItemTagPaths(
+                "execute if entity @e[nbt={Item:{tag:{Foo:1}}}] run say Item.tag.foo"));
+    }
+
     // ── no regressions on anything already valid ─────────────────────────
 
     /**
@@ -338,9 +431,18 @@ class LegacyMcFunctionRewriteTest {
             "tellraw @a {\"text\":\"Fairytale Origins Loaded\",\"color\":\"green\"}",
             "playsound minecraft:entity.generic.extinguish_fire master @a ~ ~ ~ 1 1 0",
             "execute store result score @s Minion_Armor run attribute @s armor get",
+            // Already-1.21 item paths: the dead-path tier must be a no-op here.
+            "data get entity @s SelectedItem.components.\"minecraft:custom_data\".Foo",
+            "tp @e[nbt={Item:{components:{\"minecraft:custom_data\":{tagged:1}}}}] @s",
+            // A legacy ArmorItems list is not a compound, so the brace anchor
+            // cannot reach it — and SkullOwner is not custom data anyway.
+            "summon minecraft:armor_stand ~ ~ ~ {ArmorItems:[{},{},{},"
+                + "{id:\"minecraft:player_head\",Count:1b,tag:{SkullOwner:{Name:\"x\"}}}]}",
         }) {
             assertEquals(command, LegacyCommandRewriter.rewriteForCompile(command),
                 "already-valid command must not be rewritten");
+            assertEquals(command, LegacyCommandRewriter.rewriteDeadItemTagPaths(command),
+                "the dead-path tier runs unconditionally too, so it must be a no-op here");
         }
         // Unparseable SNBT is left alone rather than half-converted.
         String broken = "give @s minecraft:apple{this is not: snbt,,} 1";
