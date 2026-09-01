@@ -22,6 +22,7 @@ public final class NeoOriginsClientConfig {
 
     public static final ModConfigSpec.ConfigValue<String> UI_THEME_OVERRIDE;
     public static final ModConfigSpec.BooleanValue CLASSIC_PICKER_STYLE;
+    public static final ModConfigSpec.EnumValue<PickerLayout> PICKER_LAYOUT;
     public static final ModConfigSpec.BooleanValue SHOW_ORIGIN_EDITOR;
     public static final ModConfigSpec.EnumValue<OriginSelectionPresenter.SortMode> DEFAULT_SORT;
     public static final ModConfigSpec.BooleanValue HIDE_HUD_BARS;
@@ -32,6 +33,19 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> HOTKEY_SLOT_DEFAULTS;
     public static final ModConfigSpec.BooleanValue SUPPRESS_DRAGON_SPECIES_SCREENS;
+
+    /** Arrangement of the origin/class selection screen. Independent of the colour skin. */
+    public enum PickerLayout {
+        /** Default: scrolling list on the left, detail panel on the right. */
+        TWO_PANEL,
+        /** Reserved: a wrapping field of origin cards. Not implemented — opens {@link #TWO_PANEL}. */
+        GRID,
+        /**
+         * One origin at a time with prev/next arrows, shaped like the original
+         * Origins mod's chooser but drawn in the active UI theme.
+         */
+        CAROUSEL
+    }
 
     /** What the cooldown/ability HUD cluster shows besides live cooldowns. */
     public enum HudAbilityDisplay {
@@ -61,6 +75,20 @@ public final class NeoOriginsClientConfig {
                      "of the parchment scroll skin. Enable this if the parchment theme's",
                      "low-contrast brown-on-paper text is hard to read.")
             .define("classic_picker_style", false);
+
+        PICKER_LAYOUT = BUILDER
+            .comment("Layout of the origin / class selection screen. This is the arrangement",
+                     "only: the colours and font are controlled separately by theme_override",
+                     "and classic_picker_style above, and any skin works with any layout.",
+                     "  TWO_PANEL - scrolling list on the left, details on the right (default)",
+                     "  GRID      - reserved, not implemented yet",
+                     "  CAROUSEL  - one origin at a time with prev / next arrows, closest to",
+                     "              the original Origins mod's chooser",
+                     "CAROUSEL is a NeoOrigins screen shaped like the original, not a copy of",
+                     "it: it keeps the current theme rather than the old dirt-background window.",
+                     "GRID still opens the two-panel screen; the name is reserved so this",
+                     "setting will not change shape when that layout lands.")
+            .defineEnum("picker_layout", PickerLayout.TWO_PANEL);
 
         SHOW_ORIGIN_EDITOR = BUILDER
             .comment("Show the in-game Origin Editor button on the origin info screen for",
@@ -173,6 +201,9 @@ public final class NeoOriginsClientConfig {
 
     /** True if the selection screens should use the original flat high-contrast skin. */
     public static boolean isClassicPickerStyle() { return CLASSIC_PICKER_STYLE.get(); }
+
+    /** Layout of the origin / class selection screen. */
+    public static PickerLayout pickerLayout() { return PICKER_LAYOUT.get(); }
 
     /** True if the in-game Origin Editor button should be shown regardless of game mode. */
     public static boolean isShowOriginEditor() { return SHOW_ORIGIN_EDITOR.get(); }

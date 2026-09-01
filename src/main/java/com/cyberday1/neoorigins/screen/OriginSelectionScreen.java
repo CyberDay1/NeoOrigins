@@ -1,32 +1,23 @@
 package com.cyberday1.neoorigins.screen;
 
-import com.cyberday1.neoorigins.config.ContentTogglesConfig;
-import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
-import com.cyberday1.neoorigins.api.origin.OriginTierOverlay;
-import com.cyberday1.neoorigins.client.ClientOriginState;
-import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.client.theme.PanelRenderer;
 import com.cyberday1.neoorigins.client.theme.UITheme;
-import com.cyberday1.neoorigins.data.LayerDataManager;
+import com.cyberday1.neoorigins.client.theme.UIThemeUtils;
 import com.cyberday1.neoorigins.data.OriginDataManager;
-import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
+import com.cyberday1.neoorigins.screen.detail.OriginDetailPanel;
 import com.cyberday1.neoorigins.screen.model.OriginDetailViewModel;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
-import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OriginSelectionScreen extends Screen {
+public class OriginSelectionScreen extends Screen implements PickerScreen {
 
     // ── Layout constants ──────────────────────────────────────────────────────
     private static final int PANEL_TOP        = 44;
@@ -43,7 +34,6 @@ public class OriginSelectionScreen extends Screen {
     private static final int MIN_LEFT_W       = 120;
     private static final int MAX_LEFT_W       = 160;
     private static final int PANEL_GAP        = 8;
-    private static final int DETAIL_PAD       = 10;
     /** Inset for widgets inside the parchment panel — must clear the
      *  9-slice burnt-edge band (12px corners in {@link UITheme#PARCHMENT})
      *  plus a few pixels of breathing room so the curl decoration stays
@@ -52,13 +42,6 @@ public class OriginSelectionScreen extends Screen {
     /** Vertical padding from parchment top to the search box — same 12-px
      *  burnt-edge clearance as {@link #PANEL_INSET}. */
     private static final int SEARCH_TOP_PAD   = 16;
-    private static final int HEADER_H         = DETAIL_PAD + 32 + 6 + 9 + 4 + 5 + 10; // 76
-    private static final int DOT_SIZE         = 5;
-    private static final int DOT_SPACING      = 8;
-    private static final int DOT_COUNT        = 4;
-    private static final int LINE_H           = 10;
-    /** Vertical gap between consecutive power entries in the detail panel. */
-    private static final int POWER_GAP        = 5;
 
     private final boolean isOrb;
     private final boolean forceReselect;
@@ -75,21 +58,10 @@ public class OriginSelectionScreen extends Screen {
 
     // Computed layout geometry
     private int panelX, panelBottom, leftW, rightX, rightW, listTop, listVisibleCount;
-    private int detailTextW; // usable text width inside the detail panel
 
-    // Detail panel state
-    private OriginDetailViewModel detailViewModel = OriginDetailViewModel.EMPTY;
-    private List<FormattedCharSequence> descLines = List.of();
-    private List<List<FormattedCharSequence>> wrappedPowerDescs = List.of();
-    /** Precomputed evolution-path display: per tier, the added powers (name +
-     *  wrapped description) and the removed power names. Synthetic
-     *  multiple-power sub-ids are collapsed back to their parent display. Shown
-     *  statically below the info (no live kill-progress in the picker). */
-    private record EvoLine(String name, List<FormattedCharSequence> desc) {}
-    private record EvoTier(int tier, List<EvoLine> added, List<String> removed) {}
-    private List<EvoTier> evoTiers = List.of();
-    private int detailScrollOffset = 0;
-    private int detailContentH     = 0;
+    /** Shared right-hand detail view. Built in init() — Screen.font is null
+     *  until then. Static evolution path only; no live kill progress here. */
+    private OriginDetailPanel detail;
 
     // Widgets
     private final List<OriginButton> originButtons  = new ArrayList<>();
@@ -123,6 +95,9 @@ public class OriginSelectionScreen extends Screen {
             lastSortMode = com.cyberday1.neoorigins.client.NeoOriginsClientConfig.defaultSortMode();
         }
         presenter.setSortMode(lastSortMode);
+        // Screen.font is only populated by the time init() runs, so the panel
+        // cannot be a field initialiser.
+        detail = new OriginDetailPanel(font);
         boolean hasPending = presenter.init();
         if (!hasPending) { onClose(); return; }
         int totalW       = Math.max(280, width - 40);
@@ -131,13 +106,12 @@ public class OriginSelectionScreen extends Screen {
         panelBottom      = height - PANEL_BTM_MARGIN;
         rightX           = panelX + leftW + PANEL_GAP;
         rightW           = totalW - leftW - PANEL_GAP;
-        detailTextW      = rightW - DETAIL_PAD * 2 - 6;
+        detail.setBounds(rightX, PANEL_TOP, rightW, panelBottom - PANEL_TOP);
         listTop          = PANEL_TOP + SEARCH_TOP_PAD + SEARCH_H + SEARCH_GAP;
         // Clamp the visible row count to the parchment *interior* — clearing the
-        // bottom burnt-edge curl (the same PANEL_INSET the detail panel respects
-        // for its scroll area) AND reserving the last row's full height. Using the
-        // raw panelBottom here let the bottom rows spill past the scroll onto the
-        // curl at low GUI scale / high resolution.
+        // bottom burnt-edge curl AND reserving the last row's full height. Using
+        // the raw panelBottom here let the bottom rows spill past the scroll onto
+        // the curl at low GUI scale / high resolution.
         int listBottomLimit = panelBottom - PANEL_INSET;
         int listRowStep     = LIST_BTN_H + listRowGap();
         listVisibleCount = Math.max(1, (listBottomLimit - listTop - LIST_BTN_H) / listRowStep + 1);
@@ -147,7 +121,6 @@ public class OriginSelectionScreen extends Screen {
     }
 
     private void advanceLayer() {
-        detailScrollOffset = 0;
         presenter.buildRows();
         refreshWidgets();
         updateDetail();
@@ -155,7 +128,6 @@ public class OriginSelectionScreen extends Screen {
 
     private void selectOrigin(ResourceLocation id) {
         presenter.select(id);
-        detailScrollOffset = 0;
         originButtons.forEach(b -> b.setSelected(b.getOrigin().id().equals(id)));
         if (confirmButton != null) confirmButton.active = true;
         updateDetail();
@@ -169,105 +141,8 @@ public class OriginSelectionScreen extends Screen {
     }
 
     private void updateDetail() {
-        detailViewModel = OriginDetailViewModel.compute(presenter.selectedOriginId(),
-            CLASS_LAYER_ID.equals(presenter.currentLayer() != null ? presenter.currentLayer().id() : null));
-        if (detailViewModel.origin() != null) {
-            // Wrap with themed() BEFORE splitting — Font.split bakes the style
-            // (including font selector) into each FormattedCharSequence, so the
-            // themed font has to be on the Component before the split runs.
-            descLines = font.split(themed(detailViewModel.origin().description()), detailTextW);
-
-            // Pre-wrap power descriptions
-            List<String> pDescs = detailViewModel.powerDescs();
-            List<List<FormattedCharSequence>> wrapped = new ArrayList<>();
-            int powerDescW = detailTextW - 8; // indent for bullet point
-            for (String desc : pDescs) {
-                if (desc.isEmpty()) {
-                    wrapped.add(List.of());
-                } else {
-                    wrapped.add(font.split(themed(Component.literal(desc)), powerDescW));
-                }
-            }
-            wrappedPowerDescs = wrapped;
-
-            evoTiers = computeEvoTiers(powerDescW);
-
-            // Compute content height with wrapped lines
-            detailContentH = computeContentHeight();
-        } else {
-            descLines = List.of();
-            wrappedPowerDescs = List.of();
-            evoTiers = List.of();
-            detailContentH = 0;
-        }
-    }
-
-    /** Build the per-tier evolution display, collapsing synthetic multiple-power
-     *  sub-ids back to their parent name/description and wrapping the
-     *  descriptions of added powers to {@code descW}. Tiers sorted ascending
-     *  (Evolved → Ascended → Apex). */
-    private List<EvoTier> computeEvoTiers(int descW) {
-        Origin origin = detailViewModel.origin();
-        if (origin == null || origin.tierPowers().isEmpty()) return List.of();
-        var sorted = new ArrayList<>(origin.tierPowers());
-        sorted.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
-        List<EvoTier> out = new ArrayList<>();
-        for (OriginTierOverlay overlay : sorted) {
-            List<EvoLine> added = new ArrayList<>();
-            for (var d : OriginDetailViewModel.resolveTierPowerDisplays(overlay.add())) {
-                List<FormattedCharSequence> desc = d.description().isEmpty()
-                    ? List.of()
-                    : font.split(themed(Component.literal(d.description())), descW);
-                added.add(new EvoLine(d.name(), desc));
-            }
-            List<String> removed = new ArrayList<>();
-            for (var d : OriginDetailViewModel.resolveTierPowerDisplays(overlay.remove())) {
-                removed.add(d.name());
-            }
-            out.add(new EvoTier(overlay.tier(), added, removed));
-        }
-        return out;
-    }
-
-    private static String tierName(int tier) {
-        if (tier >= 0 && tier < EssenceEvolutionManager.TIER_NAMES.length) {
-            String n = EssenceEvolutionManager.TIER_NAMES[tier];
-            if (!n.isEmpty()) return n;
-        }
-        return "Tier " + tier;
-    }
-
-    private int computeContentHeight() {
-        int h = 8 + descLines.size() * LINE_H + 8; // separator + desc + gap
-        if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()
-            && !detailViewModel.origin().spawnLocation().get().formatSummary().isEmpty()) {
-            h += LINE_H;
-        }
-        // Evolution path section (rendered after the powers list).
-        if (!evoTiers.isEmpty()) {
-            h += 8;          // gap before section
-            h += 9 + 4;      // "Evolution Path" header
-            for (EvoTier tier : evoTiers) {
-                h += 11;     // tier subheader
-                for (EvoLine line : tier.added()) {
-                    h += LINE_H;                       // "+ Name"
-                    h += line.desc().size() * LINE_H;  // wrapped description
-                }
-                h += tier.removed().size() * LINE_H;   // "- Name"
-            }
-        }
-        List<String> pNames = detailViewModel.powerNames();
-        if (!pNames.isEmpty()) {
-            h += 9 + 4; // "Powers" header
-            for (int i = 0; i < pNames.size(); i++) {
-                h += 11; // power name line
-                if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
-                    h += wrappedPowerDescs.get(i).size() * LINE_H;
-                }
-                h += POWER_GAP;
-            }
-        }
-        return h + 6; // bottom padding
+        detail.setOrigin(OriginDetailViewModel.compute(presenter.selectedOriginId(),
+            CLASS_LAYER_ID.equals(presenter.currentLayer() != null ? presenter.currentLayer().id() : null)));
     }
 
     private void refreshWidgets() {
@@ -292,9 +167,9 @@ public class OriginSelectionScreen extends Screen {
         addRenderableWidget(sortCycle);
 
         var search = new ParchmentEditBox(font, panelX + PANEL_INSET, PANEL_TOP + SEARCH_TOP_PAD, leftW - 2 * PANEL_INSET, SEARCH_H,
-            themed(Component.translatable("gui.neoorigins.search.label")));
+            UIThemeUtils.themed(Component.translatable("gui.neoorigins.search.label")));
         search.setMaxLength(64);
-        search.setHint(themed(Component.translatable("gui.neoorigins.search.hint")));
+        search.setHint(UIThemeUtils.themed(Component.translatable("gui.neoorigins.search.hint")));
         search.setTextColor(UITheme.current().descriptionColor());
         search.setValue(presenter.searchText());
         search.setResponder(text -> { if (presenter.setSearch(text)) refreshWidgets(); });
@@ -364,10 +239,10 @@ public class OriginSelectionScreen extends Screen {
         // use a cream parchment-tone (not the dark brown headerColor used on
         // the panels) to keep them readable.
         final int SCRIM_TEXT = 0xFFEBD9B0;
-        var layerTitle = themedBold(Component.translatable("screen.neoorigins.choose_prompt", presenter.currentLayer().name()));
+        var layerTitle = UIThemeUtils.themedBold(Component.translatable("screen.neoorigins.choose_prompt", presenter.currentLayer().name()));
         // drawCenteredString forces a drop shadow; use drawString to keep text clean.
         g.drawString(font, layerTitle, width / 2 - font.width(layerTitle) / 2, 14, SCRIM_TEXT, false);
-        Component progComp = themed(Component.literal((presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers()));
+        Component progComp = UIThemeUtils.themed(Component.literal((presenter.currentLayerIndex() + 1) + " / " + presenter.totalLayers()));
         g.drawString(font, progComp, width - 10 - font.width(progComp), 32, SCRIM_TEXT, false);
 
         // Left list panel — parchment 9-slice.
@@ -376,36 +251,19 @@ public class OriginSelectionScreen extends Screen {
         for (var vh : visibleHeaders) {
             // Accent bar on the left edge of section headers.
             g.fill(panelX + PANEL_INSET, vh.y() + 5, panelX + PANEL_INSET + 2, vh.y() + LIST_BTN_H - 5, theme.accentColor());
-            g.drawString(font, themed(Component.literal(vh.label().toUpperCase())), panelX + PANEL_INSET + 6, vh.y() + 7, theme.headerColor(), false);
+            g.drawString(font, UIThemeUtils.themed(Component.literal(vh.label().toUpperCase())), panelX + PANEL_INSET + 6, vh.y() + 7, theme.headerColor(), false);
         }
         // Scroll hint sits above the list panel so it doesn't collide with the
         // Random / Back / Confirm button row at the bottom.
         if (getMaxListScroll() > 0) {
-            var hint = themed(Component.translatable("gui.neoorigins.hint.scroll"));
+            var hint = UIThemeUtils.themed(Component.translatable("gui.neoorigins.hint.scroll"));
             int hintY = PANEL_TOP - 10;
             // Same cream parchment-tone as the title — readable on the scrim.
             g.drawString(font, hint, panelX, hintY, 0xFFEBD9B0, false);
         }
 
         super.render(g, mouseX, mouseY, partial);
-        renderDetailPanel(g);
-    }
-
-    /**
-     * Wraps a Component with the theme's font Style so a custom font provider
-     * (e.g. a user-supplied TTF) can take effect. The renderer stays the
-     * vanilla {@link net.minecraft.client.gui.Font}; the {@link ResourceLocation}
-     * in the Style selects which font set is used.
-     */
-    private static Component themed(Component c) {
-        return com.cyberday1.neoorigins.client.theme.UIThemeUtils.themed(c);
-    }
-
-    /** Like {@link #themed} but also marks the Style as bold — used for the
-     *  detail-panel "Powers" section header and per-power name lines so the
-     *  TTF renderer picks up its synthesized bold weight. */
-    private static Component themedBold(Component c) {
-        return com.cyberday1.neoorigins.client.theme.UIThemeUtils.themedBold(c);
+        detail.render(g);
     }
 
     /** Translation-key label for a sort mode, wrapped in the active theme font. */
@@ -417,141 +275,7 @@ public class OriginSelectionScreen extends Screen {
             case CLASS      -> "gui.neoorigins.sort.class";
             case IMPACT_ASC -> "gui.neoorigins.sort.impact";
         };
-        return themed(Component.translatable(key));
-    }
-
-    private void renderDetailPanel(GuiGraphics g) {
-        UITheme theme = UITheme.current();
-        // Right detail panel — parchment 9-slice.
-        PanelRenderer.drawPanel(g, theme, rightX - 1, PANEL_TOP - 1, rightW + 2, panelBottom - PANEL_TOP + 2);
-
-        if (detailViewModel.origin() == null) {
-            var hint = themed(Component.translatable("gui.neoorigins.hint.select"));
-            g.drawString(font, hint,
-                rightX + rightW / 2 - font.width(hint) / 2,
-                PANEL_TOP + (panelBottom - PANEL_TOP) / 2 - 4, theme.mutedColor(), false);
-            return;
-        }
-
-        Origin origin = detailViewModel.origin();
-        int cx = rightX + rightW / 2;
-        int y  = PANEL_TOP + DETAIL_PAD;
-
-        g.renderOutline(cx - 16, y, 32, 32, theme.borderColor());
-        OriginButton.renderIcon(g, origin.icon(), cx - 8, y + 8);
-        y += 32 + 6;
-        var nameC = themedBold(origin.name());
-        g.drawString(font, nameC, cx - font.width(nameC) / 2, y, theme.nameColor(), false);
-        y += 9 + 4;
-        drawImpactRow(g, cx, y, origin.impact());
-
-        int scrollTop    = PANEL_TOP + HEADER_H;
-        // Pull the bottom in so the rail clears the parchment burnt-edge curl.
-        int scrollBottom = panelBottom - PANEL_INSET;
-        int scrollAreaH  = scrollBottom - scrollTop;
-        int maxScroll    = Math.max(0, detailContentH - scrollAreaH);
-        detailScrollOffset = Mth.clamp(detailScrollOffset, 0, maxScroll);
-
-        g.enableScissor(rightX + 1, scrollTop, rightX + rightW - 5, scrollBottom);
-        int sy = scrollTop - detailScrollOffset;
-        g.fill(rightX + DETAIL_PAD, sy + 3, rightX + rightW - DETAIL_PAD - 6, sy + 4, theme.borderColor());
-        sy += 8;
-        for (FormattedCharSequence line : descLines) {
-            g.drawString(font, line, rightX + DETAIL_PAD, sy, theme.descriptionColor(), false);
-            sy += LINE_H;
-        }
-        if (detailViewModel.origin() != null && detailViewModel.origin().spawnLocation().isPresent()) {
-            String spawnSummary = detailViewModel.origin().spawnLocation().get().formatSummary();
-            if (!spawnSummary.isEmpty()) {
-                g.drawString(font, themed(Component.literal(spawnSummary)),
-                    rightX + DETAIL_PAD, sy, theme.accentColor(), false);
-                sy += LINE_H;
-            }
-        }
-        sy += 8;
-        List<String> pNames = detailViewModel.powerNames();
-        if (!pNames.isEmpty()) {
-            g.drawString(font, themedBold(Component.translatable("gui.neoorigins.detail.powers_header")), rightX + DETAIL_PAD, sy, theme.headerColor(), false);
-            sy += 9 + 4;
-            for (int i = 0; i < pNames.size(); i++) {
-                g.fill(rightX + DETAIL_PAD, sy + 3, rightX + DETAIL_PAD + 3, sy + 6, theme.accentColor());
-                var pNameC = themedBold(Component.literal(pNames.get(i)));
-                g.drawString(font, pNameC, rightX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
-                // Hotkey tag (e.g. "[R]") — the key the ability gets, same
-                // slot logic as the HUD cluster. Accent color, after the name.
-                List<String> pTags = detailViewModel.powerKeyTags();
-                if (i < pTags.size() && !pTags.get(i).isEmpty()) {
-                    g.drawString(font, themed(Component.literal(pTags.get(i))),
-                        rightX + DETAIL_PAD + 8 + font.width(pNameC) + 5, sy, theme.accentColor(), false);
-                }
-                sy += 11;
-                if (i < wrappedPowerDescs.size() && !wrappedPowerDescs.get(i).isEmpty()) {
-                    for (FormattedCharSequence dLine : wrappedPowerDescs.get(i)) {
-                        g.drawString(font, dLine, rightX + DETAIL_PAD + 8, sy, theme.powerDescriptionColor(), false);
-                        sy += LINE_H;
-                    }
-                }
-                sy += POWER_GAP;
-            }
-        }
-
-        // ── Evolution Path section (static names + descriptions) ───────────
-        // Rendered below the powers list so the base kit reads first, then how
-        // it grows with evolution tiers.
-        if (!evoTiers.isEmpty()) {
-            sy += 8;
-            g.drawString(font, themedBold(Component.translatable("gui.neoorigins.info.evolution_path")),
-                rightX + DETAIL_PAD, sy, theme.headerColor(), false);
-            sy += 9 + 4;
-            for (EvoTier tier : evoTiers) {
-                g.drawString(font, themed(Component.literal(tierName(tier.tier()))),
-                    rightX + DETAIL_PAD, sy, theme.powerNameColor(), false);
-                sy += 11;
-                for (EvoLine line : tier.added()) {
-                    g.drawString(font, themed(Component.literal("+ " + line.name())),
-                        rightX + DETAIL_PAD + 8, sy, theme.powerNameColor(), false);
-                    sy += LINE_H;
-                    for (FormattedCharSequence dl : line.desc()) {
-                        g.drawString(font, dl, rightX + DETAIL_PAD + 16, sy,
-                            theme.powerDescriptionColor(), false);
-                        sy += LINE_H;
-                    }
-                }
-                for (String rname : tier.removed()) {
-                    g.drawString(font, themed(Component.literal("- " + rname)),
-                        rightX + DETAIL_PAD + 8, sy, theme.mutedColor(), false);
-                    sy += LINE_H;
-                }
-            }
-        }
-        g.disableScissor();
-
-        if (maxScroll > 0) {
-            // Sit the scroll rail inside the parchment burnt-edge curl
-            // (PANEL_INSET = 12) so it doesn't run off the curled paper border.
-            int barX   = rightX + rightW - PANEL_INSET;
-            int thumbH = Math.max(10, scrollAreaH * scrollAreaH / (scrollAreaH + maxScroll));
-            int thumbY = scrollTop + (int) ((long) detailScrollOffset * (scrollAreaH - thumbH) / maxScroll);
-            g.fill(barX, scrollTop, barX + 1, scrollBottom, theme.borderColor());
-            g.fill(barX, thumbY, barX + 1, thumbY + thumbH, theme.accentColor());
-        }
-    }
-
-    private void drawImpactRow(GuiGraphics g, int cx, int y, Impact impact) {
-        UITheme theme = UITheme.current();
-        int totalW = (DOT_COUNT - 1) * DOT_SPACING + DOT_SIZE;
-        int x0     = cx - totalW / 2;
-        for (int i = 0; i < DOT_COUNT; i++)
-            g.fill(x0 + i * DOT_SPACING, y, x0 + i * DOT_SPACING + DOT_SIZE, y + DOT_SIZE,
-                i < impact.getDotCount() ? theme.accentColor() : theme.borderColor());
-        Component label = Component.translatable("origins.gui.impact.impact").append(": ")
-            .append(switch (impact) {
-                case NONE   -> Component.translatable("origins.gui.impact.none");
-                case LOW    -> Component.translatable("origins.gui.impact.low");
-                case MEDIUM -> Component.translatable("origins.gui.impact.medium");
-                case HIGH   -> Component.translatable("origins.gui.impact.high");
-            });
-        g.drawString(font, themed(label), cx + totalW / 2 + 6, y - 1, theme.mutedColor(), false);
+        return UIThemeUtils.themed(Component.translatable(key));
     }
 
     // ── Scrolling ─────────────────────────────────────────────────────────────
@@ -563,13 +287,28 @@ public class OriginSelectionScreen extends Screen {
             if (next != presenter.listScrollOffset()) { presenter.setListScrollOffset(next); refreshWidgets(); }
             return true;
         }
-        if (mx >= rightX && mx <= rightX + rightW && my >= PANEL_TOP && my <= panelBottom) {
-            int scrollAreaH = (panelBottom - PANEL_INSET) - (PANEL_TOP + HEADER_H);
-            int maxScroll   = Math.max(0, detailContentH - scrollAreaH);
-            detailScrollOffset = Mth.clamp(detailScrollOffset + (sy > 0 ? -14 : 14), 0, maxScroll);
-            return true;
-        }
+        if (detail.mouseScrolled(mx, my, sy)) return true;
         return super.mouseScrolled(mx, my, sx, sy);
+    }
+
+    // The detail panel gets first refusal on drags so its scroll thumb wins over
+    // any widget under the cursor.
+    @Override
+    public boolean mouseClicked(double mx, double my, int button) {
+        if (detail.mouseClicked(mx, my, button)) return true;
+        return super.mouseClicked(mx, my, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mx, double my, int button, double dx, double dy) {
+        if (detail.mouseDragged(mx, my, button)) return true;
+        return super.mouseDragged(mx, my, button, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int button) {
+        if (detail.mouseReleased(mx, my, button)) return true;
+        return super.mouseReleased(mx, my, button);
     }
 
     private int getMaxListScroll() {
@@ -590,128 +329,11 @@ public class OriginSelectionScreen extends Screen {
 
     @Override public boolean isPauseScreen() { return false; }
 
-    /**
-     * Lock players into the mandatory initial origin selection: ESC must not
-     * dismiss the screen until they have actually chosen. This is the fix for
-     * the divergence where the picker could be escaped on a dedicated server.
-     *
-     * <p>Escape stays allowed for the cases where backing out is intended:
-     * <ul>
-     *   <li>{@code isOrb} — an orb re-roll is voluntary and {@link #onClose()}
-     *       refunds/cancels it.</li>
-     *   <li>the player already has all origins (voluntary re-selection via the
-     *       editor / {@code /origin} command / VIEW_INFO recovery once done).</li>
-     *   <li>the local selection is already complete ({@code presenter.isDone()})
-     *       — by then {@code confirm()} normally closes the screen anyway; this
-     *       is just a safety net.</li>
-     * </ul>
-     */
-    @Override
-    public boolean shouldCloseOnEsc() {
-        if (isOrb) return true;
-        if (ClientOriginState.isHadAllOrigins()) return true;
-        return presenter.isDone();
-    }
-
-    private static final ResourceLocation CLASS_LAYER_ID =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
-    private static final ResourceLocation NITWIT_ORIGIN_ID =
-        ResourceLocation.fromNamespaceAndPath("neoorigins", "class_nitwit");
+    private static final ResourceLocation CLASS_LAYER_ID = PickerCloseBehaviour.CLASS_LAYER_ID;
 
     @Override
-    public void onClose() {
-        // If the player escaped out with their primary origin picked but no
-        // class, auto-assign the nitwit class (no-effect default) so the
-        // server sees `hadAllOrigins` flip true and runs grantAllPending.
-        // Otherwise the player would sit in a half-selected state with no
-        // starting_equipment items granted. See tester feedback 2026-04-22.
-        var origins = ClientOriginState.getOrigins();
-        boolean hasClass = origins.keySet().stream().anyMatch(CLASS_LAYER_ID::equals);
-        boolean hasAnyOrigin = !origins.isEmpty();
-        // Only auto-assign nitwit when it's actually a selectable class. A pack
-        // can disable every class origin (including class_nitwit) — in that case
-        // the presenter skips the empty class layer entirely, and sending the
-        // nitwit choice anyway makes the server reject it with a "non-existent
-        // origin" warning. Mirror the presenter's availability filter so we stay
-        // silent when there's nothing to assign.
-        // Never auto-assign on an orb-driven close: the server refunds/rolls back
-        // a cancelled orb use (CancelOrbPayload). For the Orb of Class this keeps
-        // ESC a true free cancel that restores the previous class instead of
-        // silently locking in nitwit; the Orb of Origin clears every layer so
-        // hasAnyOrigin is already false here anyway.
-        boolean nitwitAssigned = false;
-        if (!isOrb && hasAnyOrigin && !hasClass && isNitwitAssignable()) {
-            PacketDistributor.sendToServer(new ChooseOriginPayload(CLASS_LAYER_ID, NITWIT_ORIGIN_ID));
-            nitwitAssigned = true;
-        }
-        // Tell the server to cancel any pending orb-of-origin commit. If the
-        // player already picked at least once during this picker session, the
-        // commit already fired and the server's flag is already cleared, so
-        // this is a no-op. If they never picked, the orb stays in the
-        // inventory and no XP is charged.
-        if (isOrb) {
-            PacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.CancelOrbPayload());
-        }
-        // Non-orb picker closed with an INCOMPLETE pick (zero origins OR some
-        // but not all required layers): tell the server to drop first-pick
-        // invulnerability. Now that the invuln gate covers the whole multi-layer
-        // pick (not just the first layer), a player who picks an origin then
-        // escapes before choosing a class would otherwise stay immortal until a
-        // relog. The nitwit auto-assign above can complete the class layer; pass
-        // that through so a legitimate completion isn't falsely reported as
-        // abandoned (ClientOriginState won't reflect the just-sent packet yet).
-        if (!isOrb && !isPickComplete(nitwitAssigned)) {
-            PacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload());
-        }
-        Minecraft.getInstance().setScreen(null);
-    }
+    public boolean shouldCloseOnEsc() { return PickerCloseBehaviour.shouldCloseOnEsc(isOrb, presenter); }
 
-    /**
-     * Client-side mirror of the server's {@code allFilled} loop in
-     * {@code NeoOriginsNetwork.handleChooseOrigin}: true when every layer the
-     * picker would actually show has a selection. Iterates the same sorted
-     * layers, skips hidden layers and layers with no available+existing origin,
-     * and checks {@link ClientOriginState#getOrigins()} for an entry per layer.
-     *
-     * @param nitwitAssigned true if onClose just auto-assigned the nitwit class
-     *     this frame — its {@link ChooseOriginPayload} is in flight to the
-     *     server but not yet reflected in {@code ClientOriginState}, so treat
-     *     the class layer as filled to avoid a spurious abandon after a legit
-     *     completion.
-     */
-    private boolean isPickComplete(boolean nitwitAssigned) {
-        var choices = ClientOriginState.getOrigins();
-        for (var l : LayerDataManager.INSTANCE.getSortedLayers()) {
-            if (l.hidden()) continue;
-            boolean hasAnyOrigin = l.origins().stream()
-                .anyMatch(co -> co.isAvailable(choices)
-                             && OriginDataManager.INSTANCE.hasOrigin(co.origin()));
-            if (!hasAnyOrigin) continue;
-            boolean filled = choices.containsKey(l.id());
-            if (!filled && nitwitAssigned && l.id().equals(CLASS_LAYER_ID)) filled = true;
-            if (!filled) return false;
-        }
-        return true;
-    }
-
-    /**
-     * True only when {@code neoorigins:class_nitwit} is a real, selectable
-     * option right now — mirrors {@link OriginSelectionPresenter}'s availability
-     * filter so onClose() doesn't auto-assign a class the server will reject.
-     */
-    private boolean isNitwitAssignable() {
-        var layer = LayerDataManager.INSTANCE.getLayer(CLASS_LAYER_ID);
-        if (layer == null || layer.hidden()) return false;
-        var choices = ClientOriginState.getOrigins();
-        for (var co : layer.origins()) {
-            if (!co.origin().equals(NITWIT_ORIGIN_ID)) continue;
-            if (!co.isAvailable(choices)) return false;
-            if (ContentTogglesConfig.isOriginDisabled(co.origin())) return false;
-            if (!OriginDataManager.INSTANCE.hasOrigin(co.origin())) return false;
-            var origin = OriginDataManager.INSTANCE.getOrigin(co.origin());
-            if (origin != null && origin.unchoosable()) return false;
-            return true;
-        }
-        return false;
-    }
+    @Override
+    public void onClose() { PickerCloseBehaviour.onPickerClosed(isOrb, presenter); }
 }

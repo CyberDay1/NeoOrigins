@@ -74,8 +74,12 @@ public class OriginButton extends Button {
      * Renders a 16×16 origin icon. If the stack is non-empty it is rendered
      * directly (preserving data components like custom model data); otherwise
      * falls back to blitting the texture at assets/&lt;ns&gt;/textures/item/&lt;path&gt;.png.
+     *
+     * <p>Public because three call sites draw the same icon: this button, the
+     * shared {@code screen.detail.OriginDetailPanel} (another package), and
+     * {@link OriginCardButton}, which doubles it through the matrix stack.
      */
-    static void renderIcon(GuiGraphics g, ItemStack icon, int x, int y) {
+    public static void renderIcon(GuiGraphics g, ItemStack icon, int x, int y) {
         if (!icon.isEmpty()) {
             g.renderItem(icon, x, y);
             return;

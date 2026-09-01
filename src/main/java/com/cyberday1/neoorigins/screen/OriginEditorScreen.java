@@ -112,7 +112,9 @@ public class OriginEditorScreen extends Screen {
     }
 
     private void openOriginPicker() {
-        Minecraft.getInstance().setScreen(new OriginSelectionScreen(false, true));
+        // Route through the trampoline so the picker has exactly one
+        // construction site (see ClientOriginState.openSelectionScreen).
+        com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(false, true);
     }
 
     private void toggle(ResourceLocation powerId) {
