@@ -149,6 +149,14 @@ public final class BuiltinConditions {
         define("passenger", List.of("riding"), (json, ctx) -> p -> p.isPassenger(), List.of());
         // on_fire / fire — player is on fire. `fire` is a synonym.
         define("on_fire", List.of("fire"), (json, ctx) -> p -> p.isOnFire(), List.of());
+        // using_effective_tool — the player is mining a block RIGHT NOW and the
+        // held item is the correct tool for its drops. Two halves, and the first
+        // is the one packs get wrong: it is false whenever the player is not
+        // mid-break, so it cannot be used to ask "am I holding a pickaxe" — only
+        // "is the swing I am currently making a productive one". Matches Apoli
+        // 2.12.0's field-less condition (verified from bytecode: registered with
+        // ConditionConfiguration.simple, so it takes no config at all).
+        define("using_effective_tool", (json, ctx) -> BuiltinConditions::usingEffectiveTool, List.of());
 
         // ---- World / time / weather conditions (read live world state) ----
         // constant — literal boolean. `value` optional (absent → false).
@@ -870,5 +878,30 @@ public final class BuiltinConditions {
             for (ResourceLocation alias : t.aliases()) ids.add(alias.toString());
         }
         return ids;
+    }
+
+    /**
+     * Backs {@code using_effective_tool}: is this player part-way through breaking
+     * a block, holding the right tool to get its drops?
+     *
+     * <p>The mining half is read straight off {@code ServerPlayerGameMode} via
+     * {@link com.cyberday1.neoorigins.mixin.ServerPlayerGameModeMiningAccessor} —
+     * it is the only place the "currently destroying" flag and its position live.
+     * Not mining is not an error, it is simply {@code false}: the condition asks
+     * about a swing in progress, not about inventory contents.
+     *
+     * <p>The tool half is vanilla {@code Player#hasCorrectToolForDrops}, which is
+     * also what Apoli calls, so blocks that need no tool at all answer true.
+     *
+     * <p>No null or type guard on the player: {@link EntityCondition} is declared
+     * over {@code ServerPlayer}, and {@code ServerPlayer.gameMode} is a public
+     * final field assigned in the constructor.
+     */
+    private static boolean usingEffectiveTool(net.minecraft.server.level.ServerPlayer player) {
+        var mining = (com.cyberday1.neoorigins.mixin.ServerPlayerGameModeMiningAccessor)
+            player.gameMode;
+        if (!mining.neoorigins$isDestroyingBlock()) return false;
+        return player.hasCorrectToolForDrops(
+            player.level().getBlockState(mining.neoorigins$getDestroyPos()));
     }
 }

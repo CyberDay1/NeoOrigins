@@ -41,6 +41,7 @@
     "FolderPackDetectorMixin",
     "EntityForcedSwimmingMixin",
     "BlockStateBaseCobwebShapeMixin",
+    "ServerPlayerGameModeMiningAccessor",
     "recipe.CraftingMenuOriginContextMixin",
     "recipe.ResultSlotOriginContextMixin"
   ],
