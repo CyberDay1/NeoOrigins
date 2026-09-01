@@ -89,7 +89,8 @@ public final class ConditionParser {
         "neoorigins:status_effect", "neoorigins:submerged_in",
         "neoorigins:submerged_in_water", "neoorigins:swimming", "neoorigins:target_group",
         "neoorigins:target_type", "neoorigins:temperature", "neoorigins:thundering",
-        "neoorigins:ticking", "neoorigins:time_of_day", "neoorigins:using_item",
+        "neoorigins:ticking", "neoorigins:time_of_day",
+        "neoorigins:using_effective_tool", "neoorigins:using_item",
         "neoorigins:water", "neoorigins:weather", "neoorigins:xp_level",
         "neoorigins:xp_levels", "neoorigins:xp_points");
 

@@ -102,7 +102,7 @@
   neoorigins:transform_block
   neoorigins:trigger_cooldown
   neoorigins:trigger_morph_animation
-[condition] (109)
+[condition] (110)
   neoorigins:actor_condition
   neoorigins:advancement
   neoorigins:air
@@ -206,6 +206,7 @@
   neoorigins:thundering
   neoorigins:ticking
   neoorigins:time_of_day
+  neoorigins:using_effective_tool
   neoorigins:using_item
   neoorigins:water
   neoorigins:weather
