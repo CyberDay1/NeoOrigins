@@ -271,6 +271,11 @@ public class OriginCommand {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         int oldTier = data.getEvolutionTier();
         data.setEvolutionTier(tier);
+        // An admin moving the tier in either direction invalidates any standing
+        // decline: keeping it could mute the prompt for a tier the player never
+        // turned down (set them down to base and their old decline of tier 2
+        // would still be sitting there when they climb back).
+        data.setDeclinedEvolutionTier(0);
         // Grant/revoke tier-overlay powers and reconcile health, same as the
         // accept-prompt path. Without this the force-set only changed the tier
         // field and the attribute modifiers (e.g. evolution HP) wouldn't apply
