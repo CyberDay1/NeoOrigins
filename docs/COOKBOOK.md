@@ -35,10 +35,20 @@ data/
 
 **`origin_layers/origin.json`**: add your origin to the built-in picker layer.
 Overriding `neoorigins:origin` (the main picker layer) merges your origins
-into the vanilla tab instead of giving them their own. Only list the
-`origin:` IDs you want visible; the built-in origins stay listed by the core
-mod's own `origin_layers/origin.json`; layer JSONs merge by replacement of
-the `origins` array, so copy the full list if you want to control ordering.
+into the vanilla tab instead of giving them their own. Only list the IDs you
+are adding: layer JSONs merge **additively** by default, so your `origins`
+array is appended to the shipped one (deduplicated by ID) and the built-in
+origins stay listed by the core mod's own `origin_layers/origin.json`. You
+never have to re-list a built-in.
+
+Position in the array is not display order. The picker sorts by each origin's
+own `order` field (ascending, alphabetical tie-break) by default, under the
+`MANUAL` sort, so set `order` in `origins/my_origin.json` to place
+your entry. If you want to remove or curate the built-ins rather than add to
+them, set `"replace": true` on your layer file: every field you supply then
+overwrites the built-in's, `origins` included. See
+[PACK_FORMAT](PACK_FORMAT.md#adding-origins-to-the-built-in-layer) for the
+full merge rules.
 
 ```json
 {
@@ -1184,15 +1194,18 @@ message appears in chat (default: every 100 kills).
 3. When the counter reaches a tier threshold, the player gets a chat
    prompt with clickable **[EVOLVE]** / **[DECLINE]** buttons.
 4. Accepting grants the tier's `add` powers and revokes its `remove`
-   powers (defined in the origin JSON). Declining defers: the player
-   can accept later via command.
-5. Using an **Orb of Origin** resets both kills and tier to zero.
+   powers (defined in the origin JSON). Declining defers: the tier stays
+   available to accept by command at any time, and the prompt is not shown
+   for it again. See [EVOLUTION.md](EVOLUTION.md#the-evolution-prompt).
+5. Using an **Orb of Origin** resets kills and tier to zero, and clears any
+   declined tier.
 
 ### Commands
 
 **Player commands** (permission level 0):
 - `/neoorigins evolve accept`: accept a pending evolution prompt
-- `/neoorigins evolve decline`: decline (can re-accept later)
+- `/neoorigins evolve decline`: decline a standing prompt; the tier can still
+  be accepted later
 - `/origin evolve accept` / `/origin evolve decline`: legacy aliases
 
 **Admin commands** (permission level 2):

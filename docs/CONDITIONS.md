@@ -137,7 +137,7 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios/Accessories slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
+True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets that are innately fire/lava resistant — anything carrying the `minecraft:fire_resistant` component, which in vanilla means netherite alone — shade the player without losing any durability; unbreakable helmets already did. Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios/Accessories slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
 
 ### Umbrella items
 
@@ -174,6 +174,18 @@ True while the entity is a passenger of something. No fields.
 ## `neoorigins:using_item`
 
 True while the entity is actively using an item (eating, drawing bow, etc.). No fields.
+
+## `neoorigins:using_effective_tool`
+
+True while the player is part-way through breaking a block **and** the item in
+their hand is the correct tool for that block's drops. No fields.
+
+Note the first half: this is false whenever the player is not actually mid-break,
+so it cannot be used to ask "is there a pickaxe in hand" — it asks whether the
+swing currently in progress is a productive one. Blocks that need no particular
+tool count as effective, matching vanilla's own harvest check.
+
+Server-side only, so a client-side visual gated on it never sees it turn true.
 
 ## `neoorigins:ticking`
 
