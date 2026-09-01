@@ -87,6 +87,7 @@
         "apace:prevent_block_use",
         "apace:prevent_death",
         "apace:prevent_elytra_flight",
+        "apace:prevent_entity_render",
         "apace:prevent_entity_use",
         "apace:prevent_game_event",
         "apace:prevent_item_use",
@@ -191,6 +192,7 @@
         "apoli:prevent_block_use",
         "apoli:prevent_death",
         "apoli:prevent_elytra_flight",
+        "apoli:prevent_entity_render",
         "apoli:prevent_entity_use",
         "apoli:prevent_game_event",
         "apoli:prevent_item_use",
@@ -298,6 +300,7 @@
         "apugli:prevent_block_use",
         "apugli:prevent_death",
         "apugli:prevent_elytra_flight",
+        "apugli:prevent_entity_render",
         "apugli:prevent_entity_use",
         "apugli:prevent_game_event",
         "apugli:prevent_item_use",
@@ -432,8 +435,10 @@
         "neoorigins:particle",
         "neoorigins:persistent_effect",
         "neoorigins:phantom_form",
+        "neoorigins:pose",
         "neoorigins:prevent_action",
         "neoorigins:prevent_death",
+        "neoorigins:prevent_entity_render",
         "neoorigins:prevent_item_damage",
         "neoorigins:projectile_immunity",
         "neoorigins:quality_equipment",
@@ -555,6 +560,7 @@
         "origins:prevent_block_use",
         "origins:prevent_death",
         "origins:prevent_elytra_flight",
+        "origins:prevent_entity_render",
         "origins:prevent_entity_use",
         "origins:prevent_game_event",
         "origins:prevent_item_use",
@@ -1281,7 +1287,7 @@
           ]
         },
         "item_condition": {
-          "description": "Item filter for item-carrying events (item_use, item_use_finish): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). Fails closed when set but the event carries no item; ignored on events that never carry one.",
+          "description": "Item filter for item-carrying events (item_use, item_use_finish, block_use, entity_use, villager_interact): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). On the interaction events the stack tested is the one in the interacting hand. Fails closed when set but the event carries no item; ignored on events that never carry one.",
           "$ref": "item_condition.schema.json"
         },
         "effect": {
@@ -4486,6 +4492,11 @@
               }
             }
           ]
+        },
+        "enabled": {
+          "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -5111,6 +5122,55 @@
       ]
     },
     {
+      "$comment": "neoorigins:pose",
+      "properties": {
+        "type": {
+          "const": "neoorigins:pose"
+        },
+        "pose": {
+          "description": "Which pose to hold the player in. 'swimming' is the prone crawl (a 0.6x0.6 body, eye at 0.4) used for crawling under a one-block gap; 'crouching' is sneak height; 'standing' pins the player upright and stops them crouching or crawling at all. A forced crouch or land crawl walks at sneak pace (vanilla's slow-movement test reads the pose), but does not set the sneak flag, so there is no ledge-stop; a forced 'swimming' out of water is a crawl only and grants no swim propulsion. The pose is NOT clearance-checked, so it fits wherever its box fits, including gaps the player could not otherwise enter; balancing that is the pack's job. Releasing it hands the player back to vanilla, which does check clearance.",
+          "type": "string",
+          "enum": [
+            "standing",
+            "crouching",
+            "swimming",
+            "STANDING",
+            "CROUCHING",
+            "SWIMMING"
+          ]
+        },
+        "toggleable": {
+          "description": "When true the power binds a keybind that flips the pose on/off; off releases the player to their normal pose (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "default_off": {
+          "description": "Toggleable powers only: when true the pose STARTS released so the player must opt in via the keybind (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "enabled": {
+          "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
+          "type": "boolean",
+          "default": true
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "pose"
+      ]
+    },
+    {
       "$comment": "neoorigins:prevent_action",
       "properties": {
         "type": {
@@ -5234,6 +5294,31 @@
         },
         "condition": {
           "description": "Optional EntityCondition gating the save: the power only prevents death while it passes (default always-true).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:prevent_entity_render",
+      "properties": {
+        "type": {
+          "const": "neoorigins:prevent_entity_render"
+        },
+        "entity_condition": {
+          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.",
           "oneOf": [
             {
               "$ref": "condition.schema.json"
@@ -7103,8 +7188,10 @@
               "neoorigins:particle",
               "neoorigins:persistent_effect",
               "neoorigins:phantom_form",
+              "neoorigins:pose",
               "neoorigins:prevent_action",
               "neoorigins:prevent_death",
+              "neoorigins:prevent_entity_render",
               "neoorigins:prevent_item_damage",
               "neoorigins:projectile_immunity",
               "neoorigins:quality_equipment",

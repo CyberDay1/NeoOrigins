@@ -11,7 +11,7 @@
     "type": {
       "type": "string",
       "description": "Condition verb. The namespace is optional and any namespace is accepted (`origins:`, `apoli:`, `apugli:`, `apace:`, a bare leaf, or an addon prefix): the parser canonicalises the prefix away and dispatches on the leaf, so it is the leaf that must be a known verb.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_item|weather|xp_level|xp_levels|xp_points)$"
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_effective_tool|using_item|weather|xp_level|xp_levels|xp_points)$"
     }
   },
   "oneOf": [
@@ -2879,6 +2879,23 @@
       ]
     },
     {
+      "$comment": "neoorigins:using_effective_tool",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:using_effective_tool",
+            "apace:using_effective_tool",
+            "origins:using_effective_tool",
+            "apoli:using_effective_tool",
+            "apugli:using_effective_tool"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:using_item",
       "properties": {
         "type": {
@@ -3158,6 +3175,7 @@
               "apace:thundering",
               "apace:ticking",
               "apace:time_of_day",
+              "apace:using_effective_tool",
               "apace:using_item",
               "apace:weather",
               "apace:xp_level",
@@ -3275,6 +3293,7 @@
               "apoli:thundering",
               "apoli:ticking",
               "apoli:time_of_day",
+              "apoli:using_effective_tool",
               "apoli:using_item",
               "apoli:weather",
               "apoli:xp_level",
@@ -3392,6 +3411,7 @@
               "apugli:thundering",
               "apugli:ticking",
               "apugli:time_of_day",
+              "apugli:using_effective_tool",
               "apugli:using_item",
               "apugli:weather",
               "apugli:xp_level",
@@ -3509,6 +3529,7 @@
               "neoorigins:thundering",
               "neoorigins:ticking",
               "neoorigins:time_of_day",
+              "neoorigins:using_effective_tool",
               "neoorigins:using_item",
               "neoorigins:weather",
               "neoorigins:xp_level",
@@ -3626,6 +3647,7 @@
               "origins:thundering",
               "origins:ticking",
               "origins:time_of_day",
+              "origins:using_effective_tool",
               "origins:using_item",
               "origins:weather",
               "origins:xp_level",
