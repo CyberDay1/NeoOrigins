@@ -3450,12 +3450,22 @@ public final class BuiltinActions {
      * {@link com.cyberday1.neoorigins.command.OriginsCompatCommands#onCommand}
      * carries this same two-step gate: cheap {@code needsRewrite} prefilter,
      * then "does it already parse".
+     *
+     * <p>The dead item→{@code tag} path repair runs <em>ahead</em> of that gate,
+     * unconditionally, because it is the one class of legacy syntax the gate can
+     * never admit: {@code data get entity @s SelectedItem.tag.Foo} parses
+     * perfectly and resolves to nothing, so "does it already parse" says yes to a
+     * command that does nothing at all. See
+     * {@link com.cyberday1.neoorigins.compat.LegacyCommandRewriter#rewriteDeadItemTagPaths}
+     * for why that one is safe to fire without a gate and the semantic tier is not.
      */
     private static String rewriteIfBroken(net.minecraft.commands.CommandSourceStack source,
                                           String command) {
-        if (!com.cyberday1.neoorigins.compat.LegacyCommandRewriter.needsRewrite(command)) return command;
-        if (com.cyberday1.neoorigins.command.OriginsCompatCommands.parsesCleanly(source, command)) return command;
-        return com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(command);
+        String repaired =
+            com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewriteDeadItemTagPaths(command);
+        if (!com.cyberday1.neoorigins.compat.LegacyCommandRewriter.needsRewrite(repaired)) return repaired;
+        if (com.cyberday1.neoorigins.command.OriginsCompatCommands.parsesCleanly(source, repaired)) return repaired;
+        return com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewrite(repaired);
     }
 
     static void applyProjectileAction(net.minecraft.world.entity.Entity projectile,
