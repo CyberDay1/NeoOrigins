@@ -11,10 +11,11 @@ import java.util.Map;
 
 /**
  * Apoli's {@code origins:starting_equipment} carries an array of stacks under
- * a single power ID. NeoOrigins' {@code neoorigins:starting_equipment} is
- * one-stack-per-power. This expander bridges the two: it takes the Apoli
- * JSON and returns a map of synthetic IDs ({@code <orig>/stack_<i>}) →
- * canonical NeoOrigins JSONs, one per stack entry.
+ * a single power ID (or one stack under the singular {@code stack} alias).
+ * NeoOrigins' {@code neoorigins:starting_equipment} is one-stack-per-power.
+ * This expander bridges the two: it takes the Apoli JSON and returns a map of
+ * synthetic IDs ({@code <orig>/stack_<i>}) → canonical NeoOrigins JSONs, one
+ * per stack entry. See {@link #readStacks} for the singular/plural handling.
  *
  * <p>Designed to run alongside {@link OriginsMultipleExpander} during
  * {@code PowerDataManager.apply()} — each output stack carries the
@@ -48,11 +49,8 @@ public final class OriginsStartingEquipmentExpander {
     public static Map<ResourceLocation, JsonObject> expand(ResourceLocation id, JsonObject src) {
         Map<ResourceLocation, JsonObject> out = new HashMap<>();
         java.util.List<ResourceLocation> syntheticIds = new java.util.ArrayList<>();
-        if (!src.has("stacks") || !src.get("stacks").isJsonArray()) {
-            NeoOrigins.LOGGER.warn("[CompatB] starting_equipment '{}' has no 'stacks' array — skipped", id);
-            return out;
-        }
-        JsonArray stacks = src.getAsJsonArray("stacks");
+        JsonArray stacks = readStacks(id, src);
+        if (stacks == null) return out;
         for (int i = 0; i < stacks.size(); i++) {
             JsonElement el = stacks.get(i);
             if (!el.isJsonObject()) continue;
@@ -93,5 +91,32 @@ public final class OriginsStartingEquipmentExpander {
             OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.put(id, syntheticIds);
         }
         return out;
+    }
+
+    /**
+     * Read the stack list, tolerating Apoli's singular {@code stack} alias.
+     *
+     * <p>Apoli declares <em>both</em> fields on this power: {@code stack} (a
+     * single {@code IndexedStack}, default null) and {@code stacks} (a list,
+     * whose functioned default is {@code singletonListOrNull(get("stack"))}),
+     * with a {@code validateAnyFieldsPresent("stack", "stacks")} guard. So
+     * {@code stacks} wins when present and {@code stack} is otherwise promoted
+     * to a one-element list — mirrored exactly here. Same singular/plural
+     * tolerance the layer already applies to {@code hands}/{@code hand}.
+     *
+     * @return the stacks to expand, or {@code null} if neither field is usable
+     */
+    @javax.annotation.Nullable
+    private static JsonArray readStacks(ResourceLocation id, JsonObject src) {
+        if (src.has("stacks") && src.get("stacks").isJsonArray()) {
+            return src.getAsJsonArray("stacks");
+        }
+        if (src.has("stack") && src.get("stack").isJsonObject()) {
+            JsonArray singleton = new JsonArray();
+            singleton.add(src.getAsJsonObject("stack"));
+            return singleton;
+        }
+        NeoOrigins.LOGGER.warn("[CompatB] starting_equipment '{}' has no 'stacks' array or 'stack' object — skipped", id);
+        return null;
     }
 }
