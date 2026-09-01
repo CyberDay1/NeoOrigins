@@ -11,6 +11,7 @@
 
 	import { untrack } from 'svelte';
 	import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
+	import { mirrorSeedFor } from '$lib/schema/fieldSeed';
 	import FieldRow from '$lib/widgets/FieldRow.svelte';
 
 	let {
@@ -23,29 +24,12 @@
 		onUpdate: (v: unknown) => void;
 	} = $props();
 
-	// Kind-appropriate empty value. An unset power field arrives as
-	// `undefined`, but FieldRow forwards the mirror into leaf rows that
-	// declare a `$bindable` *with a fallback* (BoolRow `false`, NumericRow
-	// `null`, EnumRow/StringRow/RawJsonRow `''`). Svelte 5 throws
-	// `props_invalid_value` for `bind:value={undefined}` into such a child,
-	// so the mirror must never be `undefined`. We coerce here, at the single
-	// chokepoint, leaving every leaf row untouched.
-	function emptyFor(kind: FormFieldSpec['kind']): unknown {
-		switch (kind) {
-			case 'BOOLEAN':
-				return false;
-			case 'INTEGER':
-			case 'NUMBER':
-			case 'REF':
-			case 'ARRAY_REF':
-				return null;
-			case 'OBJECT':
-				return {}; // inline sub-form; children populate keys on edit
-			default:
-				return ''; // ENUM, STRING, and the ARRAY/MIXED/UNKNOWN raw-JSON escape hatch
-		}
-	}
-	const coerce = (v: unknown): unknown => (v === undefined ? emptyFor(field.kind) : v);
+	// Unset fields arrive as `undefined`, which Svelte 5 rejects for
+	// `bind:value` into a leaf row that declares a `$bindable` fallback. This
+	// is the single chokepoint that substitutes a kind-appropriate stand-in —
+	// see `mirrorSeedFor` for why BOOLEAN is the one kind that must carry its
+	// schema default.
+	const coerce = (v: unknown): unknown => (v === undefined ? mirrorSeedFor(field) : v);
 
 	// Local mirror that FieldRow can `bind:value` against — never `undefined`.
 	// Initialised inside `untrack` so Svelte doesn't capture a reactive snapshot
