@@ -69,12 +69,33 @@ public final class EssenceEvolutionManager {
 
         // ── Evolution threshold reached ────────────────────────────────
         int nextTier = currentTier + 1;
-        if (nextTier <= 3) {
-            int required = GameplayConfig.killsForTier(nextTier);
-            if (kills >= required) {
-                triggerEvolutionPrompt(player, nextTier);
-            }
+        // killsForTier answers Integer.MAX_VALUE past Apex, so this is safe to
+        // ask for a tier that doesn't exist.
+        int required = GameplayConfig.killsForTier(nextTier);
+        if (shouldOfferEvolution(nextTier, kills, required, data.getDeclinedEvolutionTier())) {
+            triggerEvolutionPrompt(player, nextTier);
         }
+    }
+
+    /**
+     * Whether an evolution prompt is due this kill.
+     *
+     * <p>Split out of {@link #onMobKill} as a pure function so the decision can
+     * be tested without a server. The declined-tier term is the fix for the
+     * prompt spam: {@code kills >= required} is a threshold, not an edge, so it
+     * stays true for every kill after the one that crossed it. {@code required}
+     * only moves when the tier is accepted, so a declined prompt re-fired on
+     * every subsequent kill until the player gave in.
+     *
+     * @param nextTier    the tier being offered ({@code currentTier + 1})
+     * @param kills       the player's accumulated essence kills
+     * @param required    the kill threshold for {@code nextTier}
+     * @param declinedTier the tier the player has declined, or 0 for none
+     */
+    static boolean shouldOfferEvolution(int nextTier, int kills, int required, int declinedTier) {
+        if (nextTier > 3) return false;
+        if (declinedTier == nextTier) return false;
+        return kills >= required;
     }
 
     /**
@@ -155,6 +176,9 @@ public final class EssenceEvolutionManager {
         // Persist the new tier, then grant/revoke the tier overlay powers and
         // reconcile health. Shared with the datapack/admin force-set path.
         data.setEvolutionTier(nextTier);
+        // The decline no longer applies to a tier that's been taken; leaving it
+        // set would mute the prompt for whatever tier comes next.
+        data.setDeclinedEvolutionTier(0);
         applyTierPowerChange(player, currentTier, nextTier);
 
         String tierName = TIER_NAMES[nextTier];
@@ -177,10 +201,26 @@ public final class EssenceEvolutionManager {
 
     /**
      * Called when the player declines an evolution via command.
+     *
+     * <p>Records the declined tier so {@link #onMobKill} stops re-offering it.
+     * Declining with no offer standing records nothing: the flag would otherwise
+     * mute the next prompt before it was ever shown.
      */
     public static void declineEvolution(ServerPlayer player) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        int nextTier = data.getEvolutionTier() + 1;
+
+        if (nextTier > 3 || data.getEssenceKills() < GameplayConfig.killsForTier(nextTier)) {
+            player.sendSystemMessage(Component.literal("You have no evolution to decline.")
+                .withStyle(ChatFormatting.RED));
+            return;
+        }
+
+        data.setDeclinedEvolutionTier(nextTier);
+
         player.sendSystemMessage(Component.literal(
-            "You resist the pull of essence... for now. The offer will return when you're ready.")
+            "You resist the pull of essence... for now. It will not ask you twice: "
+            + "run /neoorigins evolve accept when you're ready to take it.")
             .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
         com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireEvolutionDeclined(player);
     }

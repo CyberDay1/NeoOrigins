@@ -49,6 +49,13 @@ public class PlayerOriginData {
     private int essenceKills = 0;
     /** Essence evolution: current tier (0 = base, 1 = Evolved, 2 = Ascended, 3 = Apex). Persisted. */
     private int evolutionTier = 0;
+    /** Essence evolution: the tier this player declined, or 0 for none. The kill
+     *  threshold that fires an evolution prompt stays satisfied on every later
+     *  kill, so without this the prompt re-fired forever once declined. Persisted
+     *  because the suppression has to survive a relog; cleared whenever the tier
+     *  is accepted, force-set or reset, so a stale flag can't mute a legitimate
+     *  future prompt. */
+    private int declinedEvolutionTier = 0;
     /** Session-only — not serialized. Maps power type id → server tick when cooldown expires. */
     private final Map<String, Integer> activeCooldowns = new ConcurrentHashMap<>();
     /** Session-only — not serialized. Bumped on any mutation that affects the active power set;
@@ -146,6 +153,9 @@ public class PlayerOriginData {
         Codec.INT
             .optionalFieldOf("evolution_tier", 0)
             .forGetter(d -> d.evolutionTier),
+        Codec.INT
+            .optionalFieldOf("declined_evolution_tier", 0)
+            .forGetter(d -> d.declinedEvolutionTier),
         Codec.BOOL
             .optionalFieldOf("picker_abandoned", false)
             .forGetter(d -> d.pickerAbandoned),
@@ -155,7 +165,7 @@ public class PlayerOriginData {
         Codec.BOOL
             .optionalFieldOf("night_vision_enabled", true)
             .forGetter(d -> d.nightVisionEnabled)
-    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, global, sets, floats, kills, tier, abandoned, nightVision) -> {
+    ).apply(inst, (map, hadAll, equipment, orbs, orbUses, toggledOff, dynamic, global, sets, floats, kills, tier, declinedTier, abandoned, nightVision) -> {
         PlayerOriginData data = new PlayerOriginData();
         // Canonicalize any renamed origin selections (e.g. jianxian → sword_immortal)
         // so saved worlds keep their chosen origin after the rename.
@@ -188,6 +198,7 @@ public class PlayerOriginData {
         data.customFloats.putAll(floats);
         data.essenceKills = kills;
         data.evolutionTier = tier;
+        data.declinedEvolutionTier = declinedTier;
         data.pickerAbandoned = abandoned;
         data.nightVisionEnabled = nightVision;
         return data;
@@ -233,9 +244,19 @@ public class PlayerOriginData {
         version++;
     }
 
+    /** The tier the player declined, or 0 if they haven't declined one. */
+    public int getDeclinedEvolutionTier() { return declinedEvolutionTier; }
+
+    /** Pass 0 to clear the suppression. */
+    public void setDeclinedEvolutionTier(int tier) {
+        this.declinedEvolutionTier = Math.max(0, Math.min(3, tier));
+        version++;
+    }
+
     public void resetEvolution() {
         this.essenceKills = 0;
         this.evolutionTier = 0;
+        this.declinedEvolutionTier = 0;
         version++;
     }
 
