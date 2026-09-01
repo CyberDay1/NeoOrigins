@@ -637,7 +637,10 @@ public final class OriginsPowerTranslator {
     /**
      * Translates {@code origins:action_on_block_use} to
      * {@code neoorigins:action_on_event} with event {@code block_use}.
-     * Carries over condition, block_condition and the hand filter directly.
+     * Carries over condition, block_condition, item_condition and the hand
+     * filter directly. {@code item_condition} is the "only with this item in
+     * hand" gate (Beholder Origin's carve is shears-only); it used to be
+     * dropped here, so the hook fired for any held item.
      * {@code block_action} and {@code entity_action} both run as the event's
      * entity_action (block actions in the compat parser self-resolve the
      * clicked BlockPos from the dispatch context); an Apoli
@@ -651,6 +654,9 @@ public final class OriginsPowerTranslator {
         out.addProperty("event", "block_use");
         if (src.has("condition"))       out.add("condition", src.get("condition"));
         if (src.has("block_condition")) out.add("block_condition", src.get("block_condition"));
+        if (src.has("item_condition"))  out.add("item_condition", src.get("item_condition"));
+        else if (src.has("held_item_condition"))
+            out.add("item_condition", src.get("held_item_condition"));
         if (src.has("hands"))           out.add("hands", src.get("hands"));
         else if (src.has("hand"))       out.add("hand", src.get("hand"));
 
@@ -707,7 +713,11 @@ public final class OriginsPowerTranslator {
     /**
      * Translates {@code origins:action_on_entity_use} to
      * {@code neoorigins:action_on_event} with event {@code entity_use}.
-     * Carries over entity_action and condition.
+     * Carries over entity_action, condition and item_condition. Apoli declares
+     * {@code item_condition} on the shared {@code InteractionPowerType} base,
+     * so action_on_entity_use takes the same held-item gate as
+     * action_on_block_use; {@code held_item_condition} is Apoli's newer
+     * spelling of the same field and maps to the same target key.
      */
     private static Optional<JsonObject> translateActionOnEntityUse(JsonObject src) {
         JsonObject out = new JsonObject();
@@ -715,6 +725,9 @@ public final class OriginsPowerTranslator {
         out.addProperty("event", "entity_use");
         if (src.has("entity_action"))   out.add("entity_action", src.get("entity_action"));
         if (src.has("condition"))       out.add("condition", src.get("condition"));
+        if (src.has("item_condition"))  out.add("item_condition", src.get("item_condition"));
+        else if (src.has("held_item_condition"))
+            out.add("item_condition", src.get("held_item_condition"));
         return Optional.of(out);
     }
 

@@ -453,8 +453,13 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
      * Best-effort ItemStack extraction from an item-carrying dispatch context.
      * ITEM_USE dispatches a {@link EventPowerIndex.FoodContext} (stack + cancel
      * event); ITEM_USE_FINISH dispatches either a FoodContext or a raw
-     * ItemStack. Returns null (empty stacks included) if the context carries no
-     * usable item, in which case the item_condition gate fails closed.
+     * ItemStack. BLOCK_USE / ENTITY_USE wrap the cancellable
+     * PlayerInteractEvent, whose {@code getItemStack()} is the stack in the
+     * interacting hand — the same source {@link #extractHand} reads the hand
+     * from, so an Apoli {@code action_on_block_use} with an item_condition
+     * (e.g. "shears only") gates on what the player is actually holding.
+     * Returns null (empty stacks included) if the context carries no usable
+     * item, in which case the item_condition gate fails closed.
      */
     private static net.minecraft.world.item.ItemStack extractItemStack(Object ctx) {
         if (ctx instanceof EventPowerIndex.FoodContext fc) {
@@ -462,6 +467,20 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         }
         if (ctx instanceof net.minecraft.world.item.ItemStack stack) {
             return stack.isEmpty() ? null : stack;
+        }
+        net.neoforged.neoforge.event.entity.player.PlayerInteractEvent interact = null;
+        if (ctx instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent pie) {
+            interact = pie;
+        } else if (ctx instanceof EventPowerIndex.BlockInteractContext bic
+                && bic.event() instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent pie) {
+            interact = pie;
+        } else if (ctx instanceof EventPowerIndex.EntityInteractContext eic
+                && eic.event() instanceof net.neoforged.neoforge.event.entity.player.PlayerInteractEvent pie) {
+            interact = pie;
+        }
+        if (interact != null) {
+            net.minecraft.world.item.ItemStack held = interact.getItemStack();
+            return (held == null || held.isEmpty()) ? null : held;
         }
         return null;
     }
