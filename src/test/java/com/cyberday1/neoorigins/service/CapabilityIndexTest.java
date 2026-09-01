@@ -48,7 +48,7 @@ class CapabilityIndexTest {
         // capabilities(player, config) returns the real tag, so it must not be folded
         // into the union or the tag becomes unreachable.
         PowerHolder<ModelColorPower.Config> tint = holder("tint", new ModelColorPower(),
-            new ModelColorPower.Config(1.0F, 0.0F, 0.0F, 1.0F, Optional.empty(), ""));
+            new ModelColorPower.Config(1.0F, 0.0F, 0.0F, 1.0F, Optional.empty(), true, ""));
 
         Set<String> union = new HashSet<>();
         List<PowerHolder<?>> dynamic = new ArrayList<>();
