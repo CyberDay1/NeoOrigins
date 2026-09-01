@@ -10,6 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -183,8 +184,13 @@ public class CombatPowerEvents {
             return;
         }
 
-        if (event.getSource().is(DamageTypes.IN_FIRE) || event.getSource().is(DamageTypes.ON_FIRE)
-                || event.getSource().is(DamageTypes.LAVA) || event.getSource().is(DamageTypes.HOT_FLOOR)) {
+        // Fire immunity is asked as the whole minecraft:is_fire tag rather than a
+        // hand-listed set of damage types. The old four-way check missed CAMPFIRE
+        // and both FIREBALL types, so a fire-immune origin still burned on a
+        // campfire and took full damage from a blaze (#129). The tag is also what
+        // the equivalent condition already uses (ConditionParser, is_fire), and it
+        // picks up modded fire damage types for free.
+        if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
             if (ActiveOriginService.has(sp, PreventActionPower.class,
                     config -> config.action() == PreventActionPower.Action.FIRE
                            && PreventActionPower.isGateOpen(sp, config))) {
