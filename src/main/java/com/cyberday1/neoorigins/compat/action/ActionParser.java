@@ -58,6 +58,7 @@ public final class ActionParser {
         "neoorigins:launch",
         "neoorigins:modify_food", "neoorigins:modify_inventory",
         "neoorigins:modify_temperature", "neoorigins:mount",
+        "neoorigins:morph_entity_event", "neoorigins:trigger_morph_animation",
         "neoorigins:nothing", "neoorigins:offset", "neoorigins:open_layer_picker",
         "neoorigins:passenger_action",
         "neoorigins:play_sound", "neoorigins:pull_entities", "neoorigins:random_teleport",

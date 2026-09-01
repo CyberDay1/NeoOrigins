@@ -11,7 +11,7 @@
     "type": {
       "type": "string",
       "description": "Fully-qualified action verb. `apace:` aliases are accepted.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:activate_power|actor_action|add_to_set|add_velocity|add_xp|all_of|and|apply_effect|area_of_effect|block_action_at|block_target_action|bonemeal|cancel_event|cast_iron_spell|cast_spell|chain_to_nearest|chance|change_resource|choice|clear_effect|command|crafting_table|damage|damage_attacker|dash|delay|dismount|drop_inventory|drop_items|dye|effect_on_attacker|emit_game_event|equipped_item_action|execute_command|exhaust|explode|extinguish|feed|fire_projectile|force_drop|gain_air|give|grant_power|grow|heal|if_else|if_else_list|ignite_attacker|invert|kubejs_callback|launch|modify_food|modify_inventory|modify_resource|modify_temperature|mount|nothing|offset|open_layer_picker|passenger_action|path|play_sound|pull_entities|random_teleport|raycast|remove_from_set|revoke_power|riding_action|selector_action|set_block|set_fall_distance|set_on_fire|set_resource|shear|spawn_black_hole|spawn_effect_cloud|spawn_entity|spawn_lingering_area|spawn_particles|spawn_projectile|spawn_projectile_rain|spawn_sword_rain|spawn_telegraph|spawn_tornado|steal_item|strip|swap_positions|swap_with_entity|swing_hand|tame_target|target_action|teleport_target_to_self|teleport_to_marker|teleport_to_target|throw_target|till|toggle|transform_block|trigger_cooldown)$"
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:activate_power|actor_action|add_to_set|add_velocity|add_xp|all_of|and|apply_effect|area_of_effect|block_action_at|block_target_action|bonemeal|cancel_event|cast_iron_spell|cast_spell|chain_to_nearest|chance|change_resource|choice|clear_effect|command|crafting_table|damage|damage_attacker|dash|delay|dismount|drop_inventory|drop_items|dye|effect_on_attacker|emit_game_event|equipped_item_action|execute_command|exhaust|explode|extinguish|feed|fire_projectile|force_drop|gain_air|give|grant_power|grow|heal|if_else|if_else_list|ignite_attacker|invert|kubejs_callback|launch|modify_food|modify_inventory|modify_resource|modify_temperature|morph_entity_event|mount|nothing|offset|open_layer_picker|passenger_action|path|play_sound|pull_entities|random_teleport|raycast|remove_from_set|revoke_power|riding_action|selector_action|set_block|set_fall_distance|set_on_fire|set_resource|shear|spawn_black_hole|spawn_effect_cloud|spawn_entity|spawn_lingering_area|spawn_particles|spawn_projectile|spawn_projectile_rain|spawn_sword_rain|spawn_telegraph|spawn_tornado|steal_item|strip|swap_positions|swap_with_entity|swing_hand|tame_target|target_action|teleport_target_to_self|teleport_to_marker|teleport_to_target|throw_target|till|toggle|transform_block|trigger_cooldown|trigger_morph_animation)$"
     }
   },
   "oneOf": [
@@ -1534,6 +1534,95 @@
       "required": [
         "type",
         "amount"
+      ]
+    },
+    {
+      "$comment": "neoorigins:morph_entity_event",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:morph_entity_event",
+            "apace:morph_entity_event",
+            "origins:morph_entity_event",
+            "apoli:morph_entity_event",
+            "apugli:morph_entity_event"
+          ]
+        },
+        "event": {
+          "description": "Named vanilla entity event, lowercased from Minecraft's own EntityEvent constants. `death` is deliberately absent: it would fire a client-side LivingDeathEvent for an entity that is not in the world.",
+          "type": "string",
+          "enum": [
+            "armadillo_peek",
+            "armorstand_wobble",
+            "body_break",
+            "cancel_shake_wetness",
+            "chest_break",
+            "dolphin_looking_for_treasure",
+            "drown_particles",
+            "eat_grass",
+            "end_ram",
+            "feet_break",
+            "fireworks_explode",
+            "fishing_rod_reel_in",
+            "fox_eat",
+            "full_debug_info",
+            "guardian_attack_sound",
+            "head_break",
+            "honey_jump",
+            "honey_slide",
+            "in_love_hearts",
+            "jump",
+            "kinetic_hit",
+            "legs_break",
+            "love_hearts",
+            "mainhand_break",
+            "offer_flower",
+            "offhand_break",
+            "permission_level_admins",
+            "permission_level_all",
+            "permission_level_gamemasters",
+            "permission_level_moderators",
+            "permission_level_owners",
+            "poof",
+            "protected_from_death",
+            "ravager_roared",
+            "ravager_stunned",
+            "reduced_debug_info",
+            "saddle_break",
+            "shake",
+            "shake_wetness",
+            "silverfish_merge_anim",
+            "sniffer_digging_sound",
+            "sonic_charge",
+            "squid_anim_synch",
+            "start_attacking",
+            "start_ram",
+            "stop_attacking",
+            "stop_offer_flower",
+            "swap_hands",
+            "taming_failed",
+            "taming_succeeded",
+            "teleport",
+            "tendrils_shiver",
+            "trusting_failed",
+            "trusting_succeeded",
+            "use_item_complete",
+            "villager_angry",
+            "villager_happy",
+            "villager_sweat",
+            "witch_hat_magic",
+            "zombie_converting"
+          ]
+        },
+        "id": {
+          "description": "Raw entity-event byte, for modded mobs that define their own. Ignored when `event` is present. 3 is refused for safety.",
+          "type": "integer",
+          "minimum": -128,
+          "maximum": 127
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -3075,6 +3164,37 @@
       ]
     },
     {
+      "$comment": "neoorigins:trigger_morph_animation",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:trigger_morph_animation",
+            "apace:trigger_morph_animation",
+            "origins:trigger_morph_animation",
+            "apoli:trigger_morph_animation",
+            "apugli:trigger_morph_animation"
+          ]
+        },
+        "animation": {
+          "description": "Triggerable animation name, as registered by the morph mob's own author via GeckoLib triggerableAnim(...). Names cannot be invented; an unknown name silently does nothing.",
+          "type": "string"
+        },
+        "controller": {
+          "description": "Animation controller to search. Omit to let the library search every controller on the model.",
+          "type": "string"
+        },
+        "stop": {
+          "description": "If true, stops the triggered animation instead of starting it (default false).",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "animation"
+      ]
+    },
+    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
@@ -3135,6 +3255,7 @@
               "apace:modify_inventory",
               "apace:modify_resource",
               "apace:modify_temperature",
+              "apace:morph_entity_event",
               "apace:mount",
               "apace:nothing",
               "apace:offset",
@@ -3179,6 +3300,7 @@
               "apace:toggle",
               "apace:transform_block",
               "apace:trigger_cooldown",
+              "apace:trigger_morph_animation",
               "apoli:activate_power",
               "apoli:actor_action",
               "apoli:add_to_set",
@@ -3234,6 +3356,7 @@
               "apoli:modify_inventory",
               "apoli:modify_resource",
               "apoli:modify_temperature",
+              "apoli:morph_entity_event",
               "apoli:mount",
               "apoli:nothing",
               "apoli:offset",
@@ -3278,6 +3401,7 @@
               "apoli:toggle",
               "apoli:transform_block",
               "apoli:trigger_cooldown",
+              "apoli:trigger_morph_animation",
               "apugli:activate_power",
               "apugli:actor_action",
               "apugli:add_to_set",
@@ -3333,6 +3457,7 @@
               "apugli:modify_inventory",
               "apugli:modify_resource",
               "apugli:modify_temperature",
+              "apugli:morph_entity_event",
               "apugli:mount",
               "apugli:nothing",
               "apugli:offset",
@@ -3377,6 +3502,7 @@
               "apugli:toggle",
               "apugli:transform_block",
               "apugli:trigger_cooldown",
+              "apugli:trigger_morph_animation",
               "neoorigins:activate_power",
               "neoorigins:actor_action",
               "neoorigins:add_to_set",
@@ -3432,6 +3558,7 @@
               "neoorigins:modify_inventory",
               "neoorigins:modify_resource",
               "neoorigins:modify_temperature",
+              "neoorigins:morph_entity_event",
               "neoorigins:mount",
               "neoorigins:nothing",
               "neoorigins:offset",
@@ -3476,6 +3603,7 @@
               "neoorigins:toggle",
               "neoorigins:transform_block",
               "neoorigins:trigger_cooldown",
+              "neoorigins:trigger_morph_animation",
               "origins:activate_power",
               "origins:actor_action",
               "origins:add_to_set",
@@ -3531,6 +3659,7 @@
               "origins:modify_inventory",
               "origins:modify_resource",
               "origins:modify_temperature",
+              "origins:morph_entity_event",
               "origins:mount",
               "origins:nothing",
               "origins:offset",
@@ -3574,7 +3703,8 @@
               "origins:till",
               "origins:toggle",
               "origins:transform_block",
-              "origins:trigger_cooldown"
+              "origins:trigger_cooldown",
+              "origins:trigger_morph_animation"
             ]
           }
         }

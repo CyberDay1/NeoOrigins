@@ -6,7 +6,7 @@
 # files-scanned: 918   typed-objects: 1371   distinct-types: 147
 
 == RECOGNIZED VERBS ==
-[action] (93)
+[action] (95)
   neoorigins:activate_power
   neoorigins:actor_action
   neoorigins:add_to_set
@@ -57,6 +57,7 @@
   neoorigins:modify_food
   neoorigins:modify_inventory
   neoorigins:modify_temperature
+  neoorigins:morph_entity_event
   neoorigins:mount
   neoorigins:nothing
   neoorigins:offset
@@ -100,6 +101,7 @@
   neoorigins:toggle
   neoorigins:transform_block
   neoorigins:trigger_cooldown
+  neoorigins:trigger_morph_animation
 [condition] (109)
   neoorigins:actor_condition
   neoorigins:advancement
