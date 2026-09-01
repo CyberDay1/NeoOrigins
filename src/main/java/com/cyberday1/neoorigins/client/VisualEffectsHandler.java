@@ -85,31 +85,39 @@ public final class VisualEffectsHandler {
 
     @SubscribeEvent
     public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        String data = findCapabilityData("model_color");
-        if (data == null) return;
+        // Several model_color powers can be active at once (the Caveborn diet
+        // tints, for example). Blend them by averaging each channel, so the
+        // result doesn't depend on the iteration order of an unordered set.
+        float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
+        int n = 0;
+        for (String cap : ClientActivePowers.activeCapabilities()) {
+            if (!cap.startsWith("model_color:")) continue;
+            String[] parts = cap.substring("model_color:".length()).split(":");
+            if (parts.length < 3) continue;
+            try {
+                r += Float.parseFloat(parts[0]);
+                g += Float.parseFloat(parts[1]);
+                b += Float.parseFloat(parts[2]);
+                a += parts.length >= 4 ? Float.parseFloat(parts[3]) : 1.0f;
+                n++;
+            } catch (NumberFormatException ignored) {}
+        }
+        if (n == 0) return;
+        r /= n; g /= n; b /= n; a /= n;
 
-        String[] parts = data.split(":");
-        if (parts.length < 3) return;
-        try {
-            float r = Float.parseFloat(parts[0]);
-            float g = Float.parseFloat(parts[1]);
-            float b = Float.parseFloat(parts[2]);
-            float a = parts.length >= 4 ? Float.parseFloat(parts[3]) : 1.0f;
+        // Flush any previously batched geometry before changing the shader
+        // color, so prior renders aren't accidentally tinted.
+        MultiBufferSource buf = event.getMultiBufferSource();
+        if (buf instanceof MultiBufferSource.BufferSource bufferSource) {
+            bufferSource.endBatch();
+        }
 
-            // Flush any previously batched geometry before changing the shader
-            // color, so prior renders aren't accidentally tinted.
-            MultiBufferSource buf = event.getMultiBufferSource();
-            if (buf instanceof MultiBufferSource.BufferSource bufferSource) {
-                bufferSource.endBatch();
-            }
-
-            if (a < 1.0f) {
-                RenderSystem.enableBlend();
-                RenderSystem.defaultBlendFunc();
-            }
-            RenderSystem.setShaderColor(r, g, b, a);
-            modelColorActive = true;
-        } catch (NumberFormatException ignored) {}
+        if (a < 1.0f) {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+        }
+        RenderSystem.setShaderColor(r, g, b, a);
+        modelColorActive = true;
     }
 
     @SubscribeEvent
