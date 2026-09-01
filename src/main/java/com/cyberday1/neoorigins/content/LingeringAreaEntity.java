@@ -73,11 +73,18 @@ public class LingeringAreaEntity extends AbstractVfxEntity {
 
         ServerPlayer caster = resolveCaster();
         if (caster == null) return; // caster offline — skip this tick's execution
+        // The action runs against the caster (kill credit, resource costs), but an
+        // area_of_effect inside it centers on the cloud, not on wherever the caster
+        // has since walked off to.
+        Object prevCtx = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+            new com.cyberday1.neoorigins.compat.action.ActionParser.AreaOriginContext(position()));
         try {
             intervalAction.execute(caster);
         } catch (Exception e) {
             com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
                 "[vfx] lingering-area interval action failed: {}", e.getMessage());
+        } finally {
+            com.cyberday1.neoorigins.service.ActionContextHolder.restore(prevCtx);
         }
     }
 }
