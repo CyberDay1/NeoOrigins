@@ -89,6 +89,10 @@ public final class VisualEffectsHandler {
     // TODO: 26.1 removed RenderSystem.setShaderColor(). Model colour tinting
     // needs a custom RenderType or entity renderer layer. Capability is synced
     // but visual effect is not yet applied on this branch.
+    // When it is, blend overlapping tints by averaging each channel rather
+    // than taking one: several model_color powers can be active at once (the
+    // Caveborn diet tints), and activeCapabilities() is unordered, so picking
+    // one makes the colour depend on iteration order.
 
     // ---- Lava Vision ----
 
