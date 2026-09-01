@@ -4477,6 +4477,11 @@
               }
             }
           ]
+        },
+        "enabled": {
+          "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
