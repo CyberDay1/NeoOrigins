@@ -90,7 +90,11 @@ public final class OriginsFormatDetector {
      *
      * <p>No-op (returns the unchanged type) for namespaces outside the family,
      * including native {@code neoorigins:} and already-canonical {@code origins:}/
-     * {@code apace:} powers.
+     * {@code apace:} powers. The reverse mistake — a legacy type spelled
+     * {@code neoorigins:} — is handled by {@link #salvageLegacyPowerSpelling}, which
+     * is deliberately NOT folded in here: this method must stay usable outside a
+     * bootstrapped game (see {@code CompatTestHarness}) and that one reads the power
+     * registry.
      */
     public static String canonicalizePowerType(JsonObject json) {
         if (!json.has("type")) return "";
@@ -102,6 +106,66 @@ public final class OriginsFormatDetector {
             return canonical;
         }
         return type;
+    }
+
+    /** Legacy spellings already reported, so the advice is logged once per boot. */
+    private static final java.util.Set<String> WARNED_LEGACY_SPELLING =
+        java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /**
+     * Rewrites a {@code neoorigins:<name>} power type to {@code origins:<name>} when
+     * the name exists ONLY in the legacy compat vocabulary, and returns the resulting
+     * type. Any other type is returned unchanged.
+     *
+     * <p>The compat types are reachable as {@code origins:}/{@code apace:} and nowhere
+     * else, so a pack that reaches for {@code neoorigins:action_on_item_use} — a
+     * natural mistake, since the mod is called NeoOrigins and every other type the
+     * author writes really is {@code neoorigins:} — resolves to nothing and has the
+     * power dropped outright. That silently costs the pack an origin: enough dropped
+     * powers and the coverage gate hides it entirely.
+     *
+     * <p>Two guards keep this from being a blanket namespace alias, which would be
+     * badly wrong. The name must be claimed by one of the two dispatch switches, and
+     * it must have NO native power type — so the 34 names that exist in both
+     * vocabularies keep resolving natively, exactly as before. Together they mean
+     * this only ever fires where the alternative was dropping the power, and it
+     * cannot take traffic from anything that loads today.
+     *
+     * <p>The native check is {@code PowerTypes.isBuiltinPath}, NOT {@code
+     * PowerTypes.get}: the latter reads a registry that stays null until
+     * {@code NewRegistryEvent} fires, so outside a running game it answers by luck
+     * of initialisation order — which would make this guard's behaviour untestable
+     * and unreproducible in the harnesses.
+     *
+     * <p>⚠ Still touches {@code PowerTypes}, whose class init registers into a
+     * DeferredRegister and therefore needs a bootstrapped game. That is why this is
+     * separate from {@link #canonicalizePowerType}, which {@code CompatTestHarness}
+     * calls with no bootstrap at all.
+     *
+     * <p>The author is still told. A pack that only works by our goodwill should say
+     * so in the log, or the mistake never gets fixed upstream.
+     */
+    public static String salvageLegacyPowerSpelling(JsonObject json) {
+        if (!json.has("type")) return "";
+        String type = json.get("type").getAsString();
+        if (!type.startsWith("neoorigins:")) return type;
+        String name = type.substring("neoorigins:".length());
+        String legacy = "origins:" + name;
+        boolean dispatchable = OriginsPowerTranslator.ROUTE_A_TYPES.contains(legacy)
+            || OriginsCompatPowerLoader.ROUTE_B_TYPES.contains(legacy)
+            || OriginsCompatPowerLoader.CONDITIONED_ROUTE_B_TYPES.contains(legacy);
+        if (!dispatchable) return type;
+        if (com.cyberday1.neoorigins.power.registry.PowerTypes.isBuiltinPath(name)) {
+            return type;
+        }
+        json.addProperty("type", legacy);
+        if (WARNED_LEGACY_SPELLING.add(name)) {
+            com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
+                "Power type '{}' does not exist — reading it as '{}', the Origins compat type of"
+                + " that name. Fix the namespace in the pack: these types are only spelled"
+                + " 'origins:'.", type, legacy);
+        }
+        return legacy;
     }
 
     /**
