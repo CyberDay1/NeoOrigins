@@ -90,6 +90,9 @@ final class PickerCloseBehaviour {
             ClientPacketDistributor.sendToServer(new com.cyberday1.neoorigins.network.payload.PickerAbandonedPayload());
         }
         Minecraft.getInstance().setScreen(null);
+        // Every exit from a picker funnels through here, so this is the one place
+        // a Dragon Survival species screen we held back gets its turn.
+        com.cyberday1.neoorigins.client.DragonAltarSuppressor.onPickerClosed();
     }
 
     /**
