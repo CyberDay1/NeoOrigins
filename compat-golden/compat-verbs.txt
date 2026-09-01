@@ -467,6 +467,7 @@ neoorigins:walk_on_fluid	fields={fluid}
 neoorigins:wraith_phase	fields={always_on,always_show_icon,blocked_blocks,cooldown_icon,exhaustion_per_tick}
 neoorigins:action_on_hit	fields={action,amount,amplifier,bientity_action,chance,damage_type,duration,effect,entity_action,min_damage,target_group,target_type}
 neoorigins:size_scaling	fields={modify_reach,reach_bonus,scale}
+neoorigins:pose	fields={always_show_icon,cooldown_icon,default_off,enabled,pose,toggleable}
 neoorigins:active_bolt	fields={always_show_icon,cooldown_countdown,cooldown_icon,cooldown_ticks,speed}
 neoorigins:active_dash	fields={allow_vertical,always_show_icon,condition,cooldown_countdown,cooldown_icon,cooldown_ticks,damage,damage_radius,power,set_velocity,weapon_damage_scale}
 neoorigins:active_fireball	fields={always_show_icon,cooldown_countdown,cooldown_icon,cooldown_ticks,speed}

@@ -435,6 +435,7 @@
         "neoorigins:particle",
         "neoorigins:persistent_effect",
         "neoorigins:phantom_form",
+        "neoorigins:pose",
         "neoorigins:prevent_action",
         "neoorigins:prevent_death",
         "neoorigins:prevent_entity_render",
@@ -5101,6 +5102,55 @@
       ]
     },
     {
+      "$comment": "neoorigins:pose",
+      "properties": {
+        "type": {
+          "const": "neoorigins:pose"
+        },
+        "pose": {
+          "description": "Which pose to hold the player in. 'swimming' is the prone crawl (a 0.6x0.6 body, eye at 0.4) used for crawling under a one-block gap; 'crouching' is sneak height; 'standing' pins the player upright and stops them crouching or crawling at all. A forced crouch or land crawl walks at sneak pace (vanilla's slow-movement test reads the pose), but does not set the sneak flag, so there is no ledge-stop; a forced 'swimming' out of water is a crawl only and grants no swim propulsion. The pose is NOT clearance-checked, so it fits wherever its box fits, including gaps the player could not otherwise enter; balancing that is the pack's job. Releasing it hands the player back to vanilla, which does check clearance.",
+          "type": "string",
+          "enum": [
+            "standing",
+            "crouching",
+            "swimming",
+            "STANDING",
+            "CROUCHING",
+            "SWIMMING"
+          ]
+        },
+        "toggleable": {
+          "description": "When true the power binds a keybind that flips the pose on/off; off releases the player to their normal pose (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "default_off": {
+          "description": "Toggleable powers only: when true the pose STARTS released so the player must opt in via the keybind (default false).",
+          "type": "boolean",
+          "default": false
+        },
+        "enabled": {
+          "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
+          "type": "boolean",
+          "default": true
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
+          "type": "string",
+          "default": ""
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type",
+        "pose"
+      ]
+    },
+    {
       "$comment": "neoorigins:prevent_action",
       "properties": {
         "type": {
@@ -7118,6 +7168,7 @@
               "neoorigins:particle",
               "neoorigins:persistent_effect",
               "neoorigins:phantom_form",
+              "neoorigins:pose",
               "neoorigins:prevent_action",
               "neoorigins:prevent_death",
               "neoorigins:prevent_entity_render",

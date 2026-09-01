@@ -46,6 +46,7 @@ import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.builtin.ConditionPassivePower;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.PersistentEffectPower;
+import com.cyberday1.neoorigins.power.builtin.PosePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import java.util.ArrayList;
@@ -1535,8 +1536,9 @@ public class NeoOriginsNetwork {
 
     /**
      * True for powers whose keybind flips an on/off state the HUD should mirror:
-     * {@link AbstractTogglePower} subclasses, plus {@code persistent_effect} and
-     * {@code condition_passive} powers authored with {@code "toggleable": true}.
+     * {@link AbstractTogglePower} subclasses, plus {@code persistent_effect},
+     * {@code condition_passive} and {@code pose} powers authored with
+     * {@code "toggleable": true}.
      */
     private static boolean isToggleLike(PowerHolder<?> holder) {
         if (holder.type() instanceof AbstractTogglePower<?>) return true;
@@ -1547,6 +1549,10 @@ public class NeoOriginsNetwork {
         if (holder.type() instanceof ConditionPassivePower
                 && holder.config() instanceof ConditionPassivePower.Config cc) {
             return cc.toggleable();
+        }
+        if (holder.type() instanceof PosePower
+                && holder.config() instanceof PosePower.Config pp) {
+            return pp.toggleable();
         }
         return false;
     }
@@ -1565,6 +1571,10 @@ public class NeoOriginsNetwork {
         if (holder.type() instanceof ConditionPassivePower cpp
                 && holder.config() instanceof ConditionPassivePower.Config cc) {
             return cpp.isToggledOff(player, cc, holder.id());
+        }
+        if (holder.type() instanceof PosePower pp
+                && holder.config() instanceof PosePower.Config pc) {
+            return pp.isToggledOff(player, pc, holder.id());
         }
         return false;
     }
@@ -1829,7 +1839,7 @@ public class NeoOriginsNetwork {
                 // the server never sets noPhysics — the server then rejects the
                 // client position and the player rubber-bands (issue #109).
                 if (toggledOn && holder.isConditionSatisfied(player)) {
-                    capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
+                    capabilitiesOut.addAll(holder.capabilities(player));
                     if (activeHoldersOut != null) activeHoldersOut.add(holder);
                 }
             }
@@ -1842,7 +1852,7 @@ public class NeoOriginsNetwork {
             boolean toggledOn = !isToggleLike(holder) || !isToggleLikeOff(player, holder);
             powerMapOut.put(powerId, toggledOn);
             if (toggledOn && holder.isConditionSatisfied(player)) {
-                capabilitiesOut.addAll(((PowerHolder) holder).type().capabilities(player, holder.config()));
+                capabilitiesOut.addAll(holder.capabilities(player));
                 if (activeHoldersOut != null) activeHoldersOut.add(holder);
             }
         }
@@ -1877,6 +1887,13 @@ public class NeoOriginsNetwork {
         // cobweb_selection_passthrough flips on sneak state; it only affects
         // crosshair targeting, but sneak flips have no other sync trigger.
         if (capabilities.contains("cobweb_selection_passthrough")) sig |= 16;
+        // A forced pose is applied on both sides from the synced set, so the
+        // client keeps holding a released pose until a fresh sync lands; a bit
+        // each, so swapping between two pose powers resyncs as well as dropping
+        // one does.
+        if (capabilities.contains("forced_pose_swimming")) sig |= 32;
+        if (capabilities.contains("forced_pose_crouching")) sig |= 64;
+        if (capabilities.contains("forced_pose_standing")) sig |= 128;
         return sig;
     }
 
