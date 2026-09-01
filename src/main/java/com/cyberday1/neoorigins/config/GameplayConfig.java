@@ -378,6 +378,9 @@ public final class GameplayConfig {
                      "Unbreaking still stacks via vanilla hurtAndBreak. Set to 0 so",
                      "helmets never lose durability from sun protection; set to 1 to",
                      "match vanilla zombie/skeleton wear rate (very fast).",
+                     "Fire-resistant helmets (the minecraft:fire_resistant",
+                     "component — netherite in vanilla) ignore this value and",
+                     "never wear out from sun protection, as do unbreakable ones.",
                      "To make players burn even while wearing a helmet, set",
                      "helmet_protection = false above.")
             .defineInRange("helmet_dura_damage_chance", 0.07, 0.0, 1.0);
