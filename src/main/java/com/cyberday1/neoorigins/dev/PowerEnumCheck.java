@@ -103,9 +103,22 @@ public final class PowerEnumCheck {
      * piece of work.
      *
      * <p>THIS NUMBER MAY ONLY GO DOWN. Lower it as compat types gain branches; if a
-     * change pushes it up, that change added an unmodelled authorable type.
+     * change pushes it up, that change added an unmodelled authorable type. The one
+     * legitimate exception is the compat dispatch genuinely learning a type it did
+     * not accept before: those ids were unauthorable at BOTH gates until then, so
+     * counting them is a strictly better position than dropping the power.
+     *
+     * <p>406 → 410, owner-ruled 2026-08-27, under the exception above.
+     * {@code prevent_entity_render} joined
+     * Route A, costing four ids. The cost is not always four. {@code origins:} and
+     * {@code apace:} are enumerated case by case in the dispatch switches, and
+     * {@link com.cyberday1.neoorigins.compat.OriginsFormatDetector#legacyPowerTypeSurface()}
+     * then expands each id over {@code APOLI_FAMILY_NS} — which is exactly
+     * {@code {apoli, apugli}}, not four namespaces. So a type carries four spellings
+     * only when it has an {@code apace:} sibling; three {@code origins:} paths have
+     * none and cost two.
      */
-    private static final int MAX_UNBRANCHED_LEGACY = 406;
+    private static final int MAX_UNBRANCHED_LEGACY = 410;
 
     public static void main(String[] args) throws IOException {
         int failures = 0;

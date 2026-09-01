@@ -359,6 +359,7 @@ public final class OriginsPowerTranslator {
         "origins:modify_break_speed", "apace:modify_break_speed",
         "origins:entity_group", "apace:entity_group",
         "origins:invisibility", "apace:invisibility",
+        "origins:prevent_entity_render", "apace:prevent_entity_render",
         "origins:modify_exhaustion", "apace:modify_exhaustion",
         "origins:fire_immunity", "apace:fire_immunity",
         "origins:toggle_night_vision", "apace:toggle_night_vision",
@@ -417,6 +418,7 @@ public final class OriginsPowerTranslator {
             case "origins:modify_break_speed",     "apace:modify_break_speed"     -> translateModifyBreakSpeed(src);
             case "origins:entity_group",           "apace:entity_group"           -> translateEntityGroup(src);
             case "origins:invisibility",           "apace:invisibility"           -> translateInvisibility(src);
+            case "origins:prevent_entity_render",  "apace:prevent_entity_render"  -> translatePreventEntityRender(src);
             case "origins:modify_exhaustion",      "apace:modify_exhaustion"      -> translateModifyExhaustion(src);
             // Phase 4: New Route A translations
             case "origins:fire_immunity",          "apace:fire_immunity"          -> translateSimplePrevent("FIRE");
@@ -1435,6 +1437,27 @@ public final class OriginsPowerTranslator {
         out.addProperty("type", "neoorigins:invisibility");
         boolean renderArmor = !src.has("render_armor") || src.get("render_armor").getAsBoolean();
         out.addProperty("render_armor", renderArmor);
+        return Optional.of(out);
+    }
+
+    /**
+     * Maps {@code origins:/apace:prevent_entity_render} onto the native
+     * {@code neoorigins:prevent_entity_render}. A pure MAPPING — the native power
+     * owns the evaluation and the render suppression. Apoli's {@code entity_condition}
+     * passes straight through (the native codec compiles it with the same
+     * TargetConditionParser the compat layer uses everywhere else).
+     *
+     * <p>Apoli also accepts a {@code bientity_condition} — actor-and-target pair
+     * verbs such as {@code can_see}. Returning empty for those defers to Route B
+     * rather than silently discarding the pair half, which on a <em>prevention</em>
+     * would widen it to "hide everything the entity_condition allows, ignoring the
+     * relationship" — strictly worse than not translating it.
+     */
+    private static Optional<JsonObject> translatePreventEntityRender(JsonObject src) {
+        if (src.has("bientity_condition")) return Optional.empty();
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:prevent_entity_render");
+        if (src.has("entity_condition")) out.add("entity_condition", src.get("entity_condition"));
         return Optional.of(out);
     }
 

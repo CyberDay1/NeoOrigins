@@ -57,7 +57,8 @@
     "client.ItemInHandLayerMixin",
     "client.AbstractClientPlayerSkinMixin",
     "client.EntityRendererShadowInvoker",
-    "client.LivingEntityRendererShadowMixin"
+    "client.LivingEntityRendererShadowMixin",
+    "client.EntityRenderDispatcherHideMixin"
   ],
   "injectors": {
     "defaultRequire": 1
