@@ -121,8 +121,9 @@ public final class ActiveOriginService {
      * True for types whose static capability set may under-report: model_color
      * returns nothing while a condition is present, enhanced_vision and
      * entity_model read live state (content.toml kill-switch, MorphDataManager)
-     * that the cache tuple does not track, and compat is grouped with the other
-     * player-aware overrider even though it only ever narrows.
+     * that the cache tuple does not track, pose narrows by its own toggle, and
+     * compat is grouped with the other player-aware overriders even though it
+     * only ever narrows.
      */
     static boolean hasDynamicCapabilities(PowerType<?> type) {
         return isDynamicCapabilityType(type.getClass());
@@ -133,7 +134,8 @@ public final class ActiveOriginService {
         return com.cyberday1.neoorigins.power.builtin.ModelColorPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.compat.CompatPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.power.builtin.EnhancedVisionPower.class.isAssignableFrom(type)
-            || com.cyberday1.neoorigins.power.builtin.EntityModelPower.class.isAssignableFrom(type);
+            || com.cyberday1.neoorigins.power.builtin.EntityModelPower.class.isAssignableFrom(type)
+            || com.cyberday1.neoorigins.power.builtin.PosePower.class.isAssignableFrom(type);
     }
 
     private static CacheEntry getOrBuild(ServerPlayer player) {
@@ -357,7 +359,7 @@ public final class ActiveOriginService {
             // Player-aware variant: runtime-conditioned capabilities (e.g. Route B
             // origins:swimming gated on "in lava") evaluate their gate here, exactly
             // as collectActivePowers does for the client-facing sync.
-            if (((PowerHolder) holder).type().capabilities(player, holder.config()).contains(tag)) {
+            if (holder.capabilities(player).contains(tag)) {
                 return true;
             }
         }

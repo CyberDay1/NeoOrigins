@@ -53,6 +53,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, NaturalGlidePower>        NATURAL_GLIDE        = reg("natural_glide",        new NaturalGlidePower());
     public static final DeferredHolder<PowerType<?>, ElytraFlightPower>        ELYTRA_FLIGHT        = reg("elytra_flight",        new ElytraFlightPower());
     public static final DeferredHolder<PowerType<?>, SizeScalingPower>         SIZE_SCALING         = reg("size_scaling",         new SizeScalingPower());
+    public static final DeferredHolder<PowerType<?>, PosePower>                POSE                 = reg("pose",                 new PosePower());
     public static final DeferredHolder<PowerType<?>, BounceOnLandPower>        BOUNCE_ON_LAND       = reg("bounce_on_land",       new BounceOnLandPower());
     public static final DeferredHolder<PowerType<?>, ItemMagnetismPower>       ITEM_MAGNETISM       = reg("item_magnetism",       new ItemMagnetismPower());
     public static final DeferredHolder<PowerType<?>, HideHudBarPower>          HIDE_HUD_BAR         = reg("hide_hud_bar",         new HideHudBarPower());

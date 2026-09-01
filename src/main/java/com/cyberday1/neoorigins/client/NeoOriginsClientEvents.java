@@ -199,6 +199,7 @@ public class NeoOriginsClientEvents {
         // a disconnect/reconnect within the same client JVM.
         com.cyberday1.neoorigins.client.ClientMorphState.clear();
         com.cyberday1.neoorigins.event.MorphHitboxEvents.clearAll();
+        com.cyberday1.neoorigins.event.ForcedPoseEvents.clearAll();
         com.cyberday1.neoorigins.client.MorphRenderHandler.clearCache();
         com.cyberday1.neoorigins.client.MorphSkinResolver.clear();
         com.cyberday1.neoorigins.client.ClientInvisibilityArmorState.clear();

@@ -7,6 +7,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
+import java.util.Set;
+
 /**
  * A resolved power instance: the type paired with its decoded configuration.
  * Used internally to avoid repeated deserialization.
@@ -86,6 +88,24 @@ public final class PowerHolder<C extends PowerConfiguration> {
     private static final ThreadLocal<ResourceLocation> CURRENT_DISPATCH_ID = new ThreadLocal<>();
 
     public static ResourceLocation currentDispatchId() { return CURRENT_DISPATCH_ID.get(); }
+
+    /**
+     * The capability tags this power is publishing for {@code player} right now.
+     *
+     * <p>Dispatch-wrapped like every other callback, because a player-aware
+     * {@code capabilities} override is entitled to ask which power it is being
+     * invoked as — a per-instance toggle key is read from exactly there. Callers
+     * must go through this rather than {@code type().capabilities(player, config)},
+     * which would leave {@link #currentDispatchId()} null and send such a type
+     * looking for the wrong key.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Set<String> capabilities(ServerPlayer player) {
+        ResourceLocation prev = CURRENT_DISPATCH_ID.get();
+        CURRENT_DISPATCH_ID.set(id);
+        try { return ((PowerType) type).capabilities(player, config); }
+        finally { CURRENT_DISPATCH_ID.set(prev); }
+    }
 
     // Lifecycle methods that are NOT condition-gated (power is still owned):
     public void onGranted(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
