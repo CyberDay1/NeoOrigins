@@ -1287,7 +1287,7 @@
           ]
         },
         "item_condition": {
-          "description": "Item filter for item-carrying events (item_use, item_use_finish): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). Fails closed when set but the event carries no item; ignored on events that never carry one.",
+          "description": "Item filter for item-carrying events (item_use, item_use_finish, block_use, entity_use, villager_interact): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). On the interaction events the stack tested is the one in the interacting hand. Fails closed when set but the event carries no item; ignored on events that never carry one.",
           "$ref": "item_condition.schema.json"
         },
         "effect": {

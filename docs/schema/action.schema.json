@@ -352,7 +352,7 @@
           ]
         },
         "action": {
-          "description": "Inner block-target verb to run on the resolved context block (strip/till/path/grow/transform_block).",
+          "description": "Inner block-target verb to run on the resolved context block (strip/till/path/grow/set_block/transform_block).",
           "$ref": "#"
         }
       },
@@ -2106,7 +2106,7 @@
           ]
         },
         "block": {
-          "description": "Block id to place at the player's position.",
+          "description": "Block id to place. Placed at the targeted block when the action runs inside a block context (block_action, block_target_action, a projectile/raycast block hit), otherwise at the player's own position.",
           "type": "string"
         },
         "keep": {
