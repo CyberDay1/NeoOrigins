@@ -62,10 +62,13 @@ license = "${mod_license}"
     ordering = "AFTER"
     side = "CLIENT"
 
+# TOP's mod version is `1.21_neo-12.0.8`, which Maven's ComparableVersion reads
+# as [1, "21_neo", 12, 0, 8] — a numeric bound like [12,) compares against the
+# leading 1 and always fails. Unbounded; ModList.isLoaded gates the integration.
 [[dependencies.${mod_id}]]
     modId = "theoneprobe"
     type = "optional"
-    versionRange = "[12,)"
+    versionRange = "[0,)"
     ordering = "AFTER"
     side = "BOTH"
 
