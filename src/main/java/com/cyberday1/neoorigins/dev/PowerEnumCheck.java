@@ -17,8 +17,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +59,10 @@ import java.util.regex.Pattern;
  *       power type") and cannot omit one it accepts. It is the hop that makes the
  *       whole legacy surface non-tautological: the enum is built from the sets, and
  *       the sets are pinned to the parser.</li>
+ *   <li><b>compat mapping targets are registered.</b> The three above all gate the
+ *       LEFT side of the compat arrow. Nothing gated the right side, so three
+ *       mappings shipped green while naming a power type that does not exist —
+ *       {@code PowerTypes.get()} returns null and the power is dropped silently.</li>
  * </ol>
  *
  * <p>The dev harness used to keep a third, silently-stale transcription of the
@@ -159,6 +165,7 @@ public final class PowerEnumCheck {
         failures += auditBranchCoverage(enumIds, branchIds);
         failures += auditRegisteredAndFunctional(enumIds, registered);
         failures += auditDispatchParity();
+        failures += auditCompatTargets(registered);
         report(failures);
     }
 
@@ -382,6 +389,101 @@ public final class PowerEnumCheck {
         return ids;
     }
 
+    // ── Assertion 4: every compat mapping's TARGET is a real power type ─────
+
+    /**
+     * The other three assertions all gate the LEFT side of the compat arrow — which
+     * source ids the dispatch accepts. Nothing gated the right side, so a mapping
+     * could name a {@code neoorigins:} type that was never registered and every
+     * branch still reported green: {@code PowerTypes.get()} returns null,
+     * {@code parseRouteB} returns null, the power is dropped, nothing is logged.
+     * Three mappings were in that state (aquatic, conduit_power_on_land,
+     * nether_spawn) before 2026-08-30.
+     *
+     * <p>Targets are collected by INVOKING each supplier and reading the root
+     * {@code type}, not by scanning source text: the compat builders also write
+     * {@code type} onto nested condition and action objects, which a textual scan
+     * cannot tell apart from a power target.
+     *
+     * <p>Mechanic correctness is still unchecked — {@code origins:creative_flight}
+     * pointed at the elytra power for five months while naming a type that exists.
+     */
+    // hub: neoorigins/compat-mapping-gaps.md
+    private static int auditCompatTargets(Set<String> registered) {
+        LegacyPowerTypeAliases.bootstrap();
+        Set<String> aliasSources = new TreeSet<>();
+        for (Identifier rl : LegacyPowerTypeAliases.aliasedTypeIds()) aliasSources.add(rl.toString());
+
+        Set<String> bad = new TreeSet<>();
+        int checked = 0;
+        checked += collectTargets(OriginsCompatPowerLoader.WELL_KNOWN,
+            "OriginsCompatPowerLoader.WELL_KNOWN", registered, aliasSources, bad);
+        checked += collectTargets(OriginsPowerTranslator.SIMPLE_POWER_OVERRIDES,
+            "OriginsPowerTranslator.SIMPLE_POWER_OVERRIDES", registered, aliasSources, bad);
+
+        int fails = 0;
+        if (checked < MIN_COMPAT_TARGETS) {
+            System.out.println("[power-enum] FAIL  only " + checked + " compat mapping target(s)"
+                + " evaluated (expected at least " + MIN_COMPAT_TARGETS + ") — the mapping tables"
+                + " moved and this gate stopped seeing them");
+            fails++;
+        }
+        if (!bad.isEmpty()) {
+            System.out.println("[power-enum] FAIL  " + bad.size() + " compat mapping(s) name a"
+                + " target power type that does not exist - the power is silently dropped at"
+                + " load with nothing logged:");
+            for (String line : bad) System.out.println("    " + line);
+            fails += bad.size();
+        }
+        if (fails == 0) {
+            System.out.println("[power-enum] compat targets: all " + checked
+                + " mapping targets resolve to a registered power type");
+        }
+        return fails;
+    }
+
+    /** Floor below which the mapping tables are too small to be believable. */
+    private static final int MIN_COMPAT_TARGETS = 60;
+
+    private static int collectTargets(Map<String, ? extends Supplier<JsonObject>> table,
+                                      String tableName, Set<String> registered,
+                                      Set<String> aliasSources, Set<String> bad) {
+        for (var e : table.entrySet()) {
+            JsonObject out;
+            try {
+                out = e.getValue().get();
+            } catch (RuntimeException ex) {
+                bad.add(e.getKey() + " - " + tableName + " supplier threw "
+                    + ex.getClass().getSimpleName());
+                continue;
+            }
+            if (out == null || !out.has("type")) {
+                bad.add(e.getKey() + " - " + tableName + " emits no top-level \"type\"");
+                continue;
+            }
+            String target = out.get("type").getAsString();
+            // Route B targets never become a native power type; the dispatch parity
+            // gate already pins those, so only native targets are checked here.
+            if (!target.startsWith("neoorigins:")) continue;
+            if (!targetExists(target, registered, aliasSources)) {
+                bad.add(e.getKey() + " -> " + target + "   (" + tableName + ")");
+            }
+        }
+        return table.size();
+    }
+
+    /** Registered outright, or a retired id the legacy alias table remaps onto one. */
+    private static boolean targetExists(String target, Set<String> registered, Set<String> aliasSources) {
+        String cur = target;
+        for (int hop = 0; hop < 4; hop++) {
+            if (registered.contains(cur)) return true;
+            if (!aliasSources.contains(cur)) return false;
+            Identifier rl = Identifier.parse(cur);
+            cur = LegacyPowerTypeAliases.simulateApply(rl, new JsonObject(), rl).toString();
+        }
+        return false;
+    }
+
     // ── Assertion 2: enum ⊆ registered-and-functional ───────────────────────
 
     /**
@@ -517,6 +619,13 @@ public final class PowerEnumCheck {
     /**
      * Mirror of {@code OriginsFormatDetector.canonicalizePowerType} for a bare id
      * (that method takes the JsonObject it mutates).
+     *
+     * <p>Deliberately does NOT mirror the {@code neoorigins:} → {@code origins:}
+     * legacy salvage that {@code OriginsFormatDetector.salvageLegacyPowerSpelling}
+     * performs, which is guarded on the name having no native power type. Every
+     * {@code neoorigins:} id in the enum is a registered native — that is what
+     * assertions (b) and (d) below enforce — so the salvage guard could never fire on
+     * one, and mirroring it here would only add an unreachable branch.
      */
     private static String canonicalize(String id) {
         int colon = id.indexOf(':');

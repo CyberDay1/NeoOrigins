@@ -133,7 +133,7 @@ public final class OriginsPowerTranslator {
      * When a power with type origins:simple is encountered, we check its ID against this map.
      * If found, the NeoOrigins JSON is returned directly (no further translation needed).
      */
-    private static final Map<String, java.util.function.Supplier<JsonObject>> SIMPLE_POWER_OVERRIDES = Map.ofEntries(
+    public static final Map<String, java.util.function.Supplier<JsonObject>> SIMPLE_POWER_OVERRIDES = Map.ofEntries(
         Map.entry("origins-classes:no_sprint_exhaustion",   () -> simpleType("neoorigins:exhaustion_filter", "sources", listOf("sprint"))),
         Map.entry("origins-classes:no_mining_exhaustion",   () -> simpleType("neoorigins:exhaustion_filter", "sources", listOf("mining"))),
         Map.entry("origins-classes:better_bone_meal",       () -> simpleType("neoorigins:better_bone_meal")),
@@ -163,10 +163,10 @@ public final class OriginsPowerTranslator {
         Map.entry("origins:fire_immunity",      () -> simpleType("neoorigins:prevent_action", "action", "fire")),
         Map.entry("origins:fresh_air",          () -> simpleType("neoorigins:prevent_action", "action", "sleep")),
         Map.entry("origins:like_water",         () -> simpleType("neoorigins:ignore_water")),
-        Map.entry("origins:aquatic",            () -> simpleType("neoorigins:dries_out")),
+        Map.entry("origins:aquatic",            () -> simpleType("neoorigins:entity_group", "group", "water")),
         Map.entry("origins:water_vision",       () -> waterVisionJson()),
         Map.entry("origins:aqua_affinity",      () -> simpleType("neoorigins:underwater_mining_speed")),
-        Map.entry("origins:conduit_power_on_land", () -> simpleType("neoorigins:conduit_power")),
+        Map.entry("origins:conduit_power_on_land", () -> conduitPowerJson()),
         Map.entry("origins:air_from_potions",   () -> simpleType("neoorigins:water_breathing")),
         Map.entry("origins:water_breathing",    () -> simpleType("neoorigins:water_breathing")),
         Map.entry("origins:swim_speed",         () -> simpleType("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
@@ -200,6 +200,27 @@ public final class OriginsPowerTranslator {
         cond.addProperty("type", "neoorigins:submerged_in");
         cond.addProperty("fluid", "minecraft:water");
         out.add("condition", cond);
+        return out;
+    }
+
+    /**
+     * Upstream {@code origins:conduit_power_on_land} grants the conduit effect set
+     * anywhere. Mirrors the repo's own {@code merling_ascended_conduit.json}.
+     */
+    private static JsonObject conduitPowerJson() {
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:persistent_effect");
+        out.addProperty("toggleable", false);
+        out.addProperty("show_particles", false);
+        JsonArray effects = new JsonArray();
+        for (String id : new String[] {
+                "minecraft:water_breathing", "minecraft:night_vision", "minecraft:haste" }) {
+            JsonObject e = new JsonObject();
+            e.addProperty("effect", id);
+            e.addProperty("amplifier", 0);
+            effects.add(e);
+        }
+        out.add("effects", effects);
         return out;
     }
 
@@ -416,7 +437,7 @@ public final class OriginsPowerTranslator {
             case "origins:modify_attribute",       "apace:modify_attribute"       -> translateModifyAttribute(src);
             case "origins:elytra_flight",          "apace:elytra_flight",
                  "apoli:elytra_flight"                                             -> translateElytraFlight(src);
-            case "origins:creative_flight",        "apace:creative_flight"        -> translateSimple("neoorigins:flight");
+            case "origins:creative_flight",        "apace:creative_flight"        -> translateSimple("neoorigins:creative_flight");
             case "origins:night_vision",           "apace:night_vision"           -> translateSimple("neoorigins:night_vision");
             case "origins:water_breathing",        "apace:water_breathing"        -> translateSimple("neoorigins:water_breathing");
             case "origins:stacking_status_effect", "apace:stacking_status_effect" -> translateStackingStatusEffect(src);
