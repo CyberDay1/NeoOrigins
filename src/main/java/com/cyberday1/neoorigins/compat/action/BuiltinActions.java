@@ -714,6 +714,114 @@ public final class BuiltinActions {
                 new FieldSpec("game_event", FormFieldSpec.Kind.STRING, false)
                     .doc("Alias for event.")));
 
+        // trigger_morph_animation — play (or stop) a triggerable animation on the
+        // dummy entity that `neoorigins:entity_model` is drawing for the player.
+        //
+        // The dummy is client-side only and every observer has their own copy, so
+        // this verb resolves nothing here: it validates the JSON and broadcasts.
+        // NeoOriginsNetwork checks ServerMorphState before it spends a packet, so
+        // an un-morphed player is a map lookup and silence.
+        //
+        // Honest limit (documented in ACTIONS.md, not enforced here): GeckoLib's
+        // tryTriggerAnimation only matches names the MOB'S OWN AUTHOR registered
+        // via triggerableAnim(...). A pack author cannot invent an animation name,
+        // and an unregistered one is indistinguishable from a working one at parse
+        // time — the call returns void and does nothing.
+        define("trigger_morph_animation",
+            (json, ctx) -> {
+                String animation = json.has("animation") ? json.get("animation").getAsString() : null;
+                if (animation == null || animation.isEmpty()) {
+                    NeoOrigins.LOGGER.warn("[CompatB] trigger_morph_animation: missing animation name — action will no-op");
+                    return EntityAction.noop();
+                }
+                // Absent controller stays absent rather than becoming "" — the
+                // libraries treat a null controller as "search every controller",
+                // which is not the same as a controller literally named "".
+                java.util.Optional<String> controller =
+                    json.has("controller") && !json.get("controller").isJsonNull()
+                        ? java.util.Optional.of(json.get("controller").getAsString())
+                        : java.util.Optional.empty();
+                boolean stop = json.has("stop") && json.get("stop").getAsBoolean();
+                return player -> com.cyberday1.neoorigins.network.NeoOriginsNetwork
+                    .sendMorphAnimation(player, controller, animation, stop);
+            },
+            List.of(
+                new FieldSpec("animation", FormFieldSpec.Kind.STRING, true)
+                    .doc("Triggerable animation name, as registered by the morph mob's own author "
+                       + "via GeckoLib triggerableAnim(...). Names cannot be invented; an unknown "
+                       + "name silently does nothing."),
+                new FieldSpec("controller", FormFieldSpec.Kind.STRING, false)
+                    .doc("Animation controller to search. Omit to let the library search every "
+                       + "controller on the model."),
+                new FieldSpec("stop", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("If true, stops the triggered animation instead of starting it "
+                       + "(default false).")));
+
+        // morph_entity_event — run handleEntityEvent(byte) on the morph dummy, the
+        // same hook the server normally reaches through ClientboundEntityEventPacket.
+        // This is what makes a morph react like the real mob: an iron golem's attack
+        // swing, a villager's angry particles, a wolf's shake.
+        //
+        // Two authoring forms, both accepted: `event` names a vanilla constant
+        // (discoverable, and re-read off Mojang's table each version), `id` is the
+        // raw-byte escape hatch for modded mobs that define their own.
+        //
+        // SAFETY (not balance): byte 3 is refused, because LivingEntity case 3 calls
+        // die() and fires LivingDeathEvent client-side for an entity that is not in
+        // the world; and the id is range-checked to a signed byte so it cannot wrap
+        // into a different event. Everything else is exposed unrestricted — rate and
+        // appropriateness are the pack author's call.
+        define("morph_entity_event",
+            (json, ctx) -> {
+                Byte resolved = null;
+                if (json.has("event") && !json.get("event").isJsonNull()) {
+                    String name = json.get("event").getAsString();
+                    resolved = com.cyberday1.neoorigins.power.morph.MorphEntityEvents.byName(name);
+                    if (resolved == null) {
+                        NeoOrigins.LOGGER.warn(
+                            "[CompatB] morph_entity_event: unknown event name '{}' — action will no-op."
+                          + " Use one of {}, or the raw `id` field for a modded mob's own byte.",
+                            name, com.cyberday1.neoorigins.power.morph.MorphEntityEvents.names());
+                        return EntityAction.noop();
+                    }
+                } else if (json.has("id") && !json.get("id").isJsonNull()) {
+                    int raw = json.get("id").getAsInt();
+                    if (!com.cyberday1.neoorigins.power.morph.MorphEntityEvents.isDispatchable(raw)) {
+                        if (raw == com.cyberday1.neoorigins.power.morph.MorphEntityEvents.DEATH) {
+                            NeoOrigins.LOGGER.warn(
+                                "[CompatB] morph_entity_event: id 3 (DEATH) is refused — it calls"
+                              + " LivingEntity.die() on the client for an entity that is not in the"
+                              + " world, firing a phantom LivingDeathEvent that other mods' listeners"
+                              + " would see. Action will no-op.");
+                        } else {
+                            NeoOrigins.LOGGER.warn(
+                                "[CompatB] morph_entity_event: id {} is outside signed-byte range"
+                              + " ({}..{}) — action will no-op.",
+                                raw, Byte.MIN_VALUE, Byte.MAX_VALUE);
+                        }
+                        return EntityAction.noop();
+                    }
+                    resolved = (byte) raw;
+                } else {
+                    NeoOrigins.LOGGER.warn("[CompatB] morph_entity_event: needs `event` or `id` — action will no-op");
+                    return EntityAction.noop();
+                }
+                final byte event = resolved;
+                return player -> com.cyberday1.neoorigins.network.NeoOriginsNetwork
+                    .sendMorphEntityEvent(player, event);
+            },
+            List.of(
+                new FieldSpec("event", FormFieldSpec.Kind.ENUM, false)
+                    .options(com.cyberday1.neoorigins.power.morph.MorphEntityEvents.names()
+                        .toArray(new String[0]))
+                    .doc("Named vanilla entity event, lowercased from Minecraft's own EntityEvent "
+                       + "constants. `death` is deliberately absent: it would fire a client-side "
+                       + "LivingDeathEvent for an entity that is not in the world."),
+                new FieldSpec("id", FormFieldSpec.Kind.INTEGER, false)
+                    .range((double) Byte.MIN_VALUE, (double) Byte.MAX_VALUE)
+                    .doc("Raw entity-event byte, for modded mobs that define their own. Ignored "
+                       + "when `event` is present. 3 is refused for safety.")));
+
         // add_xp — grant experience points and/or levels. Lift-and-shift of
         // parseAddXp. Both fields optional (parser default 0); a zero value is
         // simply not applied.

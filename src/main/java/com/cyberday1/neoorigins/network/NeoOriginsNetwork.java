@@ -211,6 +211,18 @@ public class NeoOriginsNetwork {
         );
 
         registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.TriggerMorphAnimationPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.TriggerMorphAnimationPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleTriggerMorphAnimation
+        );
+
+        registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.MorphEntityEventPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.MorphEntityEventPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleMorphEntityEvent
+        );
+
+        registrar.playToClient(
             SyncInvisibilityArmorPayload.TYPE,
             SyncInvisibilityArmorPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncInvisibilityArmor
@@ -1588,6 +1600,66 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientMorphState.set(
                 payload.entityId(), payload.spec().orElse(null)));
+    }
+
+    /**
+     * Broadcast a morph animation trigger to everyone who can see {@code player}.
+     *
+     * <p>No-ops without sending when the player isn't morphed: the server already
+     * knows the answer from {@link com.cyberday1.neoorigins.power.morph.ServerMorphState},
+     * so an un-morphed player costs a map lookup instead of a packet to every
+     * tracker. Silent by design — a conditional power whose morph is currently off
+     * would otherwise spam the log once per activation.
+     */
+    public static void sendMorphAnimation(ServerPlayer player, java.util.Optional<String> controller,
+                                          String animation, boolean stop) {
+        if (!isMorphedWithModel(player)) return;
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+            new com.cyberday1.neoorigins.network.payload.TriggerMorphAnimationPayload(
+                player.getId(), controller, animation, stop));
+    }
+
+    /** Broadcast a morph entity-event byte to everyone who can see {@code player}. */
+    public static void sendMorphEntityEvent(ServerPlayer player, byte event) {
+        if (!isMorphedWithModel(player)) return;
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
+            new com.cyberday1.neoorigins.network.payload.MorphEntityEventPayload(
+                player.getId(), event));
+    }
+
+    /**
+     * True if the server believes this player currently renders as a morph <em>model</em>.
+     * A morph carrying only non-model tweaks has no dummy on any client, so there is
+     * nothing for either verb to act on.
+     */
+    private static boolean isMorphedWithModel(ServerPlayer player) {
+        if (player == null) return false;
+        MorphSpec spec = com.cyberday1.neoorigins.power.morph.ServerMorphState.get(player.getUUID());
+        return spec != null && spec.hasModel();
+    }
+
+    private static void handleTriggerMorphAnimation(
+            com.cyberday1.neoorigins.network.payload.TriggerMorphAnimationPayload payload,
+            IPayloadContext ctx) {
+        // Registered playToClient; the morph dummy and the animation bridges are
+        // client-only, so the same dedicated-server dist-cleaner guard as
+        // handleOpenEditorScreen keeps MorphActionClientHandler out of this common
+        // class's resolved constant pool on a server.
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist() != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.MorphActionClientHandler.triggerAnimation(
+                payload.entityId(), payload.controller().orElse(null),
+                payload.animation(), payload.stop()));
+    }
+
+    private static void handleMorphEntityEvent(
+            com.cyberday1.neoorigins.network.payload.MorphEntityEventPayload payload,
+            IPayloadContext ctx) {
+        // Same dedicated-server dist-cleaner guard as handleTriggerMorphAnimation.
+        if (net.neoforged.fml.loading.FMLEnvironment.getDist() != net.neoforged.api.distmarker.Dist.CLIENT) return;
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.MorphActionClientHandler.entityEvent(
+                payload.entityId(), payload.event()));
     }
 
     /**

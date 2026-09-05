@@ -465,6 +465,29 @@ public final class MorphRenderHandler {
     }
 
     /**
+     * The dummy entity currently standing in for {@code player}'s morph, creating
+     * it if this client has not drawn the morph yet; {@code null} when the player
+     * is not morphed, carries a model-less morph, or the type is unrenderable.
+     *
+     * <p>Exists for the morph action verbs ({@code neoorigins:trigger_morph_animation},
+     * {@code neoorigins:morph_entity_event}), which have to reach the same cached
+     * instance the renderer draws — triggering an animation on a fresh throwaway
+     * entity would key it under a different entity id and nothing would ever show
+     * it. Deliberately create-if-absent rather than lookup-only: the actions are
+     * server-driven and can land on a client that has the morph synced but has not
+     * yet had a frame in which to render it (out of view, or the very tick the
+     * power was granted), and dropping the trigger in that window would be an
+     * intermittent no-op with no diagnosis path.
+     */
+    @Nullable
+    public static Entity activeDummy(Player player) {
+        if (player == null) return null;
+        MorphSpec spec = ClientMorphState.getSpec(player.getId());
+        if (spec == null || !spec.hasModel()) return null;
+        return getOrCreateDummy(player, spec, spec.entityType().orElseThrow());
+    }
+
+    /**
      * Build the dummy's render state, treating any failure as a permanent
      * "this type can't be morphed into" verdict rather than a crash.
      */
