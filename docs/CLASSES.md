@@ -6,7 +6,7 @@ nav_order: 2
 
 # Custom Classes
 
-In NeoOrigins, a **class** is not a separate system. It's an ordinary
+In NeoOrigins, a **class** is not a separate system; it's an ordinary
 origin that lives in the special **`neoorigins:class` layer**. Every player
 picks an origin (layer 1) *and* a class (layer 2); the class screen is the
 second selection screen shown on first join.
@@ -18,12 +18,25 @@ directly. This page covers only what's class-specific.
 ## The class layer
 
 The built-in class layer is defined at
-`data/neoorigins/origins/origin_layers/class.json` with `order: 2`. Classes
-are intentionally passive: all built-in class powers are passive or
-condition-gated, so **a class never consumes a keybind slot**. Keep custom
-classes to passive/attribute/condition powers. Active (keybinded) powers in
-the class layer are not the intended design and the class power list is
-treated as always-on, not slotted.
+`data/neoorigins/origins/origin_layers/class.json` with `order: 2`. Most
+class powers are passive or condition-gated, but a class may also carry an
+active power.
+
+**A class gets one keybind slot.** The class layer does not use the six skill
+slots that the origin layer does. Instead, the **first** active power in a
+class's `powers` list is bound to the dedicated **Class Skill** key, shown as
+`C` in the HUD when the key is unbound. Every later active power in the same
+class is silently left unbound, so if you want two of them, only the first
+one will ever fire.
+
+The built-in *Step Assist* switch on the Explorer, Rogue and Scout is the
+worked example: a hidden `neoorigins:toggle` holds the state, an
+`neoorigins:active_ability` flips it, and the step-height
+`attribute_modifier` is gated on the toggle.
+
+That pattern (a hidden toggle plus an active that flips it) is the intended
+way to give a class a switchable passive, because it keeps the passive itself
+condition-gated while spending only the one class slot.
 
 ## Adding a class (recommended: additive layer file)
 
@@ -41,7 +54,7 @@ regardless of namespace. So ship your own:
 }
 ```
 
-Your class is appended to the existing list. All built-in classes are kept,
+Your class is appended to the existing list: all built-in classes are kept,
 and you never have to maintain a copy of the mod's list. (Opt out of the
 fold with `"standalone": true` if you deliberately want a separate screen.)
 
@@ -49,7 +62,7 @@ fold with `"standalone": true` if you deliberately want a separate screen.)
 
 You *can* place a file at the exact built-in path
 `data/neoorigins/origins/origin_layers/class.json`, but this **replaces the
-list entirely**. You must re-list every built-in class you want to keep,
+list entirely**: you must re-list every built-in class you want to keep,
 and re-sync on every mod update. Prefer the additive method above unless you
 specifically want to remove built-in classes (the `[classes]` config toggles
 are usually the better tool for that).
@@ -78,7 +91,8 @@ Conventions used by the built-ins:
 - `impact: "none"`. Classes don't carry an origin "impact" rating; always `none`.
 - `order`: position in the class screen (built-ins occupy 1–20; use 21+ to
   append after them).
-- `powers`: passive/condition powers only (see above).
+- `powers`: passive, condition-gated or attribute powers, plus at most one
+  active power, which takes the Class Skill key (see above).
 - `upgrades`: optional advancement-driven promotion to another class; see
   the working `examples/class_tier_up/` datapack and the Upgrades section of
   [the examples README](../examples/README.md).
@@ -109,7 +123,7 @@ Same derivation as any origin/power:
 - `power.<namespace>.<power_id>.name` / `.description`
 
 Or use literal components (`{"text": "Alchemist"}`) directly in the JSON if
-you don't want a resource/language pack. Handy for self-contained datapacks.
+you don't want a resource/language pack: handy for self-contained datapacks.
 
 ## Defaults and config
 
@@ -123,23 +137,12 @@ you don't want a resource/language pack. Handy for self-contained datapacks.
 - **No classes at all:** if *every* class is disabled, the class selection
   screen is skipped entirely and only the origin layer is shown.
 
-## Reopening the picker for arbitrary layers
-
-The class picker can be reopened after the fact, and not just for the class
-layer: the same mechanism works for any layer subset a pack defines. Two author
-paths expose it:
-
-- **Datapack action** [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker):
-  give any power (item use, keybind, on-hit, …) a `layers` list to re-pick, with
-  `commit_mode` (`deferred`/`immediate`), an XP `cost`, an optional `message` shown
-  when the picker opens, and `consume_item` to spend the triggering item on commit.
-  This lets a pack build its own re-pick items or powers for whatever layers it defines.
-- **Admin command** `/origin gui <player> <layers>`: opens the picker scoped to one or
-  more comma- or space-separated layers for a single target player (gamemaster permission).
-
 ## See also
 
 - [PACK_FORMAT.md](PACK_FORMAT.md): Origin JSON, Power JSON, Layer JSON
+- [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker): reopen the
+  picker for the class layer (or any other layer subset) from a power, the mechanism the
+  Orb of Class is a preset of
 - [`examples/class_tier_up/`](../examples/class_tier_up/): class promotion via advancement upgrades
 - [`examples/custom_class/`](../examples/custom_class/): a complete copy-paste custom class
 - [SUB_ORIGINS.md](SUB_ORIGINS.md): conditioned layer entries (also work in the class layer)

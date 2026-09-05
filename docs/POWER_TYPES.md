@@ -2840,12 +2840,43 @@ Makes arbitrary items consumable on right-click. A matching item is instantly co
 |---|---|---|---|---|
 | `items` | list of Identifier | no | `[]` | Exact item IDs that qualify |
 | `tags` | list of Identifier | no | `[]` | Item tag IDs that qualify |
+| `tiers` | list of Tier | no | `[]` | Value bands inside the set; see below |
 | `nutrition` | int | no | `4` | Food points restored (1 shank = 2) |
 | `saturation` | float | no | `0.3` | Saturation restored |
 | `always_edible` | bool | no | `true` | If true, can be eaten at full hunger |
 | `consume_sound` | Identifier | no | _(none)_ | Optional sound ID played on consume |
 
-At least one of `items` or `tags` should be non-empty, otherwise nothing will ever match. Matching is inclusive: an item qualifies if it appears in either list.
+At least one of `items`, `tags` or `tiers` should be non-empty, otherwise nothing will ever match. Matching is inclusive: an item qualifies if it appears in any of the three.
+
+Eligibility follows the game's own rule for food (`always_edible`, or an unfilled hunger bar, or creative and spectator mode), so a matching item eats in creative exactly as bread does. Creative also keeps the stack, the same way vanilla food does.
+
+### Tiers
+
+A tier gives one part of the set its own values without splitting the power in two. Each entry is an object:
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `items` | list of Identifier | no | `[]` | Exact item IDs in this band |
+| `tags` | list of Identifier | no | `[]` | Item tag IDs in this band |
+| `nutrition` | int | **yes** | _(none)_ | Food points for this band |
+| `saturation` | float | no | _(inherits)_ | Saturation for this band |
+
+The first tier whose `items` or `tags` match wins; an item matching none of them falls back to the power's own `nutrition` and `saturation`. Order matters, so put the narrow bands first. Tiers match on top of the top-level lists rather than inside them, so a tier can introduce items the power never otherwise mentions.
+
+Leave `saturation` off unless you mean to change it. Saturation is restored as `nutrition × saturation × 2`, so a tier that doubles both ends up granting four times the saturation, which is almost never what was intended.
+
+```json
+{
+  "type": "neoorigins:edible_item",
+  "tags": ["neoorigins:caveborn_eat_iron"],
+  "nutrition": 4,
+  "saturation": 0.8,
+  "tiers": [
+    { "tags": ["c:nuggets/iron"], "nutrition": 1, "saturation": 0.0 },
+    { "tags": ["c:storage_blocks/iron", "c:storage_blocks/raw_iron"], "nutrition": 8 }
+  ]
+}
+```
 
 **Example: Merling eats raw fish at full food**
 ```json
@@ -2864,23 +2895,23 @@ At least one of `items` or `tags` should be non-empty, otherwise nothing will ev
 
 The Caveborn's seven eating powers each read one shipped item tag, so a datapack can extend any of them without overriding the power. A tag file lives under the namespace of the tag it extends, not your own, so declare `data/neoorigins/tags/item/<name>.json` inside your pack with `"replace": false` and append your own items.
 
-| Tag | Backing power | Nutrition / saturation |
-|---|---|---|
-| `neoorigins:caveborn_eat_stone` | *Stone Eater* | 2 / 0.4 |
-| `neoorigins:caveborn_eat_copper` | *Copper Palate* | 3 / 0.6 |
-| `neoorigins:caveborn_eat_iron` | *Iron Palate* | 4 / 0.8 |
-| `neoorigins:caveborn_eat_gold` | *Gilded Palate* | 5 / 1.0 |
-| `neoorigins:caveborn_eat_diamond` | *Diamond Palate* | 6 / 1.2 |
-| `neoorigins:caveborn_eat_emerald` | *Emerald Palate* | 7 / 1.4 |
-| `neoorigins:caveborn_eat_netherite` | *Netherite Palate* | 8 / 1.6 |
+| Tag | Backing power | Nugget | Base | Block |
+|---|---|---|---|---|
+| `neoorigins:caveborn_eat_stone` | *Stone Eater* | _(none)_ | 2 / 0.4 | _(none)_ |
+| `neoorigins:caveborn_eat_copper` | *Copper Palate* | _(none)_ | 3 / 0.6 | 6 / 0.6 |
+| `neoorigins:caveborn_eat_iron` | *Iron Palate* | 1 / 0.0 | 4 / 0.8 | 8 / 0.8 |
+| `neoorigins:caveborn_eat_gold` | *Gilded Palate* | 1 / 0.0 | 5 / 1.0 | 10 / 1.0 |
+| `neoorigins:caveborn_eat_diamond` | *Diamond Palate* | _(none)_ | 6 / 1.2 | 12 / 1.2 |
+| `neoorigins:caveborn_eat_emerald` | *Emerald Palate* | _(none)_ | 7 / 1.4 | 14 / 1.4 |
+| `neoorigins:caveborn_eat_netherite` | *Netherite Palate* | _(none)_ | 8 / 1.6 | 16 / 1.6 |
 
-Nutrition is a property of the power, not of the tag, so adding an item to `caveborn_eat_stone` makes it edible at stone's values. To grant a different amount, write your own `edible_item` power instead.
+The three columns are `tiers` on each power. The base column is what an ingot, gem, raw material or ore is worth; the block column covers both the refined and the raw storage block; the nugget column exists only where the material has a nugget. Adding an item to a tag makes it edible at that tag's base values unless it also falls inside one of the tiers, and the tiers read the `c:` tags rather than the `neoorigins:` one, so a modded iron block dropped into `caveborn_eat_iron` is worth eight only if it also registers in `c:storage_blocks/iron` or `c:storage_blocks/raw_iron`, and four if it does not. To grant an amount none of the bands cover, write your own `edible_item` power instead.
 
 Every one of these powers is `always_edible: false`, so none of them go down on a full hunger bar.
 
-The six metal and gem tags hold the raw and refined forms of their material — ingots, nuggets, gems, raw metal and raw metal blocks, and since 2.2.25 the ores themselves, including deepslate variants, nether gold ore and ancient debris. Not every form exists for every material: copper has no nugget, diamond is the gem plus its two ores, emerald is the gem plus its two ores, and netherite is the ingot, scrap and ancient debris. `caveborn_eat_stone` is the exception and carries no ore at all: it holds the ten vanilla raw stones (cobblestone, stone, granite, diorite, andesite, tuff, deepslate, cobbled deepslate, basalt, blackstone).
+The seven tags are built out of NeoForge's `c:` common tags rather than lists of vanilla item ids, so a modded metal or stone that registers itself in the usual places is eaten without the pack doing anything. The six metal and gem tags take the material's `ingots/`, `nuggets/`, `gems/`, `raw_materials/`, `ores/` and `storage_blocks/` entries, which is what pulls in deepslate ore variants, nether gold ore and ancient debris. Three literal ids are left in the set. `netherite_scrap` is one, because NeoForge publishes no common tag for the item itself: its `c:ores/netherite_scrap` covers ancient debris, the ore block. The other two are on `caveborn_eat_stone`, which is `#c:stones` plus `#c:cobblestones` plus basalt and blackstone, and carries no ore at all.
 
-Copper and emerald also carry a bonus power that fires on finishing the meal: `caveborn_copper_bonus` grants Water Breathing I for 60 seconds, and `caveborn_emerald_bonus` grants Fire Resistance for 5 minutes. Each meal additionally drives a hidden `model_color` tint for as long as its effect runs, though that tint is not drawn on 26.1 or 26.2 (see [`neoorigins:model_color`](#neooriginsmodel_color)); those six tints are individually switchable from `power_overrides.toml`.
+Each material also has a bonus power that fires on finishing the meal, and those are tiered the same way: a nugget grants fifteen seconds, the base form grants the listed duration, and a block grants three times it. Copper is Water Breathing I for sixty seconds, iron Haste I for sixty, gold Speed I for two minutes, diamond Luck II for five, emerald Fire Resistance for five, and netherite Strength I with Resistance I for five. A block is worth twice the food and three times the duration rather than the nine you would get from crafting it apart, since hunger caps at twenty and the extra food would be thrown away. Each meal additionally drives a hidden `model_color` tint for as long as its effect runs, though that tint is not drawn on 26.1 or 26.2 (see [`neoorigins:model_color`](#neooriginsmodel_color)); those six tints are individually switchable from `power_overrides.toml`.
 
 Worth knowing for the ore and stone entries: both are placeable blocks, so aiming at a surface places one as normal. Eating one means aiming where it cannot be placed — the same rule the stone diet has always followed.
 
@@ -4914,19 +4945,22 @@ Increment it on hit (via an `action_on_event` / `change_resource` of `{ "resourc
 
 ## `neoorigins:slime_moisture`
 
-Custom resource bar (0.0–1.0 float) that drains passively over time, faster in dry biomes (desert, badlands, savanna) and much faster when on fire. Replenished by standing in water or rain. Triggers threshold effects: Regeneration above 75%, armor penalty below 10%, and damage-over-time at 0%.
+Custom resource bar (0.0–1.0 float) that drains passively over time, faster in dry biomes (desert, badlands, savanna) and much faster when on fire. Replenished by standing in water, rain or a water cauldron, and by drinking a water bottle. Triggers threshold effects: Regeneration above 75%, armor penalty below 10%, and damage-over-time at 0%.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `drain_per_tick` | float | no | `0.0004` | Base moisture drain per tick |
 | `dry_biome_drain_multiplier` | float | no | `3.0` | Drain multiplier in desert/badlands/savanna biomes |
 | `fire_drain_multiplier` | float | no | `10.0` | Drain multiplier when player is on fire |
-| `water_refill_per_tick` | float | no | `0.005` | Moisture gained per tick in water or rain |
+| `water_refill_per_tick` | float | no | `0.005` | Moisture gained per tick in water, rain or a water cauldron |
+| `water_bottle_refill` | float | no | `0.5` | Moisture restored by drinking one water bottle; `0` leaves the bar unchanged |
 | `regen_threshold` | float | no | `0.75` | Moisture level above which Regeneration I is applied |
 | `armor_penalty_threshold` | float | no | `0.10` | Below this, -4 armor is applied |
 | `dot_threshold` | float | no | `0.0` | Below this, damage-over-time triggers |
 | `dot_damage` | float | no | `1.0` | Damage per interval when below dot_threshold |
 | `dot_interval` | int | no | `40` | Ticks between damage ticks |
+
+A cauldron is checked as a block rather than as a fluid, so the player has to be standing in it. A water bottle refills on the swallow, not on the click, and where a player holds more than one moisture power the most generous `water_bottle_refill` among them is the one that applies. Both affordances match what `breath_out_of_fluid` already gives aquatic origins.
 
 **Example:**
 ```json
