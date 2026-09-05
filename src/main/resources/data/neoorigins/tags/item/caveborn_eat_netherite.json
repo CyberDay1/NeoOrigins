@@ -1,7 +1,8 @@
 {
   "values": [
-    "minecraft:netherite_ingot",
-    "minecraft:netherite_scrap",
-    "minecraft:ancient_debris"
+    "#c:ingots/netherite",
+    "#c:ores/netherite_scrap",
+    "#c:storage_blocks/netherite",
+    "minecraft:netherite_scrap"
   ]
 }
