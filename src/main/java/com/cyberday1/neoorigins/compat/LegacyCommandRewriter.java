@@ -42,6 +42,14 @@ import java.util.regex.Pattern;
  * applied unconditionally — and never the full chain. Both tier-two rules stay
  * registry-free, because pack-read time is long before {@code RegistryAccess}
  * exists.
+ *
+ * <p>{@link #rewriteDeadItemTagPaths} is a third tier, independent of both. It
+ * repairs paths that step from an item stack into {@code tag}, which parse
+ * <em>and</em> run without complaint on 1.21 and resolve to nothing — so neither
+ * of the gates above can ever reach them. It is applied unconditionally
+ * alongside tier two, on the strength of a fact rather than a heuristic: 1.20.5
+ * deleted the field, so no such path can be doing anything today. See that
+ * method for the two guards that keep the claim true.
  */
 public final class LegacyCommandRewriter {
 
@@ -94,9 +102,58 @@ public final class LegacyCommandRewriter {
     private static final Pattern ATTR_NAME_PATH = Pattern.compile(
         "Attributes\\[\\{Name:\"((?:minecraft:)?generic\\.(\\w+))\"\\}\\]");
 
-    /** Matches Item.tag.xxx data paths (1.20 custom NBT → 1.21 custom_data component). */
-    private static final Pattern ITEM_TAG_PATH = Pattern.compile(
-        "Item\\.tag\\.(\\w+)");
+    /**
+     * One NBT path segment whose value is a serialised {@code ItemStack}: the
+     * vanilla item-holding keys, plus anything a mod or pack spells
+     * {@code …Item} / {@code …Items}. Case-sensitive — these are NBT keys.
+     *
+     * <p>{@code Inventory}, {@code Book} and the villager trade slots
+     * ({@code buy}/{@code buyB}/{@code sell}) are the vanilla item holders whose
+     * names do not end in "Item"; everything else ({@code Item},
+     * {@code SelectedItem}, {@code ArmorItems}, {@code HandItems},
+     * {@code EnderItems}, {@code Items}, {@code RecordItem}, {@code SaddleItem},
+     * {@code DecorItem}, …) is covered by the {@code \w*Items?} arm.
+     */
+    private static final String ITEM_HOLDER_KEY =
+        "(?:\\w*Items?|Inventory|Book|buy|buyB|sell)";
+
+    /** {@link #ITEM_HOLDER_KEY} plus any list/compound subscripts it carries. */
+    private static final String ITEM_HOLDER_SEGMENT =
+        ITEM_HOLDER_KEY + "(?:\\[[^\\[\\]]*\\])*";
+
+    /**
+     * The dot spelling of the dead path: {@code Item.tag}, {@code SelectedItem.tag.X},
+     * {@code Inventory[0].tag.X}. Group 1 is the holder segment; the {@code .tag}
+     * step is what gets replaced, so anything after it rides through untouched.
+     */
+    private static final Pattern DEAD_ITEM_TAG_PATH = Pattern.compile(
+        "(" + ITEM_HOLDER_SEGMENT + ")\\.tag(?=\\.|\\s|$)");
+
+    /**
+     * The brace spelling: {@code Item:{tag:{…}}} inside a selector's {@code nbt=}
+     * argument or an NBT literal. Only the opening brace is matched; the compound
+     * is closed by balanced scan (see {@link #matchingBrace}). {@code Items:[…]}
+     * and friends cannot match — the value has to be a compound, i.e. one stack.
+     */
+    private static final Pattern DEAD_ITEM_TAG_BRACE = Pattern.compile(
+        "\\b" + ITEM_HOLDER_KEY + "\\s*:\\s*\\{");
+
+    /**
+     * Matches a {@code run} step so the free-text tail of an {@code execute} chain
+     * can be found. Anchored on surrounding whitespace so a word ending in "run"
+     * cannot fire it.
+     */
+    private static final Pattern RUN_STEP = Pattern.compile("(?<=\\s)run\\s+");
+
+    /**
+     * Command verbs whose payload is unquoted free text, so a {@code .tag.} in it
+     * is prose rather than an NBT path. {@code tellraw}/{@code title}/
+     * {@code bossbar} are absent on purpose: their payload is JSON, which the
+     * quoted-region mask already protects, and their <em>selector</em> arguments
+     * are real NBT that should still be repaired.
+     */
+    private static final java.util.Set<String> FREE_TEXT_VERBS =
+        java.util.Set.of("say", "me", "msg", "tell", "w", "teammsg", "tm");
 
     /** Matches legacy UUID format in attribute modifier commands: 1-1-1-1-1111 */
     private static final Pattern LEGACY_MODIFIER_UUID = Pattern.compile(
@@ -237,9 +294,10 @@ public final class LegacyCommandRewriter {
             });
         }
 
-        // 3. Item.tag.X → Item.components."minecraft:custom_data".X
-        result = ITEM_TAG_PATH.matcher(result).replaceAll(
-            "Item.components.\"minecraft:custom_data\".$1");
+        // 3. Item.tag.X → Item.components."minecraft:custom_data".X — delegated
+        //    to the dead-path tier, which covers the same shape plus the brace
+        //    spelling and refuses to touch quoted text. See that method.
+        result = rewriteDeadItemTagPaths(result);
 
         // 4. Legacy modifier UUID format: attribute ... modifier add UUID-HERE name amount op
         //    → attribute ... modifier add neoorigins:compat_modifier amount op
@@ -339,6 +397,179 @@ public final class LegacyCommandRewriter {
             "particle " + mr.group(1) + ENTITY_EFFECT_COLOR);
 
         return result;
+    }
+
+    // ── tier three: dead item-NBT paths ─────────────────────────────────────
+
+    /**
+     * Repair NBT paths that step from an item stack into {@code tag} — a step
+     * that cannot resolve on 1.21 <em>in any context, for any pack</em>, because
+     * 1.20.5 deleted the field: an {@code ItemStack} now serialises as
+     * {@code {id,count,components}} and free-form pack NBT lives under
+     * {@code components."minecraft:custom_data"}.
+     *
+     * <p>Both legacy spellings are covered:
+     * <pre>
+     *   data get entity @s SelectedItem.tag.Foo
+     *     → data get entity @s SelectedItem.components."minecraft:custom_data".Foo
+     *   tp @e[nbt={Item:{tag:{Foo:1}}}] @s
+     *     → tp @e[nbt={Item:{components:{"minecraft:custom_data":{Foo:1}}}}] @s
+     * </pre>
+     *
+     * <p><b>Why this is its own tier.</b> It is neither of the other two and must
+     * not be folded into either. The semantic tier ({@link #rewrite}) is a pile of
+     * heuristics that assume the command already failed to parse, which is why the
+     * live entry points gate it behind a parse check; the compile tier
+     * ({@link #rewriteForCompile}) only admits shapes that stop a function
+     * compiling. A dead path does neither — it parses cleanly and it runs cleanly,
+     * it just silently resolves to nothing, so the parse gate can never let it
+     * through and the compile tier's admission criterion excludes it by
+     * definition. What makes rewriting it safe anyway is not a heuristic: there
+     * is no 1.21 item stack with a {@code tag} field, so there is nothing valid
+     * here to break.
+     *
+     * <p>Two guards keep that argument honest:
+     * <ul>
+     *   <li><b>Quoted text is never touched.</b> A {@code tellraw} JSON blob or a
+     *       {@code title} carrying the literal characters {@code Item.tag.foo} is
+     *       prose, not a path — see {@link #quotedMask}. Verbs whose payload is
+     *       unquoted free text are excluded outright ({@link #FREE_TEXT_VERBS}),
+     *       and only the tail after the chain's {@code run} is excluded, so the
+     *       selectors before it are still repaired.</li>
+     *   <li><b>Component-backed keys are left alone.</b> A blob carrying
+     *       {@code Damage}, {@code Enchantments}, {@code display}, … moved to a
+     *       real component on 1.21 and would <em>not</em> be found under
+     *       custom_data, so routing it there would swap a dead path for a wrong
+     *       one. Same fail-safe, same key set, as {@link #customDataPredicate}
+     *       and {@code LegacyLootFunctionRewriter}.</li>
+     * </ul>
+     *
+     * @return the repaired command, or the original when nothing applied
+     */
+    public static String rewriteDeadItemTagPaths(String command) {
+        if (command == null || command.length() < 6 || !command.contains("tag")) return command;
+        return rewriteDeadTagPaths(rewriteDeadTagBraces(command));
+    }
+
+    /** The dot spelling. Recomputes its own masks, so it composes with the brace pass. */
+    private static String rewriteDeadTagPaths(String command) {
+        Matcher m = DEAD_ITEM_TAG_PATH.matcher(command);
+        if (!m.find()) return command;
+        boolean[] quoted = quotedMask(command);
+        int limit = freeTextLimit(command);
+        StringBuilder out = new StringBuilder();
+        int cursor = 0;
+        m.reset();
+        while (m.find()) {
+            if (m.start() >= limit || quoted[m.start()]) continue;
+            out.append(command, cursor, m.end(1)).append(CUSTOM_DATA_STEP);
+            cursor = m.end();
+        }
+        if (cursor == 0) return command;
+        return out.append(command.substring(cursor)).toString();
+    }
+
+    /** The path step {@code .tag} becomes, as an NBT path argument. */
+    private static final String CUSTOM_DATA_STEP = ".components.\"minecraft:custom_data\"";
+
+    /**
+     * The brace spelling. Each candidate compound is parsed, re-keyed and
+     * re-serialised rather than spliced textually, so the emitted SNBT is proven
+     * to parse; anything that will not parse, already carries {@code components},
+     * or holds a component-backed key is left exactly as it was.
+     */
+    private static String rewriteDeadTagBraces(String command) {
+        Matcher m = DEAD_ITEM_TAG_BRACE.matcher(command);
+        if (!m.find()) return command;
+        boolean[] quoted = quotedMask(command);
+        int limit = freeTextLimit(command);
+        StringBuilder out = null;
+        int cursor = 0;
+        int from = 0;
+        m.reset();
+        while (from <= command.length() && m.find(from)) {
+            int open = m.end() - 1; // the '{' the anchor ended on
+            if (m.start() >= limit || quoted[m.start()]) {
+                from = m.end();
+                continue;
+            }
+            int close = matchingBrace(command, open);
+            if (close < 0) {
+                from = open + 1;
+                continue;
+            }
+            String snbt = command.substring(open, close + 1);
+            CompoundTag stack;
+            try {
+                // 26.2: TagParser.parseTag is gone; use parseCompoundFully.
+                stack = TagParser.parseCompoundFully(snbt);
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.debug(
+                    "[CompatB] LegacyCommandRewriter: unparseable item SNBT '{}' — left as-is", snbt);
+                from = close + 1;
+                continue;
+            }
+            String rendered = tagToCustomData(stack);
+            if (rendered == null) {
+                from = close + 1;
+                continue;
+            }
+            if (out == null) out = new StringBuilder();
+            out.append(command, cursor, open).append(rendered);
+            cursor = close + 1;
+            from = cursor;
+        }
+        return out == null ? command : out.append(command.substring(cursor)).toString();
+    }
+
+    /**
+     * Re-key one serialised stack's legacy {@code tag} compound as
+     * {@code components:{"minecraft:custom_data":{…}}}, or {@code null} to leave
+     * the blob alone. See {@link #rewriteDeadItemTagPaths} for the fail-safes.
+     */
+    @Nullable
+    private static String tagToCustomData(CompoundTag stack) {
+        if (!(stack.get("tag") instanceof CompoundTag legacy) || legacy.isEmpty()) return null;
+        if (stack.contains("components")) {
+            NeoOrigins.LOGGER.debug(
+                "[CompatB] LegacyCommandRewriter: stack NBT '{}' carries both 'tag' and 'components' — left as-is",
+                stack);
+            return null;
+        }
+        for (String key : legacy.keySet()) {
+            if (LegacyTagToComponents.recognisedKeys().contains(key)) {
+                NeoOrigins.LOGGER.debug(
+                    "[CompatB] LegacyCommandRewriter: stack NBT '{}' carries component-backed key '{}' — left as-is",
+                    stack, key);
+                return null;
+            }
+        }
+        CompoundTag rebuilt = stack.copy();
+        rebuilt.remove("tag");
+        CompoundTag components = new CompoundTag();
+        components.put("minecraft:custom_data", legacy);
+        rebuilt.put("components", components);
+        return rebuilt.toString();
+    }
+
+    /**
+     * Index past which nothing is rewritten, because what follows is unquoted
+     * free text ({@code say}, {@code me}, {@code tell}, …). Only the final
+     * subcommand — the tail after the chain's last {@code run} — is examined, so
+     * {@code execute if data entity @s Item.tag.X run say hi} still gets its
+     * condition repaired while the message is left alone.
+     */
+    private static int freeTextLimit(String command) {
+        boolean[] quoted = quotedMask(command);
+        int verbStart = command.startsWith("/") ? 1 : 0;
+        Matcher run = RUN_STEP.matcher(command);
+        while (run.find()) {
+            if (!quoted[run.start()]) verbStart = run.end();
+        }
+        int end = verbStart;
+        while (end < command.length() && !Character.isWhitespace(command.charAt(end))) end++;
+        return FREE_TEXT_VERBS.contains(command.substring(verbStart, end))
+            ? verbStart : command.length();
     }
 
     /** The three colour components as the float list 1.21/26.x both still accept. */
@@ -540,6 +771,10 @@ public final class LegacyCommandRewriter {
     public static boolean needsRewrite(String command) {
         return command.contains("generic.") ||
                command.contains("Item.tag.") ||
+               // The brace spelling of the same dead path contains no "Item.tag."
+               // — `Item:{tag:{…}}` — so the literal test above never saw it.
+               (command.contains("tag") && DEAD_ITEM_TAG_BRACE.matcher(command).find()) ||
+               (command.contains("tag") && DEAD_ITEM_TAG_PATH.matcher(command).find()) ||
                command.contains("{Name:\"") ||
                command.contains("modifier add ") ||
                command.contains("modifier remove ") ||
