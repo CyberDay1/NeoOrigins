@@ -3,5 +3,11 @@
   "tags": ["neoorigins:caveborn_eat_emerald"],
   "nutrition": 7,
   "saturation": 1.4,
-  "always_edible": false
+  "always_edible": false,
+  "tiers": [
+    {
+      "tags": ["c:storage_blocks/emerald"],
+      "nutrition": 14
+    }
+  ]
 }

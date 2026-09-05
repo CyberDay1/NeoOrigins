@@ -1401,10 +1401,33 @@ public final class BuiltinPowers {
             new FieldSpec("tags", Kind.ARRAY, false)
                 .itemPattern(RESOURCE_LOCATION_PATTERN)
                 .doc("List of item-tag ids that become edible (matches items OR tags)."),
+            // Array of fixed-shape objects: `children` on an ARRAY declares ONE
+            // ELEMENT's shape (EdibleItemPower.Tier), so the schema validates each
+            // entry and both editors render a repeatable sub-form rather than a
+            // raw-JSON box. The per-key prose moves onto the children; the field
+            // doc keeps only what the structure cannot state — match order and the
+            // fallback rule.
+            new FieldSpec("tiers", Kind.ARRAY, false)
+                .children(
+                    new FieldSpec("items", Kind.ARRAY, false)
+                        .itemPattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Item ids this band claims. Also makes them edible, so a tier can add items the top-level lists never mention."),
+                    new FieldSpec("tags", Kind.ARRAY, false)
+                        .itemPattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Item-tag ids this band claims. Also makes them edible, so a tier can add tags the top-level lists never mention."),
+                    new FieldSpec("nutrition", Kind.INTEGER, true)
+                        .range(0.0, null)
+                        .doc("Hunger points restored by an item in this band."),
+                    new FieldSpec("saturation", Kind.NUMBER, false)
+                        .doc("Saturation modifier for this band; omit to inherit the power's own saturation."))
+                .doc("Optional value bands inside this edible set. The first tier whose "
+                    + "items/tags claim the stack wins; anything unmatched uses the power's own "
+                    + "nutrition/saturation. Use this to make a nugget worth less than an ingot "
+                    + "and a storage block worth more."),
             new FieldSpec("nutrition", Kind.INTEGER, false)
-                .def(4).range(0.0, null).doc("Hunger points restored when consumed (default 4)."),
+                .def(4).range(0.0, null).doc("Hunger points restored when consumed (default 4). Fallback for items no tier claims."),
             new FieldSpec("saturation", Kind.NUMBER, false)
-                .def(0.3).doc("Saturation modifier applied on consumption (default 0.3)."),
+                .def(0.3).doc("Saturation modifier applied on consumption (default 0.3). Vanilla computes the saturation gain as nutrition * modifier * 2, so scaling nutrition per tier already scales saturation with it."),
             new FieldSpec("always_edible", Kind.BOOLEAN, false)
                 .def(true).doc("If true the item can be eaten even at full hunger (default true)."),
             new FieldSpec("consume_sound", Kind.STRING, false)

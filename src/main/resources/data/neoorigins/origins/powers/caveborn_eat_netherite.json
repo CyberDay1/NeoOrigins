@@ -3,5 +3,11 @@
   "tags": ["neoorigins:caveborn_eat_netherite"],
   "nutrition": 8,
   "saturation": 1.6,
-  "always_edible": false
+  "always_edible": false,
+  "tiers": [
+    {
+      "tags": ["c:storage_blocks/netherite"],
+      "nutrition": 16
+    }
+  ]
 }

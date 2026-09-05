@@ -3,5 +3,11 @@
   "tags": ["neoorigins:caveborn_eat_diamond"],
   "nutrition": 6,
   "saturation": 1.2,
-  "always_edible": false
+  "always_edible": false,
+  "tiers": [
+    {
+      "tags": ["c:storage_blocks/diamond"],
+      "nutrition": 12
+    }
+  ]
 }

@@ -3,5 +3,11 @@
   "tags": ["neoorigins:caveborn_eat_copper"],
   "nutrition": 3,
   "saturation": 0.6,
-  "always_edible": false
+  "always_edible": false,
+  "tiers": [
+    {
+      "tags": ["c:storage_blocks/copper", "c:storage_blocks/raw_copper"],
+      "nutrition": 6
+    }
+  ]
 }
