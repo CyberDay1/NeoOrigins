@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:edible_item",
+  "tags": ["neoorigins:caveborn_eat_emerald"],
+  "nutrition": 7,
+  "saturation": 1.4,
+  "always_edible": false
+}

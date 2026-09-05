@@ -87,6 +87,15 @@ public final class PowerOverridesConfig {
         p("caveborn_daylight_damage");  f("damage_per_second", 1.0, 0, 100); fb("ignite", false); ep();
         p("caveborn_mining_speed");     f("multiplier", 2.0, 0, 100); ep();
         p("caveborn_small_frame");      f("scale", 0.85, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
+        // The diet tints are cosmetic: the model is washed in the colour of the ore
+        // that is currently feeding the player, for as long as that meal's effect
+        // lasts. Set one to false to keep the buff and drop the colour.
+        p("caveborn_copper_tint");      fb("enabled", true); ep();
+        p("caveborn_iron_tint");        fb("enabled", true); ep();
+        p("caveborn_gold_tint");        fb("enabled", true); ep();
+        p("caveborn_diamond_tint");     fb("enabled", true); ep();
+        p("caveborn_emerald_tint");     fb("enabled", true); ep();
+        p("caveborn_netherite_tint");   fb("enabled", true); ep();
 
         // ── Cinderborn ──
         p("cinderborn_fireball");       f("speed", 1.2, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();

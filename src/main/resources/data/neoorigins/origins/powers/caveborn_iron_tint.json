@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:model_color",
+  "hidden": true,
+  "red": 0.86,
+  "green": 0.86,
+  "blue": 0.88,
+  "alpha": 1.0,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:power_active",
+        "power": "neoorigins:caveborn_iron_bonus"
+      },
+      {
+        "type": "neoorigins:status_effect",
+        "effect": "minecraft:haste"
+      }
+    ]
+  }
+}
