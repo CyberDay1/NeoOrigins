@@ -606,30 +606,48 @@ public final class BuiltinActions {
             List.of(new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(1.0)
                 .doc("Upward impulse magnitude (default 1.0).")));
 
-        // set_block — place a block at the player's position. Lift-and-shift of
-        // parseSetBlock (26.1: Identifier + lambda-internal BuiltInRegistries.BLOCK
-        // .get().value()). Block id is the hard requirement (parser no-ops without
-        // it). `keep` optional (parser default false). Legacy code-registered
-        // Origins block ids are remapped to their NeoOrigins equivalents.
+        // set_block — place a block. Lift-and-shift of parseSetBlock. Block id is
+        // the hard requirement (parser no-ops without it). `keep` optional (parser
+        // default false). Legacy code-registered Origins block ids are remapped to
+        // their NeoOrigins equivalents.
+        //
+        // In Apoli set_block is a BLOCK action only (SetBlockBlockActionType; there
+        // is no entity-side set_block), so its Apoli meaning is always "place at the
+        // targeted position". Our translators flatten an action_on_block_use
+        // `block_action` into the event's entity_action, so this registration is the
+        // one a pack's block_action actually lands on — it therefore self-resolves
+        // the context block first (same seam as strip/till/path/grow/transform_block
+        // above) and only falls back to the actor's own position when no block
+        // context is active, preserving the previous behaviour everywhere else.
+        // Without this, Beholder Origin's carve placed air at the player's feet
+        // instead of at the clicked sculk block.
+        // The placement itself lives in applySetBlock so the block-target
+        // registration in BlockTargetActionParser shares one implementation.
         define("set_block",
             (json, ctx) -> {
                 String blockId = json.has("block") ? json.get("block").getAsString() : null;
                 if (blockId == null) return EntityAction.noop();
                 blockId = com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(blockId);
                 net.minecraft.resources.Identifier bid = net.minecraft.resources.Identifier.parse(blockId);
+                var blockOpt = net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(bid);
+                if (blockOpt.isEmpty()) {
+                    NeoOrigins.LOGGER.warn("[CompatB] set_block: unknown block '{}' — action will no-op", bid);
+                    return EntityAction.noop();
+                }
+                var block = blockOpt.get().value();
                 boolean keep = json.has("keep") && json.get("keep").getAsBoolean();
                 return player -> {
-                    var blockOpt = net.minecraft.core.registries.BuiltInRegistries.BLOCK.get(bid);
-                    if (blockOpt.isEmpty()) return;
-                    var block = blockOpt.get().value();
-                    var pos = player.blockPosition();
-                    if (keep && !player.level().getBlockState(pos).isAir()) return;
-                    player.level().setBlock(pos, block.defaultBlockState(), 3);
+                    net.minecraft.server.level.ServerLevel actorLevel =
+                        player.level() instanceof net.minecraft.server.level.ServerLevel sl ? sl : null;
+                    ActionParser.BlockTarget bt = ActionParser.extractBlockTarget(
+                        com.cyberday1.neoorigins.service.ActionContextHolder.get(), actorLevel);
+                    if (bt != null) applySetBlock(bt.level(), bt.pos(), block, keep);
+                    else applySetBlock(player.level(), player.blockPosition(), block, keep);
                 };
             },
             List.of(
                 new FieldSpec("block", FormFieldSpec.Kind.STRING, true)
-                    .doc("Block id to place at the player's position."),
+                    .doc("Block id to place. Placed at the targeted block when the action runs inside a block context (block_action, block_target_action, a projectile/raycast block hit), otherwise at the player's own position."),
                 new FieldSpec("keep", FormFieldSpec.Kind.BOOLEAN, false).def(false)
                     .doc("If true, only place when the target position is air (default false).")));
 
@@ -2201,7 +2219,7 @@ public final class BuiltinActions {
             },
             List.of(new FieldSpec("action", FormFieldSpec.Kind.REF, false)
                 .ref("#")
-                .doc("Inner block-target verb to run on the resolved context block (strip/till/path/grow/transform_block).")));
+                .doc("Inner block-target verb to run on the resolved context block (strip/till/path/grow/set_block/transform_block).")));
 
         // change_resource / modify_resource — add to or set a resource-bar value.
         // Lift-and-shift of parseChangeResource. `modify_resource` is an alias
@@ -3768,6 +3786,22 @@ public final class BuiltinActions {
         if (to == null) return;
         if (from != null && level.getBlockState(pos).getBlock() != from) return;
         level.setBlockAndUpdate(pos, to.defaultBlockState());
+    }
+
+    /**
+     * set_block — place {@code block}'s default state at {@code pos}. Shared by
+     * the entity-side {@code set_block} registration (which passes the player's
+     * own position) and the block-side one in {@link BlockTargetActionParser}
+     * (which passes the targeted position). {@code keep} makes it place only
+     * into air. No-op when the block is null (unknown id, already warned).
+     */
+    static void applySetBlock(net.minecraft.world.level.Level level,
+                              net.minecraft.core.BlockPos pos,
+                              net.minecraft.world.level.block.Block block,
+                              boolean keep) {
+        if (block == null) return;
+        if (keep && !level.getBlockState(pos).isAir()) return;
+        level.setBlock(pos, block.defaultBlockState(), 3);
     }
 
     /** Descriptor for the given canonical {@code "neoorigins:<verb>"} id, or {@code null}. */

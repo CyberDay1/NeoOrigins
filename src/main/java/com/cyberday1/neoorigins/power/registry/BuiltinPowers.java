@@ -1244,7 +1244,7 @@ public final class BuiltinPowers {
             new FieldSpec("hand", Kind.MIXED, false).boundTo("hands")
                 .doc("Singular alias for `hands`, read only when `hands` is absent: a single 'main_hand'/'off_hand' string (an array is accepted here too). Matches Apoli's action_on_block_use shape."),
             new FieldSpec("item_condition", Kind.REF, false).ref("item_condition.schema.json")
-                .doc("Item filter for item-carrying events (item_use, item_use_finish): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). Fails closed when set but the event carries no item; ignored on events that never carry one."),
+                .doc("Item filter for item-carrying events (item_use, item_use_finish, block_use, entity_use, villager_interact): the hook only fires when the used stack matches this Apoli item condition (id / tag / nbt / enchantment, with and/or/not composition). On the interaction events the stack tested is the one in the interacting hand. Fails closed when set but the event carries no item; ignored on events that never carry one."),
             new FieldSpec("effect", Kind.STRING, false)
                 .doc("EFFECT_APPLIED filter: only fire for this exact mob-effect id (e.g. 'spore:mycelium_ef'). Ignored on other events."),
             new FieldSpec("effect_tag", Kind.STRING, false)

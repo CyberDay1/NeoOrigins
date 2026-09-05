@@ -4,10 +4,10 @@ import com.google.gson.JsonObject;
 
 /**
  * Parses a block-targeted action JSON into a {@link BlockTargetAction} — the
- * block-side sibling of {@link TargetActionParser}. It handles the five
+ * block-side sibling of {@link TargetActionParser}. It handles the six
  * block-target verbs whose effect is a state swap / growth at a single
  * {@link net.minecraft.core.BlockPos}: {@code strip}, {@code till}, {@code path},
- * {@code grow}, and the generic {@code transform_block}.
+ * {@code grow}, {@code set_block}, and the generic {@code transform_block}.
  *
  * <p>Returns {@code null} for any verb that is not a block-target verb. The
  * caller ({@code block_target_action} in {@link BuiltinActions}) then no-ops for
@@ -56,6 +56,17 @@ public final class BlockTargetActionParser {
                 final net.minecraft.world.level.block.Block to =
                     BuiltinActions.resolveBlockOrNull(json.has("to") ? json.get("to").getAsString() : null, "transform_block.to");
                 yield (level, pos, actor) -> BuiltinActions.applyTransformBlock(level, pos, from, to);
+            }
+            // Apoli's set_block is both an entity action (place at the actor)
+            // and a block action (place at the targeted pos). Only the entity
+            // form was registered, so a `block_action` of set_block — Beholder
+            // Origin carving a clicked sculk block to air — fell through to
+            // null and silently no-opped.
+            case "neoorigins:set_block" -> {
+                final net.minecraft.world.level.block.Block block =
+                    BuiltinActions.resolveBlockOrNull(json.has("block") ? json.get("block").getAsString() : null, "set_block.block");
+                final boolean keep = json.has("keep") && json.get("keep").getAsBoolean();
+                yield (level, pos, actor) -> BuiltinActions.applySetBlock(level, pos, block, keep);
             }
             // Not a block-target verb — caller no-ops.
             default -> null;
