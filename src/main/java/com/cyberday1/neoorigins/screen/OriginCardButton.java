@@ -19,6 +19,10 @@ import java.util.List;
  * The portrait counterpart to {@link OriginButton}, which is hard-wired to a
  * wide, short row.
  *
+ * <p>Two sizes, picked from the height handed in: below {@link #COMPACT_H} the
+ * icon shrinks and the name drops to one line, because the full-size internals
+ * add up to 65px and would run into the impact dots.
+ *
  * <p>Painted with {@link PanelRenderer} rather than {@code ScrollButtonRenderer}:
  * the scroll art three-slices a 120x25 texture with fixed 12px end-caps, which
  * stretch beyond recognition at card proportions. {@code drawPanel} already
@@ -27,16 +31,18 @@ import java.util.List;
  */
 public class OriginCardButton extends Button {
 
-    private static final int ICON_TOP  = 8;
-    private static final int ICON_SIZE = 32;
-    private static final int NAME_GAP  = 5;
     private static final int LINE_H    = 10;
-    private static final int MAX_NAME_LINES = 2;
-    private static final int DOTS_BOTTOM_PAD = 12;
     private static final int TEXT_MARGIN = 8;
+    /** Below this height the full-size internals collide with the impact dots. */
+    private static final int COMPACT_H = 70;
 
     private final Origin origin;
     private final Font font;
+    private final int iconTop;
+    private final int iconSize;
+    private final int nameGap;
+    private final int dotsBottomPad;
+    private final int maxNameLines;
     /** Wrapped once at construction — a grid draws ~30 cards per frame. */
     private final List<FormattedCharSequence> nameLines;
     private boolean selected;
@@ -45,6 +51,12 @@ public class OriginCardButton extends Button {
         super(x, y, w, h, origin.name(), onPress, DEFAULT_NARRATION);
         this.origin = origin;
         this.font = Minecraft.getInstance().font;
+        boolean compact = h < COMPACT_H;
+        this.iconTop       = compact ? 4  : 8;
+        this.iconSize      = compact ? 24 : 32;
+        this.nameGap       = compact ? 3  : 5;
+        this.dotsBottomPad = compact ? 10 : 12;
+        this.maxNameLines  = compact ? 1  : 2;
         this.nameLines = wrapName(Math.max(1, w - TEXT_MARGIN));
     }
 
@@ -52,18 +64,18 @@ public class OriginCardButton extends Button {
     public boolean isSelected()               { return selected; }
     public void setSelected(boolean selected) { this.selected = selected; }
 
-    /** Up to {@link #MAX_NAME_LINES} lines, the last ellipsised when it overflows. */
+    /** Up to {@link #maxNameLines} lines, the last ellipsised when it overflows. */
     private List<FormattedCharSequence> wrapName(int maxW) {
         List<FormattedCharSequence> lines = font.split(UIThemeUtils.themedBold(origin.name()), maxW);
-        if (lines.size() <= MAX_NAME_LINES) return lines;
+        if (lines.size() <= maxNameLines) return lines;
         String raw = origin.name().getString();
         while (raw.length() > 1) {
             raw = raw.substring(0, raw.length() - 1);
             var trimmed = font.split(
                 UIThemeUtils.themedBold(Component.literal(raw.stripTrailing() + "...")), maxW);
-            if (trimmed.size() <= MAX_NAME_LINES) return trimmed;
+            if (trimmed.size() <= maxNameLines) return trimmed;
         }
-        return lines.subList(0, MAX_NAME_LINES);
+        return lines.subList(0, maxNameLines);
     }
 
     @Override
@@ -81,23 +93,23 @@ public class OriginCardButton extends Button {
             g.outline(x, y, w, h, theme.borderColor());
         }
 
-        // renderIcon is fixed at 16x16 (g.item takes no scale), so double it
-        // through the 26.x 2D matrix stack to fill the card's 32x32 icon block.
+        // renderIcon is fixed at 16x16 (g.item takes no scale), so blow it up
+        // through the 26.x 2D matrix stack to fill the card's icon block.
         int cx = x + w / 2;
-        int iconY = y + ICON_TOP;
+        int iconY = y + iconTop;
         g.pose().pushMatrix();
-        g.pose().translate(cx - ICON_SIZE / 2f, (float) iconY);
-        g.pose().scale(2f, 2f);
+        g.pose().translate(cx - iconSize / 2f, (float) iconY);
+        g.pose().scale(iconSize / 16f, iconSize / 16f);
         OriginButton.renderIcon(g, origin.icon(), 0, 0);
         g.pose().popMatrix();
 
         int nameColor = selected ? theme.nameColor() : theme.descriptionColor();
-        int ty = iconY + ICON_SIZE + NAME_GAP;
+        int ty = iconY + iconSize + nameGap;
         for (FormattedCharSequence line : nameLines) {
             g.text(font, line, cx - font.width(line) / 2, ty, nameColor, false);
             ty += LINE_H;
         }
 
-        OriginDetailPanel.drawImpactDots(g, cx, y + h - DOTS_BOTTOM_PAD, origin.impact());
+        OriginDetailPanel.drawImpactDots(g, cx, y + h - dotsBottomPad, origin.impact());
     }
 }
