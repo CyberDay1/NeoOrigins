@@ -1696,6 +1696,16 @@ public final class BuiltinPowers {
                 .def(false)
                 .doc("ARMOR_EQUIP only: when true, block equipping items in the boots slot. Ignored for other actions (default false).")));
 
+        // prevent_entity_render mirrors Apoli's power of the same name: the holder
+        // does not see entities matching `entity_condition`, which is the power's
+        // only author-facing field.
+        // The condition is written in the ordinary Apoli condition vocabulary, so
+        // it refs condition.schema.json; what narrows it is the evaluation target
+        // (an arbitrary entity, not the holder), which the doc string spells out.
+        define("prevent_entity_render", PreventEntityRenderPower.class, List.of(
+            new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.")));
+
         // ── neoorigins:resource — registered via nested-object (children) support ─
         // Its Codec reads a NESTED `hud_render` JSON object — { label, color,
         // should_render } — whose values are stored on the FLATTENED Config

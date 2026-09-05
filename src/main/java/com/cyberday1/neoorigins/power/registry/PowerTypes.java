@@ -46,6 +46,7 @@ public class PowerTypes {
 
     // --- Passive: movement & environment ---
     public static final DeferredHolder<PowerType<?>, PreventActionPower>       PREVENT_ACTION       = reg("prevent_action",       new PreventActionPower());
+    public static final DeferredHolder<PowerType<?>, PreventEntityRenderPower> PREVENT_ENTITY_RENDER = reg("prevent_entity_render", new PreventEntityRenderPower());
     public static final DeferredHolder<PowerType<?>, FlightPower>              FLIGHT               = reg("flight",               new FlightPower());
     public static final DeferredHolder<PowerType<?>, CreativeFlightPower>      CREATIVE_FLIGHT      = reg("creative_flight",      new CreativeFlightPower());
     public static final DeferredHolder<PowerType<?>, NoSlowdownPower>          NO_SLOWDOWN          = reg("no_slowdown",          new NoSlowdownPower());

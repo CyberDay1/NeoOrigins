@@ -111,9 +111,12 @@ public final class PowerEnumCheck {
      * <p>THIS NUMBER MAY ONLY GO DOWN. Lower it as compat types gain branches; if a
      * change pushes it up, that change added an unmodelled authorable type. It is
      * measured per branch: the registries differ between 1.21.1 and 26.x, so this
-     * value is NOT comparable to the lead branch's.
+     * value is NOT comparable to the lead branch's. The one legitimate exception is
+     * the compat dispatch genuinely learning a type it did not accept before: those
+     * ids were unauthorable at BOTH gates until then, so counting them is a strictly
+     * better position than dropping the power.
      *
-     * <p>History, so the two past rises are not mistaken for regressions. Was 32
+     * <p>History, so the past rises are not mistaken for regressions. Was 32
      * while {@link #legacyImportSurface()} miscounted 29 native {@code neoorigins:}
      * alias-source ids as foreign; they were itemized in the allowlist, leaving 3
      * genuinely foreign {@code apace:} import ids. It then rose 3 → 406 when the
@@ -122,8 +125,18 @@ public final class PowerEnumCheck {
      * rejected on {@code /type} before). Both moves are RECLASSIFICATIONS — no id
      * lost a branch — and the ceiling is pinned at the honest measured number each
      * time so later work cannot spend the difference.
+     *
+     * <p>406 → 410, owner-ruled 2026-08-27, under the exception above.
+     * {@code prevent_entity_render} joined
+     * Route A, costing four ids. The cost is not always four. {@code origins:} and
+     * {@code apace:} are enumerated case by case in the dispatch switches, and
+     * {@link com.cyberday1.neoorigins.compat.OriginsFormatDetector#legacyPowerTypeSurface()}
+     * then expands each id over {@code APOLI_FAMILY_NS} — which is exactly
+     * {@code {apoli, apugli}}, not four namespaces. So a type carries four spellings
+     * only when it has an {@code apace:} sibling; three {@code origins:} paths have
+     * none and cost two.
      */
-    private static final int MAX_UNBRANCHED_LEGACY = 406;
+    private static final int MAX_UNBRANCHED_LEGACY = 410;
 
     public static void main(String[] args) throws IOException {
         int failures = 0;
