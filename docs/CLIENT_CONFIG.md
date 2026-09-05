@@ -50,7 +50,7 @@ Pack-declared abilities beyond the six origin slots land in a second category,
 |---|---|---|---|
 | `theme_override` | string | `""` | Force a specific UI theme id (e.g. `neoorigins:parchment`, `examplepack:dark_woods`) regardless of what the server's datapacks declared. Only takes effect when the named theme is actually loaded. Empty = follow the server / datapack-declared theme. See [THEMING.md](THEMING.md). |
 | `classic_picker_style` | bool | `false` | Revert the origin/class selection screens to the original flat high-contrast skin (dark panels, light text, vanilla font) instead of the parchment scroll. Enable if the parchment theme's brown-on-paper text is hard to read. |
-| `picker_layout` | enum | `TWO_PANEL` | Arrangement of the origin/class selection screen. `TWO_PANEL` (default): scrolling list on the left, details on the right. `CAROUSEL`: one origin at a time with prev/next arrows, closest to the original Origins mod's chooser. `GRID` is a reserved name that currently opens the two-panel screen. This is layout only: colours and font stay under `theme_override` / `classic_picker_style`, and any skin works with any layout. See below. |
+| `picker_layout` | enum | `TWO_PANEL` | Arrangement of the origin/class selection screen. `TWO_PANEL` (default): scrolling list on the left, details on the right. `CAROUSEL`: one origin at a time with prev/next arrows, closest to the original Origins mod's chooser. `GRID`: a paged wall of origin cards, click a card for its details. This is layout only: colours and font stay under `theme_override` / `classic_picker_style`, and any skin works with any layout. See below. |
 | `show_origin_editor` | bool | `false` | Show the in-game Origin Editor button on the origin info screen for **all** players, not just those in Creative. The editor is a pack-authoring tool, creative-only by default. Enable if you author origins in survival or want testers to reach it without `/gamemode`. |
 | `default_sort` | enum | `MANUAL` | Initial sort order for the origin selection / info screens, used until you cycle the on-screen sort button (your cycled choice then wins for the rest of the session). Values: `MANUAL` (the author-set `order` field ascending, alphabetical tie-break), `CLASS` (grouped by mod/namespace, alphabetical within), `NAME_ASC` (flat alphabetical), `NAME_DESC` (flat reverse-alphabetical), `IMPACT_ASC` (by origin impact: none → low → medium → high). |
 
@@ -69,9 +69,16 @@ list fits, and it is drawn in whichever UI theme is active rather than in the ol
 dirt-background window. Search, the sort cycle and Random / Back / Confirm all
 work exactly as they do on the two-panel screen.
 
-`GRID` is named now so the setting does not have to change shape later, but that
-screen has not been written — selecting it opens the two-panel screen, with no
-error and no visible difference.
+`GRID` lays the layer's origins out as a wall of cards, each carrying the origin's
+icon, name and impact dots. It fits as many whole cards as your window allows and
+pages the remainder: `<` / `>` beneath the wall, the left/right arrow keys, or the
+scroll wheel. A card is far too small to hold a description, so clicking one both
+selects it and opens the same full detail read the other two layouts use. Back
+(or ESC) returns to the wall from there, and only once you are on the wall does
+Back step to the previous layer. Random / Back / Confirm sit in the same three
+places on both views, so the buttons never move under your cursor. Search and the sort
+cycle work as they do elsewhere; note that `CLASS` sort loses its per-mod headers
+here, since a wall of cards has nowhere to put them.
 
 Layout is a separate axis from skin. Colours and font stay under `theme_override`
 / `classic_picker_style`, so any skin works with any layout.
