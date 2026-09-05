@@ -18,12 +18,25 @@ directly. This page covers only what's class-specific.
 ## The class layer
 
 The built-in class layer is defined at
-`data/neoorigins/origins/origin_layers/class.json` with `order: 2`. Classes
-are intentionally passive: all built-in class powers are passive or
-condition-gated, so **a class never consumes a keybind slot**. Keep custom
-classes to passive/attribute/condition powers; active (keybinded) powers in
-the class layer are not the intended design and the class power list is
-treated as always-on, not slotted.
+`data/neoorigins/origins/origin_layers/class.json` with `order: 2`. Most
+class powers are passive or condition-gated, but a class may also carry an
+active power.
+
+**A class gets one keybind slot.** The class layer does not use the six skill
+slots that the origin layer does. Instead, the **first** active power in a
+class's `powers` list is bound to the dedicated **Class Skill** key, shown as
+`C` in the HUD when the key is unbound. Every later active power in the same
+class is silently left unbound, so if you want two of them, only the first
+one will ever fire.
+
+The built-in *Step Assist* switch on the Explorer, Rogue and Scout is the
+worked example: a hidden `neoorigins:toggle` holds the state, an
+`neoorigins:active_ability` flips it, and the step-height
+`attribute_modifier` is gated on the toggle.
+
+That pattern (a hidden toggle plus an active that flips it) is the intended
+way to give a class a switchable passive, because it keeps the passive itself
+condition-gated while spending only the one class slot.
 
 ## Adding a class (recommended: additive layer file)
 
@@ -78,7 +91,8 @@ Conventions used by the built-ins:
 - `impact: "none"`. Classes don't carry an origin "impact" rating; always `none`.
 - `order`: position in the class screen (built-ins occupy 1–20; use 21+ to
   append after them).
-- `powers`: passive/condition powers only (see above).
+- `powers`: passive, condition-gated or attribute powers, plus at most one
+  active power, which takes the Class Skill key (see above).
 - `upgrades`: optional advancement-driven promotion to another class; see
   the working `examples/class_tier_up/` datapack and the Upgrades section of
   [the examples README](../examples/README.md).
