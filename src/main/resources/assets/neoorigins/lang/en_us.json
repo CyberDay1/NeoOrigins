@@ -23,6 +23,8 @@
   "gui.neoorigins.button.back": "< Back",
   "gui.neoorigins.button.confirm": "Confirm >",
   "gui.neoorigins.picker.position": "%s / %s",
+  "gui.neoorigins.picker.back_to_grid": "< Grid",
+  "gui.neoorigins.picker.no_results": "No origins match your search",
   "gui.neoorigins.hint.scroll": "scroll for more",
   "gui.neoorigins.hint.select": "Select an origin to view details",
   "gui.neoorigins.detail.powers_header": "Powers",

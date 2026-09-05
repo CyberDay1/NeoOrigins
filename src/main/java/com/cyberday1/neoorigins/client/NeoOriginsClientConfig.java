@@ -38,7 +38,7 @@ public final class NeoOriginsClientConfig {
     public enum PickerLayout {
         /** Default: scrolling list on the left, detail panel on the right. */
         TWO_PANEL,
-        /** Reserved: a wrapping field of origin cards. Not implemented — opens {@link #TWO_PANEL}. */
+        /** A paged wall of origin cards; clicking one opens the full detail read. */
         GRID,
         /**
          * One origin at a time with prev/next arrows, shaped like the original
@@ -91,13 +91,13 @@ public final class NeoOriginsClientConfig {
                      "only: the colours and font are controlled separately by theme_override",
                      "and classic_picker_style above, and any skin works with any layout.",
                      "  TWO_PANEL - scrolling list on the left, details on the right (default)",
-                     "  GRID      - reserved, not implemented yet",
+                     "  GRID      - a paged wall of origin cards, click one for its details",
                      "  CAROUSEL  - one origin at a time with prev / next arrows, closest to",
                      "              the original Origins mod's chooser",
                      "CAROUSEL is a NeoOrigins screen shaped like the original, not a copy of",
                      "it: it keeps the current theme rather than the old dirt-background window.",
-                     "GRID still opens the two-panel screen; the name is reserved so this",
-                     "setting will not change shape when that layout lands.")
+                     "GRID fits as many cards as the window allows and pages the rest; the",
+                     "card wall has no room for descriptions, so a card opens onto them.")
             .defineEnum("picker_layout", PickerLayout.TWO_PANEL);
 
         SHOW_ORIGIN_EDITOR = BUILDER
