@@ -208,7 +208,11 @@ public class InteractionPowerEvents {
         ActiveOriginService.forEachOfType(sp, EdibleItemPower.class, cfg -> {
             if (starting[0]) return;
             if (!EdibleItemPower.matches(stack, cfg)) return;
-            if (!cfg.alwaysEdible() && sp.getFoodData().getFoodLevel() >= 20) return;
+            // Player.canEat is vanilla's own rule: invulnerable (creative /
+            // spectator) OR always-edible OR actually hungry. Checking the food
+            // level directly would silently drop the creative term, which is why
+            // vanilla food was edible in creative and ours was not.
+            if (!sp.canEat(cfg.alwaysEdible())) return;
             starting[0] = true;
         });
         if (starting[0]) {
@@ -243,7 +247,7 @@ public class InteractionPowerEvents {
         ActiveOriginService.forEachOfType(sp, EdibleItemPower.class, cfg -> {
             if (matched[0] != null) return;
             if (!EdibleItemPower.matches(stack, cfg)) return;
-            if (!cfg.alwaysEdible() && sp.getFoodData().getFoodLevel() >= 20) return;
+            if (!sp.canEat(cfg.alwaysEdible())) return;
             matched[0] = cfg;
         });
         if (matched[0] == null) return;
@@ -258,7 +262,10 @@ public class InteractionPowerEvents {
         // Mutating event.getItem() therefore does nothing — the shrink has
         // to go through setResultStack on a fresh copy. GitHub #93.
         ItemStack result = event.getResultStack().copy();
-        result.shrink(1);
+        // consume, not shrink: ItemStack.consume skips the shrink for a player
+        // with infinite materials, so creative eats without spending the stack
+        // exactly like vanilla food does.
+        result.consume(1, sp);
         event.setResultStack(result);
         cfg.consumeSound().ifPresent(soundId -> {
             var snd = BuiltInRegistries.SOUND_EVENT.getOptional(soundId);
