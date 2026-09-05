@@ -281,10 +281,24 @@ Raised in the deep dark: eats raw stone, chews through ore with bare hands, but 
 - *Sun Sensitive*: damaged by direct sunlight
 - *Compact Build*: reduced hitbox
 
-The seven eating powers are hunger-gated: on a full hunger bar the right-click
-does nothing at all, with no message and no eating animation. Stone Eater also
-accepts cobbled deepslate. Stone is the only one of the seven that is pure
-nutrition; the other six each grant an effect on top.
+The seven eating powers are hunger-gated the way vanilla food is: on a full
+hunger bar the right-click does nothing at all, with no message and no eating
+animation, unless you are in creative or spectator, which eat regardless just
+as they do with bread. Stone Eater also accepts cobbled deepslate. Stone is the
+only one of the seven that is pure nutrition; the other six each grant an
+effect on top.
+
+What you eat is worth what it is worth as an item. A block of the material feeds
+twice as much as an ingot or gem and holds its effect three times as long, and a
+nugget is worth one hunger point and fifteen seconds. Hunger caps at twenty, so a
+block deliberately does not pay the nine times a crafting table would suggest:
+most of that food would be discarded, and the duration is where the value went
+instead. Nine nuggets out-feed the ingot they craft into on the hunger bar
+alone, nine points against four, but a nugget carries no saturation and fifteen
+seconds of buff a second one restarts rather than extends. With saturation the
+iron ingot is worth 10.4 and the gold one 15, so the nuggets nether gold ore
+drops are a stopgap and not a shortcut. The full table is in
+[POWER_TYPES.md](POWER_TYPES.md#neooriginsedible_item).
 
 Diamond is the key to the origin's mining loop: Diamond Clarity is what
 switches Mining Fortune on, so a Caveborn eats a diamond and then mines ore for
