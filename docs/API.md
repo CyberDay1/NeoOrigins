@@ -66,7 +66,7 @@ The upstream layer, for cross-mod pack compatibility, is handled by
 | [CONTENT_CONFIG.md](CONTENT_CONFIG.md) | Server `content.toml` toggles: global vision / resource-bar switches and per-origin / per-class enable flags. |
 | [CLIENT_CONFIG.md](CLIENT_CONFIG.md) | Per-client `client.toml` options: UI theme, HUD layout, hotkey pool size. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How powers are loaded, dispatched, cached. For debugging. |
-| [COMPATIBILITY.md](COMPATIBILITY.md) | Out-of-the-box mod integrations (Origins/Apoli, Curios, Ars Nouveau, KubeJS, JEI/REI, etc.). |
+| [COMPATIBILITY.md](COMPATIBILITY.md) | Out-of-the-box mod integrations (Origins/Apoli, Curios, Ars Nouveau, JEI/REI, etc.). |
 
 If a prose doc disagrees with the code, the code wins. Source of truth
 paths are cross-linked in each detail doc.
@@ -128,7 +128,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`lava_vision`](POWER_TYPES.md#neooriginslava_vision) | Increase vision distance in lava. |
 | [`modify_lava_speed`](POWER_TYPES.md#neooriginsmodify_lava_speed) | Change movement speed while submerged in lava. |
 | [`overlay`](POWER_TYPES.md#neooriginsoverlay) | Full-screen texture overlay with configurable opacity. |
-| [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. |
+| [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. Not drawn on 26.1 or 26.2: the power still loads and syncs, but there is no tint render pass. |
 | [`entity_model`](POWER_TYPES.md#neooriginsentity_model) | Replace the player's model with another entity's: a morph. Changes hitbox and voice with it. |
 | [`invisibility`](POWER_TYPES.md#neooriginsinvisibility) | Turn the player invisible, optionally hiding worn armour too. |
 | [`particle`](POWER_TYPES.md#neooriginsparticle) | Emit vanilla particles on the player at a fixed cadence. Server-side. |
