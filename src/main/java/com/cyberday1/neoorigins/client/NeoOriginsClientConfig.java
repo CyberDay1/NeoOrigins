@@ -32,7 +32,7 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.BooleanValue ALWAYS_SHOW_ABILITY_ICONS;
     public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> HOTKEY_SLOT_DEFAULTS;
-    public static final ModConfigSpec.BooleanValue SUPPRESS_DRAGON_SPECIES_SCREENS;
+    public static final ModConfigSpec.EnumValue<DragonScreenPolicy> DRAGON_SPECIES_SCREENS;
 
     /** Arrangement of the origin/class selection screen. Independent of the colour skin. */
     public enum PickerLayout {
@@ -45,6 +45,16 @@ public final class NeoOriginsClientConfig {
          * Origins mod's chooser but drawn in the active UI theme.
          */
         CAROUSEL
+    }
+
+    /** What to do when Dragon Survival opens a dragon-species screen. */
+    public enum DragonScreenPolicy {
+        /** Default: queue DS's screen and open it once the origin picker is finished. */
+        DEFER,
+        /** Cancel DS's species screens outright. */
+        SUPPRESS,
+        /** Never interfere; whichever screen opens last wins. */
+        ALLOW
     }
 
     /** What the cooldown/ability HUD cluster shows besides live cooldowns. */
@@ -185,14 +195,20 @@ public final class NeoOriginsClientConfig {
 
         BUILDER.comment("Cross-mod compatibility toggles.").push("compat");
 
-        SUPPRESS_DRAGON_SPECIES_SCREENS = BUILDER
-            .comment("Dragon Survival: block DS's own dragon-SPECIES selection screens",
-                     "(the altar / species-choice popup) so the NeoOrigins origin picker",
-                     "is the only way to choose or change a dragon species. Default false",
-                     "= leave DS's species screens usable alongside origins. DS's",
-                     "appearance editor, skins, abilities and inventory are ALWAYS left",
-                     "open regardless of this setting.")
-            .define("suppress_dragon_species_screens", false);
+        DRAGON_SPECIES_SCREENS = BUILDER
+            .comment("Dragon Survival: what to do when DS opens one of its own dragon-SPECIES",
+                     "selection screens (the altar / species-choice popup) while the",
+                     "NeoOrigins origin picker is on screen. Both mods can open a screen at",
+                     "join, and whichever lands second replaces the first.",
+                     "  DEFER    - (default) hold DS's screen back and open it as soon as the",
+                     "             origin picker is finished, so neither is lost",
+                     "  SUPPRESS - cancel DS's species screens, making the origin picker the",
+                     "             only way to choose or change a dragon species",
+                     "  ALLOW    - never interfere; whichever screen opens last wins",
+                     "A species screen you open yourself (altar block, inventory button,",
+                     "command) is untouched under DEFER and ALLOW. DS's appearance editor,",
+                     "skins, abilities and inventory are ALWAYS left open regardless.")
+            .defineEnum("dragon_species_screens", DragonScreenPolicy.DEFER);
 
         BUILDER.pop();
     }
@@ -232,8 +248,8 @@ public final class NeoOriginsClientConfig {
     /** Raw "N=key.keyboard.X" default-binding entries for named-hotkey pool slots. */
     public static java.util.List<? extends String> hotkeySlotDefaults() { return HOTKEY_SLOT_DEFAULTS.get(); }
 
-    /** True if Dragon Survival's own dragon-species selection screens should be blocked. */
-    public static boolean isSuppressDragonSpeciesScreens() { return SUPPRESS_DRAGON_SPECIES_SCREENS.get(); }
+    /** What to do when Dragon Survival opens a dragon-species selection screen. */
+    public static DragonScreenPolicy dragonSpeciesScreens() { return DRAGON_SPECIES_SCREENS.get(); }
 
     /** Pushes the current TOML value into {@link com.cyberday1.neoorigins.client.theme.ActiveThemeRegistry}. */
     public static void onConfigLoadOrReload(ModConfigEvent event) {
