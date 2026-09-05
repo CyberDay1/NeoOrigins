@@ -1,0 +1,44 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "cooldown_icon": "minecraft:leather_boots",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:power_active",
+      "power": "neoorigins:step_assist_toggle"
+    },
+    "if_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        {
+          "type": "neoorigins:toggle",
+          "power": "neoorigins:step_assist_toggle",
+          "value": false
+        },
+        {
+          "type": "neoorigins:play_sound",
+          "sound": "minecraft:block.note_block.pling",
+          "volume": 0.5,
+          "pitch": 0.6
+        }
+      ]
+    },
+    "else_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        {
+          "type": "neoorigins:toggle",
+          "power": "neoorigins:step_assist_toggle",
+          "value": true
+        },
+        {
+          "type": "neoorigins:play_sound",
+          "sound": "minecraft:block.note_block.pling",
+          "volume": 0.5,
+          "pitch": 1.5
+        }
+      ]
+    }
+  }
+}

@@ -807,6 +807,8 @@
   "power.neoorigins.class_explorer_sure_footed.description": "Takes no fall damage — the trail teaches where to land.",
   "power.neoorigins.class_explorer_climbers_step.name": "Climber's Step",
   "power.neoorigins.class_explorer_climbers_step.description": "Steps up full blocks without jumping.",
+  "power.neoorigins.step_assist_switch.name": "Step Assist",
+  "power.neoorigins.step_assist_switch.description": "Turns your step-up ability on and off. Off means you climb blocks by jumping, like everyone else.",
   "power.neoorigins.class_explorer_campfire_rest.name": "Campfire Rest",
   "power.neoorigins.class_explorer_campfire_rest.description": "Slowly regenerates while within 5 blocks of any campfire — only while out of combat (5 seconds since last hit).",
   "origins.neoorigins.class_sentinel.name": "Sentinel",

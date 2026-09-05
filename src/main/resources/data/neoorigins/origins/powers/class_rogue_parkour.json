@@ -1,1 +1,10 @@
-{ "type": "neoorigins:attribute_modifier", "attribute": "minecraft:step_height", "amount": 0.5, "operation": "add_value" }
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:step_height",
+  "amount": 0.5,
+  "operation": "add_value",
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "neoorigins:step_assist_toggle"
+  }
+}
