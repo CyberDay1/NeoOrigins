@@ -1,13 +1,16 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,7 +19,14 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.biome.Biome;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 
 import java.util.UUID;
 
@@ -57,6 +67,7 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
         float dotThreshold,
         float dotDamage,
         int dotInterval,
+        float waterBottleRefill,
         String type
     ) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
@@ -69,6 +80,7 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
             Codec.FLOAT.optionalFieldOf("dot_threshold", 0.0F).forGetter(Config::dotThreshold),
             Codec.FLOAT.optionalFieldOf("dot_damage", 1.0F).forGetter(Config::dotDamage),
             Codec.INT.optionalFieldOf("dot_interval", 40).forGetter(Config::dotInterval),
+            Codec.FLOAT.optionalFieldOf("water_bottle_refill", 0.5F).forGetter(Config::waterBottleRefill),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -97,7 +109,13 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
         float moisture = getMoisture(player);
 
         // ── Drain / refill ─────────────────────────────────────────────
-        boolean inWater = player.isInWaterRainOrBubble();
+        // isInWaterRainOrBubble covers water blocks, rain and bubble columns,
+        // but a water cauldron is a block with a level property rather than a
+        // water fluid, so it misses entirely. Same clause BreathOutOfFluidPower
+        // uses, kept identical so both wet-origin families rehydrate alike.
+        boolean inWater = player.isInWaterRainOrBubble()
+            || player.level().getBlockState(player.blockPosition())
+                   .is(net.minecraft.world.level.block.Blocks.WATER_CAULDRON);
         if (inWater) {
             moisture = Math.min(1.0F, moisture + config.waterRefillPerTick());
         } else {
@@ -161,6 +179,38 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
         // Clear HUD bar on client
         net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
             new com.cyberday1.neoorigins.network.payload.SyncMoisturePayload(-1.0F));
+    }
+
+    /**
+     * Drinking a water bottle tops the moisture bar back up, giving a drying
+     * slime an emergency option away from any water source. Mirrors the same
+     * affordance {@code BreathOutOfFluidPower} gives aquatic origins.
+     *
+     * <p>Nested so the {@code @EventBusSubscriber} scan activates the handler
+     * exactly once.
+     */
+    @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
+    public static final class Handler {
+
+        @SubscribeEvent
+        public static void onItemUseFinish(LivingEntityUseItemEvent.Finish event) {
+            if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+            ItemStack stack = event.getItem();
+            if (!stack.is(Items.POTION)) return;
+            PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
+            if (contents == null || !contents.is(Potions.WATER)) return;
+
+            // Take the most generous refill among the player's moisture powers;
+            // a player without one is left alone entirely.
+            float[] refill = {-1.0F};
+            ActiveOriginService.forEachOfType(sp, SlimeMoisturePower.class,
+                cfg -> refill[0] = Math.max(refill[0], cfg.waterBottleRefill()));
+            if (refill[0] < 0.0F) return;
+
+            setMoisture(sp, getMoisture(sp) + refill[0]);
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp,
+                new com.cyberday1.neoorigins.network.payload.SyncMoisturePayload(getMoisture(sp)));
+        }
     }
 
     // ── Moisture storage ───────────────────────────────────────────────

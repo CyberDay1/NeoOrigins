@@ -695,7 +695,9 @@ public final class BuiltinPowers {
             new FieldSpec("fire_drain_multiplier", Kind.NUMBER, false)
                 .def(10.0).doc("Drain multiplier while the player is on fire (default 10.0)."),
             new FieldSpec("water_refill_per_tick", Kind.NUMBER, false)
-                .def(0.005).doc("Moisture regained per tick while in water or rain (default 0.005)."),
+                .def(0.005).doc("Moisture regained per tick while in water, rain, a bubble column or a water cauldron (default 0.005)."),
+            new FieldSpec("water_bottle_refill", Kind.NUMBER, false)
+                .def(0.5).doc("Moisture (0-1) restored by drinking one water bottle (default 0.5). Set 0 to disable."),
             new FieldSpec("regen_threshold", Kind.NUMBER, false)
                 .def(0.75).doc("Moisture (0-1) above which the player gets Regeneration (default 0.75)."),
             new FieldSpec("armor_penalty_threshold", Kind.NUMBER, false)
