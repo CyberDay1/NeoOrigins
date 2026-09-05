@@ -2880,7 +2880,7 @@ Every one of these powers is `always_edible: false`, so none of them go down on 
 
 The six metal and gem tags hold the raw and refined forms of their material — ingots, nuggets, gems, raw metal and raw metal blocks, and since 2.2.25 the ores themselves, including deepslate variants, nether gold ore and ancient debris. Not every form exists for every material: copper has no nugget, diamond is the gem plus its two ores, emerald is the gem plus its two ores, and netherite is the ingot, scrap and ancient debris. `caveborn_eat_stone` is the exception and carries no ore at all: it holds the ten vanilla raw stones (cobblestone, stone, granite, diorite, andesite, tuff, deepslate, cobbled deepslate, basalt, blackstone).
 
-Copper and emerald also carry a bonus power that fires on finishing the meal: `caveborn_copper_bonus` grants Water Breathing I for 60 seconds, and `caveborn_emerald_bonus` grants Fire Resistance for 5 minutes. Each meal additionally drives a hidden `model_color` tint for as long as its effect runs; those six tints are individually switchable from `power_overrides.toml`.
+Copper and emerald also carry a bonus power that fires on finishing the meal: `caveborn_copper_bonus` grants Water Breathing I for 60 seconds, and `caveborn_emerald_bonus` grants Fire Resistance for 5 minutes. Each meal additionally drives a hidden `model_color` tint for as long as its effect runs, though that tint is not drawn on 26.1 or 26.2 (see [`neoorigins:model_color`](#neooriginsmodel_color)); those six tints are individually switchable from `power_overrides.toml`.
 
 Worth knowing for the ore and stone entries: both are placeable blocks, so aiming at a surface places one as normal. Eating one means aiming where it cannot be placed — the same rule the stone diet has always followed.
 
@@ -4406,7 +4406,9 @@ Origins compat: translates `origins:overlay`.
 
 ## `neoorigins:model_color`
 
-Tints the player model with an RGBA colour. Client-side rendering applies a colour multiply via `RenderSystem.setShaderColor` during the player render pass.
+Tints the player model with an RGBA colour.
+
+The tint is drawn on 1.21.1, where the client applies a colour multiply during the player render pass. It is not drawn on 26.1 or 26.2, because those versions removed `RenderSystem.setShaderColor` and the mod has no replacement pass yet, so nothing paints the model. Everything else about the power is unchanged here: it loads, validates its fields, honours `enabled` and `condition`, and syncs its state to the client. A datapack naming this type is not broken on these versions, it simply shows no colour.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4417,7 +4419,7 @@ Tints the player model with an RGBA colour. Client-side rendering applies a colo
 | `condition` | object | no | — | EntityCondition that gates when the tint is applied. When absent, the tint is always active. When present, the colour only shows while the condition evaluates true. |
 | `enabled` | bool | no | `true` | Kill switch: when false the power stays attached but never tints. Lets a server owner drop one tint from `power_overrides.toml` without editing the datapack. |
 
-When two or more `model_color` powers are active at once, the channels are averaged rather than one winning: two tints produce their midpoint, three their mean. A conditioned tint is re-evaluated once a second, so it appears and clears as the condition flips rather than only on login or toggle.
+When two or more `model_color` powers are active at once, the blend rule is to average the channels rather than let one win: two tints produce their midpoint, three their mean. That is what 1.21.1 draws; on 26.1 and 26.2 it stands as the defined rule with no render pass to apply it. A conditioned tint is re-evaluated once a second on every version, so the synced state appears and clears as the condition flips rather than only on login or toggle.
 
 Origins compat: translates `origins:model_color`.
 

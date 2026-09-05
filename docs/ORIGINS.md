@@ -300,10 +300,7 @@ it does not put the fire out. A Caveborn crossing open ground under Emerald
 Reprieve is therefore wreathed in flames and taking no damage from them. Step
 into water or shade and the burn runs out on its own.
 
-While one of those six effects is running the player model is washed in the
-colour of the ore that granted it: copper orange, iron pale grey, gold
-yellow, diamond cyan, emerald green, netherite dark brown. Two meals at once
-average their colours. The tint is cosmetic only and is driven by hidden powers, one per ore,
+Each of those six effects also carries a hidden cosmetic power, one per ore,
 each with its own switch in `power_overrides.toml`:
 
 ```toml
@@ -311,8 +308,11 @@ each with its own switch in `power_overrides.toml`:
 enabled = false
 ```
 
-Turning one off keeps the buff and drops the colour. Stone has no tint because
-it grants no effect.
+Those powers are `model_color` tints, and on 26.1 and 26.2 they draw nothing:
+the render call they relied on is gone from these versions, so the player model
+keeps its usual colours while a meal is running. The powers are still granted
+and the switches still take effect, so anything set here carries forward. Stone
+has no tint because it grants no effect.
 
 **Evolution**
 
