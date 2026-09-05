@@ -126,12 +126,13 @@ public final class ActiveOriginService {
      * entity_model resolves against MorphDataManager, so their
      * {@code capabilities(config)} answers depend on live state the cache's
      * version tuple does not track — caching either in the union would serve a
-     * stale answer. model_color and compat are the only two types that override
+     * stale answer. model_color, pose and compat override
      * {@code capabilities(ServerPlayer, Config)}: model_color returns an empty
      * static set whenever a condition is present while its player-aware variant
-     * returns the real tag, and compat only ever narrows. Neither can be folded
-     * into a union that is supposed to bound the player-aware result, and
-     * CapabilityIndexTest holds that line for any type added later.
+     * returns the real tag, pose narrows by its own toggle, and compat only ever
+     * narrows. None can be folded into a union that is supposed to bound the
+     * player-aware result, and CapabilityIndexTest holds that line for any type
+     * added later.
      */
     static boolean hasDynamicCapabilities(PowerType<?> type) {
         return isDynamicCapabilityType(type.getClass());
@@ -142,7 +143,8 @@ public final class ActiveOriginService {
         return com.cyberday1.neoorigins.power.builtin.ModelColorPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.compat.CompatPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.power.builtin.EnhancedVisionPower.class.isAssignableFrom(type)
-            || com.cyberday1.neoorigins.power.builtin.EntityModelPower.class.isAssignableFrom(type);
+            || com.cyberday1.neoorigins.power.builtin.EntityModelPower.class.isAssignableFrom(type)
+            || com.cyberday1.neoorigins.power.builtin.PosePower.class.isAssignableFrom(type);
     }
 
     private static CacheEntry getOrBuild(ServerPlayer player) {
@@ -363,7 +365,10 @@ public final class ActiveOriginService {
                             .isToggledOff(player, holder.config(), holder.id())) {
                 continue;
             }
-            if (((PowerHolder) holder).type().capabilities(holder.config()).contains(tag)) {
+            // Player-aware variant: runtime-conditioned capabilities (e.g. Route B
+            // origins:swimming gated on "in lava") evaluate their gate here, exactly
+            // as collectActivePowers does for the client-facing sync.
+            if (holder.capabilities(player).contains(tag)) {
                 return true;
             }
         }

@@ -864,6 +864,25 @@ public final class BuiltinPowers {
             new FieldSpec("reach_bonus", Kind.NUMBER, false)
                 .def(0.0).doc("Flat reach (blocks) added to both block and entity interaction range, on top of modify_reach scaling. Keeps shrunk origins usable (default 0).")));
 
+        // pose: a clean RecordCodecBuilder, so every field below is a real Config
+        // component and the drift audit resolves each one. `pose` is the single
+        // required field and the only enum — three values, so it earns a dropdown
+        // via caseTolerantOptions rather than a free-text box (the codec parses
+        // case-insensitively, and the docs led with lowercase). The opt-in toggle
+        // pair is persistent_effect's, defaults included, and `enabled` is the
+        // ordinary component form (EnabledGate.field lifts it into the record),
+        // not the raw-JSON variant.
+        define("pose", PosePower.class, List.of(
+            new FieldSpec("pose", Kind.ENUM, true)
+                .options(caseTolerantOptions("standing", "crouching", "swimming"))
+                .doc("Which pose to hold the player in. 'swimming' is the prone crawl (a 0.6x0.6 body, eye at 0.4) used for crawling under a one-block gap; 'crouching' is sneak height; 'standing' pins the player upright and stops them crouching or crawling at all. A forced crouch or land crawl walks at sneak pace (vanilla's slow-movement test reads the pose), but does not set the sneak flag, so there is no ledge-stop; a forced 'swimming' out of water is a crawl only and grants no swim propulsion. The pose is NOT clearance-checked, so it fits wherever its box fits, including gaps the player could not otherwise enter; balancing that is the pack's job. Releasing it hands the player back to vanilla, which does check clearance."),
+            new FieldSpec("toggleable", Kind.BOOLEAN, false)
+                .def(true).doc("When true the power binds a keybind that flips the pose on/off; off releases the player to their normal pose (default true)."),
+            new FieldSpec("default_off", Kind.BOOLEAN, false)
+                .def(false).doc("Toggleable powers only: when true the pose STARTS released so the player must opt in via the keybind (default false)."),
+            ENABLED_SPEC, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
+
+
         // ── Group N — batch 1 (Active* primitive RecordCodecBuilder powers) ──
         // These Active* powers share the AbstractActivePower contract but, unlike
         // active_ability, deserialize through a plain RecordCodecBuilder of

@@ -7,6 +7,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
+import java.util.Set;
+
 /**
  * A resolved power instance: the type paired with its decoded configuration.
  * Used internally to avoid repeated deserialization.
@@ -86,6 +88,25 @@ public final class PowerHolder<C extends PowerConfiguration> {
     /** Returns true if this power occupies a keybind slot (has active behaviour). */
     public boolean isActive()                              { return type.isActivePower(config); }
     public boolean occupiesHotkeySlot()                    { return type.occupiesHotkeySlot(config); }
+
+    /**
+     * The capability tags this power is publishing for {@code player} right now.
+     *
+     * <p>Dispatch-wrapped like every other callback, because a player-aware
+     * {@code capabilities} override is entitled to ask which power it is being
+     * invoked as — a per-instance toggle key is read from exactly there. Callers
+     * must go through this rather than {@code type().capabilities(player, config)},
+     * which would leave {@link #currentDispatchId()} null and send such a type
+     * looking for the wrong key.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Set<String> capabilities(ServerPlayer player) {
+        Identifier prev = CURRENT_DISPATCH_ID.get();
+        CURRENT_DISPATCH_ID.set(id);
+        try { return ((PowerType) type).capabilities(player, config); }
+        finally { CURRENT_DISPATCH_ID.set(prev); }
+    }
+
 
     // Lifecycle methods that are NOT condition-gated (power is still owned):
     public void onGranted(ServerPlayer player)          { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
