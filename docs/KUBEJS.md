@@ -88,11 +88,19 @@ each event.
 | `originChosen` | A player picks an origin on a layer for the **first** time | `player`, `layerId`, `originId` |
 | `originChanged` | A player's active origin on a layer changes (first pick, `/set`, or reset) | `player`, `layerId`, `oldOriginId`*, `newOriginId`* |
 | `evolutionTierChanged` | A player's evolution tier changes | `player`, `oldTier`, `newTier` |
-| `evolutionDeclined` | A player declines an evolution prompt | `player` |
+| `evolutionDeclined` | A player declines an evolution prompt that is standing | `player` |
 
 \* `oldOriginId` is `null` on a first-time selection; `newOriginId` is `null`
 when the origin is cleared/reset. Evolution tiers are integers:
 `0` base, `1` evolved, `2` ascended, `3` apex.
+
+`evolutionDeclined` only fires when there is an offer to decline: the player has
+to be below Apex and at or past the next tier's kill threshold.
+`/neoorigins evolve decline` run with nothing on offer tells the player so and
+fires no event. Declining mutes the chat prompt for that tier, so in ordinary
+play the event fires once per tier. The command itself is not one-shot, though:
+the offer is still standing as long as the threshold holds, so running decline
+again fires the event again.
 
 ### Power lifecycle
 

@@ -265,26 +265,67 @@ Raised in the deep dark: eats raw stone, chews through ore with bare hands, but 
 - *Cave Footing*: no fall damage
 - *Miner's Hands*: bonus mining speed
 - *Stone Fists*: mines stone bare-handed
-- *Mining Fortune*: bonus drops from ores
+- *Mining Fortune*: ores drop as if mined with Fortune II, but only while Luck is active
 - *Stone Eater*: can eat raw stone
+- *Copper Palate*: can eat copper
 - *Iron Palate*: can eat iron
 - *Gilded Palate*: can eat gold
 - *Diamond Palate*: can eat diamond
+- *Emerald Palate*: can eat emerald
 - *Netherite Palate*: can eat netherite
-- *Iron Rush*: buff after eating iron
-- *Gold Rush*: buff after eating gold
-- *Diamond Clarity*: buff after eating diamond
-- *Netherite Core*: buff after eating netherite
+- *Verdigris Lungs*: Water Breathing I for 60 seconds after eating copper
+- *Iron Rush*: Haste I for 60 seconds after eating iron
+- *Gold Rush*: Speed I for 2 minutes after eating gold
+- *Diamond Clarity*: Luck II for 5 minutes after eating diamond
+- *Emerald Reprieve*: Fire Resistance for 5 minutes after eating emerald
+- *Netherite Core*: Strength I and Resistance I for 5 minutes after eating netherite
 - *Sun Sensitive*: damaged by direct sunlight
 - *Compact Build*: reduced hitbox
+
+The seven eating powers are hunger-gated: on a full hunger bar the right-click
+does nothing at all, with no message and no eating animation. Stone Eater also
+accepts cobbled deepslate. Stone is the only one of the seven that is pure
+nutrition; the other six each grant an effect on top.
+
+Diamond is the key to the origin's mining loop: Diamond Clarity is what
+switches Mining Fortune on, so a Caveborn eats a diamond and then mines ore for
+the next five minutes. Mining Fortune only checks that Luck is present, so a
+luck potion turns it on just as well.
+
+Emerald is the answer to Sun Sensitive. The sunlight damage is dealt as fire, so
+Fire Resistance cancels it outright and an emerald buys five minutes on the
+surface. One detail to expect rather than report as a bug: the power still sets
+the player alight every second, and Fire Resistance only cancels fire *damage* —
+it does not put the fire out. A Caveborn crossing open ground under Emerald
+Reprieve is therefore wreathed in flames and taking no damage from them. Step
+into water or shade and the burn runs out on its own.
+
+While one of those six effects is running the player model is washed in the
+colour of the ore that granted it: copper orange, iron pale grey, gold
+yellow, diamond cyan, emerald green, netherite dark brown. Two meals at once
+average their colours. The tint is cosmetic only and is driven by hidden powers, one per ore,
+each with its own switch in `power_overrides.toml`:
+
+```toml
+[power_overrides.caveborn_copper_tint]
+enabled = false
+```
+
+Turning one off keeps the buff and drops the colour. Stone has no tint because
+it grants no effect.
 
 **Evolution**
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, Night Vision | Evolved HP |
-| 3 - Apex | +6 HP, Haste | Ascended HP |
+| 2 - Ascended | +4 HP, permanent Night Vision | Evolved HP, Dark Adapted |
+| 3 - Apex | +6 HP, permanent Haste | Ascended HP, Iron Rush |
+
+The removals at tiers 2 and 3 are replacements rather than losses: Dark Adapted
+gives way to the permanent night vision that supersedes it, and Iron Rush goes
+because the Apex Haste never expires. Eating iron at Apex still feeds you; it
+just no longer grants a buff.
 
 ### Cinderborn
 

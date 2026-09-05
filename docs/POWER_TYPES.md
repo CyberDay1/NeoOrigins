@@ -35,11 +35,11 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 |---|---|---|---|
 | `cooldown_icon` | string | `""` | HUD cooldown icon: an item id (e.g. `minecraft:ender_pearl`) rendered as the item, or a datapack texture path ending in `.png` (resolved under `assets/<namespace>/textures/`, e.g. `mypack:gui/fireball.png` → `assets/mypack/textures/gui/fireball.png`) drawn 16×16. When set, the HUD swaps that slot's cooldown bar for the icon with a clock-style radial sweep (dark fill over the not-yet-recharged arc, wiping clockwise from 12 o'clock). Empty keeps the plain bar. |
 | `cooldown_countdown` | bool | `true` | Draw the remaining cooldown in whole seconds translucently on the icon. Only applies when `cooldown_icon` is set; players can suppress all countdown numbers with the `show_cooldown_countdown` client config switch and tune the text opacity with `cooldown_countdown_opacity`. |
-| `always_show_icon` | bool | `false` | Keep this power's icon on the ability HUD cluster even while it is idle / off cooldown (full-bright, no sweep, no countdown). Only applies when `cooldown_icon` is set; players can force this for every power with the `always_show_ability_icons` client config switch. |
+| `always_show_icon` | bool | `false` | Keep this power's icon on the ability HUD cluster even while it is idle / off cooldown (full-bright, no sweep, no countdown). Only applies when `cooldown_icon` is set. **Note:** this is what makes an idle icon persist under the default client HUD mode (`hud_ability_display: COOLDOWNS_AND_TOGGLES`), which otherwise shows a non-toggle icon only while it is recharging. Under `ALL_ACTIVE_ABILITIES` every icon-bearing ability already keeps a slot, so the field has no additional effect there (players can also force all icons on with `always_show_ability_icons`). |
 
-**Toggleable powers** (`flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect` and `condition_passive` when authored with `"toggleable": true`) also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
+**Toggleable powers** (`flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect` and `condition_passive` when authored with `"toggleable": true`, and `pose`, which is toggleable unless you set `"toggleable": false`) also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
 
-Icon slots are labeled with the bound key's short name in the top-right corner; hovering an icon while a screen is open (chat, the HUD editor) shows the power's name and description. The `hud_ability_display` client config picks what the cluster shows besides live cooldowns: `ALL_ACTIVE_ABILITIES` (default since 2.2.2: every icon-bearing keybind ability keeps a persistent slot, full-bright while idle, sweep while recharging) or `COOLDOWNS_AND_TOGGLES` (cooldown slots only while recharging, plus icon-bearing toggles).
+Icon slots are labeled with the bound key's short name in the top-right corner; hovering an icon while a screen is open (chat, the HUD editor) shows the power's name and description. The `hud_ability_display` client config picks what the cluster shows besides live cooldowns: `COOLDOWNS_AND_TOGGLES` (default since 2.2.9: cooldown slots only while recharging, plus icon-bearing toggles) or `ALL_ACTIVE_ABILITIES` (every icon-bearing keybind ability keeps a persistent slot, full-bright while idle, sweep while recharging).
 
 The cooldown cluster itself is draggable in the in-game HUD editor (same screen as resource bars); its position persists in `config/neoorigins/hud.json`.
 
@@ -815,6 +815,38 @@ Makes the player invisible. Unlike a plain invisibility status effect, this powe
 ```
 
 This is the native type the Apoli compat layer maps `origins:invisibility` (and `apace:invisibility`) onto, carrying the `render_armor` field through.
+
+---
+
+## `neoorigins:prevent_entity_render`
+
+Hides other entities from the holder. Every living entity matching `entity_condition` stops being drawn for this player only — everyone else still sees it normally, and the entity is otherwise untouched: it still moves, still attacks, and still collides. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Pair it with a power that applies glowing to build a "you only see what you have revealed" origin.
+
+The condition is evaluated on the server, which then tells the client which entities to skip. That is what lets verbs like `status_effect` and `nbt` work here, since a client never receives another entity's effects or full NBT.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes becomes invisible to the holder. Omit it to hide every living entity. Because the subject is an arbitrary entity rather than the holder, only entity-general verbs apply: `entity_type`, `in_tag`, `target_group`, `living`, `on_fire`, `health`, `relative_health`, `status_effect` / `has_effect`, `nbt`, `constant`, and `and` / `or` / `not` over those. A condition using anything else is not refused — the power loads, warns, and hides nothing rather than hiding everything. Takes one condition object, or an array of them, which is read as all of them AND-combined. |
+
+**Refresh rate and scope.** The hidden set is recomputed every 5 ticks, over the living entities within the server's view distance and no further than 256 blocks. An entity that starts or stops matching therefore appears or disappears up to a quarter of a second later. At most 1024 entities are hidden from one player at a time; past that, the remainder stay visible.
+
+**Example: only glowing creatures are visible**
+```json
+{
+  "type": "neoorigins:prevent_entity_render",
+  "entity_condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:living" },
+      { "type": "neoorigins:status_effect", "effect": "minecraft:glowing", "inverted": true }
+    ]
+  },
+  "name": "Blind Sight",
+  "description": "You see nothing but what you have marked."
+}
+```
+
+This is the native type the Apoli compat layer maps `origins:prevent_entity_render` (and `apace:prevent_entity_render`) onto, carrying `entity_condition` through. Apoli's `bientity_condition` variant is not translated, because half of the pair it compares is the observer.
 
 ---
 
@@ -2183,14 +2215,17 @@ Active ability that shoots a dragon-fire bolt (purple ender-breath projectile) i
 
 ## `neoorigins:starting_equipment`
 
-Grants the player a specific item (optionally with enchantments) once on first origin assignment. Tracks grant state per-player so the item is not re-granted on respawn.
+Grants the player one or more items (optionally with enchantments) once on first origin assignment. Tracks grant state per-player so the items are not re-granted on respawn.
+
+There are two shapes. The **singular** shape sets `item` at the root and grants one stack. The **plural** shape sets `stacks` and grants several. Pick one: they do not combine. See [Singular vs plural](#singular-vs-plural) below.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `grant_id` | string | yes | — | Unique ID used to track whether the item has been granted |
-| `item` | Identifier | yes | — | Item to grant, e.g. `minecraft:trident` |
-| `count` | int | no | `1` | Stack count |
-| `enchantments` | list | no | `[]` | List of `{"id": "...", "level": N}` enchantment entries |
+| `grant_id` | string | yes | — | Unique ID tracked so the bundle is granted only once per player. Dedups the whole power, not individual stacks. |
+| `stacks` | list | no | `[]` | Plural shape: array of stack entries, each taking the same per-stack fields as the singular shape (`item`, `count`, `enchantments`, `legacy_tag`, `components`). Granted in array order. |
+| `item` | Identifier | no | `""` | Singular shape: item to grant, e.g. `minecraft:trident`. Optional only when `stacks` is provided; one of the two must be present. |
+| `count` | int | no | `1` | Singular shape: stack count |
+| `enchantments` | list | no | `[]` | Singular shape: list of `{"id": "...", "level": N}` enchantment entries |
 | `legacy_tag` | string | no | `""` | SNBT string for legacy NBT data (Potion, display.Name, etc.). Recognised keys are translated to data components; unrecognised keys go to `minecraft:custom_data`. |
 | `components` | string | no | `""` | SNBT string representing a `DataComponentPatch`. Supports any registered data component (vanilla or modded). Parsed with registry context at grant time. |
 
@@ -2221,6 +2256,35 @@ Grants the player a specific item (optionally with enchantments) once on first o
   "description": "Begins life with a pre-inscribed spell book."
 }
 ```
+
+**Example: a multi-item starting kit**
+```json
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "ranger_kit",
+  "stacks": [
+    {
+      "item": "minecraft:bow",
+      "enchantments": [{"id": "minecraft:power", "level": 2}]
+    },
+    {"item": "minecraft:arrow", "count": 32},
+    {"item": "minecraft:leather_boots"}
+  ],
+  "name": "Ranger's Kit",
+  "description": "Begins life with a bow, arrows and boots."
+}
+```
+
+### Singular vs plural
+
+`stacks` does not add to the root `item` — it **replaces** it. When `stacks` is non-empty the root `item`, `count`, `enchantments`, `legacy_tag` and `components` are all ignored, so a power declaring both silently drops the root item. Put every item in `stacks`, or use the singular shape alone.
+
+One `grant_id` covers the whole bundle. Two consequences worth planning around:
+
+- The bundle is marked granted if **at least one** stack went in. If one item id is a registry miss — a typo, or a mod that is not installed — the rest still arrive and the bundle is sealed, so correcting the id later does not deliver the missing item to players who already have the bundle. Give a genuinely optional item its own power with its own `grant_id`.
+- If **every** id fails, the bundle is deliberately left un-deduped, so fixing the typo and running `/reload` retries it.
+
+A stack with a blank `item` is skipped with a warning rather than failing the power, so an unfilled row left behind in the in-game editor is tolerated.
 
 ---
 
@@ -2506,6 +2570,7 @@ The 2.0 generic event hook: fires an action and/or applies a float modifier when
 | `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Supports `block`/`id`, `in_tag`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the positional `offset` wrapper (see below). Ignored on other events. |
 | `hands` | string or list | no | — | Hand gate for interaction events (`block_use`, `entity_use`, `villager_interact`): only fire for the listed hands, `"main_hand"` and/or `"off_hand"`. Use `["main_hand"]` to stop a power double-firing (vanilla dispatches the right-click once per hand). Fails closed when the event carries no hand info; ignored on other events. |
 | `hand` | string or list | no | — | Singular alias for `hands`, read only when `hands` is absent (Apoli's `action_on_block_use` spelling). |
+| `item_condition` | ItemCondition | no | — | Item gate for item-carrying events (`item_use`, `item_use_finish`, `block_use`, `entity_use`, `villager_interact`): only fire when the stack the event carries matches. That is the used stack for the first two and the stack in the interacting hand for the rest, which is what Apoli's `item_condition` on `action_on_block_use` / `action_on_entity_use` translates to. Takes the same Apoli item-condition shapes as `equipped_item` (`id`/`tag`/`nbt`/`enchantment`, with `and`/`or`/`not`). Fails closed when set but the event carries no item; ignored on events that never carry one. |
 | `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
@@ -2675,6 +2740,42 @@ Deleting or renaming a size power's JSON is still safe: its leftover modifiers a
 
 ---
 
+## `neoorigins:pose`
+
+Holds the player's body in a chosen pose for as long as the power is on: prone (crawling), sneak height, or upright. Vanilla recomputes the pose every tick and would fight a one-off change, so this is a power rather than an action — it re-asserts the pose while the origin says so and releases it the moment it stops.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `pose` | string | **yes** | — | `standing`, `crouching` or `swimming` (case-insensitive). Any other value makes the whole power fail to load, with an error naming the three it accepts: there is no fallback to `standing`, so a typo is loud rather than a power that silently does nothing |
+| `toggleable` | bool | no | `true` | Binds a keybind that flips the pose on and off |
+| `default_off` | bool | no | `false` | Toggleable powers only: the pose starts released, so the player opts in via the keybind |
+| `enabled` | bool | no | `true` | Kill switch: when false the power stays attached but holds no pose |
+| `cooldown_icon` | string | no | `""` | Item id or `.png` path shown on the HUD ability cluster: full-bright while on, dimmed while off |
+| `always_show_icon` | bool | no | `false` | Keep the icon on the cluster while the power is idle |
+
+**Example: a burrowing origin that crawls on command**
+```json
+{
+  "type": "neoorigins:pose",
+  "pose": "swimming",
+  "toggleable": true,
+  "default_off": true,
+  "cooldown_icon": "minecraft:dirt",
+  "name": "Burrow",
+  "description": "Drop prone to squeeze through a one-block gap."
+}
+```
+
+`swimming` is the crawl pose: a 0.6x0.6 body with the eye at 0.4. **The pose is not clearance-checked**, so it fits wherever its box fits, including gaps the player could not otherwise enter — a crawling origin can pass under a one-block ceiling anywhere, not only where vanilla would let it. That is deliberate; narrow it with a `condition` if your pack wants it narrower. Releasing the pose hands the player back to vanilla, which *does* check clearance and settles on whatever fits where they are standing.
+
+**What the pose does and does not change.** It sets the hitbox and the animation, and it costs speed: vanilla scales movement input by the `minecraft:sneaking_speed` attribute whenever the player is crouched or crawling, and that test reads the pose, so a forced `crouching` or a forced `swimming` on land walks at sneak pace. It does **not** set the sneak flag, so there is no ledge-stop and no quiet footsteps — hold `pose: crouching` and the player still walks off edges. It also does **not** grant swimming: the swim propulsion in `travel` runs off the separate swimming flag, which vanilla sets from sprinting in water and never from a pose, so a forced `swimming` out of water is a crawl and nothing more.
+
+Two `pose` powers active at once resolve smallest-first (`swimming`, then `crouching`, then `standing`), so the winning pose always fits wherever the loser would have. The top-level `condition` gates the pose like any other passive: while it fails the player is released to their normal pose, and picks it back up when the condition returns.
+
+`sleeping`, `fall_flying` and `spin_attack` are vanilla poses too, but each carries behaviour the pose alone does not deliver (a bed, an elytra, a trident), so they are not offered here. For gliding, use `neoorigins:elytra_flight` or `neoorigins:natural_glide`.
+
+---
+
 ## `neoorigins:entity_set`
 
 Pure data-holder power. Its presence in a player's active power set declares that the player participates in a named UUID set. Actual set storage lives on `PlayerOriginData`; the `neoorigins:in_set` / `neoorigins:add_to_set` / `neoorigins:remove_from_set` verbs read and mutate it.
@@ -2758,6 +2859,30 @@ At least one of `items` or `tags` should be non-empty, otherwise nothing will ev
   "description": "Can eat raw fish at any time."
 }
 ```
+
+### Caveborn diet tags
+
+The Caveborn's seven eating powers each read one shipped item tag, so a datapack can extend any of them without overriding the power. A tag file lives under the namespace of the tag it extends, not your own, so declare `data/neoorigins/tags/item/<name>.json` inside your pack with `"replace": false` and append your own items.
+
+| Tag | Backing power | Nutrition / saturation |
+|---|---|---|
+| `neoorigins:caveborn_eat_stone` | *Stone Eater* | 2 / 0.4 |
+| `neoorigins:caveborn_eat_copper` | *Copper Palate* | 3 / 0.6 |
+| `neoorigins:caveborn_eat_iron` | *Iron Palate* | 4 / 0.8 |
+| `neoorigins:caveborn_eat_gold` | *Gilded Palate* | 5 / 1.0 |
+| `neoorigins:caveborn_eat_diamond` | *Diamond Palate* | 6 / 1.2 |
+| `neoorigins:caveborn_eat_emerald` | *Emerald Palate* | 7 / 1.4 |
+| `neoorigins:caveborn_eat_netherite` | *Netherite Palate* | 8 / 1.6 |
+
+Nutrition is a property of the power, not of the tag, so adding an item to `caveborn_eat_stone` makes it edible at stone's values. To grant a different amount, write your own `edible_item` power instead.
+
+Every one of these powers is `always_edible: false`, so none of them go down on a full hunger bar.
+
+The six metal and gem tags hold the raw and refined forms of their material — ingots, nuggets, gems, raw metal and raw metal blocks, and since 2.2.25 the ores themselves, including deepslate variants, nether gold ore and ancient debris. Not every form exists for every material: copper has no nugget, diamond is the gem plus its two ores, emerald is the gem plus its two ores, and netherite is the ingot, scrap and ancient debris. `caveborn_eat_stone` is the exception and carries no ore at all: it holds the ten vanilla raw stones (cobblestone, stone, granite, diorite, andesite, tuff, deepslate, cobbled deepslate, basalt, blackstone).
+
+Copper and emerald also carry a bonus power that fires on finishing the meal: `caveborn_copper_bonus` grants Water Breathing I for 60 seconds, and `caveborn_emerald_bonus` grants Fire Resistance for 5 minutes. Each meal additionally drives a hidden `model_color` tint for as long as its effect runs; those six tints are individually switchable from `power_overrides.toml`.
+
+Worth knowing for the ore and stone entries: both are placeable blocks, so aiming at a surface places one as normal. Eating one means aiming where it cannot be placed — the same rule the stone diet has always followed.
 
 ---
 
@@ -2981,7 +3106,7 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation: 
 | `condition` | EntityCondition | no | always-true | DSL gate: skips firing (and the cooldown) if false |
 | `cooldown_icon` | string | no | `""` | HUD cooldown icon (item id or `.png` texture path), see "Cooldown HUD fields" at the top of this page |
 | `cooldown_countdown` | bool | no | `true` | Draw remaining seconds on the icon (needs `cooldown_icon`) |
-| `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while idle (needs `cooldown_icon`) |
+| `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while idle (needs `cooldown_icon`; this is what keeps the icon visible under the default `COOLDOWNS_AND_TOGGLES` HUD mode, and has no additional effect under `ALL_ACTIVE_ABILITIES`) |
 
 Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter; triggering one ability does not block another.
 
@@ -4290,6 +4415,9 @@ Tints the player model with an RGBA colour. Client-side rendering applies a colo
 | `blue` | float | no | `1.0` | Blue channel (0.0–1.0). |
 | `alpha` | float | no | `1.0` | Alpha channel (0.0–1.0). |
 | `condition` | object | no | — | EntityCondition that gates when the tint is applied. When absent, the tint is always active. When present, the colour only shows while the condition evaluates true. |
+| `enabled` | bool | no | `true` | Kill switch: when false the power stays attached but never tints. Lets a server owner drop one tint from `power_overrides.toml` without editing the datapack. |
+
+When two or more `model_color` powers are active at once, the channels are averaged rather than one winning: two tints produce their midpoint, three their mean. A conditioned tint is re-evaluated once a second, so it appears and clears as the condition flips rather than only on login or toggle.
 
 Origins compat: translates `origins:model_color`.
 

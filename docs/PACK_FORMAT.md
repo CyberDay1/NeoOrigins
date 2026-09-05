@@ -344,3 +344,5 @@ Bars automatically **hide when full** and reappear when the resource drops below
 Packs originally written for the Fabric Origins mod can be dropped into `originpacks/` and will be translated automatically. See the README for which power types translate and which are skipped.
 
 The translation pass runs on load and on `/reload`. A full log is written to `logs/neoorigins-compat.log`.
+
+Packs written for 1.19/1.20 also carry syntax that the current game no longer accepts — plural data folders, the removed `minecraft:set_nbt` loot function, NBT paths that step through the deleted `tag` field. Those are repaired as the file is read, with no edit to the pack itself; see [Legacy Origins packs](COMPATIBILITY.md#legacy-origins-packs) for what is covered and what is not.
