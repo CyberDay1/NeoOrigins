@@ -87,6 +87,7 @@
         "apace:prevent_block_use",
         "apace:prevent_death",
         "apace:prevent_elytra_flight",
+        "apace:prevent_entity_render",
         "apace:prevent_entity_use",
         "apace:prevent_game_event",
         "apace:prevent_item_use",
@@ -191,6 +192,7 @@
         "apoli:prevent_block_use",
         "apoli:prevent_death",
         "apoli:prevent_elytra_flight",
+        "apoli:prevent_entity_render",
         "apoli:prevent_entity_use",
         "apoli:prevent_game_event",
         "apoli:prevent_item_use",
@@ -298,6 +300,7 @@
         "apugli:prevent_block_use",
         "apugli:prevent_death",
         "apugli:prevent_elytra_flight",
+        "apugli:prevent_entity_render",
         "apugli:prevent_entity_use",
         "apugli:prevent_game_event",
         "apugli:prevent_item_use",
@@ -434,6 +437,7 @@
         "neoorigins:phantom_form",
         "neoorigins:prevent_action",
         "neoorigins:prevent_death",
+        "neoorigins:prevent_entity_render",
         "neoorigins:prevent_item_damage",
         "neoorigins:projectile_immunity",
         "neoorigins:quality_equipment",
@@ -555,6 +559,7 @@
         "origins:prevent_block_use",
         "origins:prevent_death",
         "origins:prevent_elytra_flight",
+        "origins:prevent_entity_render",
         "origins:prevent_entity_use",
         "origins:prevent_game_event",
         "origins:prevent_item_use",
@@ -5237,6 +5242,31 @@
       ]
     },
     {
+      "$comment": "neoorigins:prevent_entity_render",
+      "properties": {
+        "type": {
+          "const": "neoorigins:prevent_entity_render"
+        },
+        "entity_condition": {
+          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:prevent_item_damage",
       "properties": {
         "type": {
@@ -7090,6 +7120,7 @@
               "neoorigins:phantom_form",
               "neoorigins:prevent_action",
               "neoorigins:prevent_death",
+              "neoorigins:prevent_entity_render",
               "neoorigins:prevent_item_damage",
               "neoorigins:projectile_immunity",
               "neoorigins:quality_equipment",

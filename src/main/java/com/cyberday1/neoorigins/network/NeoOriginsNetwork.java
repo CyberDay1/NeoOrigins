@@ -231,6 +231,12 @@ public class NeoOriginsNetwork {
         );
 
         registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.SyncHiddenEntitiesPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.SyncHiddenEntitiesPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncHiddenEntities
+        );
+
+        registrar.playToClient(
             SyncFoodNutritionPayload.TYPE,
             SyncFoodNutritionPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncFoodNutrition
@@ -1681,6 +1687,18 @@ public class NeoOriginsNetwork {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientInvisibilityArmorState.set(
                 payload.entityId(), payload.hideArmor()));
+    }
+
+    /**
+     * Replace the local hidden-entity set with the server's current verdict for
+     * {@code neoorigins:prevent_entity_render}. Full replacement, not a delta —
+     * see {@link com.cyberday1.neoorigins.network.payload.SyncHiddenEntitiesPayload}.
+     */
+    private static void handleSyncHiddenEntities(
+            com.cyberday1.neoorigins.network.payload.SyncHiddenEntitiesPayload payload,
+            IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientHiddenEntities.set(payload.entityIds()));
     }
 
     /**

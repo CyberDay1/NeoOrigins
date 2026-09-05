@@ -506,5 +506,6 @@ neoorigins:attract_mobs	fields={entity_blacklist,entity_types,radius,speed}
 neoorigins:tick_action	fields={action_type,interval}
 neoorigins:conditional	fields={condition,inner_power}
 neoorigins:prevent_action	fields={action,active_when,chest,feet,head,legs}
+neoorigins:prevent_entity_render	fields={entity_condition}
 neoorigins:resource	fields={backing,hidden,hud_render{always_render,animated,color,label,should_render,tint},max,max_action,min,min_action,regen_condition,regen_interval,regen_rate,start_value}
 neoorigins:variable	fields={max,min,start}
