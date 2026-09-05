@@ -314,9 +314,10 @@ public final class ConditionParser {
      * non-{@code sun_permeable} helmet. Shared by the
      * {@code exposed_to_sun} condition and the {@code entity_group}
      * {@code burns_in_sunlight} behaviour so both honour the identical rules
-     * (including the helmet-durability wear side effect). NB: evaluating this
-     * may damage a worn helmet, so call it on the same ~1s cadence as the
-     * passive condition, not every tick.
+     * (including the helmet-durability wear side effect). Fire-resistant
+     * helmets are exempt from that wear — see the inline comment. NB:
+     * evaluating this may damage a worn helmet, so call it on the same ~1s
+     * cadence as the passive condition, not every tick.
      */
     public static boolean isExposedToSun(ServerPlayer p) {
             if (!(p.level() instanceof ServerLevel sl)) return false;
@@ -341,13 +342,19 @@ public final class ConditionParser {
             // return true (player burns).
             // Damageable helmets take durability damage over time;
             // invulnerable/unbreakable helmets (e.g. allthemodium)
-            // protect indefinitely. Helmets in the neoorigins:sun_permeable
+            // protect indefinitely. So do fire-resistant ones: a helmet that
+            // survives lava on its own is not being worn down by standing in
+            // the sun, so it shades the player for free. Asked as
+            // canBeHurtBy(lava) rather than by item list, so it means netherite
+            // in vanilla and any modded helmet that declares the same
+            // resistance — including via NeoForge's Item#canBeHurtBy override.
+            // Helmets in the neoorigins:sun_permeable
             // tag (open/mesh, e.g. chainmail) are treated as no helmet at
             // all — they neither shade the player nor take durability damage.
             if (GameplayConfig.sunHelmetProtection()) {
                 ItemStack head = p.getItemBySlot(EquipmentSlot.HEAD);
                 if (!head.isEmpty() && !head.is(SUN_PERMEABLE_HELMETS)) {
-                    if (head.isDamageableItem()) {
+                    if (head.isDamageableItem() && head.canBeHurtBy(sl.damageSources().lava())) {
                         float chance = GameplayConfig.sunHelmetDuraDamageChance();
                         if (chance > 0f && p.getRandom().nextFloat() < chance) {
                             head.hurtAndBreak(1, p, EquipmentSlot.HEAD);
