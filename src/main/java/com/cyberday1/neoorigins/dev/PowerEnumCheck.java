@@ -619,6 +619,13 @@ public final class PowerEnumCheck {
     /**
      * Mirror of {@code OriginsFormatDetector.canonicalizePowerType} for a bare id
      * (that method takes the JsonObject it mutates).
+     *
+     * <p>Deliberately does NOT mirror the {@code neoorigins:} → {@code origins:}
+     * legacy salvage that {@code OriginsFormatDetector.salvageLegacyPowerSpelling}
+     * performs, which is guarded on the name having no native power type. Every
+     * {@code neoorigins:} id in the enum is a registered native — that is what
+     * assertions (b) and (d) below enforce — so the salvage guard could never fire on
+     * one, and mirroring it here would only add an unreachable branch.
      */
     private static String canonicalize(String id) {
         int colon = id.indexOf(':');
