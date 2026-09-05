@@ -3,5 +3,16 @@
   "tags": ["neoorigins:caveborn_eat_iron"],
   "nutrition": 4,
   "saturation": 0.8,
-  "always_edible": false
+  "always_edible": false,
+  "tiers": [
+    {
+      "tags": ["c:nuggets/iron"],
+      "nutrition": 1,
+      "saturation": 0.0
+    },
+    {
+      "tags": ["c:storage_blocks/iron", "c:storage_blocks/raw_iron"],
+      "nutrition": 8
+    }
+  ]
 }

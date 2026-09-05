@@ -1,7 +1,7 @@
 {
   "values": [
-    "minecraft:diamond",
-    "minecraft:diamond_ore",
-    "minecraft:deepslate_diamond_ore"
+    "#c:gems/diamond",
+    "#c:ores/diamond",
+    "#c:storage_blocks/diamond"
   ]
 }

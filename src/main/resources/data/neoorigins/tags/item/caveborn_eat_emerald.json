@@ -1,7 +1,7 @@
 {
   "values": [
-    "minecraft:emerald",
-    "minecraft:emerald_ore",
-    "minecraft:deepslate_emerald_ore"
+    "#c:gems/emerald",
+    "#c:ores/emerald",
+    "#c:storage_blocks/emerald"
   ]
 }

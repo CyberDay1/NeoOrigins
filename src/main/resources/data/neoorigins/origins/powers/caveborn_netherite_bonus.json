@@ -2,27 +2,54 @@
   "type": "neoorigins:action_on_event",
   "event": "food_finished",
   "entity_action": {
-    "type": "neoorigins:if_else",
-    "condition": {
-      "type": "neoorigins:food_item_in_tag",
-      "tag": "#neoorigins:caveborn_eat_netherite"
-    },
-    "if_action": {
-      "type": "neoorigins:and",
-      "actions": [
-        {
-          "type": "neoorigins:apply_effect",
-          "effect": "minecraft:strength",
-          "duration": 6000,
-          "amplifier": 0
+    "type": "neoorigins:if_else_list",
+    "actions": [
+      {
+        "condition": {
+          "type": "neoorigins:food_item_in_tag",
+          "tag": "#c:storage_blocks/netherite"
         },
-        {
-          "type": "neoorigins:apply_effect",
-          "effect": "minecraft:resistance",
-          "duration": 6000,
-          "amplifier": 0
+        "action": {
+          "type": "neoorigins:and",
+          "actions": [
+            {
+              "type": "neoorigins:apply_effect",
+              "effect": "minecraft:strength",
+              "duration": 18000,
+              "amplifier": 0
+            },
+            {
+              "type": "neoorigins:apply_effect",
+              "effect": "minecraft:resistance",
+              "duration": 18000,
+              "amplifier": 0
+            }
+          ]
         }
-      ]
-    }
+      },
+      {
+        "condition": {
+          "type": "neoorigins:food_item_in_tag",
+          "tag": "#neoorigins:caveborn_eat_netherite"
+        },
+        "action": {
+          "type": "neoorigins:and",
+          "actions": [
+            {
+              "type": "neoorigins:apply_effect",
+              "effect": "minecraft:strength",
+              "duration": 6000,
+              "amplifier": 0
+            },
+            {
+              "type": "neoorigins:apply_effect",
+              "effect": "minecraft:resistance",
+              "duration": 6000,
+              "amplifier": 0
+            }
+          ]
+        }
+      }
+    ]
   }
 }

@@ -3,5 +3,16 @@
   "tags": ["neoorigins:caveborn_eat_gold"],
   "nutrition": 5,
   "saturation": 1.0,
-  "always_edible": false
+  "always_edible": false,
+  "tiers": [
+    {
+      "tags": ["c:nuggets/gold"],
+      "nutrition": 1,
+      "saturation": 0.0
+    },
+    {
+      "tags": ["c:storage_blocks/gold", "c:storage_blocks/raw_gold"],
+      "nutrition": 10
+    }
+  ]
 }

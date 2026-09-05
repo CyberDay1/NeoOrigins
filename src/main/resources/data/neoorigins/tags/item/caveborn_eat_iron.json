@@ -1,10 +1,10 @@
 {
   "values": [
-    "minecraft:iron_ingot",
-    "minecraft:raw_iron",
-    "minecraft:iron_nugget",
-    "minecraft:iron_ore",
-    "minecraft:deepslate_iron_ore",
-    "minecraft:raw_iron_block"
+    "#c:nuggets/iron",
+    "#c:ingots/iron",
+    "#c:raw_materials/iron",
+    "#c:ores/iron",
+    "#c:storage_blocks/iron",
+    "#c:storage_blocks/raw_iron"
   ]
 }

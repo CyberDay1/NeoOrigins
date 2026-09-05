@@ -1,9 +1,9 @@
 {
   "values": [
-    "minecraft:copper_ingot",
-    "minecraft:raw_copper",
-    "minecraft:copper_ore",
-    "minecraft:deepslate_copper_ore",
-    "minecraft:raw_copper_block"
+    "#c:ingots/copper",
+    "#c:raw_materials/copper",
+    "#c:ores/copper",
+    "#c:storage_blocks/copper",
+    "#c:storage_blocks/raw_copper"
   ]
 }

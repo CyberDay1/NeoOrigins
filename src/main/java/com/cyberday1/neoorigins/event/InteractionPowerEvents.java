@@ -255,7 +255,9 @@ public class InteractionPowerEvents {
         // Snapshot the stack before shrinking — if the player had exactly 1,
         // shrink empties it and downstream conditions (food_item_in_tag) fail.
         ItemStack snapshot = stack.copy();
-        sp.getFoodData().eat(cfg.nutrition(), cfg.saturation());
+        sp.getFoodData().eat(
+            EdibleItemPower.nutritionFor(snapshot, cfg),
+            EdibleItemPower.saturationFor(snapshot, cfg));
         // Vanilla LivingEntity.completeUsingItem passes a *copy* of the used
         // stack into the Finish event (LivingEntity.java:3203), and only
         // replaces the player's hand if event.getResultStack() != useItem.

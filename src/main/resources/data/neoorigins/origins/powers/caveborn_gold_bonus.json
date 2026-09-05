@@ -2,16 +2,47 @@
   "type": "neoorigins:action_on_event",
   "event": "food_finished",
   "entity_action": {
-    "type": "neoorigins:if_else",
-    "condition": {
-      "type": "neoorigins:food_item_in_tag",
-      "tag": "#neoorigins:caveborn_eat_gold"
-    },
-    "if_action": {
-      "type": "neoorigins:apply_effect",
-      "effect": "minecraft:speed",
-      "duration": 2400,
-      "amplifier": 0
-    }
+    "type": "neoorigins:if_else_list",
+    "actions": [
+      {
+        "condition": {
+          "type": "neoorigins:food_item_in_tag",
+          "tag": "#c:nuggets/gold"
+        },
+        "action": {
+          "type": "neoorigins:apply_effect",
+          "effect": "minecraft:speed",
+          "duration": 300,
+          "amplifier": 0
+        }
+      },
+      {
+        "condition": {
+          "type": "neoorigins:or",
+          "conditions": [
+            { "type": "neoorigins:food_item_in_tag", "tag": "#c:storage_blocks/gold" },
+            { "type": "neoorigins:food_item_in_tag", "tag": "#c:storage_blocks/raw_gold" }
+          ]
+        },
+        "action": {
+          "type": "neoorigins:apply_effect",
+          "effect": "minecraft:speed",
+          "duration": 7200,
+          "amplifier": 0
+        }
+      },
+      {
+        "condition": {
+          "type": "neoorigins:food_item_in_tag",
+          "tag": "#neoorigins:caveborn_eat_gold"
+        },
+        "action": {
+          "type": "neoorigins:apply_effect",
+          "effect": "minecraft:speed",
+          "duration": 2400,
+          "amplifier": 0
+        }
+      }
+    ]
   }
 }
