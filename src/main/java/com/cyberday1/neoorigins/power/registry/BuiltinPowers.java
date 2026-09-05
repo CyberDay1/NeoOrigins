@@ -1412,12 +1412,36 @@ public final class BuiltinPowers {
         // Not required: the codec yields an empty rule list when `drops` is
         // absent (the power is simply inert), it never hard-fails. Each entry's
         // inner shape (entity_type / entity_tag / entity_types + item + chance +
-        // count) is parsed per-element by EntityTargetSpec.CODEC, not by a
-        // Config component, so it stays documented in the doc string like
-        // restrict_armor.restrictions rather than as nested children.
+        // count) is parsed per-element by EntityTargetSpec.CODEC + parseRule, NOT
+        // by a Config component — Rule's components are (target, item, chance,
+        // count), so `entity_type` resolves to nothing there. That is exactly the
+        // case FieldSpec.children on an ARRAY covers: children describe the
+        // ELEMENT'S AUTHOR-FACING KEYS and are not audited against the owner's
+        // record, so the four keys can finally be declared instead of only being
+        // described in prose. The "exactly one of the three target forms" rule is
+        // the one thing the structure cannot state, so it stays in the doc.
         define("kill_loot_drops", KillLootDropsPower.class, List.of(
             new FieldSpec("drops", Kind.ARRAY, false).boundTo("rules")
-                .doc("List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry is {entity_type|entity_tag|entity_types, item, chance?, count?}: exactly one target form (a single type id, an entity-type tag, or an explicit list of type ids), the item id to drop, a 0.0-1.0 `chance` (default 1.0) and a `count` (minimum 1, default 1). Entries with no valid target or an unknown item id are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.")));
+                .children(
+                    new FieldSpec("entity_type", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Target a single entity-type id (e.g. 'minecraft:zombie')."),
+                    new FieldSpec("entity_tag", Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Target every entity type in an entity-type tag (e.g. 'minecraft:skeletons')."),
+                    new FieldSpec("entity_types", Kind.ARRAY, false)
+                        .itemPattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Target an explicit list of entity-type ids."),
+                    new FieldSpec("item", Kind.STRING, true)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Item id to drop. An entry whose item is missing or unknown is skipped with a load-time warning."),
+                    new FieldSpec("chance", Kind.NUMBER, false)
+                        .def(1.0).range(0.0, 1.0)
+                        .doc("Probability the drop is added, 0.0-1.0 (default 1.0)."),
+                    new FieldSpec("count", Kind.INTEGER, false)
+                        .def(1).range(1.0, null)
+                        .doc("How many to drop; clamped to at least 1 (default 1)."))
+                .doc("List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry must set EXACTLY ONE target form — entity_type, entity_tag or entity_types — and entries with no valid target are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.")));
 
         // ── Group C — shape-mismatch (nested object/array): schema STRUCTURE drifted ─
         // For these the power.schema.json branch's nested shape (objects/arrays)
