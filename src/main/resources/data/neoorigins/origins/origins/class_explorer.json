@@ -11,6 +11,8 @@
     "neoorigins:class_explorer_stamina",
     "neoorigins:class_explorer_sure_footed",
     "neoorigins:class_explorer_climbers_step",
+    "neoorigins:step_assist_toggle",
+    "neoorigins:step_assist_switch",
     "neoorigins:class_explorer_campfire_rest"
   ],
   "upgrades": []

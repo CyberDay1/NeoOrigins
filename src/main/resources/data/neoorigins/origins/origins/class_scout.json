@@ -9,6 +9,8 @@
     "neoorigins:class_scout_speed",
     "neoorigins:class_scout_no_fall_damage",
     "neoorigins:class_scout_trackers_stride",
+    "neoorigins:step_assist_toggle",
+    "neoorigins:step_assist_switch",
     "neoorigins:class_scout_trail_rations"
   ],
   "upgrades": []
