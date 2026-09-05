@@ -701,6 +701,10 @@ public final class ActionParser {
             if (ctx instanceof com.cyberday1.neoorigins.service.EventPowerIndex.ProjectileHitContext phc) {
                 srcPos = phc.result().getLocation();
                 aabb = new net.minecraft.world.phys.AABB(srcPos.subtract(r, r, r), srcPos.add(r, r, r));
+            } else if (ctx instanceof AreaOriginContext aoc) {
+                // Run from a lingering area entity: center on the cloud, not the caster.
+                srcPos = aoc.pos();
+                aabb = new net.minecraft.world.phys.AABB(srcPos.subtract(r, r, r), srcPos.add(r, r, r));
             } else {
                 srcPos = source.position();
                 aabb = source.getBoundingBox().inflate(r);
@@ -1331,6 +1335,22 @@ public final class ActionParser {
      * target block rather than the player position.
      */
     public record RaycastBlockContext(BlockPos pos) {}
+
+    /**
+     * Positional context for actions run by a standalone area entity (currently
+     * {@code spawn_lingering_area}). The stored action still runs against the
+     * caster — {@link EntityAction#execute} takes a ServerPlayer, and kill credit,
+     * resource costs and caster-relative filters all depend on it — but
+     * {@code area_of_effect} recenters on {@code pos} instead of the player, so a
+     * cloud left behind at an impact point affects entities around itself.
+     *
+     * <p>Deliberately not a {@code ProjectileHitContext}: that carries a hit result
+     * which several call sites unwrap for a target entity, so reusing it here would
+     * resolve a phantom target. Deliberately not unwrapped by
+     * {@link #extractCommandBlockPos} either, so nested execute_command / drop_items
+     * keep resolving {@code ~ ~ ~} against the caster as they always have.
+     */
+    public record AreaOriginContext(net.minecraft.world.phys.Vec3 pos) {}
 
     static net.minecraft.core.BlockPos extractCommandBlockPos(Object ctx) {
         if (ctx instanceof RaycastBlockContext rbc) {
