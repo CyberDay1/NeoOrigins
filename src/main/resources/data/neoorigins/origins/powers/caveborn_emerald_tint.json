@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:model_color",
+  "hidden": true,
+  "red": 0.31,
+  "green": 0.85,
+  "blue": 0.42,
+  "alpha": 1.0,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:power_active",
+        "power": "neoorigins:caveborn_emerald_bonus"
+      },
+      {
+        "type": "neoorigins:status_effect",
+        "effect": "minecraft:fire_resistance"
+      }
+    ]
+  }
+}

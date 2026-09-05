@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:model_color",
+  "hidden": true,
+  "red": 0.98,
+  "green": 0.85,
+  "blue": 0.28,
+  "alpha": 1.0,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:power_active",
+        "power": "neoorigins:caveborn_gold_bonus"
+      },
+      {
+        "type": "neoorigins:status_effect",
+        "effect": "minecraft:speed"
+      }
+    ]
+  }
+}
