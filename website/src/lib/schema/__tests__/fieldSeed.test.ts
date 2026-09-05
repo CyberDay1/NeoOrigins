@@ -129,7 +129,9 @@ function everyBoolean(): { type: string; field: BooleanFieldSpec }[] {
 			const walk = (fs: FormFieldSpec[]) => {
 				for (const f of fs) {
 					if (f.kind === 'BOOLEAN') out.push({ type: t, field: f });
-					else if (f.kind === 'OBJECT') walk(f.children);
+					// An ARRAY_OBJECT's children are one element's fields and seed
+					// through the same path as an OBJECT's — sweep both.
+					else if (f.kind === 'OBJECT' || f.kind === 'ARRAY_OBJECT') walk(f.children);
 				}
 			};
 			walk(fields);

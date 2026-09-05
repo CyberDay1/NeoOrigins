@@ -35,6 +35,7 @@
 import type {
 	ArrayRefFieldSpec,
 	ArrayStringFieldSpec,
+	ArrayObjectFieldSpec,
 	BooleanFieldSpec,
 	EnumFieldSpec,
 	FormFieldSpec,
@@ -482,6 +483,22 @@ function mapProperty(
 					const spec: ArrayStringFieldSpec = { ...base, kind: 'ARRAY_STRING', pattern };
 					return spec;
 				}
+				// A list of fixed-shape OBJECTs (`items:{type:"object",
+				// properties:{…}}`, no `$ref`) — e.g. `edible_item.tiers` —
+				// → ARRAY_OBJECT: an add/remove list of inline sub-forms, one per
+				// entry, instead of the raw-JSON box. Same `properties` reading as
+				// the `object` case below, just applied to `items`.
+				if (isObject(items)) {
+					const itemChildren = childrenOf(root, items, docs, powerType, selfDoc);
+					if (itemChildren) {
+						const spec: ArrayObjectFieldSpec = {
+							...base,
+							kind: 'ARRAY_OBJECT',
+							children: itemChildren
+						};
+						return spec;
+					}
+				}
 				return rawJsonOf(base, 'ARRAY', p['default']);
 			}
 			case 'object': {
@@ -489,26 +506,9 @@ function mapProperty(
 				// stack, an effect instance, or hud_render) → OBJECT sub-form: parse
 				// each child property the same way, render inline (no type picker).
 				// Objects without `properties` (free-form maps) stay RawJson.
-				const objProps = p['properties'];
-				if (isObject(objProps) && Object.keys(objProps).length > 0) {
-					const childRequired = readRequiredSet(p);
-					const children: FormFieldSpec[] = [];
-					for (const [childName, childRaw] of Object.entries(objProps)) {
-						if (childName === 'type') continue;
-						const childSchema = derefOneLevel(root, childRaw as JsonValue);
-						children.push(
-							mapProperty(
-								root,
-								childName,
-								childSchema,
-								childRequired.has(childName),
-								docs,
-								powerType,
-								selfDoc
-							)
-						);
-					}
-					const spec: ObjectFieldSpec = { ...base, kind: 'OBJECT', children };
+				const objChildren = childrenOf(root, p, docs, powerType, selfDoc);
+				if (objChildren) {
+					const spec: ObjectFieldSpec = { ...base, kind: 'OBJECT', children: objChildren };
 					return spec;
 				}
 				return rawJsonOf(base, 'OBJECT', p['default']);
@@ -518,6 +518,37 @@ function mapProperty(
 		}
 	}
 	return rawJsonOf(base, 'UNKNOWN', p['default']);
+}
+
+/**
+ * Parse a schema node's inline `properties` into a child FormFieldSpec list, or
+ * `null` when the node has no fixed properties (a free-form map / permissive
+ * array element, which keeps the raw-JSON fallback).
+ *
+ * Shared by the OBJECT sub-form and the ARRAY_OBJECT element sub-form so both
+ * read `properties` + `required` identically — the two are the same JSON shape,
+ * one nested under `items`. The `type` discriminator is skipped: it is a branch
+ * selector, not an author-editable field.
+ */
+function childrenOf(
+	root: JsonObject,
+	node: JsonObject,
+	docs: FieldDocs,
+	powerType: string,
+	selfDoc: SelfDoc
+): FormFieldSpec[] | null {
+	const objProps = node['properties'];
+	if (!isObject(objProps) || Object.keys(objProps).length === 0) return null;
+	const childRequired = readRequiredSet(node);
+	const children: FormFieldSpec[] = [];
+	for (const [childName, childRaw] of Object.entries(objProps)) {
+		if (childName === 'type') continue;
+		const childSchema = derefOneLevel(root, childRaw as JsonValue);
+		children.push(
+			mapProperty(root, childName, childSchema, childRequired.has(childName), docs, powerType, selfDoc)
+		);
+	}
+	return children;
 }
 
 function readNumericBounds(p: JsonObject): [number | null, number | null] {

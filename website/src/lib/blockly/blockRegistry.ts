@@ -20,6 +20,11 @@
 //                               is a `neo_cond_item` wrapper holding one
 //                               condition value (value blocks can't stack, so
 //                               the wrapper provides the prev/next surface).
+//   - ARRAY_OBJECT           → statement input whose check is a wrapper block
+//                               generated for THAT field (objItemBlockType), so
+//                               each entry of e.g. `edible_item.tiers` is one
+//                               block carrying the element's own fields and only
+//                               siblings of the same shape stack together.
 //   - OBJECT (fixed children) → its leaf children are flattened onto the parent
 //                               block as inline fields named `<obj>.<child>`
 //                               (Blockly fields are flat). Round-trips into a
@@ -227,11 +232,22 @@ type FieldRender =
 	| { kind: 'inline'; arg: Record<string, unknown> }
 	| { kind: 'value'; check: string }
 	| { kind: 'statement'; check: string }
-	| { kind: 'object'; children: FormFieldSpec[] };
+	| { kind: 'object'; children: FormFieldSpec[] }
+	| { kind: 'array_object'; children: FormFieldSpec[] };
 
 /** The flattened Blockly field name for a leaf `child` of OBJECT field `obj`. */
 export function objChildFieldName(objName: string, childName: string): string {
 	return `${objName}.${childName}`;
+}
+
+/**
+ * Block type — and connection check — of the wrapper holding ONE entry of an
+ * ARRAY_OBJECT field. Generated per (owner block, field) rather than shared,
+ * because each such array has its own element shape: a `tiers` entry must not be
+ * pluggable into a `drops` list, and the check string is what enforces that.
+ */
+export function objItemBlockType(ownerBlockType: string, fieldName: string): string {
+	return `${ownerBlockType}__item_${fieldName.replace(/[^a-zA-Z0-9]/g, '_')}`;
 }
 
 /** Decide how a FormFieldSpec maps onto Blockly. Shared by defs + serialization. */
@@ -291,28 +307,39 @@ export function renderOf(field: FormFieldSpec): FieldRender {
 			// one free-text value (e.g. a biome id). Modded/datapack ids work since
 			// the field is plain text, never a closed dropdown.
 			return { kind: 'statement', check: 'StrItem' };
+		case 'ARRAY_OBJECT':
+			// A list of fixed-shape objects → stack of generated per-field wrapper
+			// blocks (see objItemBlockType), each carrying that element's own
+			// fields. The check is the wrapper's own type, so lists with different
+			// element shapes cannot be cross-plugged.
+			return { kind: 'array_object', children: field.children };
 		case 'OBJECT':
 			return { kind: 'object', children: field.children };
 	}
 }
 
-/** Build the block definition JSON for one type. */
-function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): object {
-	const args: Record<string, unknown>[] = [];
+/**
+ * Lay a field list out onto `blockType`'s message/args, appending to the arrays
+ * the caller supplies (so a power block's leading `id` field keeps slot %1).
+ * Returns the finished `message0` plus the deferred statement rows.
+ *
+ * Element-wrapper defs generated for ARRAY_OBJECT fields are pushed into
+ * `extraDefs`; they are ordinary blocks laid out through this same function, so
+ * an element's own leaf/statement children render exactly as they would on a
+ * top-level block.
+ */
+function layoutFields(
+	blockType: string,
+	fields: FormFieldSpec[],
+	message: string,
+	args: Record<string, unknown>[],
+	extraDefs: object[]
+): { message: string; statementRows: { label: string; arg: Record<string, unknown> }[] } {
 	const statementRows: { label: string; arg: Record<string, unknown> }[] = [];
-	// Glyph prefix makes the category legible without colour.
-	let message = `${KIND_GLYPH[kind]} ${shortName(typeId)}`;
-	let n = 0;
-
-	if (kind === 'power') {
-		message += ` id %${++n}`;
-		args.push({ type: 'field_input', name: POWER_ID_FIELD, text: '' });
-	}
-
 	for (const f of fields) {
 		const r = renderOf(f);
 		if (r.kind === 'inline') {
-			message += ` ${f.label} %${++n}`;
+			message += ` ${f.label} %${args.length + 1}`;
 			args.push(r.arg);
 		} else if (r.kind === 'object') {
 			// Flatten the object's leaf children onto this block as inline fields
@@ -322,12 +349,19 @@ function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): obj
 			for (const child of r.children) {
 				const cr = renderOf(child);
 				if (cr.kind !== 'inline') continue;
-				message += ` ${child.label} %${++n}`;
+				message += ` ${child.label} %${args.length + 1}`;
 				args.push({ ...cr.arg, name: objChildFieldName(f.name, child.name) });
 			}
 		} else if (r.kind === 'value') {
-			message += ` ${f.label} %${++n}`;
+			message += ` ${f.label} %${args.length + 1}`;
 			args.push({ type: 'input_value', name: f.name, check: r.check });
+		} else if (r.kind === 'array_object') {
+			const wrapper = objItemBlockType(blockType, f.name);
+			extraDefs.push(objItemDef(wrapper, f, r.children, extraDefs));
+			statementRows.push({
+				label: f.label,
+				arg: { type: 'input_statement', name: f.name, check: wrapper }
+			});
 		} else {
 			// Statement (C-mouth) inputs render best on their own line, after the
 			// inline header — defer them.
@@ -337,6 +371,53 @@ function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): obj
 			});
 		}
 	}
+	return { message, statementRows };
+}
+
+/**
+ * The generated wrapper block for ONE entry of an ARRAY_OBJECT field. It takes
+ * the neutral structural colour (it is not a category) and its prev/next check
+ * is its own type, so only siblings of the same element shape stack together.
+ */
+function objItemDef(
+	wrapperType: string,
+	field: FormFieldSpec,
+	children: FormFieldSpec[],
+	extraDefs: object[]
+): object {
+	const args: Record<string, unknown>[] = [];
+	const laid = layoutFields(wrapperType, children, shortName(field.name), args, extraDefs);
+	const def: Record<string, unknown> = {
+		type: wrapperType,
+		style: STR_ITEM_STYLE,
+		inputsInline: true,
+		previousStatement: wrapperType,
+		nextStatement: wrapperType,
+		message0: laid.message,
+		args0: args
+	};
+	laid.statementRows.forEach((row, i) => {
+		def[`message${i + 1}`] = `${row.label} %1`;
+		def[`args${i + 1}`] = [row.arg];
+	});
+	return def;
+}
+
+/** Build the block definition JSON for one type, plus any element wrappers it needs. */
+function buildDefs(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): object[] {
+	const args: Record<string, unknown>[] = [];
+	const extraDefs: object[] = [];
+	// Glyph prefix makes the category legible without colour.
+	let message = `${KIND_GLYPH[kind]} ${shortName(typeId)}`;
+
+	if (kind === 'power') {
+		message += ' id %1';
+		args.push({ type: 'field_input', name: POWER_ID_FIELD, text: '' });
+	}
+
+	const laid = layoutFields(blockTypeId(kind, typeId), fields, message, args, extraDefs);
+	message = laid.message;
+	const statementRows = laid.statementRows;
 
 	const def: Record<string, unknown> = {
 		type: blockTypeId(kind, typeId),
@@ -371,7 +452,7 @@ function buildDef(kind: BlockKind, typeId: string, fields: FormFieldSpec[]): obj
 		def.previousStatement = 'Action';
 		def.nextStatement = 'Action';
 	}
-	return def;
+	return [def, ...extraDefs];
 }
 
 /** The fixed wrapper block for condition-list entries. */
@@ -467,7 +548,7 @@ export function buildBlockRegistry(
 		blockTypeForId.set(key, bt);
 		idForBlockType.set(bt, { typeId, kind });
 		fieldsByTypeId.set(key, fields);
-		defs.push(buildDef(kind, typeId, fields));
+		defs.push(...buildDefs(kind, typeId, fields));
 		// Keep the palette readable: only surface neoorigins-namespaced ids
 		// (the `apace:` aliases share a branch and would just be noise), but
 		// still register every id above so any saved draft loads.

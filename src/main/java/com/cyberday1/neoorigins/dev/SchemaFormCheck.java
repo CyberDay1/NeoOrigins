@@ -685,7 +685,16 @@ public final class SchemaFormCheck {
 
         // Real OBJECT with children: recurse into the sub-record's own component
         // map. (Forward-compat; resource uses the virtual path above.)
-        if (!fs.children().isEmpty()) {
+        //
+        // Deliberately OBJECT-only. On an ARRAY, `children` means "one element's
+        // shape" (FieldSpec.children), and the element is parsed by its own
+        // element codec — EdibleItemPower.Tier.CODEC, EntityTargetSpec.CODEC —
+        // whose author-facing keys need not be components of anything the owner's
+        // Config names. kill_loot_drops is the proof: `drops` binds the `rules`
+        // component (List<Rule>), yet an entry's keys are entity_type / item /
+        // chance / count while Rule's components are target / item / chance /
+        // count. Auditing those against a record would fail a correct declaration.
+        if (fs.kind() == FormFieldSpec.Kind.OBJECT && !fs.children().isEmpty()) {
             Class<?> sub = rc.getType();
             if (sub.isRecord()) {
                 java.util.Map<String, java.lang.reflect.RecordComponent> subByJson =

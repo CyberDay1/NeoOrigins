@@ -106,11 +106,16 @@ check('neoorigins:starting_equipment — branch found, common + branch fields em
 		assert(hidden.default === false, `hidden.default should be false, got ${hidden.default}`);
 	}
 
-	// `stacks` is type: array → falls to RawJson(ARRAY).
+	// `stacks` is an array of fixed-shape objects (`items.properties`) →
+	// ARRAY_OBJECT, the repeatable sub-form. It fell to RawJson(ARRAY) only
+	// because the web model had no ARRAY_OBJECT kind; the in-game creator has
+	// rendered it through ArrayObjectRow all along.
 	const stacks = findField(fields, 'stacks');
-	assert(stacks.kind === 'RawJson', `stacks should be RawJson, got ${stacks.kind}`);
-	if (stacks.kind === 'RawJson') {
-		assert(stacks.reason === 'ARRAY', `stacks.reason should be ARRAY, got ${stacks.reason}`);
+	assert(stacks.kind === 'ARRAY_OBJECT', `stacks should be ARRAY_OBJECT, got ${stacks.kind}`);
+	if (stacks.kind === 'ARRAY_OBJECT') {
+		const childNames = stacks.children.map((c) => c.name);
+		assert(childNames.includes('item'),
+			`stacks element should carry an \`item\` child (have: ${childNames.join(', ')})`);
 	}
 
 	// `name` / `description` are oneOf string|object → RawJson(MIXED).
@@ -191,6 +196,27 @@ check('neoorigins:resource — hud_render is OBJECT with label/color/should_rend
 			assert(shouldRender.default === true,
 				`hud_render.should_render.default should be true, got ${shouldRender.default}`);
 		}
+	}
+});
+
+check('neoorigins:edible_item — tiers is ARRAY_OBJECT with nutrition required', () => {
+	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:edible_item');
+	const tiers = findField(fields, 'tiers');
+	assert(tiers.kind === 'ARRAY_OBJECT', `tiers should be ARRAY_OBJECT, got ${tiers.kind}`);
+	if (tiers.kind === 'ARRAY_OBJECT') {
+		const childNames = tiers.children.map((c) => c.name);
+		for (const c of ['items', 'tags', 'nutrition', 'saturation']) {
+			assert(childNames.includes(c),
+				`tier child ${c} missing (have: ${childNames.join(', ')})`);
+		}
+		const nutrition = findField(tiers.children, 'nutrition');
+		assert(nutrition.kind === 'INTEGER', `tier nutrition should be INTEGER, got ${nutrition.kind}`);
+		assert(nutrition.required, 'tier nutrition should be required');
+		const saturation = findField(tiers.children, 'saturation');
+		assert(!saturation.required, 'tier saturation should be optional (inherits the power value)');
+		// The element's own list children still resolve to their own widgets.
+		const items = findField(tiers.children, 'items');
+		assert(items.kind === 'ARRAY_STRING', `tier items should be ARRAY_STRING, got ${items.kind}`);
 	}
 });
 

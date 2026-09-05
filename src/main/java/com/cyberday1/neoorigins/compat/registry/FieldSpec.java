@@ -43,6 +43,14 @@ import java.util.List;
  * a list-of-sub-forms instead of a raw-JSON box. {@code null} → a permissive
  * scalar array ({@code items:{}}).
  *
+ * <p><b>Array element shape.</b> An array whose elements are neither a cross-doc
+ * {@code $ref} nor a scalar string — a list of fixed-shape OBJECTS such as
+ * {@code edible_item.tiers} — declares its element's fields via {@link #children},
+ * which on a {@link FormFieldSpec.Kind#ARRAY} means "one element's shape" (see that
+ * method). The generated schema then emits
+ * {@code items:{type:object,properties:…,required:…}} and the editors render a
+ * repeatable sub-form.
+ *
  * <p><b>Mixed type arms.</b> {@link #mixedTypes} lists the JSON types a
  * {@link FormFieldSpec.Kind#MIXED} field genuinely accepts, emitted as the
  * {@code oneOf} arms. Empty (the default) keeps the historical
@@ -153,10 +161,32 @@ public record FieldSpec(
     }
 
     /**
-     * Attach nested sub-record fields to an {@link FormFieldSpec.Kind#OBJECT}
-     * spec that HAS a backing {@code Config} component of its own (a real
-     * sub-record). The children resolve against that component-record's own
-     * component map (drift-audit "real OBJECT with children" path).
+     * Attach nested sub-fields.
+     *
+     * <p>On an {@link FormFieldSpec.Kind#OBJECT} spec that HAS a backing
+     * {@code Config} component of its own (a real sub-record) these are the
+     * object's own properties, and they resolve against that component-record's
+     * own component map (drift-audit "real OBJECT with children" path).
+     *
+     * <p>On an {@link FormFieldSpec.Kind#ARRAY} spec they are the shape of ONE
+     * ELEMENT — the array is a list of fixed-shape objects (e.g.
+     * {@code edible_item.tiers}, {@code kill_loot_drops.drops}). The generated
+     * schema emits them under {@code items.properties}/{@code items.required}
+     * instead of the permissive {@code items:{}}, and both editors then render a
+     * repeatable sub-form rather than a raw-JSON box. This is the same overload
+     * {@link FormFieldSpec#children()} already carries — there, an ARRAY's
+     * children have always meant "the element's fields" (that is what
+     * {@code SchemaFormModel} writes when it reads {@code items.properties}, and
+     * what {@code FieldWidgetFactory}'s {@code ArrayObjectRow} consumes) — so
+     * reusing the same component here keeps the two records mirror-exact rather
+     * than adding an {@code itemChildren} slot that would have to be flattened
+     * back into {@code children} by {@link #toFormSpec()} anyway.
+     *
+     * <p>An ARRAY's children are NOT audited against the owner's {@code Config}
+     * components: the element is parsed by its own element codec
+     * ({@code EdibleItemPower.Tier.CODEC}, {@code EntityTargetSpec.CODEC}), whose
+     * author-facing keys need not match any record component — see
+     * {@code SchemaFormCheck.auditSpec}.
      */
     public FieldSpec children(FieldSpec... kids) {
         return new FieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, componentName, List.of(kids), false, pattern, itemsRef, itemPattern, mixedTypes, readBy);

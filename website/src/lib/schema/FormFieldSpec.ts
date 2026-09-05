@@ -118,6 +118,23 @@ export interface ArrayStringFieldSpec extends FieldSpecBase {
 }
 
 /**
+ * An `array` whose `items` are fixed-shape OBJECTs (schema
+ * `items:{type:"object", properties:{…}}`, no `$ref`) — e.g. `edible_item.tiers`
+ * (`{items, tags, nutrition, saturation}`) or `kill_loot_drops.drops`. Rendered
+ * as an add/remove list of {@link ObjectFieldSpec} sub-forms, one per entry,
+ * rather than the raw-JSON fallback. Mirrors the in-game `ArrayObjectRow`.
+ * The bound value is an array of plain OBJECTs.
+ *
+ * Unlike {@link ArrayRefFieldSpec} there is no type to pick: `children` is the
+ * same fixed sub-field list for every entry.
+ */
+export interface ArrayObjectFieldSpec extends FieldSpecBase {
+	kind: 'ARRAY_OBJECT';
+	/** One element's fixed sub-fields, in schema-declared order. */
+	children: FormFieldSpec[];
+}
+
+/**
  * A nested object with a FIXED set of sub-fields (schema `type:object` with
  * inline `properties`) — e.g. an item stack (`{item, count}`), an effect
  * instance (`{effect, duration, amplifier, …}`), or the `resource` power's
@@ -165,6 +182,7 @@ export type FormFieldSpec =
 	| RefFieldSpec
 	| ArrayRefFieldSpec
 	| ArrayStringFieldSpec
+	| ArrayObjectFieldSpec
 	| ObjectFieldSpec
 	| RawJsonFieldSpec;
 
@@ -241,6 +259,7 @@ export function emptyValueFor(field: FormFieldSpec): unknown {
 			return null;
 		case 'ARRAY_REF':
 		case 'ARRAY_STRING':
+		case 'ARRAY_OBJECT':
 			return [];
 		case 'OBJECT':
 			// Empty object; children populate keys on edit. pruneForWire drops it

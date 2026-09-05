@@ -15,6 +15,7 @@ import {
 	ITEM_COND_ITEM_TYPE,
 	STR_ITEM_TYPE,
 	objChildFieldName,
+	objItemBlockType,
 	POWER_ID_FIELD,
 	regKey,
 	renderOf,
@@ -147,6 +148,23 @@ function fillNode(
 			if (v && typeof v === 'object') {
 				const child = buildNode(reg, kindForCheck(r.check), v as Record<string, unknown>);
 				if (child) inputsOut[f.name] = { block: child };
+			}
+		} else if (r.kind === 'array_object') {
+			// list of fixed-shape objects (e.g. `tiers`) → stack of the generated
+			// per-field wrapper blocks. Each entry is filled through this same
+			// function against the ELEMENT's field list, so an element's leaf
+			// fields and nested lists encode exactly as a top-level block's do.
+			if (Array.isArray(v)) {
+				const wrapperType = objItemBlockType(state.type, f.name);
+				const entries: BlockState[] = [];
+				for (const el of v) {
+					if (!el || typeof el !== 'object') continue;
+					const wrapper: BlockState = { type: wrapperType };
+					fillNode(reg, wrapper, r.children, el as Record<string, unknown>);
+					entries.push(wrapper);
+				}
+				const head = chain(entries);
+				if (head) inputsOut[f.name] = { block: head };
 			}
 		} else if (r.kind === 'statement' && (r.check === 'Action' || r.check === 'ItemAction')) {
 			// single action ref OR action array — both render as a statement stack
@@ -296,6 +314,18 @@ function readInto(
 				const node = readNode(reg, child);
 				if (node) out[f.name] = node;
 			}
+		} else if (r.kind === 'array_object') {
+			// Walk the element-wrapper stack; each wrapper reads back through this
+			// same function against the element's field list into one plain object.
+			const arr: unknown[] = [];
+			let cur: BlockState | undefined = state.inputs?.[f.name]?.block;
+			while (cur) {
+				const el: Record<string, unknown> = {};
+				readInto(reg, el, r.children, cur);
+				arr.push(el);
+				cur = cur.next?.block;
+			}
+			out[f.name] = arr;
 		} else if (r.kind === 'statement' && (r.check === 'Action' || r.check === 'ItemAction')) {
 			const head = state.inputs?.[f.name]?.block;
 			if (f.kind === 'ARRAY_REF') {
