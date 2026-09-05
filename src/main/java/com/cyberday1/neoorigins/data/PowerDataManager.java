@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.compat.action.ActionParser;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.network.chat.Component;
@@ -200,7 +201,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                     // be picked up by OriginsCompatPowerLoader after us.
                     String rawType = json.get("type").getAsString();
                     if (!com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.isRouteBType(rawType)) {
-                        NeoOrigins.LOGGER.warn("Unknown power type '{}' for power {}", typeId, id);
+                        NeoOrigins.LOGGER.warn("Unknown power type '{}' for power {}{}",
+                            typeId, id, unknownTypeHint(typeId));
                     }
                     continue;
                 }
@@ -274,6 +276,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         // synthetic sub-powers emitted by multiple-expansion (which never
         // pass through the first loop).
         String canonicalType = OriginsFormatDetector.canonicalizePowerType(json);
+        // ...and the reverse mistake: a legacy type spelled with OUR namespace,
+        // which resolves to nothing and would drop the power outright.
+        canonicalType = OriginsFormatDetector.salvageLegacyPowerSpelling(json);
 
         // Translate Origins-format power to NeoOrigins format before parsing
         if (OriginsFormatDetector.isOriginsFormat(json)) {
@@ -318,6 +323,38 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         if (com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.isRouteBType(canonicalType)) return false;
         return !com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader
             .CONDITIONED_ROUTE_B_TYPES.contains(canonicalType);
+    }
+
+    /**
+     * A trailing clause naming the likely fix for an unresolved power {@code type},
+     * or {@code ""} when we have nothing useful to say.
+     *
+     * <p>"Unknown power type" on its own tells an author that something is wrong but
+     * not what. The common cause by far is writing an ACTION or CONDITION id in the
+     * {@code type} field: the three vocabularies share a namespace and a naming
+     * style, so {@code cast_iron_spell} reads like a power type until you find it in
+     * {@link ActionParser}.
+     *
+     * <p>The other diagnosable case — a legacy type spelled {@code neoorigins:} — is
+     * not handled here because it never reaches this point: {@code
+     * OriginsFormatDetector.salvageLegacyPowerSpelling} rewrites it and logs its own
+     * advice.
+     *
+     * <p>Matched on the PATH only, so a mis-namespaced id still gets the hint.
+     */
+    static String unknownTypeHint(Identifier typeId) {
+        String path = typeId.getPath();
+        String nativeId = "neoorigins:" + path;
+        if (ActionParser.KNOWN_TYPES.contains(nativeId)) {
+            return " — '" + path + "' is an action, not a power type; put it in the"
+                + " entity_action field of a power that takes one (neoorigins:active_ability,"
+                + " neoorigins:action_on_event)";
+        }
+        if (ConditionParser.KNOWN_TYPES.contains(nativeId)) {
+            return " — '" + path + "' is a condition, not a power type; put it in a power's"
+                + " condition field";
+        }
+        return "";
     }
 
     @SuppressWarnings("unchecked")

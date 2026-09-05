@@ -222,7 +222,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // before expansion + dispatch, so packs that use the Apoli namespace are
         // recognized by ROUTE_B_TYPES (and apoli:multiple is expanded).
         for (JsonElement el : data.values()) {
-            if (el.isJsonObject()) OriginsFormatDetector.canonicalizePowerType(el.getAsJsonObject());
+            if (el.isJsonObject()) {
+                OriginsFormatDetector.canonicalizePowerType(el.getAsJsonObject());
+                // Route B's half of the neoorigins:-spelled-legacy-type salvage.
+                // This loader re-reads the resources itself, so PowerDataManager's
+                // call cannot fix these up for us.
+                OriginsFormatDetector.salvageLegacyPowerSpelling(el.getAsJsonObject());
+            }
         }
 
         // Inline-expand any origins:multiple entries so sub-power JSONs are accessible.
@@ -238,6 +244,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             // Cover sub-powers emitted by multiple-expansion, which may still
             // carry apoli:/apugli: types.
             String type = OriginsFormatDetector.canonicalizePowerType(json);
+            type = OriginsFormatDetector.salvageLegacyPowerSpelling(json);
 
             // modify_damage_taken/dealt are Route A types normally, but when a
             // condition is present we fall through to Route B so the condition

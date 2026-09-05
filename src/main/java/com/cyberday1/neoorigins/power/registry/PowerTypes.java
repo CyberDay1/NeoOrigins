@@ -211,6 +211,37 @@ public class PowerTypes {
     // spawn_projectile + on_hit_action: spawn_black_hole via the VFX pipeline.
     // repulse retired in 2.0; aliased to active_ability.
 
+    /**
+     * Paths of every built-in power type, read from {@link #POWER_TYPES}' own
+     * entry list. Declared last on purpose: static initializers run in textual
+     * order, so every {@code reg(...)} above has already run by this point.
+     */
+    private static final java.util.Set<String> BUILTIN_PATHS =
+        POWER_TYPES.getEntries().stream()
+            .map(h -> h.getId().getPath())
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
+
+    /**
+     * True when {@code neoorigins:<path>} is one of our built-in power types.
+     *
+     * <p>{@link #get} deliberately consults {@link #REGISTRY} so that addon-mod
+     * types are visible to it. This asks a narrower question — is the name taken
+     * by one of OURS — and the {@code neoorigins:} namespace is ours alone, so the
+     * DeferredRegister is a complete answer for it.
+     *
+     * <p>The difference that matters is <b>when</b>. {@code REGISTRY} stays null
+     * until {@code NewRegistryEvent} fires, and {@link #get} answers null for
+     * everything while it is — so outside a running game a guard written on
+     * {@code get} gives whichever answer the initialisation order happens to
+     * produce. It reads "no such native type" for every name in the headless
+     * harnesses ({@code compatTest}, {@code goldenMaster}, {@code schemaFormCheck}),
+     * and under JUnit it depends on which classes ran first. This set is populated
+     * the moment the class loads, so it answers the same everywhere.
+     */
+    public static boolean isBuiltinPath(String path) {
+        return BUILTIN_PATHS.contains(path);
+    }
+
     public static void register(IEventBus modEventBus) {
         modEventBus.addListener(PowerTypes::onNewRegistry);
         POWER_TYPES.register(modEventBus);
