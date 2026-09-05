@@ -410,16 +410,20 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         }
     }
 
-    private void injectWellKnownPowers(Map<Identifier, PowerHolder<?>> injected) {
-        Map<String, java.util.function.Supplier<JsonObject>> WELL_KNOWN = Map.ofEntries(
+    /**
+     * Synthetic JSON for well-known Origins built-in power IDs that addon packs
+     * reference by ID without providing a file. Static so {@code PowerEnumCheck}
+     * can invoke each supplier and assert the emitted target actually exists.
+     */
+    public static final Map<String, java.util.function.Supplier<JsonObject>> WELL_KNOWN = Map.ofEntries(
             Map.entry("origins:elytra",              () -> json("neoorigins:natural_glide")),
             Map.entry("origins:fire_immunity",       () -> json("neoorigins:prevent_action", "action", "fire")),
             Map.entry("origins:fresh_air",           OriginsCompatPowerLoader::freshAirJson),
             Map.entry("origins:like_water",          () -> json("neoorigins:ignore_water")),
-            Map.entry("origins:aquatic",             () -> json("neoorigins:dries_out")),
+            Map.entry("origins:aquatic",             () -> json("neoorigins:entity_group", "group", "water")),
             Map.entry("origins:water_vision",        () -> waterVisionJson()),
             Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining_speed")),
-            Map.entry("origins:conduit_power_on_land", () -> json("neoorigins:conduit_power")),
+            Map.entry("origins:conduit_power_on_land", () -> conduitPowerJson()),
             Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
             Map.entry("origins:water_breathing",     () -> json("neoorigins:water_breathing")),
             Map.entry("origins:swim_speed",          () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
@@ -467,9 +471,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:hotblooded",           () -> json("neoorigins:effect_immunity")),
             Map.entry("origins:water_vulnerability",  () -> json("neoorigins:condition_passive")),
             Map.entry("origins:flame_particles",      () -> json("neoorigins:particle", "particle", "minecraft:flame")),
-            Map.entry("origins:nether_spawn",         () -> json("neoorigins:spawn_location"))
+            Map.entry("origins:nether_spawn",         () -> netherSpawnJson())
         );
 
+    /**
+     * Registers synthetic PowerHolders for the {@link #WELL_KNOWN} ids that the
+     * pack did not already supply.
+     */
+    private void injectWellKnownPowers(Map<Identifier, PowerHolder<?>> injected) {
         for (var entry : WELL_KNOWN.entrySet()) {
             Identifier id = Identifier.parse(entry.getKey());
             if (PowerDataManager.INSTANCE.hasPower(id) || injected.containsKey(id)) continue;
@@ -542,6 +551,38 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         blockCond.addProperty("comparison", "<");
         blockCond.addProperty("compare_to", 86);
         o.add("block_condition", blockCond);
+        return o;
+    }
+
+    /**
+     * origins:conduit_power_on_land — the conduit effect set granted anywhere.
+     * Mirrors the repo's own merling_ascended_conduit.json.
+     */
+    private static com.google.gson.JsonObject conduitPowerJson() {
+        com.google.gson.JsonObject o = json("neoorigins:persistent_effect");
+        o.addProperty("toggleable", false);
+        o.addProperty("show_particles", false);
+        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
+        for (String id : new String[] {
+                "minecraft:water_breathing", "minecraft:night_vision", "minecraft:haste" }) {
+            com.google.gson.JsonObject e = new com.google.gson.JsonObject();
+            e.addProperty("effect", id);
+            e.addProperty("amplifier", 0);
+            effects.add(e);
+        }
+        o.add("effects", effects);
+        return o;
+    }
+
+    /**
+     * origins:nether_spawn — respawn in the Nether. modify_player_spawn requires
+     * a nested location object; a flat json() overload cannot express it.
+     */
+    private static com.google.gson.JsonObject netherSpawnJson() {
+        com.google.gson.JsonObject o = json("neoorigins:modify_player_spawn");
+        com.google.gson.JsonObject loc = new com.google.gson.JsonObject();
+        loc.addProperty("dimension", "minecraft:the_nether");
+        o.add("location", loc);
         return o;
     }
 
