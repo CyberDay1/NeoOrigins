@@ -204,7 +204,11 @@ public final class SchemaNodeBuilder {
         // items — for ARRAY. A list of $ref elements (and/or.conditions,
         // and.actions) emits items.$ref from FieldSpec.itemsRef; a scalar-string
         // list (no itemsRef, but an itemPattern) emits items:{type:string,pattern};
-        // a permissive array (neither) emits the permissive {}.
+        // a list of fixed-shape OBJECTS (children on an ARRAY = one element's
+        // shape) emits items:{type:object,properties,required} — without it the
+        // permissive items:{} accepts [1,"x",null], so the web validator greens a
+        // file the codec then hard-fails on at datapack load; a permissive array
+        // (none of the three) still emits {}.
         if (kind == Kind.ARRAY) {
             JsonObject items = new JsonObject();
             if (fs.itemsRef() != null) {
@@ -212,6 +216,9 @@ public final class SchemaNodeBuilder {
             } else if (fs.itemPattern() != null) {
                 items.addProperty("type", "string");
                 items.addProperty("pattern", fs.itemPattern());
+            } else if (!fs.children().isEmpty()) {
+                items.addProperty("type", "object");
+                addChildren(items, fs.children(), widenActionConditionRefs);
             }
             node.add("items", items);
         }
@@ -219,20 +226,30 @@ public final class SchemaNodeBuilder {
         // properties / required — for OBJECT with children (real OR virtual:
         // identical in JSON).
         if (kind == Kind.OBJECT && !fs.children().isEmpty()) {
-            JsonObject childProps = new JsonObject();
-            List<String> childRequired = new ArrayList<>();
-            for (FieldSpec child : fs.children()) {
-                childProps.add(child.name(), buildNode(child, widenActionConditionRefs));
-                if (child.required()) childRequired.add(child.name());
-            }
-            node.add("properties", childProps);
-            if (!childRequired.isEmpty()) {
-                JsonArray req = new JsonArray();
-                for (String r : childRequired) req.add(r);
-                node.add("required", req);
-            }
+            addChildren(node, fs.children(), widenActionConditionRefs);
         }
 
         return node;
+    }
+
+    /**
+     * Emit {@code properties} (+ {@code required} when non-empty) for a child
+     * field list onto {@code target}. Shared by the OBJECT node itself and by an
+     * ARRAY's {@code items} sub-node, so the two shapes stay identical in JSON.
+     */
+    private static void addChildren(JsonObject target, List<FieldSpec> children,
+                                    boolean widenActionConditionRefs) {
+        JsonObject childProps = new JsonObject();
+        List<String> childRequired = new ArrayList<>();
+        for (FieldSpec child : children) {
+            childProps.add(child.name(), buildNode(child, widenActionConditionRefs));
+            if (child.required()) childRequired.add(child.name());
+        }
+        target.add("properties", childProps);
+        if (!childRequired.isEmpty()) {
+            JsonArray req = new JsonArray();
+            for (String r : childRequired) req.add(r);
+            target.add("required", req);
+        }
     }
 }
