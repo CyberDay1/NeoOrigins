@@ -115,9 +115,9 @@ public class OriginEditorScreen extends Screen {
     }
 
     private void openOriginPicker() {
-        // Re-open the standard selection screen in forceReselect mode; when it closes,
-        // the editor screen is lost. The user can re-open it from OriginInfoScreen.
-        Minecraft.getInstance().gui.setScreen(new OriginSelectionScreen(false, true));
+        // Route through the trampoline so the picker has exactly one
+        // construction site (see ClientOriginState.openSelectionScreen).
+        com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(false, true);
     }
 
     private void toggle(Identifier powerId) {

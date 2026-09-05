@@ -32,7 +32,16 @@ public class ClientOriginState {
     public static void openSelectionScreen(boolean isOrb, boolean forceReselect,
                                            java.util.List<Identifier> scopedLayers) {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.gui.setScreen(new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect, scopedLayers));
+        // GRID is still a placeholder; swapping it in is a one-line change. No default
+        // arm, so a new enum value fails the build. This switch must stay in this
+        // client-package class: RuntimeDistCleaner walks NEW opcodes in common-side
+        // classes, so a Screen reference from NeoOriginsNetwork crashes a dedicated
+        // server on boot.
+        mc.gui.setScreen(switch (NeoOriginsClientConfig.pickerLayout()) {
+            case TWO_PANEL -> new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect, scopedLayers);
+            case GRID -> new com.cyberday1.neoorigins.screen.OriginSelectionScreen(isOrb, forceReselect, scopedLayers);
+            case CAROUSEL -> new com.cyberday1.neoorigins.screen.OriginCarouselSelectionScreen(isOrb, forceReselect, scopedLayers);
+        });
     }
 
     public static void openInfoScreen() {
