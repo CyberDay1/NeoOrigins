@@ -26,6 +26,10 @@ import java.util.Set;
  * (e.g. low health, on fire, in a specific biome). When absent, the tint
  * is always active.
  *
+ * <p>Honours the shared {@code "enabled": false} kill-switch, so a server
+ * owner can turn an individual tint off from {@code power_overrides.toml}
+ * without editing the datapack.
+ *
  * <pre>{@code
  * {
  *   "type": "neoorigins:model_color",
@@ -42,6 +46,7 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
     public record Config(
         float red, float green, float blue, float alpha,
         Optional<EntityCondition> condition,
+        boolean enabled,
         String type
     ) implements PowerConfiguration {
 
@@ -68,7 +73,9 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
                     ? Optional.of(ConditionParser.parseField(obj, "condition", t))
                     : Optional.empty();
 
-                return DataResult.success(Pair.of(new Config(r, g, b, a, cond, t), ops.empty()));
+                boolean enabled = com.cyberday1.neoorigins.power.util.EnabledGate.isEnabled(obj);
+
+                return DataResult.success(Pair.of(new Config(r, g, b, a, cond, enabled, t), ops.empty()));
             }
 
             @Override
@@ -83,6 +90,7 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
 
     @Override
     public Set<String> capabilities(Config config) {
+        if (!config.enabled()) return Set.of();
         // If there's a condition, don't emit statically — the player-aware
         // variant handles it.
         if (config.condition().isPresent()) return Set.of();
@@ -91,6 +99,7 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
 
     @Override
     public Set<String> capabilities(ServerPlayer player, Config config) {
+        if (!config.enabled()) return Set.of();
         if (config.condition().isPresent() && !config.condition().get().test(player)) {
             return Set.of();
         }
@@ -104,6 +113,7 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
      */
     @Override
     public void onTick(ServerPlayer player, Config config) {
+        if (!config.enabled()) return;
         if (config.condition().isEmpty()) return;
         if (player.tickCount % 20 != 0) return;
 

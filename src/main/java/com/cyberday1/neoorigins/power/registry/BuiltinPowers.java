@@ -1036,7 +1036,8 @@ public final class BuiltinPowers {
             new FieldSpec("alpha", Kind.NUMBER, false)
                 .def(1.0).range(0.0, 1.0).doc("Player model tint opacity, 0.0 transparent to 1.0 opaque (default 1.0)."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Only applies the tint while this DSL condition passes (optional).")));
+                .doc("Only applies the tint while this DSL condition passes (optional)."),
+            ENABLED_SPEC));
         // entity_model: every field is optional because a morph can be described
         // EITHER inline (entity_type + nbt + …) OR by referencing a named
         // definition (morph). When both are present the inline fields win, so a
