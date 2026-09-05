@@ -21,6 +21,57 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
 
 ---
 
+## Legacy Origins packs
+
+A pack written for the Fabric Origins mod on 1.19/1.20 runs **as downloaded**: no
+edits to the zip. NeoOrigins wraps the pack's own resource provider and repairs the
+1.20 → 1.21 breakages while a file is being read, so vanilla and the power
+translator only ever see content the current game can parse. Nothing is written
+back to disk, and each kind of repair announces itself once per pack in the log
+rather than once per file.
+
+The table below is the syntax-level layer. Power-type translation is a separate
+pass; its remap tables and gaps are in [MIGRATION.md](MIGRATION.md).
+
+| Legacy form | Why it breaks on 1.21 | What NeoOrigins does |
+|---|---|---|
+| Plural data folders (`functions/`, `recipes/`, `loot_tables/`, `advancements/`, plural `tags/` subfolders…) | 1.21 renamed every one of these to its singular form, so vanilla's loaders never look in the legacy folder and simply never see the content. The pack loads without error and does nothing. | Serves the legacy folders under their modern names on both access paths: a missed modern lookup falls through to the legacy path, and directory listings rewrite legacy locations into modern ones. Thirteen folders are mapped. Modern content wins wherever a pack ships both. |
+| `minecraft:set_nbt` loot function | Removed in 1.20.5. The whole loot table fails to parse ("Unknown registry key"), and that cascades into every function and advancement referencing the table, so items the pack hands out become unobtainable. | Retargets the function to `minecraft:set_custom_data`, which takes the identical `tag` field. Applied only to JSON under `loot_table/`, `loot_tables/`, `item_modifier/` and `item_modifiers/`, and only when the file text actually contains `set_nbt`. See the fail-safe below. |
+| `origins:starting_equipment` with a singular `stack` | Packs in the wild use both the singular `stack` and the plural `stacks`. NeoOrigins read only `stacks`, so a pack using the singular spelling was skipped and granted nothing. | Reads `stacks` when present, otherwise promotes a single `stack` object to a one-element list. A power carrying neither is still skipped with a warning. |
+| `origins:prevent_entity_render` / `apace:prevent_entity_render` | The type had no NeoOrigins equivalent, so it was logged as unsupported and became a no-op. | Maps onto the native `neoorigins:prevent_entity_render`, carrying `entity_condition` through unchanged. Apoli's `bientity_condition` variant is deliberately not translated: half of the pair it compares is the observer. See [POWER_TYPES.md](POWER_TYPES.md#neooriginsprevent_entity_render) for the native type's behaviour and limits. |
+| `item_condition` on `action_on_block_use` / `action_on_entity_use` | The field is Apoli's "only with this item in hand" gate. The translator never copied it, so the ability fired for whatever the player was holding. | Copies `item_condition` (and Apoli's newer `held_item_condition` spelling, which maps to the same key) onto the translated `action_on_event`, and the gate reads the stack out of the interaction event: the stack in the hand that triggered it. The translator carries no item gate onto `action_on_block_break`, `wake_up` or `bonemeal`. |
+| `set_block` as a `block_action` | In Apoli `set_block` is a block action, so it places at the targeted position. NeoOrigins registered only an entity-side form that placed at the player's own feet, so a right-click power aimed at the clicked block modified the ground under the player instead. | `set_block` resolves the block from the dispatch context — a `block_use` or bonemeal interaction, a projectile or raycast block hit, or a `block_action_at` / `offset` wrapper — and falls back to the actor's own block position when no block context is active. It is also a block-target verb now, usable directly inside `block_target_action` alongside `strip`, `till`, `path`, `grow` and `transform_block`. |
+| Item NBT read through `tag` | 1.20.5 deleted the `tag` field from `ItemStack`; a stack serialises as `{id,count,components}`. A path like `SelectedItem.tag.Foo` still parses and still runs; it simply resolves to nothing, so neither a parse check nor a compile error can catch it. | Repoints the step at `components."minecraft:custom_data"`. Both spellings are handled: the dot path (`SelectedItem.tag.Foo`, including subscripts such as `Inventory[0].tag.Foo`) and the brace form inside a selector or NBT literal (`Item:{tag:{Foo:1}}`). This one runs unconditionally rather than behind a parse check, because on 1.21 no item stack carries a `tag` field in any context, so there is no valid path of that shape to break. |
+
+**The `set_nbt` rewrite is not an NBT-to-components converter.**
+`set_custom_data` is a faithful replacement only when the `tag` blob is pure pack
+data. A key that moved to a real data component on 1.21 would end up buried inside
+`custom_data` where nothing reads it, so a blob carrying one is left exactly as it
+was and reported in the log: the table still fails to load, but it fails loudly
+instead of quietly handing out items with the enchantments or the damage value
+missing. The keys treated as component-backed are `Potion`, `CustomModelData`,
+`Damage`, `Unbreakable`, `RepairCost`, `Enchantments`, `ench`,
+`StoredEnchantments` and `display`. A `tag` that is not a string, or whose SNBT
+does not parse, is also left alone with a warning. The brace form of the `tag`-path
+repair applies the same check, and additionally leaves any stack that already
+carries `components` untouched.
+
+**Legacy keys outside that set are not mapped.** `BlockEntityTag`, `EntityTag`,
+`AttributeModifiers`, `SkullOwner`, `CanDestroy` and `HideFlags` all became data
+components on 1.21 but are absent from the set above, so a blob carrying only those
+is taken for pure pack data and routed into `custom_data`, where the game will not
+read it. `SkullOwner` → `minecraft:profile` is the one worth calling out: a legacy
+pack that hands out a named player head gets a head with no profile on it, and no
+warning. If a pack depends on any of these, that one file needs converting by hand.
+
+**Prose is never mistaken for a path.** The `tag`-path repair skips quoted regions,
+so a `tellraw` payload or a `title` that happens to contain `Item.tag.foo` is left
+alone, and the verbs whose payload is unquoted free text (`say`, `me`, `msg`,
+`tell`, `w`, `teammsg`, `tm`) are excluded outright. In an `execute` chain only the
+tail after `run` is excluded, so the selectors ahead of it are still repaired.
+
+---
+
 ## Gameplay integrations
 
 | Mod | Mod id | What it adds |
@@ -33,7 +84,7 @@ natively. Drop an Origins pack into `originpacks/` and it loads.
 | **Open Parties & Claims** | `openpartiesandclaims` | Same as FTB Teams, but using OPAC party membership. |
 | **FTB Quests** | `ftbquests` | Quests tagged `neoorigins_loot_pool_grant:<table_id>` grant a loot pool from that table on completion, routed through the same roll-and-grant pipeline as the `loot_pool_grant` power. |
 | **FTB Ultimine** | `ftbultimine` | Powers the `neoorigins:ultimine` power: NeoOrigins registers a restriction handler so vein-mining is gated to players holding an active `ultimine` power. The integration is completely dormant unless a loaded pack defines a `neoorigins:ultimine` power. While no pack uses it, FTB Ultimine behaves exactly as vanilla. Once at least one `ultimine` power is loaded, vein-mining is restricted to players who hold one. Block count, tool requirement, and shape follow FTB Ultimine's own server config. The restriction API exposes no override for them. Compile-only soft dependency. **Not available on the Minecraft 26.2 build:** FTB publishes no 26.2 artifact (checked 2026-07-29, `ftb-ultimine-neoforge` tops out at 26.1.2.5), so on 26.2 the `neoorigins:ultimine` power still loads but stays an inert marker and vein-mining is left ungated. |
-| **Dragon Survival** | `dragonsurvival` | The `neoorigins:become_dragon` power drives Dragon Survival's own dragon state, so an origin can make its holder a DS dragon of a configured species and stage. DS supplies the actual traits, growth, abilities, altar economy and hunters. Ships with three built-in origins (Cave / Forest / Sea Dragon) gated behind `"required_mods": ["dragonsurvival"]`, so they only load and appear in the picker when DS is installed. Reflection-based, no hard dependency. See the caveat below. |
+| **Dragon Survival** | `dragonsurvival` | The `neoorigins:become_dragon` power drives Dragon Survival's own dragon state, so an origin can make its holder a DS dragon of a configured species and stage; DS supplies the actual traits, growth, abilities, altar economy and hunters. Ships with three built-in origins (Cave / Forest / Sea Dragon) gated behind `"required_mods": ["dragonsurvival"]`, so they only load and appear in the picker when DS is installed. Reflection-based, no hard dependency. See the [Dragon Survival](#dragon-survival) section and the caveat below. |
 | **Pehkui** | `pehkui` | Origin body-scale powers drive the Pehkui scale system so resizing renders and collides correctly. See the caveat below. |
 | **Epic Fight** | `epicfight` | Origin scaling is applied to Epic Fight's custom entity renderer via a mixin, so scaled origins render correctly with Epic Fight installed. |
 | **Iron's Spells 'n Spellbooks** | `irons_spellbooks` | Three surfaces: the `neoorigins:cast_iron_spell` action casts an Iron's spell from an origin power; a `neoorigins:resource` power can back its bar with the player's Iron's mana pool (`"backing": "irons_spellbooks:mana"`); and `attribute_modifier` powers can modify Iron's custom attributes (max mana, spell power, cooldown reduction, …). Compile-only soft dependency (never bundled). See the full [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section below. |
@@ -216,6 +267,41 @@ is installed (and are unaffected when it isn't):
 
 These powers are `hidden` and gated with `"required_mods": ["cold_sweat"]`, so they
 never appear in the power list and never load on a server without Cold Sweat.
+
+---
+
+## Dragon Survival
+
+The `neoorigins:become_dragon` power drives DS's own dragon state, so an origin
+can make its holder a DS dragon of a configured species and stage. Three built-in
+origins (Cave / Forest / Sea Dragon) ship gated behind
+`"required_mods": ["dragonsurvival"]`. The bridge is reflective and there is no
+hard dependency; see the caveat at the end of this page.
+
+### Sharing the join screen
+
+Both mods want a screen the moment you join a world. NeoOrigins shows the origin
+picker because the server told the client to; Dragon Survival shows its
+species-choice screen when its `start_with_dragon_choice` config is on. Whichever
+one opens second replaces the first, and the usual casualty is the origin picker.
+
+NeoOrigins resolves this in the picker's favour without discarding DS's screen.
+The species choice is held back and reopened as soon as the picker closes,
+whether you confirmed it, escaped it or abandoned it. The interception is symmetric,
+so it works whichever mod wins the race.
+
+Only DS's species screens are ever involved, and under the default behaviour only
+while the origin picker is actually on screen: opening a species screen yourself,
+from an altar block, the dragon inventory button or a command, behaves exactly as
+it does without NeoOrigins installed. DS's appearance editor, skins, abilities and
+dragon inventory are never touched under any setting.
+
+The client config `compat.dragon_species_screens` picks the behaviour: `DEFER`
+(the default, described above), `SUPPRESS` (cancel every DS species screen,
+picker on screen or not, so the origin picker is the only way to choose a
+species), or `ALLOW` (never interfere).
+See [CLIENT_CONFIG.md](CLIENT_CONFIG.md). It is a per-client setting, so it needs
+no change on the server or in DS's own config.
 
 ---
 

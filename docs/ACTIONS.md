@@ -801,11 +801,14 @@ Use `rolls: N` to repeat the pick (with replacement). The same item type can win
 
 ## `neoorigins:set_block`
 
-Replaces the block at the target's feet (their `blockPosition`) with the given block's default state.
+Replaces a block with the given block's default state. When the action runs inside a block context — a `block_use` or bonemeal interaction, a projectile or raycast block hit, or a `block_action_at` / `offset` wrapper — it replaces the block that context resolved to. With no block context active it falls back to the block at the target's feet (their `blockPosition`).
+
+It is also a block-target verb, so it can be named directly inside `block_target_action` alongside `strip`, `till`, `path`, `grow` and `transform_block`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `block` | resource id | yes | — | Block id |
+| `keep` | bool | no | `false` | Only place when the target position is already air |
 
 **Example:**
 ```json
@@ -2039,6 +2042,69 @@ Opens a 3×3 crafting menu for the target player, anchored at the player's posit
 ```json
 { "type": "neoorigins:crafting_table" }
 ```
+
+---
+
+## `neoorigins:trigger_morph_animation`
+
+Plays (or stops) a named animation on the model a player is currently morphed into with `neoorigins:entity_model`. Requires GeckoLib; no-ops silently without it, and no-ops silently when the player is not currently rendering as a morph model — a morph power carrying only non-model tweaks leaves nothing for this verb to animate.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `animation` | string | yes | — | Triggerable animation name registered by the morph mob's own author |
+| `controller` | string | no | — | Animation controller to search; omit the field to search every controller on the model. Omit it, do not set it to `""`: an empty string is passed through as a controller name, and no model has a controller called `""`, so the animation silently never plays |
+| `stop` | boolean | no | `false` | Stop the triggered animation instead of starting it |
+
+**Example:**
+```json
+{ "type": "neoorigins:trigger_morph_animation", "animation": "attack", "controller": "controller" }
+```
+
+**You cannot invent animation names.** GeckoLib only plays names the mob's author explicitly registered as triggerable, by calling `triggerableAnim("name", …)` when they built the model's controllers. Every other animation in the mob's `.animation.json` is driven by that mob's own code and is not reachable this way. An unregistered name is not an error — the call simply does nothing, with no log line — so if nothing happens, the name is almost certainly not on the mob's triggerable list. There is no way for a pack to discover that list from JSON; it comes from the mod's source or its author.
+
+Morphing into a vanilla mob does nothing here: vanilla models are not GeckoLib models. This verb is for morphs into GeckoLib-animated modded mobs.
+
+The animation runs on every client that can see the morphed player, not just their own.
+
+Only GeckoLib is supported today. AzureLib is shaped the same way and could be added; Citadel is not, because its animations are numeric ids that need a per-tick pump the morph does not run.
+
+---
+
+## `neoorigins:morph_entity_event`
+
+Runs an entity event on the model a player is morphed into — the same hook the server normally uses to tell clients "this mob just did a thing": an iron golem's attack swing, a villager's angry particles, a wolf shaking off water. It is what makes a morph react like the real mob instead of only sharing its silhouette. No-ops silently when the player is not currently rendering as a morph model.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `event` | enum | no | — | Named vanilla event (see below) |
+| `id` | integer | no | — | Raw event byte, −128…127, for modded mobs with their own; ignored when `event` is set |
+
+**Examples:**
+```json
+{ "type": "neoorigins:morph_entity_event", "event": "villager_angry" }
+```
+```json
+{ "type": "neoorigins:morph_entity_event", "id": 20 }
+```
+
+Give one of `event` or `id`. `event` accepts Minecraft's own entity-event constant names, lowercased — `jump`, `start_attacking`, `stop_attacking`, `taming_failed`, `taming_succeeded`, `shake_wetness`, `use_item_complete`, `eat_grass`, `offer_flower`, `love_hearts`, `villager_angry`, `villager_happy`, `witch_hat_magic`, `zombie_converting`, `fireworks_explode`, `in_love_hearts`, `squid_anim_synch`, `silverfish_merge_anim`, `guardian_attack_sound`, `attack_blocked`, `shield_disabled`, `fishing_rod_reel_in`, `armorstand_wobble`, `stop_offer_flower`, `talisman_activate`, `dolphin_looking_for_treasure`, `ravager_stunned`, `trusting_failed`, `trusting_succeeded`, `villager_sweat`, `fox_eat`, `teleport`, `mainhand_break`, `offhand_break`, `head_break`, `chest_break`, `legs_break`, `feet_break`, `body_break`, `honey_slide`, `honey_jump`, `swap_hands`, `cancel_shake_wetness`, `start_ram`, `end_ram`, `poof`, `tendrils_shiver`, `sonic_charge`, `sniffer_digging_sound`, `armadillo_peek`, plus the `reduced_debug_info`/`full_debug_info`/`permission_level_*` set. The list is read from Minecraft's own table, so it tracks the game version rather than a hand-copied snapshot; the `event` enum in `action.schema.json` is the authoritative spelling for the version you are on. `id` is the escape hatch for modded mobs, which are free to define bytes of their own.
+
+Which bytes a given mob actually reacts to is that mob's business — most ignore most of them. Sending an event a mob does not handle is harmless and does nothing. A name that is not on the list is a different matter: the action is dropped at load with a warning naming the accepted values, and an `id` alongside it does not rescue it, because `id` is only read when `event` is absent.
+
+The event runs on every client that can see the morphed player, not just their own.
+
+**Safety limits.** Two values are refused, both with a warning in the log, and neither is a balance decision:
+
+* **Byte 3 (`death`) is rejected** and is not in the `event` list. On a `LivingEntity` it calls `die()`, which fires a client-side death event for an entity that was never added to the world — any mod listening for client-side deaths would see a phantom kill it cannot make sense of. Morphs already topple on real death without this, because the renderer mirrors the player's death state onto the model.
+* **`id` outside −128…127 is rejected**, because the value is a byte and anything larger would silently wrap into a different event.
+
+There is no hurt event. Vanilla removed byte 2 in 1.19.4 and moved the damage flash to its own packet, and morphs already flash red from the player's own hurt timer.
+
+**Known limits.** These are consequences of the morph being a display-only stand-in that never runs the mob's `tick()`, and are documented rather than worked around:
+
+* **Some events are silent.** Events whose vanilla code plays the sound through the entity itself produce no sound on a morph: that path asks the level to play the sound for everyone except one player, and on a client the level only honours it when that one player is the local player, which it never is here. An iron golem's attack is one of these. Events that instead ask the level for a sound at a position do work, an armadillo's peek among them. There is no flag to tell the two apart from JSON — try it and listen.
+* **Timer-driven events freeze mid-pose.** Events that set a countdown the mob's own tick is supposed to drain — an iron golem's attack swing, a sheep's eating dip, a ravager's stun — set the countdown and nothing ever decrements it, so the morph holds that pose rather than playing through it. Particle and sound events are unaffected.
+* **Particle events that read movement streak.** A few events spawn particles along the line between the entity's previous and current position; `teleport` is the one to watch. The morph never records a previous position, so that line is drawn from the world origin and the particles trail in across the map.
 
 ---
 

@@ -46,6 +46,32 @@ evolution_tier_3_kills = 5000
 evolution_message_interval = 100
 ```
 
+## The Evolution Prompt
+
+The prompt is checked on every mob kill, not only on the kill that crosses a
+threshold. Once the kill count is at or past the next tier's requirement, a kill
+sends a chat prompt with clickable **[EVOLVE]** and **[DECLINE]** buttons.
+`/neoorigins evolve accept` and `/neoorigins evolve decline` do the same thing.
+
+Declining records the tier that was offered and stops that tier being offered
+again. The tier is not lost: it stays available, and `/neoorigins evolve accept`
+takes it whenever the player is ready. Only the declined tier is muted, and tiers
+are taken in order, so accepting it clears the record and the tier above it
+prompts normally once its own threshold is reached.
+
+The declined tier is saved with the player, so the prompt stays quiet across a
+relog. Three things clear it: the player accepting that tier, an operator
+force-setting the tier with `/neoorigins evolve <player> <tier>` in either
+direction, and spending an Orb of Origin. The orb is the blunt one: committing
+it wipes essence kills, tier and the declined record together, so the player
+starts the ladder over from zero on their new origin.
+
+Declining when nothing is on offer does nothing. If the player is already at Apex,
+or has not yet reached the next tier's kill threshold,
+`/neoorigins evolve decline` reports "You have no evolution to decline." and
+records no tier, so a decline typed early cannot mute a prompt that has not been
+shown yet.
+
 ---
 
 ## Evolution by Origin

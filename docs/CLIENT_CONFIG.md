@@ -50,8 +50,31 @@ Pack-declared abilities beyond the six origin slots land in a second category,
 |---|---|---|---|
 | `theme_override` | string | `""` | Force a specific UI theme id (e.g. `neoorigins:parchment`, `examplepack:dark_woods`) regardless of what the server's datapacks declared. Only takes effect when the named theme is actually loaded. Empty = follow the server / datapack-declared theme. See [THEMING.md](THEMING.md). |
 | `classic_picker_style` | bool | `false` | Revert the origin/class selection screens to the original flat high-contrast skin (dark panels, light text, vanilla font) instead of the parchment scroll. Enable if the parchment theme's brown-on-paper text is hard to read. |
+| `picker_layout` | enum | `TWO_PANEL` | Arrangement of the origin/class selection screen. `TWO_PANEL` (default): scrolling list on the left, details on the right. `CAROUSEL`: one origin at a time with prev/next arrows, closest to the original Origins mod's chooser. `GRID` is a reserved name that currently opens the two-panel screen. This is layout only: colours and font stay under `theme_override` / `classic_picker_style`, and any skin works with any layout. See below. |
 | `show_origin_editor` | bool | `false` | Show the in-game Origin Editor button on the origin info screen for **all** players, not just those in Creative. The editor is a pack-authoring tool, creative-only by default. Enable if you author origins in survival or want testers to reach it without `/gamemode`. |
-| `default_sort` | enum | `CLASS` | Initial sort order for the origin selection / info screens, used until you cycle the on-screen sort button (your cycled choice then wins for the rest of the session). Values: `CLASS` (grouped by mod/namespace, alphabetical within), `NAME_ASC` (flat alphabetical), `NAME_DESC` (flat reverse-alphabetical), `IMPACT_ASC` (by origin impact: none → low → medium → high). |
+| `default_sort` | enum | `MANUAL` | Initial sort order for the origin selection / info screens, used until you cycle the on-screen sort button (your cycled choice then wins for the rest of the session). Values: `MANUAL` (the author-set `order` field ascending, alphabetical tie-break), `CLASS` (grouped by mod/namespace, alphabetical within), `NAME_ASC` (flat alphabetical), `NAME_DESC` (flat reverse-alphabetical), `IMPACT_ASC` (by origin impact: none → low → medium → high). |
+
+### Choosing a picker layout
+
+`TWO_PANEL` is what the picker has always looked like: the origins scroll past in
+a list on the left, and whichever one you have highlighted fills the detail panel
+on the right.
+
+`CAROUSEL` shows one origin at a time on a single centred panel, with `<` and `>`
+arrows (or the left/right arrow keys) to page through the layer's origins. Whatever is on
+screen is what Confirm applies to, so browsing and selecting are the same action.
+This is the layout closest to the original Origins mod's chooser — but it is a
+NeoOrigins screen shaped like that one, not a copy of it: it is wider so the power
+list fits, and it is drawn in whichever UI theme is active rather than in the old
+dirt-background window. Search, the sort cycle and Random / Back / Confirm all
+work exactly as they do on the two-panel screen.
+
+`GRID` is named now so the setting does not have to change shape later, but that
+screen has not been written — selecting it opens the two-panel screen, with no
+error and no visible difference.
+
+Layout is a separate axis from skin. Colours and font stay under `theme_override`
+/ `classic_picker_style`, so any skin works with any layout.
 
 ## `[hud]`: heads-up display
 
@@ -60,7 +83,7 @@ Pack-declared abilities beyond the six origin slots land in a second category,
 | `hide_hud_bars` | bool | `true` | Hide the vanilla hunger / air HUD bars for origins that don't consume them (e.g. Automaton hunger; Merling / Kraken / Automaton air). Turn off to keep vanilla bars visible regardless of origin. |
 | `show_cooldown_countdown` | bool | `true` | Master switch for the numeric seconds drawn on cooldown icons. Packs opt individual powers in via `"cooldown_countdown": true`; set this to `false` to suppress **all** countdown numbers on this client. |
 | `cooldown_countdown_opacity` | int (0–100) | `70` | Opacity, in percent, of the countdown seconds drawn on cooldown icons. `100` = fully opaque, `0` = invisible. Values below 5 render as 5 (the font renderer drops text below that). |
-| `hud_ability_display` | enum | `ALL_ACTIVE_ABILITIES` | What the ability HUD cluster shows besides live cooldowns. `ALL_ACTIVE_ABILITIES`: every keybind ability with an icon keeps a persistent slot. Full-bright while idle, cooldown sweep while recharging, bright/dim for toggles. `COOLDOWNS_AND_TOGGLES`: cooldown slots only while recharging, plus icon-bearing toggle powers (bright = on, dimmed = off). |
+| `hud_ability_display` | enum | `COOLDOWNS_AND_TOGGLES` | What the ability HUD cluster shows besides live cooldowns. `COOLDOWNS_AND_TOGGLES`: cooldown slots only while recharging, plus icon-bearing toggle powers (bright = on, dimmed = off). Idle non-toggle icons stay hidden unless the power declares `"always_show_icon": true` or you enable `always_show_ability_icons` below. `ALL_ACTIVE_ABILITIES`: every keybind ability with an icon keeps a persistent slot (full-bright while idle, cooldown sweep while recharging, bright/dim for toggles). |
 | `always_show_ability_icons` | bool | `false` | Force every icon-bearing ability to stay on the HUD cluster even while off cooldown (as if each power declared `"always_show_icon": true`). Default `false`: idle cooldown icons disappear unless the power itself opts in. |
 
 The cooldown icon and countdown fields that powers declare (`cooldown_icon`,
@@ -97,3 +120,30 @@ Why here and not in the datapack: Minecraft fixes a key's default the moment it
 registers the KeyMapping, which happens at client startup, before any datapack
 (or the server) has loaded. So a pre-bound default has to come from the client,
 which is what this option is for.
+
+## `[compat]`: cross-mod behaviour
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `dragon_species_screens` | enum | `DEFER` | What to do when Dragon Survival opens one of its own dragon-**species** screens (the altar / species-choice popup) while the NeoOrigins origin picker is on screen. `DEFER` (default): hold DS's screen back and open it as soon as the picker is finished, so neither screen is lost. `SUPPRESS`: cancel DS's species screens outright, making the origin picker the only way to choose or change a dragon species. `ALLOW`: never interfere — whichever screen opens last replaces the other. Only takes effect when Dragon Survival is installed. |
+
+### Why the default is `DEFER`
+
+Both mods open a screen when you join a world: NeoOrigins because the server
+tells the client to show the origin picker, and Dragon Survival when its own
+`start_with_dragon_choice` is on. Whichever one lands second calls `setScreen`
+and replaces the first, which is what knocks players out of the origin picker.
+
+`DEFER` resolves the race in the origin picker's favour without throwing DS's
+screen away: the species choice is queued and reopened the moment the picker
+closes, whether you confirmed, escaped or abandoned it. The race is handled in
+both directions, so it does not matter which mod happens to win.
+
+A species screen you open yourself — an altar block, the dragon inventory button
+(`allow_dragon_choice_from_inventory`), or a command — is never intercepted under
+`DEFER` or `ALLOW`, because no picker is on screen at the time. DS's appearance
+editor, skins, abilities and inventory are never intercepted under any value.
+
+Server operators can also set DS's own `start_with_dragon_choice = false`, but
+that is a pack-wide decision; this option is per-client and needs no server
+change.
