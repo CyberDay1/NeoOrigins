@@ -1125,7 +1125,7 @@ Checks whether the target's entity type is in a vanilla mob-category tag under t
 |---|---|---|---|---|
 | `group` | string | yes | — | Tag path under `minecraft:` (e.g. `"raiders"`); always-false when blank |
 
-## `neoorigins:in_set` (alias `neoorigins:in_set`)
+## `neoorigins:in_set`
 
 2.0 entity-set membership: true when the target's UUID is in the actor's named entity-set. Pack authors should namespace `set` keys to avoid collision.
 
