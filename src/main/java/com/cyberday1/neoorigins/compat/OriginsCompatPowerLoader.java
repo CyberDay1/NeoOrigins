@@ -1378,7 +1378,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseActionOverTime(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        int interval = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 1);
+        // Default 20 (once per second) — matches Apoli's action_over_time default
+        // and our own condition_passive; 1 made an interval-less pack tick 20x
+        // faster here than everywhere else.
+        int interval = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 20);
 
         EntityAction action = parseActionField(json, "entity_action", idStr);
         // Apoli action_over_time also supports edge-triggered actions:
