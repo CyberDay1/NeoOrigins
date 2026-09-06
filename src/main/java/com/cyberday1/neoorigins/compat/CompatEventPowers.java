@@ -320,8 +320,11 @@ public class CompatEventPowers {
         FoodProperties food = stack.get(DataComponents.FOOD);
         if (food == null) return;
 
+        // No early return on an empty registry: mod_food_nutrition below is a
+        // native action_on_event hook and does not need a legacy modify_food
+        // power to be present. dispatchModifier returns the base untouched when
+        // nobody is listening, so the no-power case still costs a map lookup.
         var entries = ModifyFoodRegistry.getEntries(sp);
-        if (entries.isEmpty()) return;
 
         int nutrition = food.nutrition();
         float saturation = food.saturation();
@@ -339,6 +342,21 @@ public class CompatEventPowers {
                 saturation = (float) OriginsModifierMath.apply(saturation, entry.saturationModifiers());
                 modified = true;
             }
+        }
+
+        // mod_food_nutrition chains on top of whatever modify_food already did,
+        // so a pack can mix the legacy power and the native event. FoodContext
+        // is what food_item_in_tag / food_item_id read out of the context
+        // holder, so passing the raw stack here would silently fail closed.
+        // Stack-only ctor: Finish is not an ICancellableEvent, and rightly so —
+        // it fires after the eat, leaving cancel_event nothing to veto.
+        float chained = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_FOOD_NUTRITION,
+            new com.cyberday1.neoorigins.service.EventPowerIndex.FoodContext(stack),
+            nutrition);
+        if (chained != (float) nutrition) {
+            nutrition = Math.round(chained);
+            modified = true;
         }
 
         if (modified) {
