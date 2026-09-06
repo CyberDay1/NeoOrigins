@@ -1433,6 +1433,79 @@ public final class BuiltinPowers {
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
 
+        // starting_equipment used to be one of the two branches PowerSchemaGenerator
+        // spliced verbatim out of the committed schema, on the grounds that its shape
+        // was unrepresentable. It is not: nothing here needs a shaped `oneOf` arm or
+        // minItems/maxItems, only ARRAY children (one element's shape), which
+        // SchemaNodeBuilder already emits. Declaring it here means the branch is
+        // generated like every other power, so docFieldTableCheck can hold the doc
+        // table to it. The remaining splice is particle alone.
+        //
+        // The Config's `type` component is deliberately undeclared: it is the power's
+        // own discriminator key, swallowed so the Config codec tolerates it in the
+        // same object, and never read. Declaring it would overwrite the branch's
+        // `type` const with a bare string.
+        define("starting_equipment", StartingEquipmentPower.class, List.of(
+            new FieldSpec("grant_id", Kind.STRING, true)
+                .doc("Unique id tracked so the bundle is granted only once per player. "
+                   + "Dedups the whole bundle, not individual stacks, so a /origin reset "
+                   + "re-grants everything."),
+            new FieldSpec("item", Kind.STRING, false)
+                .def("").pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Singular shape: the one item id granted, e.g. 'minecraft:trident'. "
+                   + "Optional only when `stacks` is supplied; with neither, the grant "
+                   + "logs a warning and hands out nothing."),
+            new FieldSpec("count", Kind.INTEGER, false)
+                .def(1).range(1.0, null)
+                .doc("Singular shape: stack size for `item`; default 1."),
+            new FieldSpec("enchantments", Kind.ARRAY, false)
+                .children(
+                    new FieldSpec("id", Kind.STRING, true)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Enchantment id, e.g. 'minecraft:mending'."),
+                    new FieldSpec("level", Kind.INTEGER, false)
+                        .def(1).range(1.0, null)
+                        .doc("Enchantment level; default 1."))
+                .doc("Singular shape: enchantments applied to `item`. Applied directly, so "
+                   + "levels above the enchantment's own maximum are allowed."),
+            new FieldSpec("legacy_tag", Kind.STRING, false)
+                .def("")
+                .doc("Singular shape: Apoli-style flat SNBT (Potion, Enchantments, "
+                   + "display.Name and friends) translated into data components at grant "
+                   + "time. Unrecognised keys land in minecraft:custom_data."),
+            new FieldSpec("components", Kind.STRING, false)
+                .def("")
+                .doc("Singular shape: SNBT DataComponentPatch applied to the granted item. "
+                   + "Any registered component, vanilla or modded, parsed with registry "
+                   + "context at grant time."),
+            new FieldSpec("stacks", Kind.ARRAY, false)
+                .children(
+                    new FieldSpec("item", Kind.STRING, true)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Item id granted for this entry."),
+                    new FieldSpec("count", Kind.INTEGER, false)
+                        .def(1).range(1.0, null)
+                        .doc("Stack size for this entry; default 1."),
+                    new FieldSpec("enchantments", Kind.ARRAY, false)
+                        .children(
+                            new FieldSpec("id", Kind.STRING, true)
+                                .pattern(RESOURCE_LOCATION_PATTERN)
+                                .doc("Enchantment id, e.g. 'minecraft:mending'."),
+                            new FieldSpec("level", Kind.INTEGER, false)
+                                .def(1).range(1.0, null)
+                                .doc("Enchantment level; default 1."))
+                        .doc("Enchantments applied to this entry's item."),
+                    new FieldSpec("legacy_tag", Kind.STRING, false)
+                        .def("")
+                        .doc("Flat SNBT for this entry, same meaning as the root `legacy_tag`."),
+                    new FieldSpec("components", Kind.STRING, false)
+                        .def("")
+                        .doc("SNBT DataComponentPatch for this entry, same meaning as the root `components`."))
+                .doc("Plural shape: entries granted in array order, each mirroring the "
+                   + "singular root field names. When non-empty this WINS — the root "
+                   + "item/count/enchantments/legacy_tag/components are ignored entirely "
+                   + "rather than added alongside.")));
+
         // kill_loot_drops was registered in PowerTypes and documented in
         // POWER_TYPES.md but never declared here, so its id never reached
         // PowerSchemaGenerator.buildTypeEnum() (which sources type.enum from
@@ -1557,6 +1630,23 @@ public final class BuiltinPowers {
                 .def(true).doc("When true the power binds a keybind that flips the effects on/off; off clears them (default true)."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false)."),
+            // readBy, not a component: the codec reads this off the raw JSON root
+            // and folds it into the first EffectSpec, so nothing lifts it.
+            //
+            // Deliberately NOT described as a cascade, unlike its three neighbours.
+            // ambient/show_particles/show_icon are read at the root and passed into
+            // parseSpec as fallbacks for entries that omit them; `amplifier` is not
+            // — parseSpec defaults it to 0 locally, and the root value is applied
+            // afterwards to specs.get(0) alone, overwriting whatever that entry set.
+            new FieldSpec("amplifier", Kind.INTEGER, false)
+                .readBy("com.cyberday1.neoorigins.power.builtin.PersistentEffectPower#decode")
+                .doc("Effect level minus one (0 = level I, 1 = level II) for the root-level "
+                   + "single-effect shorthand; default 0. With an `effects` array present it "
+                   + "instead overrides the FIRST entry's amplifier — winning even over an "
+                   + "amplifier that entry sets itself, and leaving later entries untouched. "
+                   + "It does not cascade the way root ambient/show_particles/show_icon do. "
+                   + "That asymmetry is deliberate: it is the hook power_overrides uses to "
+                   + "retune one effect's strength without rewriting the array."),
             ENABLED_SPEC_JSON_READ, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         // effect_immunity lives in the compat package (com.cyberday1.neoorigins.compat),

@@ -179,9 +179,13 @@ public final class LegacyAliasPowerSpecs {
         define("status_effect", concat(List.of(
             new FieldSpec("effect", Kind.STRING, false)
                 .doc("Mob-effect id applied while the power is active (e.g. 'minecraft:speed'). The legacy single-effect shorthand: authoring it here is equivalent to a one-entry `effects` list. Applied at infinite duration, so no duration field."),
-            new FieldSpec("amplifier", Kind.INTEGER, false)
-                .def(0).range(0.0, null)
-                .doc("Effect level minus one for the root-level `effect` (0 = level I, 1 = level II); default 0. Also cascades as the default amplifier onto every `effects` entry that omits its own."),
+            // `amplifier` is NOT declared here. It used to be, with a doc claiming it
+            // cascades onto every `effects` entry that omits its own — which the codec
+            // does not do (parseSpec defaults amplifier to 0 locally; the root value
+            // overwrites specs.get(0) alone, explicit or not). It is persistent_effect's
+            // field, arrives via fieldsOf below, and is described correctly there.
+            // Redeclaring it here just gave two contradictory descriptions of one key.
+            //
             // Both defaults follow PersistentEffectPower's EffectSpec decode, which
             // is ambient=true / show_particles=false — the beacon-style presentation
             // the legacy status_effect shape has always had. They were declared the
@@ -560,6 +564,34 @@ public final class LegacyAliasPowerSpecs {
 
         defineLegacyCompat("modify_healing", modifierSeamFields);
         defineLegacyCompat("modify_status_effect_duration", modifierSeamFields);
+
+        // Same seam shape: parseModifyFallDamage reads modifier/modifiers and
+        // parseConditionField(json, "condition").
+        defineLegacyCompat("modify_fall_damage", modifierSeamFields);
+
+        // parseNumericModifier reads the modifier list ONLY — it never calls
+        // parseConditionField, so the gate the other three offer is absent here
+        // and must not be declared.
+        defineLegacyCompat("modify_xp_gain", modifierSeamFields.subList(0, 2));
+
+        defineLegacyCompat("cooldown", List.of(
+            new FieldSpec("cooldown", Kind.INTEGER, false)
+                .def(1).range(1.0, null)
+                .doc("Countdown duration in ticks armed by the trigger_cooldown action; "
+                   + "clamped to at least 1. The power reads back as a resource whose value "
+                   + "is 0 while ready."),
+            // Declared despite `hidden` also being a universal top-level key:
+            // parseCooldown reads it again for its own meaning (hide the HUD
+            // bar), and hud_render.should_render=false folds into the same flag.
+            new FieldSpec("hidden", Kind.BOOLEAN, false)
+                .def(false)
+                .doc("When true the countdown bar is kept off the HUD; the timer still runs "
+                   + "and is still readable as a resource."),
+            new FieldSpec("hud_render", Kind.OBJECT, false)
+                .doc("Optional HUD block, same shape as neoorigins:resource's: sprite_location, "
+                   + "bar_index / icon_index (both default 0 once the block is present), "
+                   + "should_render (false hides the bar), and condition (an entity condition "
+                   + "gating bar visibility). Omit for the default bar.")));
 
         defineLegacyCompat("action_on_death", List.of(
             new FieldSpec("entity_action", Kind.REF, false).ref("action.schema.json")
