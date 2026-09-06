@@ -1459,8 +1459,15 @@ public final class BuiltinPowers {
                 .doc("Unique id tracked so the bundle is granted only once per player. "
                    + "Dedups the whole bundle, not individual stacks, so a /origin reset "
                    + "re-grants everything."),
+            // No RESOURCE_LOCATION_PATTERN on the four id fields below, unlike most
+            // sibling item specs. grantOneStack feeds both item and enchantment ids
+            // straight to ResourceLocation.parse, which defaults a missing namespace
+            // to minecraft: — so a bare "diamond" loads fine, and the pattern (which
+            // requires a colon) would flag valid input. The hand-spliced branch this
+            // descriptor replaces carried no patterns either; adding them here would
+            // narrow the accepted surface rather than reproduce it.
             new FieldSpec("item", Kind.STRING, false)
-                .def("").pattern(RESOURCE_LOCATION_PATTERN)
+                .def("")
                 .doc("Singular shape: the one item id granted, e.g. 'minecraft:trident'. "
                    + "Optional only when `stacks` is supplied; with neither, the grant "
                    + "logs a warning and hands out nothing."),
@@ -1470,7 +1477,6 @@ public final class BuiltinPowers {
             new FieldSpec("enchantments", Kind.ARRAY, false)
                 .children(
                     new FieldSpec("id", Kind.STRING, true)
-                        .pattern(RESOURCE_LOCATION_PATTERN)
                         .doc("Enchantment id, e.g. 'minecraft:mending'."),
                     new FieldSpec("level", Kind.INTEGER, false)
                         .def(1).range(1.0, null)
@@ -1490,7 +1496,6 @@ public final class BuiltinPowers {
             new FieldSpec("stacks", Kind.ARRAY, false)
                 .children(
                     new FieldSpec("item", Kind.STRING, true)
-                        .pattern(RESOURCE_LOCATION_PATTERN)
                         .doc("Item id granted for this entry."),
                     new FieldSpec("count", Kind.INTEGER, false)
                         .def(1).range(1.0, null)
@@ -1498,7 +1503,6 @@ public final class BuiltinPowers {
                     new FieldSpec("enchantments", Kind.ARRAY, false)
                         .children(
                             new FieldSpec("id", Kind.STRING, true)
-                                .pattern(RESOURCE_LOCATION_PATTERN)
                                 .doc("Enchantment id, e.g. 'minecraft:mending'."),
                             new FieldSpec("level", Kind.INTEGER, false)
                                 .def(1).range(1.0, null)
