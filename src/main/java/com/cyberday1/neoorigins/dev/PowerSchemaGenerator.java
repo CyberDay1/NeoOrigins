@@ -38,12 +38,11 @@ import java.util.TreeSet;
  * ({@code setPrettyPrinting().disableHtmlEscaping()} + a single trailing LF).
  * Re-running the generator on its own output must be byte-identical.
  *
- * <p>The two unrepresentable branches ({@code neoorigins:particle},
- * {@code neoorigins:starting_equipment}) are parsed out of the CURRENT committed
- * file as {@link JsonObject}s and spliced into the generated {@code oneOf} at
- * their sorted position, so they re-serialize through the SAME pretty-printer
- * (uniform formatting, byte-stable). Their field shapes are never hand-written
- * or regenerated here.
+ * <p>The one unrepresentable branch ({@code neoorigins:particle}) is parsed out of
+ * the CURRENT committed file as a {@link JsonObject} and spliced into the generated
+ * {@code oneOf} at its sorted position, so it re-serializes through the SAME
+ * pretty-printer (uniform formatting, byte-stable). Its field shape is never
+ * hand-written or regenerated here.
  *
  * <p>Invoke via {@code ./gradlew generatePowerSchema} or:
  * <pre>./gradlew generatePowerSchema --args="docs/schema/power.schema.json"</pre>
@@ -54,9 +53,16 @@ public final class PowerSchemaGenerator {
 
     private static final String DEFAULT_OUTPUT = "docs/schema/power.schema.json";
 
-    /** The ids that exist in the enum by design but have no in-code descriptor. */
+    /** The one id that exists in the enum by design but has no in-code descriptor. */
     private static final String ID_PARTICLE = "neoorigins:particle";
-    private static final String ID_STARTING_EQUIPMENT = "neoorigins:starting_equipment";
+    // The sub-power container ids come from
+    // OriginsMultipleExpander.MULTIPLE_TYPES: the compat layer owns that surface,
+    // as it already owns SCHEMA_RECOGNIZED_IMPORT_IDS. They are expanded away at
+    // datapack load and never register a runtime descriptor, so they have no
+    // structured branch — they live in the enum and match the permissive fallback,
+    // which is the right shape given their sub-power keys are arbitrary.
+    // Hard-coding just the native id here left origins:multiple and apace:multiple
+    // honoured at load but unauthorable in the editors.
 
     public static void main(String[] args) throws IOException {
         Path output = Path.of(args.length > 0 ? args[0] : DEFAULT_OUTPUT);
@@ -150,16 +156,19 @@ public final class PowerSchemaGenerator {
             branches.add(new Branch(id, buildPowerBranch(id, entry.getValue())));
         }
 
-        // Preserved branches parsed out of the current committed file. These are
-        // hand-written, unrepresentable shapes spliced back verbatim. Whether a
-        // given branch exists is per-branch: 1.21.1 ships both particle AND a
-        // structured starting_equipment branch, while 26.1 only has particle
-        // (starting_equipment lives in the enum and falls to the fallback). So
-        // splice a preserved branch ONLY if the source file actually has one;
-        // otherwise its id stays in the enum (added in buildTypeEnum) and matches
-        // the permissive fallback. This keeps regeneration behavior-neutral on
-        // either branch instead of fabricating a branch that wasn't there.
-        for (String id : List.of(ID_PARTICLE, ID_STARTING_EQUIPMENT)) {
+        // Preserved branch parsed out of the current committed file. particle is
+        // hand-written because its shape is genuinely unrepresentable: `particle`
+        // is a oneOf whose object arm has its OWN properties/required, and the
+        // vec3 fields carry minItems/maxItems — none of which SchemaNodeBuilder
+        // emits. Spliced back verbatim, so its field shape is never regenerated
+        // here. (starting_equipment used to be spliced alongside it and is not
+        // any more; it has a real BuiltinPowers descriptor now, which is what
+        // lets docFieldTableCheck gate its doc table.)
+        //
+        // Splice ONLY if the source file actually has the branch, so regeneration
+        // stays behavior-neutral rather than fabricating one that wasn't there;
+        // absent, the id stays in the enum and matches the permissive fallback.
+        for (String id : List.of(ID_PARTICLE)) {
             JsonObject preserved = findPreservedBranch(current, id);
             if (preserved != null) {
                 branches.add(new Branch(id, preserved));
@@ -227,9 +236,8 @@ public final class PowerSchemaGenerator {
 
     /**
      * Assemble the sorted, de-duplicated full id list for {@code type.enum}:
-     * {@code BuiltinPowers.ids()} ∪ the 2 unregistered-by-design ids ∪
-     * {@link com.cyberday1.neoorigins.compat.OriginsMultipleExpander#MULTIPLE_TYPES}
-     * ∪ {@link LegacyPowerTypeAliases#aliasedTypeIds()} ∪
+     * {@code BuiltinPowers.ids()} ∪ the 1 unregistered-by-design id ∪
+     * {@link LegacyPowerTypeAliases#aliasedTypeIds()} ∪
      * {@link OriginsPowerTranslator#SCHEMA_RECOGNIZED_IMPORT_IDS} ∪
      * {@link com.cyberday1.neoorigins.compat.OriginsFormatDetector#legacyPowerTypeSurface()}.
      *
@@ -255,10 +263,6 @@ public final class PowerSchemaGenerator {
 
         Set<String> ids = new TreeSet<>(BuiltinPowers.ids());
         ids.add(ID_PARTICLE);
-        ids.add(ID_STARTING_EQUIPMENT);
-        // All three container spellings are honoured at load (the expander flattens
-        // them away), so all three must be authorable. They have no structured
-        // branch because their properties are arbitrary sub-power keys.
         ids.addAll(com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_TYPES);
         // Every alias source is authorable, INCLUDING the Apoli-family ones.
         // That is not free: canonicalizePowerType rewrites apoli:/apugli: ->

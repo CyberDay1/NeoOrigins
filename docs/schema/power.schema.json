@@ -682,6 +682,79 @@
       ]
     },
     {
+      "$comment": "apace:cooldown",
+      "properties": {
+        "type": {
+          "const": "apace:cooldown"
+        },
+        "cooldown": {
+          "description": "Countdown duration in ticks armed by the trigger_cooldown action; clamped to at least 1. The power reads back as a resource whose value is 0 while ready.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "hidden": {
+          "description": "When true the countdown bar is kept off the HUD; the timer still runs and is still readable as a resource.",
+          "type": "boolean",
+          "default": false
+        },
+        "hud_render": {
+          "description": "Optional HUD block, same shape as neoorigins:resource's: sprite_location, bar_index / icon_index (both default 0 once the block is present), should_render (false hides the bar), and condition (an entity condition gating bar visibility). Omit for the default bar.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apace:modify_fall_damage",
+      "properties": {
+        "type": {
+          "const": "apace:modify_fall_damage"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "apace:modify_healing",
       "properties": {
         "type": {
@@ -776,6 +849,39 @@
       ]
     },
     {
+      "$comment": "apace:modify_xp_gain",
+      "properties": {
+        "type": {
+          "const": "apace:modify_xp_gain"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "apoli:action_on_death",
       "properties": {
         "type": {
@@ -811,6 +917,79 @@
         },
         "condition": {
           "description": "Optional gate on the holder, tested at death time (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apoli:cooldown",
+      "properties": {
+        "type": {
+          "const": "apoli:cooldown"
+        },
+        "cooldown": {
+          "description": "Countdown duration in ticks armed by the trigger_cooldown action; clamped to at least 1. The power reads back as a resource whose value is 0 while ready.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "hidden": {
+          "description": "When true the countdown bar is kept off the HUD; the timer still runs and is still readable as a resource.",
+          "type": "boolean",
+          "default": false
+        },
+        "hud_render": {
+          "description": "Optional HUD block, same shape as neoorigins:resource's: sprite_location, bar_index / icon_index (both default 0 once the block is present), should_render (false hides the bar), and condition (an entity condition gating bar visibility). Omit for the default bar.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apoli:modify_fall_damage",
+      "properties": {
+        "type": {
+          "const": "apoli:modify_fall_damage"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
           "oneOf": [
             {
               "$ref": "condition.schema.json"
@@ -914,6 +1093,39 @@
               "items": {
                 "$ref": "condition.schema.json"
               }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apoli:modify_xp_gain",
+      "properties": {
+        "type": {
+          "const": "apoli:modify_xp_gain"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
             }
           ]
         }
@@ -1066,6 +1278,79 @@
       ]
     },
     {
+      "$comment": "apugli:cooldown",
+      "properties": {
+        "type": {
+          "const": "apugli:cooldown"
+        },
+        "cooldown": {
+          "description": "Countdown duration in ticks armed by the trigger_cooldown action; clamped to at least 1. The power reads back as a resource whose value is 0 while ready.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "hidden": {
+          "description": "When true the countdown bar is kept off the HUD; the timer still runs and is still readable as a resource.",
+          "type": "boolean",
+          "default": false
+        },
+        "hud_render": {
+          "description": "Optional HUD block, same shape as neoorigins:resource's: sprite_location, bar_index / icon_index (both default 0 once the block is present), should_render (false hides the bar), and condition (an entity condition gating bar visibility). Omit for the default bar.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apugli:modify_fall_damage",
+      "properties": {
+        "type": {
+          "const": "apugli:modify_fall_damage"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "apugli:modify_healing",
       "properties": {
         "type": {
@@ -1151,6 +1436,39 @@
               "items": {
                 "$ref": "condition.schema.json"
               }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "apugli:modify_xp_gain",
+      "properties": {
+        "type": {
+          "const": "apugli:modify_xp_gain"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
             }
           ]
         }
@@ -5135,6 +5453,10 @@
           "type": "boolean",
           "default": false
         },
+        "amplifier": {
+          "description": "Effect level minus one (0 = level I, 1 = level II) for the root-level single-effect shorthand; default 0. With an `effects` array present it instead overrides the FIRST entry's amplifier — winning even over an amplifier that entry sets itself, and leaving later entries untouched. It does not cascade the way root ambient/show_particles/show_icon do. That asymmetry is deliberate: it is the hook power_overrides uses to retune one effect's strength without rewriting the array.",
+          "type": "integer"
+        },
         "enabled": {
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
           "type": "boolean",
@@ -6137,6 +6459,10 @@
             }
           ]
         },
+        "amplifier": {
+          "description": "Effect level minus one (0 = level I, 1 = level II) for the root-level single-effect shorthand; default 0. With an `effects` array present it instead overrides the FIRST entry's amplifier — winning even over an amplifier that entry sets itself, and leaving later entries untouched. It does not cascade the way root ambient/show_particles/show_icon do. That asymmetry is deliberate: it is the hook power_overrides uses to retune one effect's strength without rewriting the array.",
+          "type": "integer"
+        },
         "enabled": {
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
           "type": "boolean",
@@ -6148,35 +6474,42 @@
       ]
     },
     {
-      "$comment": "neoorigins:starting_equipment — grants one or more items the first time the power is applied after origin commit. Accepts BOTH a legacy singular shape (top-level item/count/enchantments/legacy_tag/components) and a plural shape (stacks: [ { item, count, enchantments, legacy_tag, components } ]). When `stacks` is non-empty it takes precedence over the singular root fields; otherwise the root `item` is wrapped as a one-entry list. `grant_id` dedups the whole bundle (not individual stacks) so retries via /origin reset re-grant everything.",
+      "$comment": "neoorigins:starting_equipment",
       "properties": {
         "type": {
           "const": "neoorigins:starting_equipment"
         },
         "grant_id": {
-          "type": "string",
-          "description": "Unique id tracked so the bundle is granted only once per player."
+          "description": "Unique id tracked so the bundle is granted only once per player. Dedups the whole bundle, not individual stacks, so a /origin reset re-grants everything.",
+          "type": "string"
         },
         "item": {
+          "description": "Singular shape: the one item id granted, e.g. 'minecraft:trident'. Optional only when `stacks` is supplied; with neither, the grant logs a warning and hands out nothing.",
           "type": "string",
-          "description": "Legacy singular shape: item id granted once. Optional when `stacks` is provided."
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$",
+          "default": ""
         },
         "count": {
+          "description": "Singular shape: stack size for `item`; default 1.",
           "type": "integer",
-          "minimum": 1,
-          "description": "Stack size for the singular shape (default 1)."
+          "default": 1,
+          "minimum": 1
         },
         "enchantments": {
+          "description": "Singular shape: enchantments applied to `item`. Applied directly, so levels above the enchantment's own maximum are allowed.",
           "type": "array",
-          "description": "Singular-shape enchantments applied to the granted item.",
           "items": {
             "type": "object",
             "properties": {
               "id": {
-                "type": "string"
+                "description": "Enchantment id, e.g. 'minecraft:mending'.",
+                "type": "string",
+                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
               },
               "level": {
+                "description": "Enchantment level; default 1.",
                 "type": "integer",
+                "default": 1,
                 "minimum": 1
               }
             },
@@ -6186,36 +6519,47 @@
           }
         },
         "legacy_tag": {
+          "description": "Singular shape: Apoli-style flat SNBT (Potion, Enchantments, display.Name and friends) translated into data components at grant time. Unrecognised keys land in minecraft:custom_data.",
           "type": "string",
-          "description": "Singular-shape Apoli-style flat SNBT translated into data components at grant time."
+          "default": ""
         },
         "components": {
+          "description": "Singular shape: SNBT DataComponentPatch applied to the granted item. Any registered component, vanilla or modded, parsed with registry context at grant time.",
           "type": "string",
-          "description": "Singular-shape SNBT data-component patch applied to the granted item."
+          "default": ""
         },
         "stacks": {
+          "description": "Plural shape: entries granted in array order, each mirroring the singular root field names. When non-empty this WINS — the root item/count/enchantments/legacy_tag/components are ignored entirely rather than added alongside.",
           "type": "array",
-          "description": "Plural shape (v2.2.0). Each entry mirrors the singular root field names. When non-empty, takes precedence over the singular item/count/enchantments/legacy_tag/components fields.",
           "items": {
             "type": "object",
             "properties": {
               "item": {
-                "type": "string"
+                "description": "Item id granted for this entry.",
+                "type": "string",
+                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
               },
               "count": {
+                "description": "Stack size for this entry; default 1.",
                 "type": "integer",
+                "default": 1,
                 "minimum": 1
               },
               "enchantments": {
+                "description": "Enchantments applied to this entry's item.",
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "string"
+                      "description": "Enchantment id, e.g. 'minecraft:mending'.",
+                      "type": "string",
+                      "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
                     },
                     "level": {
+                      "description": "Enchantment level; default 1.",
                       "type": "integer",
+                      "default": 1,
                       "minimum": 1
                     }
                   },
@@ -6225,10 +6569,14 @@
                 }
               },
               "legacy_tag": {
-                "type": "string"
+                "description": "Flat SNBT for this entry, same meaning as the root `legacy_tag`.",
+                "type": "string",
+                "default": ""
               },
               "components": {
-                "type": "string"
+                "description": "SNBT DataComponentPatch for this entry, same meaning as the root `components`.",
+                "type": "string",
+                "default": ""
               }
             },
             "required": [
@@ -6251,12 +6599,6 @@
         "effect": {
           "description": "Mob-effect id applied while the power is active (e.g. 'minecraft:speed'). The legacy single-effect shorthand: authoring it here is equivalent to a one-entry `effects` list. Applied at infinite duration, so no duration field.",
           "type": "string"
-        },
-        "amplifier": {
-          "description": "Effect level minus one for the root-level `effect` (0 = level I, 1 = level II); default 0. Also cascades as the default amplifier onto every `effects` entry that omits its own.",
-          "type": "integer",
-          "default": 0,
-          "minimum": 0
         },
         "ambient": {
           "description": "When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it.",
@@ -6301,6 +6643,10 @@
           "description": "Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false).",
           "type": "boolean",
           "default": false
+        },
+        "amplifier": {
+          "description": "Effect level minus one (0 = level I, 1 = level II) for the root-level single-effect shorthand; default 0. With an `effects` array present it instead overrides the FIRST entry's amplifier — winning even over an amplifier that entry sets itself, and leaving later entries untouched. It does not cascade the way root ambient/show_particles/show_icon do. That asymmetry is deliberate: it is the hook power_overrides uses to retune one effect's strength without rewriting the array.",
+          "type": "integer"
         },
         "enabled": {
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
@@ -7030,6 +7376,79 @@
       ]
     },
     {
+      "$comment": "origins:cooldown",
+      "properties": {
+        "type": {
+          "const": "origins:cooldown"
+        },
+        "cooldown": {
+          "description": "Countdown duration in ticks armed by the trigger_cooldown action; clamped to at least 1. The power reads back as a resource whose value is 0 while ready.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "hidden": {
+          "description": "When true the countdown bar is kept off the HUD; the timer still runs and is still readable as a resource.",
+          "type": "boolean",
+          "default": false
+        },
+        "hud_render": {
+          "description": "Optional HUD block, same shape as neoorigins:resource's: sprite_location, bar_index / icon_index (both default 0 once the block is present), should_render (false hides the bar), and condition (an entity condition gating bar visibility). Omit for the default bar.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "origins:modify_fall_damage",
+      "properties": {
+        "type": {
+          "const": "origins:modify_fall_damage"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Optional gate on the holder; the scale only applies while it passes (default always).",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "origins:modify_healing",
       "properties": {
         "type": {
@@ -7124,22 +7543,64 @@
       ]
     },
     {
+      "$comment": "origins:modify_xp_gain",
+      "properties": {
+        "type": {
+          "const": "origins:modify_xp_gain"
+        },
+        "modifier": {
+          "description": "Apoli modifier, or an array of them, applied in order. Each entry is {operation, value}; the attribute-style operations are the ones this legacy type uses — addition, multiply_base, multiply_total — where multiply_* sum into base + base*Σvalue (so 0.5 = 1.5x, -0.5 = 0.5x).",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        },
+        "modifiers": {
+          "description": "Plural alias for `modifier`, read only when `modifier` is absent. Same shape.",
+          "oneOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "Fallback branch — any registered type not exhaustively schema'd yet. Allows extra fields permissively.",
       "properties": {
         "type": {
           "not": {
             "enum": [
               "apace:action_on_death",
+              "apace:cooldown",
+              "apace:modify_fall_damage",
               "apace:modify_healing",
               "apace:modify_status_effect_duration",
+              "apace:modify_xp_gain",
               "apoli:action_on_death",
+              "apoli:cooldown",
+              "apoli:modify_fall_damage",
               "apoli:modify_healing",
               "apoli:modify_status_effect_duration",
+              "apoli:modify_xp_gain",
               "apugli:action_on_death",
               "apugli:action_on_jump",
               "apugli:action_on_target_death",
+              "apugli:cooldown",
+              "apugli:modify_fall_damage",
               "apugli:modify_healing",
               "apugli:modify_status_effect_duration",
+              "apugli:modify_xp_gain",
               "neoorigins:action_on_event",
               "neoorigins:action_on_hit",
               "neoorigins:action_on_hit_taken",
@@ -7292,8 +7753,11 @@
               "neoorigins:wraith_phase",
               "neoorigins:xeno_passive",
               "origins:action_on_death",
+              "origins:cooldown",
+              "origins:modify_fall_damage",
               "origins:modify_healing",
-              "origins:modify_status_effect_duration"
+              "origins:modify_status_effect_duration",
+              "origins:modify_xp_gain"
             ]
           }
         }
