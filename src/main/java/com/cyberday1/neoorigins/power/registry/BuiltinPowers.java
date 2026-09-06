@@ -1229,7 +1229,11 @@ public final class BuiltinPowers {
                     "effect_applied", "mod_exhaustion", "mod_natural_regen", "mod_trade_price",
                     "mod_craft_amount", "mod_enchant_level", "mod_harvest_drops", "mod_teleport_range",
                     "mod_fall_damage", "mod_knockback", "mod_potion_duration", "mod_anvil_cost",
-                    "mod_crafted_food_saturation", "mod_bonemeal_extra")
+                    "mod_crafted_food_saturation", "mod_food_nutrition", "mod_bonemeal_extra",
+                    // Compat spellings from CompatEventAliases. Published here on
+                    // purpose: the loader accepts them, so withholding them would
+                    // make the editors reject a pack the game loads.
+                    "item_use_start")
                 .doc("Case-insensitive event key that triggers this hook (e.g. food_eaten, block_break, mod_exhaustion). See docs/EVENTS.md."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Optional DSL condition gating the action/modifier; both only run while it passes (default always)."),

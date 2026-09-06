@@ -227,6 +227,11 @@ block's own interaction (opening a chest, flipping a lever) still works.
 ender pearls, etc. Add an `item_condition` to scope it to the items you
 care about.
 
+**Accepted spelling:** `item_use_start` also resolves here (see
+[Compat spellings](#compat-spellings)). For a shield, bow or food the two
+names denote the same instant; `item_use` merely covers instant-use items
+as well, which have no "start" distinct from their use.
+
 ---
 
 ## `respawn`
@@ -975,6 +980,31 @@ item's existing `saturation` field. Values `≤ 0` are ignored.
 
 ---
 
+## `mod_food_nutrition`
+
+Modifies the nutrition (hunger points) of any food the player actually eats.
+Base value is the item's `nutrition`; the result is rounded and clamped at
+`0`. Contrast `mod_crafted_food_saturation`, which fires at *craft* time and
+only touches saturation — this one fires at *eat* time and only touches
+nutrition, so the two never see the same moment.
+
+**Context:** `FoodContext(stack)` — the food being eaten, so `food_item_in_tag`
+and `food_item_id` both work. No cancel wrapper: the dispatch site fires after
+the eat, leaving `cancel_event` nothing to veto.
+
+**Dispatch site:** `CompatEventPowers.onFoodEaten`
+(`LivingEntityUseItemEvent.Finish`). Because that event fires *after* vanilla
+has credited the food, the difference is applied by correcting `FoodData`
+rather than by editing the stack.
+
+**Chaining:** runs after the legacy `origins:modify_food` power, on whatever
+nutrition that power left behind, so a pack may use both. Neither requires the
+other to be present.
+
+**Typical use:** a picky-eater origin halving nutrition from disliked food.
+
+---
+
 ## `mod_anvil_cost`
 
 Multiplies the XP-level cost of an anvil repair / combine.
@@ -1040,6 +1070,32 @@ only invite divergent behaviour:
   (`addition` + `multiply_base` / `multiply_total`). There is no native
   `neoorigins:` spelling for this one. The compat type *is* the supported
   route, and it is not deprecated.
+
+---
+
+## Compat spellings
+
+A handful of alternate `event` names are accepted and resolved to a canonical
+event. These exist because an unknown `event` is a hard load error, not a
+no-op: a pack that guessed a plausible name loses the entire power, silently
+as far as the game is concerned.
+
+| Spelling | Resolves to | Why it is safe |
+|---|---|---|
+| `item_use_start` | `item_use` | `item_use` already dispatches from `LivingEntityUseItemEvent.Start`, so for anything with a use duration the two names name the same instant. |
+
+An alias is only ever added when the target event **already fires at the same
+moment**. This is a spelling table, not a way to fake a capability: aiming a
+name at an event that fires at a different time buys a power that loads and
+then does the wrong thing, which is worse than the load error it replaced.
+Where no equivalent exists, a real event is added instead — that is what
+`mod_food_nutrition` is.
+
+These spellings are published in the editor schema alongside the canonical
+names, so the editors never reject a pack the game loads happily.
+
+Declared in
+[`CompatEventAliases.java`](../src/main/java/com/cyberday1/neoorigins/compat/CompatEventAliases.java).
 
 ---
 

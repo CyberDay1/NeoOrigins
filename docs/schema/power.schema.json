@@ -1534,7 +1534,9 @@
             "mod_potion_duration",
             "mod_anvil_cost",
             "mod_crafted_food_saturation",
-            "mod_bonemeal_extra"
+            "mod_food_nutrition",
+            "mod_bonemeal_extra",
+            "item_use_start"
           ]
         },
         "condition": {
