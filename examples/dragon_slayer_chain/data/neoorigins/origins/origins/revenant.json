@@ -11,13 +11,45 @@
     "neoorigins:revenant_active_phase",
     "neoorigins:revenant_active_bolt",
     "neoorigins:revenant_daylight_damage",
-    "neoorigins:revenant_slow_regen"
+    "neoorigins:revenant_slow_regen",
+    "neoorigins:revenant_energy"
   ],
   "upgrades": [
     {
       "advancement": "minecraft:end/kill_dragon",
       "origin": "neoorigins:voidwalker",
       "announcement": "examples.dragon_slayer_chain.upgrade.voidwalker"
+    }
+  ],
+  "tier_powers": [
+    {
+      "tier": 1,
+      "add": [
+        "neoorigins:revenant_evolved_hp"
+      ],
+      "remove": []
+    },
+    {
+      "tier": 2,
+      "add": [
+        "neoorigins:revenant_ascended_hp",
+        "neoorigins:revenant_ascended_undying_will"
+      ],
+      "remove": [
+        "neoorigins:revenant_evolved_hp"
+      ]
+    },
+    {
+      "tier": 3,
+      "add": [
+        "neoorigins:revenant_apex_hp",
+        "neoorigins:revenant_apex_armor",
+        "neoorigins:revenant_apex_fire_resistance"
+      ],
+      "remove": [
+        "neoorigins:revenant_ascended_hp",
+        "neoorigins:revenant_ascended_undying_will"
+      ]
     }
   ]
 }
