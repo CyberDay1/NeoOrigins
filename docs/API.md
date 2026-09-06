@@ -433,8 +433,9 @@ each declared key as a labelled hotkey in *Controls → Key Binds → NeoOrigins
 
 ### Declaring on a power
 
-Add a `key` field to an Apoli-style `origins:active_self` or `origins:toggle`
-power JSON. The compat loader picks the field up and registers the binding:
+Add a `key` field to any active power: the native `neoorigins:active_ability`,
+or an Apoli-style `origins:active_self` / `origins:toggle`. The loader picks the
+field up and registers the binding:
 
 ```json
 {
@@ -462,9 +463,17 @@ power JSON. The compat loader picks the field up and registers the binding:
   *not* routed through the pool; they bind directly to a real game control and
   fire from server-side input polling, so they never consume a named-hotkey or
   skill slot.
-- The native `neoorigins:active_ability` type does **not** use the pool;
-  it always binds to one of the six built-in `skill_1`..`skill_6` slots.
-  Use `origins:active_self` when you need a named hotkey.
+- The native `neoorigins:active_ability` uses the pool too. Give it the same
+  `key` field and it binds to a named hotkey and drops out of the skill-slot
+  roster; leave `key` off and it takes the next free `skill_1`..`skill_6` slot
+  as before. There is no need to rewrite it as `origins:active_self`. It reads
+  the same three forms as everything else here: the mod's own
+  `neoorigins:windwalker_cloud_steps` is a native `active_ability` carrying
+  `"key": "key.jump"`, the vanilla-key form covered by the bullet above.
+- The native `neoorigins:toggle` is the exception, because it is not an active
+  power: it holds a boolean for other powers to read and has no activation to
+  fire, so a `key` on it is ignored. Put the key on an `active_ability` whose
+  `entity_action` flips the toggle.
 
 ### Numbered slots (`key: N`)
 

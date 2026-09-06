@@ -3118,6 +3118,8 @@ Read the current value with `neoorigins:power_active { power: "mypack:my_toggle"
 
 `hidden: true` keeps the toggle out of the origin info panel, recommended for any purely-internal flag a player doesn't need to see listed.
 
+> **This type takes no `key`.** A `key` on a `neoorigins:toggle` is ignored: the type is not an active power, so no keypress can reach it. To put a toggle on a hotkey, keep the flag here and give the key to a [`neoorigins:active_ability`](#neooriginsactive_ability) whose `entity_action` is `neoorigins:toggle { power: "mypack:my_toggle" }`. The Apoli-style `origins:toggle` is a different type and does accept `key`.
+
 See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#15-toggleable-abilities-no-keybind-slot) for full recipes.
 
 ---
@@ -3138,8 +3140,17 @@ Generic cooldown-gated active (keybind) ability. Part of the 2.0 consolidation: 
 | `cooldown_icon` | string | no | `""` | HUD cooldown icon (item id or `.png` texture path), see "Cooldown HUD fields" at the top of this page |
 | `cooldown_countdown` | bool | no | `true` | Draw remaining seconds on the icon (needs `cooldown_icon`) |
 | `always_show_icon` | bool | no | `false` | Keep the icon on the HUD even while idle (needs `cooldown_icon`; this is what keeps the icon visible under the default `COOLDOWNS_AND_TOGGLES` HUD mode, and has no additional effect under `ALL_ACTIVE_ABILITIES`) |
+| `key` | int, string, or object | no | — | Hotkey the ability binds to instead of a `skill_1`..`skill_6` slot. A number `N` pins it to named-hotkey pool slot "Hotkey N" (1-64), and several powers sharing the same `N` all fire from that one key. A string is a keybind translation key used as-is (`"examplepack.key.leap"`), or a vanilla input key such as `"key.jump"`, which binds straight to that game control. An object takes `{"key": <number or string>, "continuous": true}` to fire every tick the key is held. Omit for the next free skill slot. See [Named keybinds](API.md#named-keybinds). |
 
-Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter; triggering one ability does not block another.
+Each `active_ability` power maintains an **independent cooldown**. Multiple active abilities on the same origin do not share a cooldown counter: triggering one ability does not block another.
+
+> **Named hotkey slots:** with no `key` field, `neoorigins:active_ability` takes
+> one of the six hardcoded `key.neoorigins.skill_1`..`skill_6` controls. Declare
+> a `key` and it binds to that instead and is kept out of the skill-slot roster,
+> so the six stay free for the abilities that need them. This works on the native
+> type directly: you do not have to fall back to an Apoli-style
+> `origins:active_self` to get a labelled hotkey. See
+> [Named keybinds](API.md#named-keybinds).
 
 Actions and conditions are compiled once at power-load time via `ActionParser` / `ConditionParser`; runtime only dispatches through the compiled closures.
 
