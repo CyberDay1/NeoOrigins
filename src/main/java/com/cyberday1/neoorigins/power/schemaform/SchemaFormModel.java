@@ -259,8 +259,13 @@ public final class SchemaFormModel {
         } else if (kind == FormFieldSpec.Kind.OBJECT && p.has("properties")) {
             children = mapChildren(p);
         }
+        // STRING pattern — the same constraint the web editor enforces off this
+        // schema; carried so the in-game text row can validate as it edits.
+        String pattern = kind == FormFieldSpec.Kind.STRING
+            && p.has("pattern") && p.get("pattern").isJsonPrimitive()
+            ? p.get("pattern").getAsString() : null;
         return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children,
-            itemPattern);
+            itemPattern, false, pattern);
     }
 
     /**

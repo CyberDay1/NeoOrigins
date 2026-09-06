@@ -110,6 +110,11 @@ class OriginsVisionPowerTranslationTest {
      * The two compat routes carry independent copies of the well-known Origins
      * id table, and water_vision was wrong in both. Pin them together so a fix
      * to one is not mistaken for a fix to the pack.
+     *
+     * <p>The loader now emits the canonical {@code persistent_effect} form
+     * directly (it must survive the alias table's retirement); the translator
+     * still leans on the legacy remap. Canonicalize the translator side the way
+     * the load path would before comparing.
      */
     @Test
     void bothCompatRoutesAgreeOnWaterVision() throws Exception {
@@ -119,8 +124,14 @@ class OriginsVisionPowerTranslationTest {
 
         JsonObject translatorSide = translate("origins:water_vision",
             "{ \"type\": \"origins:simple\" }");
+        com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.bootstrap();
+        com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.simulateApply(
+            ResourceLocation.parse(translatorSide.get("type").getAsString()),
+            translatorSide, ResourceLocation.parse("test:water_vision"));
 
         assertEquals(translatorSide.get("type"), loaderSide.get("type"));
         assertEquals(translatorSide.get("condition"), loaderSide.get("condition"));
+        assertEquals(translatorSide.get("effects"), loaderSide.get("effects"));
+        assertEquals(translatorSide.get("toggleable"), loaderSide.get("toggleable"));
     }
 }

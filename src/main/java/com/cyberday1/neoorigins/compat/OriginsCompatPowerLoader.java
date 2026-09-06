@@ -398,15 +398,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
             Map.entry("origins:water_breathing",     () -> json("neoorigins:water_breathing")),
             Map.entry("origins:swim_speed",          () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
-            Map.entry("origins:night_vision",        () -> json("neoorigins:night_vision")),
+            Map.entry("origins:night_vision",        () -> nightVisionJson()),
             Map.entry("origins:slow_falling",        () -> json("neoorigins:prevent_action", "action", "fall_damage")),
             Map.entry("origins:climbing",            () -> json("neoorigins:wall_climbing")),
             Map.entry("origins:shulker_inventory",   () -> json("neoorigins:extra_inventory")),
             Map.entry("origins:phantomize",          () -> json("neoorigins:phantom_form")),
             Map.entry("origins:translucent",         () -> json("neoorigins:model_color", "red", 1.0, "green", 1.0, "blue", 1.0, "alpha", 0.5)),
             // ── Felvaxian / common addon references ──
-            Map.entry("origins:carnivore",           () -> json("neoorigins:food_restriction", "mode", "whitelist", "item_tag", "neoorigins:meat_foods")),
-            Map.entry("origins:cat_vision",           () -> json("neoorigins:night_vision")),
+            Map.entry("origins:carnivore",           () -> meatFoodsRestrictionJson(true)),
+            Map.entry("origins:cat_vision",           () -> nightVisionJson()),
             Map.entry("origins:fall_immunity",        () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.safe_fall_distance", "amount", 1000.0, "operation", "add_value")),
             // strong_ankles: Feline "you take less fall damage" — real Origins
             // halves it (apoli:modify_fall_damage multiply_base_additive -0.5).
@@ -417,7 +417,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:light_armor",          () -> json("neoorigins:restrict_armor", "armor_class", "heavy")),
             Map.entry("origins:nine_lives",           () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -2.0, "operation", "add_value")),
             Map.entry("origins:no_shield",            () -> json("neoorigins:prevent_action", "action", "shield")),
-            Map.entry("origins:vegetarian",           () -> json("neoorigins:food_restriction", "mode", "blacklist", "item_tag", "neoorigins:meat_foods")),
+            Map.entry("origins:vegetarian",           () -> meatFoodsRestrictionJson(false)),
             Map.entry("origins:weak_arms",            () -> json("neoorigins:break_speed_modifier", "multiplier", 0.5)),
             // ── Rock/earthen addon references (e.g. "wou" rock_human) ──
             // strong_arms: real Origins lets bare hands mine tool-required
@@ -589,11 +589,61 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * keys off the camera's fluid and so never fired in water at all.
      */
     private static com.google.gson.JsonObject waterVisionJson() {
-        com.google.gson.JsonObject o = json("neoorigins:night_vision");
+        com.google.gson.JsonObject o = nightVisionJson();
         com.google.gson.JsonObject cond = new com.google.gson.JsonObject();
         cond.addProperty("type", "neoorigins:submerged_in");
         cond.addProperty("fluid", "minecraft:water");
         o.add("condition", cond);
+        return o;
+    }
+
+    /**
+     * Always-on night vision in canonical {@code persistent_effect} form —
+     * {@code neoorigins:night_vision} survives only as a legacy alias, so emit
+     * what its remap would have produced instead of depending on the alias
+     * table's retirement schedule. toggleable:false is load-bearing: the
+     * dedicated night-vision keybind toggles it, off the ability-slot system.
+     */
+    private static com.google.gson.JsonObject nightVisionJson() {
+        com.google.gson.JsonObject o = json("neoorigins:persistent_effect");
+        o.addProperty("toggleable", false);
+        com.google.gson.JsonObject eff = new com.google.gson.JsonObject();
+        eff.addProperty("effect", "minecraft:night_vision");
+        eff.addProperty("amplifier", 0);
+        eff.addProperty("ambient", true);
+        eff.addProperty("show_particles", false);
+        eff.addProperty("show_icon", false);
+        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
+        effects.add(eff);
+        o.add("effects", effects);
+        return o;
+    }
+
+    /**
+     * Meat-tag diet gate in canonical {@code action_on_event} form —
+     * {@code neoorigins:food_restriction} survives only as a legacy alias, so
+     * emit what its remap would have produced: cancel {@code food_eaten} when
+     * the food is (vegetarian) / is not (carnivore) in the meat tag.
+     */
+    private static com.google.gson.JsonObject meatFoodsRestrictionJson(boolean whitelist) {
+        com.google.gson.JsonObject inTag = new com.google.gson.JsonObject();
+        inTag.addProperty("type", "neoorigins:food_item_in_tag");
+        inTag.addProperty("tag", "#neoorigins:meat_foods");
+        com.google.gson.JsonObject match = inTag;
+        if (whitelist) {
+            match = new com.google.gson.JsonObject();
+            match.addProperty("type", "neoorigins:not");
+            match.add("condition", inTag);
+        }
+        com.google.gson.JsonObject cancel = new com.google.gson.JsonObject();
+        cancel.addProperty("type", "neoorigins:cancel_event");
+        com.google.gson.JsonObject gate = new com.google.gson.JsonObject();
+        gate.addProperty("type", "neoorigins:if_else");
+        gate.add("condition", match);
+        gate.add("if_action", cancel);
+        com.google.gson.JsonObject o = json("neoorigins:action_on_event");
+        o.addProperty("event", "food_eaten");
+        o.add("entity_action", gate);
         return o;
     }
 

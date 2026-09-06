@@ -365,12 +365,16 @@ public final class SchemaFormCheck {
         java.util.regex.Matcher arm = java.util.regex.Pattern
             .compile("case\\s+(\"[a-z_]+:[a-z_]+\"(?:\\s*,\\s*\"[a-z_]+:[a-z_]+\")*)\\s*->",
                 java.util.regex.Pattern.DOTALL).matcher(text);
-        java.util.regex.Pattern labelPat = java.util.regex.Pattern.compile("\"[a-z_]+:([a-z_]+)\"");
+        java.util.regex.Pattern labelPat = java.util.regex.Pattern.compile("\"([a-z_]+):([a-z_]+)\"");
         while (arm.find()) {
             java.util.regex.Matcher lbl = labelPat.matcher(arm.group(1));
             boolean first = true;
             while (lbl.find()) {
-                String id = "neoorigins:" + lbl.group(1);
+                // minecraft:* labels switch on fluid/registry ids inside a
+                // handler body (submerged_in, fluid_height), never on condition
+                // types — counting them would demand phantom KNOWN_TYPES entries.
+                if ("minecraft".equals(lbl.group(1))) continue;
+                String id = "neoorigins:" + lbl.group(2);
                 handled.add(id);
                 if (first) { primary.add(id); first = false; }
             }

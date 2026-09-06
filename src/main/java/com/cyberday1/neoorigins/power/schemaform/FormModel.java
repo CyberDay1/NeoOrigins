@@ -338,7 +338,7 @@ public final class FormModel {
             return s; // untouched — avoid a needless copy
         }
         // Rebuild through the FULL-arity constructor. The 9-arg back-compat one
-        // silently defaults itemsRef/children/itemPattern/scalarOrArray, and this
+        // silently defaults itemsRef/children/itemPattern/scalarOrArray/pattern, and this
         // copy is taken for *every* field that picks up a FieldDocs description,
         // an EnumHints overlay, or a config range/default — which is most of
         // them. Losing itemsRef here drops an ARRAY field out of the ArrayRefRow
@@ -347,6 +347,6 @@ public final class FormModel {
         // degrading the very widgets it was meant to annotate.
         return new FormFieldSpec(s.name(), kind, s.required(), def, enums,
             min, max, desc, s.ref(), s.itemsRef(), s.children(), s.itemPattern(),
-            s.scalarOrArray());
+            s.scalarOrArray(), s.pattern());
     }
 }
