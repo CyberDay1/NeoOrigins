@@ -362,6 +362,8 @@ public final class FieldWidgetFactory {
         private final RegistryPick registryPick;
         private final String refKind; // non-null → root-write "pick" button (top level)
         private final String regKind; // non-null → sink "pick" button (nested sub-form)
+        /** Schema {@code pattern} compiled once — not per keystroke; null when absent/unparseable. */
+        private final java.util.regex.Pattern patternRx;
         private EditBox box;
         private Button pick;
         TextRow(FormFieldSpec spec, boolean rawJson, RefOpener refOpener, RegistryPick registryPick) {
@@ -375,6 +377,14 @@ public final class FieldWidgetFactory {
             this.regKind = (refKind == null && registryPick != null)
                 ? com.cyberday1.neoorigins.screen.creator.CreatorAssets.registryKind(spec.name())
                 : null;
+            java.util.regex.Pattern rx = null;
+            if (!rawJson && spec.pattern() != null) {
+                // A regex the generator emitted but Java can't compile must not
+                // brick the row — the schema gates already police the patterns.
+                try { rx = java.util.regex.Pattern.compile(spec.pattern()); }
+                catch (java.util.regex.PatternSyntaxException ignored) { }
+            }
+            this.patternRx = rx;
         }
 
         @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
@@ -451,7 +461,15 @@ public final class FieldWidgetFactory {
             // never false-flags modded/datapack ids.
             if (com.cyberday1.neoorigins.screen.creator.CreatorAssets
                     .registryKind(spec.name()) != null) {
-                return idShapeError(s);
+                String idErr = idShapeError(s);
+                if (idErr != null) return idErr;
+            }
+            // Schema pattern (STRING fields) — the same regex the web editor
+            // enforces. Empty optional values already returned above; JSON-schema
+            // `pattern` semantics are unanchored, hence find() not matches()
+            // (every emitted pattern anchors itself with ^…$ anyway).
+            if (patternRx != null && !patternRx.matcher(s).find()) {
+                return "must match " + patternRx.pattern();
             }
             return null;
         }

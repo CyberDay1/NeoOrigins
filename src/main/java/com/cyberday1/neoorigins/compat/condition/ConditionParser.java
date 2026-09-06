@@ -75,7 +75,7 @@ public final class ConditionParser {
         "neoorigins:in_block", "neoorigins:in_block_anywhere", "neoorigins:in_rain",
         "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",
         "neoorigins:inventory",
-        "neoorigins:invisible", "neoorigins:lava", "neoorigins:light_level",
+        "neoorigins:invisible", "neoorigins:light_level",
         "neoorigins:living", "neoorigins:moon_phase", "neoorigins:moving",
         "neoorigins:nbt", "neoorigins:near_block", "neoorigins:near_entity",
         "neoorigins:near_villager", "neoorigins:nearby_entities",
@@ -91,7 +91,7 @@ public final class ConditionParser {
         "neoorigins:target_type", "neoorigins:temperature", "neoorigins:thundering",
         "neoorigins:ticking", "neoorigins:time_of_day",
         "neoorigins:using_effective_tool", "neoorigins:using_item",
-        "neoorigins:water", "neoorigins:weather", "neoorigins:xp_level",
+        "neoorigins:weather", "neoorigins:xp_level",
         "neoorigins:xp_levels", "neoorigins:xp_points");
 
     private static final EquipmentSlot[] EQUIPMENT_SLOTS = EquipmentSlot.values();
