@@ -39,11 +39,11 @@ Origins with non-standard HP or unique tier bonuses are noted below.
 
 ```toml
 [evolution]
-evolution_enabled = true
-evolution_tier_1_kills = 1000
-evolution_tier_2_kills = 2500
-evolution_tier_3_kills = 5000
-evolution_message_interval = 100
+    enabled = true
+    tier_1_kills = 1000
+    tier_2_kills = 2500
+    tier_3_kills = 5000
+    message_interval = 100
 ```
 
 ## The Evolution Prompt
