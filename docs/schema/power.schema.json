@@ -3111,14 +3111,51 @@
             "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
           }
         },
+        "tiers": {
+          "description": "Optional value bands inside this edible set. The first tier whose items/tags claim the stack wins; anything unmatched uses the power's own nutrition/saturation. Use this to make a nugget worth less than an ingot and a storage block worth more.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "description": "Item ids this band claims. Also makes them edible, so a tier can add items the top-level lists never mention.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+                }
+              },
+              "tags": {
+                "description": "Item-tag ids this band claims. Also makes them edible, so a tier can add tags the top-level lists never mention.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+                }
+              },
+              "nutrition": {
+                "description": "Hunger points restored by an item in this band.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "saturation": {
+                "description": "Saturation modifier for this band; omit to inherit the power's own saturation.",
+                "type": "number"
+              }
+            },
+            "required": [
+              "nutrition"
+            ]
+          }
+        },
         "nutrition": {
-          "description": "Hunger points restored when consumed (default 4).",
+          "description": "Hunger points restored when consumed (default 4). Fallback for items no tier claims.",
           "type": "integer",
           "default": 4,
           "minimum": 0
         },
         "saturation": {
-          "description": "Saturation modifier applied on consumption (default 0.3).",
+          "description": "Saturation modifier applied on consumption (default 0.3). Vanilla computes the saturation gain as nutrition * modifier * 2, so scaling nutrition per tier already scales saturation with it.",
           "type": "number",
           "default": 0.3
         },
@@ -4059,9 +4096,52 @@
           "const": "neoorigins:kill_loot_drops"
         },
         "drops": {
-          "description": "List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry is {entity_type|entity_tag|entity_types, item, chance?, count?}: exactly one target form (a single type id, an entity-type tag, or an explicit list of type ids), the item id to drop, a 0.0-1.0 `chance` (default 1.0) and a `count` (minimum 1, default 1). Entries with no valid target or an unknown item id are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.",
+          "description": "List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry must set EXACTLY ONE target form — entity_type, entity_tag or entity_types — and entries with no valid target are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.",
           "type": "array",
-          "items": {}
+          "items": {
+            "type": "object",
+            "properties": {
+              "entity_type": {
+                "description": "Target a single entity-type id (e.g. 'minecraft:zombie').",
+                "type": "string",
+                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+              },
+              "entity_tag": {
+                "description": "Target every entity type in an entity-type tag (e.g. 'minecraft:skeletons').",
+                "type": "string",
+                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+              },
+              "entity_types": {
+                "description": "Target an explicit list of entity-type ids.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+                }
+              },
+              "item": {
+                "description": "Item id to drop. An entry whose item is missing or unknown is skipped with a load-time warning.",
+                "type": "string",
+                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+              },
+              "chance": {
+                "description": "Probability the drop is added, 0.0-1.0 (default 1.0).",
+                "type": "number",
+                "default": 1.0,
+                "minimum": 0.0,
+                "maximum": 1.0
+              },
+              "count": {
+                "description": "How many to drop; clamped to at least 1 (default 1).",
+                "type": "integer",
+                "default": 1,
+                "minimum": 1
+              }
+            },
+            "required": [
+              "item"
+            ]
+          }
         }
       },
       "required": [
@@ -5933,9 +6013,14 @@
           "default": 10.0
         },
         "water_refill_per_tick": {
-          "description": "Moisture regained per tick while in water or rain (default 0.005).",
+          "description": "Moisture regained per tick while in water, rain, a bubble column or a water cauldron (default 0.005).",
           "type": "number",
           "default": 0.005
+        },
+        "water_bottle_refill": {
+          "description": "Moisture (0-1) restored by drinking one water bottle (default 0.5). Set 0 to disable.",
+          "type": "number",
+          "default": 0.5
         },
         "regen_threshold": {
           "description": "Moisture (0-1) above which the player gets Regeneration (default 0.75).",
