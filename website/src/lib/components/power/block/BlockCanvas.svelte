@@ -18,7 +18,12 @@
 		regKey,
 		type BlockRegistry
 	} from '$lib/blockly/blockRegistry';
-	import { draftToState, stateToDraft, powerBlockId } from '$lib/blockly/blockState';
+	import {
+		draftToState,
+		stateToDraft,
+		powerBlockId,
+		type AuthoredFields
+	} from '$lib/blockly/blockState';
 
 	// `powersStore` defaults to the player Origin draft (so the Origin editor is
 	// unchanged); the Mob Origin editor passes its own store. Only `powers` is
@@ -76,9 +81,12 @@
 
 				const initialPowers = get(powersStore).powers;
 				// Off-schema power types can't be rendered — set them aside so the
-				// canvas neither shows nor clobbers them, and re-attach on save.
-				const preserved = initialPowers.filter((p) => !reg.blockTypeForId.has(regKey('power', p.type)));
-				unsupported = preserved.map((p) => p.id || p.type);
+				// canvas neither shows nor clobbers them, and re-attach on save AT
+				// THEIR ORIGINAL INDEX (powers order is authored data).
+				const preserved = initialPowers
+					.map((p, at) => ({ p, at }))
+					.filter(({ p }) => !reg.blockTypeForId.has(regKey('power', p.type)));
+				unsupported = preserved.map(({ p }) => p.id || p.type);
 
 				// Renderable powers can still carry fields the schema doesn't model
 				// (legacy-alias types whose runtime fields have no schema branch).
@@ -93,10 +101,17 @@
 					}
 				});
 
+				// Which keys each block was really built from. A Blockly widget always
+				// shows SOMETHING, so without this an optional field the author never
+				// wrote would read back as an explicit value on the first edit (e.g.
+				// `modify_damage.set_total: 0` = total immunity). Built once here and
+				// reused by every push, so the canvas can't drift into inventing keys.
+				const authored: AuthoredFields = new Map();
+
 				// Initial load from the current draft.
 				loading = true;
 				Blockly.serialization.workspaces.load(
-					draftToState(reg, get(powersStore).powers) as object,
+					draftToState(reg, get(powersStore).powers, authored) as object,
 					workspace
 				);
 				loading = false;
@@ -107,8 +122,13 @@
 					const ws = Blockly.serialization.workspaces.save(workspace) as Parameters<
 						typeof stateToDraft
 					>[1];
-					const powers = stateToDraft(reg, ws, preserveByBlockId);
-					powersStore.update((d) => ({ ...d, powers: [...powers, ...preserved] }));
+					const powers = stateToDraft(reg, ws, preserveByBlockId, authored);
+					// Re-insert the unrenderable powers where they were. `preserved` is
+					// in ascending original order, so sequential splices rebuild the
+					// original interleaving; the clamp covers blocks added/removed.
+					const merged = [...powers];
+					for (const { p, at } of preserved) merged.splice(Math.min(at, merged.length), 0, p);
+					powersStore.update((d) => ({ ...d, powers: merged }));
 				};
 
 				workspace.addChangeListener((event: import('blockly').Events.Abstract) => {

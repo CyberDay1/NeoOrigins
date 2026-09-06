@@ -16,7 +16,8 @@
 		"check:seed": "tsx src/lib/schema/__tests__/fieldSeed.test.ts",
 		"check:export": "tsx src/lib/datapack/__tests__/export.test.ts",
 		"check:import": "tsx src/lib/datapack/__tests__/import.test.ts",
-		"check:mob": "tsx src/lib/datapack/__tests__/mobImport.test.ts"
+		"check:mob": "tsx src/lib/datapack/__tests__/mobImport.test.ts",
+		"check:blocks": "tsx src/lib/blockly/__tests__/blockState.test.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "^3.0.10",
