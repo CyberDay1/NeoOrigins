@@ -373,9 +373,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         // Parse top-level condition gate (optional, works for all power types).
         // Field is canonically named "power_condition" (not "condition") to avoid
         // colliding with power types that claim "condition" in their own config
-        // codecs (per BuiltinPowers FieldSpecs: model_color, attribute_modifier,
-        // action_on_event, modify_damage, active_ability, persistent_effect,
-        // condition_passive, prevent_death, conditional).
+        // codecs. The excluded set is derived below from the BuiltinPowers
+        // FieldSpecs, never listed here; docs/POWER_TYPES.md carries the
+        // author-facing list and docFieldTableCheck keeps it honest.
         EntityCondition condition = null;
         PowerHolder.ConditionMode conditionMode = PowerHolder.ConditionMode.DENY;
         if (json.has("power_condition") && json.get("power_condition").isJsonObject()) {

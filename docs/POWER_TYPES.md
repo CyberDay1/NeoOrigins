@@ -19,16 +19,21 @@ All powers share six optional top-level fields:
 
 **`condition` as an alias.** On power types that don't have their own `condition` config field, a top-level `condition` is accepted as an alias for `power_condition` with mode `ALLOW` (so the power is active while the condition holds, the intuitive reading). Notes:
 
-- Nine types claim `condition` for their own config and are excluded from the alias: `model_color`, `attribute_modifier`, `action_on_event`, `modify_damage`, `active_ability`, `persistent_effect`, `condition_passive`, `prevent_death`, `conditional`. On those, write `power_condition` for the whole-power gate.
+<!-- shared-fields: condition -->
+- These types claim `condition` for their own config and are excluded from the alias: `model_color`, `attribute_modifier`, `action_on_event`, `modify_damage`, `active_ability`, `active_dash`, `persistent_effect`, `condition_passive`, `effect_over_time`, `creative_flight`, `restrict_items`, `prevent_death`, `conditional`. On those, write `power_condition` for the whole-power gate.
 - An explicit `power_condition_mode` is honored even when the gate comes in via the alias.
 - If both `power_condition` and an aliased `condition` are present, `power_condition` wins and a warning is logged.
 - Prefer `power_condition` in new packs; the alias exists so the common Apoli-style spelling doesn't get silently dropped.
+
+<!-- shared-fields: enabled -->
+**`enabled`: the per-power kill switch.** `condition_passive`, `creative_flight`, `model_color`, `persistent_effect`, `pose` and `water_breathing` accept an optional top-level `enabled` (bool, default `true`). When `false` the power stays attached to the origin but does nothing — no effects, no flight, no periodic action. It exists mainly so a server owner can drop one power out of an origin from `config/neoorigins/power_overrides.toml` without editing the datapack, but a datapack may write it directly.
 
 **Action & condition fields take an object _or_ an array.** Wherever a field below holds an action (e.g. `entity_action`) or a condition (e.g. `condition`), you may pass either a single object or an array of them. Action arrays run in order (implicit `neoorigins:and`); condition arrays must all pass (implicit AND). An empty array no-ops for actions and is always-true for conditions. See [ACTIONS.md](ACTIONS.md) and [CONDITIONS.md](CONDITIONS.md).
 
 If neither `name` nor `description` is present, NeoOrigins falls back to the lang key convention:
 `power.<namespace>.<path>.name` / `power.<namespace>.<path>.description`
 
+<!-- shared-fields: cooldown_icon, cooldown_countdown, always_show_icon -->
 **Cooldown HUD fields (active powers).** Every cooldown-gated active (keybind) power type (`active_ability`, `active_teleport`, `active_dash`, `active_recall`, `active_swap`, `active_fireball`, `active_bolt`, `active_phase`, `active_place_block`, `ground_slam`, `tidal_wave`, `command_pack`, `elytra_boost`, `mount`, `shadow_orb`, `summon_minion`, `tame_mob`, `loot_pool_grant`) additionally accepts three optional HUD fields:
 
 | Field | Type | Default | Description |
@@ -37,7 +42,8 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 | `cooldown_countdown` | bool | `true` | Draw the remaining cooldown in whole seconds translucently on the icon. Only applies when `cooldown_icon` is set; players can suppress all countdown numbers with the `show_cooldown_countdown` client config switch and tune the text opacity with `cooldown_countdown_opacity`. |
 | `always_show_icon` | bool | `false` | Keep this power's icon on the ability HUD cluster even while it is idle / off cooldown (full-bright, no sweep, no countdown). Only applies when `cooldown_icon` is set. **Note:** this is what makes an idle icon persist under the default client HUD mode (`hud_ability_display: COOLDOWNS_AND_TOGGLES`), which otherwise shows a non-toggle icon only while it is recharging. Under `ALL_ACTIVE_ABILITIES` every icon-bearing ability already keeps a slot, so the field has no additional effect there (players can also force all icons on with `always_show_ability_icons`). |
 
-**Toggleable powers** (`flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect` and `condition_passive` when authored with `"toggleable": true`, and `pose`, which is toggleable unless you set `"toggleable": false`) also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
+<!-- shared-fields: cooldown_icon, always_show_icon -->
+**Toggleable powers** (`flight`, `creative_flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect`, `condition_passive` and `effect_over_time` when authored with `"toggleable": true` — `effect_over_time` is also toggleable under `"activation": "active"` — and `pose`, which is toggleable unless you set `"toggleable": false`) also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
 
 Icon slots are labeled with the bound key's short name in the top-right corner; hovering an icon while a screen is open (chat, the HUD editor) shows the power's name and description. The `hud_ability_display` client config picks what the cluster shows besides live cooldowns: `COOLDOWNS_AND_TOGGLES` (default since 2.2.9: cooldown slots only while recharging, plus icon-bearing toggles) or `ALL_ACTIVE_ABILITIES` (every icon-bearing keybind ability keeps a persistent slot, full-bright while idle, sweep while recharging).
 
@@ -259,10 +265,14 @@ Continuously applies a potion effect while the origin is active. The effect is r
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effect` | Identifier | yes | — | Effect ID, e.g. `minecraft:strength` |
-| `amplifier` | int | no | `0` | Effect level (0 = level I, 1 = level II, …) |
-| `ambient` | bool | no | `true` | Whether the effect is ambient (reduced particle visibility) |
-| `show_particles` | bool | no | `false` | Whether to show particles |
+| `effect` | Identifier | no | — | Effect ID, e.g. `minecraft:strength`. Not schema-required, but supply this or `effects`: with neither, the power applies nothing |
+| `amplifier` | int | no | `0` | Effect level (0 = level I, 1 = level II, …) for the root-level `effect`. Alongside `effects` it does not cascade — it overrides the FIRST entry's amplifier, winning even over one that entry sets itself, and leaves later entries alone |
+| `ambient` | bool | no | `true` | Whether the effect is ambient (reduced particle visibility). Cascades onto `effects` entries that omit it |
+| `show_particles` | bool | no | `false` | Whether to show particles. Cascades onto `effects` entries that omit it |
+| `show_icon` | bool | no | `true` | When false the effect's HUD status icon is hidden. Cascades onto `effects` entries that omit it |
+| `effects` | list of EffectSpec | no | — | Multi-effect form, same per-entry shape as [`persistent_effect`](#neooriginspersistent_effect)'s `EffectSpec`. Only `ambient`/`show_particles`/`show_icon` cascade from the root onto entries that omit their own: the root `effect` is read solely when `effects` is absent, and the root `amplifier` overrides just the first entry (see its row above) |
+| `toggleable` | bool | no | `true` | When true the power binds a keybind that flips the effects on/off; off clears them |
+| `default_off` | bool | no | `false` | Toggleable only: when true the effects START disabled so the player must opt in via the keybind |
 
 **Example: permanent Strength I**
 ```json
@@ -287,7 +297,8 @@ Continuously applies a list of potion effects while the origin is active. Unlike
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effects` | list of EffectSpec | yes | — | Mob effects to apply, passed through verbatim. Same per-entry shape as `persistent_effect`'s `EffectSpec` (`effect`/`id`, `amplifier`, `ambient`, `show_particles`, `show_icon`). |
+| `effects` | list of EffectSpec | no | `[]` | Mob effects to apply, passed through verbatim. Same per-entry shape as `persistent_effect`'s `EffectSpec` (`effect`/`id`, `amplifier`, `ambient`, `show_particles`, `show_icon`). Not schema-required, but an empty list applies nothing. |
+| `amplifier` | int | no | — | Root-level override for the **first** entry's amplifier, inherited from `persistent_effect`. Lets `power_overrides` retune strength without editing the array; later entries are unchanged. |
 
 **Example:**
 ```json
@@ -629,7 +640,9 @@ in the vanilla Controls menu.
 
 Grants permanent Water Breathing. The player never loses air while underwater.
 
-No additional fields beyond `name` and `description`.
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `enabled` | bool | no | `true` | Kill switch: when false the power stays attached but the player breathes normally. Usually flipped from `power_overrides.toml` rather than the datapack. |
 
 **Example:**
 ```json
@@ -689,7 +702,12 @@ No additional fields beyond `name` and `description`.
 
 Allows the player to activate elytra gliding without wearing an elytra. Pressing jump while falling initiates flight.
 
-No additional fields beyond `name` and `description`.
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `strength` | double | no | `1.5` | Multiplier on the forward impulse applied while elytra gliding. |
+| `cooldown_ticks` | int | no | `40` | Ticks before the boost can be triggered again. |
+
+Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_countdown`, `always_show_icon`) described at the top of this file.
 
 **Example:**
 ```json
@@ -856,7 +874,7 @@ Prevents listed potion effects from being applied to the player. Uses NeoForge's
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effects` | list of string | yes* | — | Effect IDs to block, e.g. `["minecraft:poison"]` (*optional when `inverted` is true) |
+| `effects` | list of string | no | `[]` | Effect IDs to block, e.g. `["minecraft:poison"]`. Supply it unless `inverted` is true: an empty list on its own grants no immunity at all |
 | `inverted` | bool | no | `false` | Flips the list into an exception list (Apoli semantics): immune to every effect **except** those listed. `true` with an empty list = immune to all effects. |
 
 **Example:**
@@ -1136,7 +1154,7 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s): `operation` (`addition`, `multiply_base`, `multiply_total`) + `value` |
+| `modifier` / `modifiers` | object / array | no | — | Apoli modifier(s): `operation` (`addition`, `multiply_base`, `multiply_total`) + `value`. Not schema-required, but supply one: with neither key the loader logs `missing modifier/modifiers` and drops the power entirely. There is no `condition` gate on this type |
 
 **Example: gain 50% more XP**
 ```json
@@ -1158,7 +1176,7 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s): `operation` + `value` applied to the fall-damage multiplier |
+| `modifier` / `modifiers` | object / array | no | — | Apoli modifier(s): `operation` + `value` applied to the fall-damage multiplier. Not schema-required, but supply one: with neither key the loader logs `missing modifier/modifiers` and drops the power entirely |
 | `condition` | object / array | no | always | Entity condition gating when the scale applies (e.g. only while sneaking) |
 
 **Example: halved fall damage while sneaking**
@@ -1182,7 +1200,7 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s): `operation` + `value` applied to the heal amount |
+| `modifier` / `modifiers` | object / array | no | — | Apoli modifier(s): `operation` + `value` applied to the heal amount. Not schema-required, but supply one: with neither key the loader logs `missing 'modifier'/'modifiers'` and drops the power entirely |
 | `condition` | object / array | no | always | Entity condition gating when the scale applies |
 
 **Example: healing halved**
@@ -1205,7 +1223,7 @@ The seam collects a **multiplier**: its base is `1.0`, and the dispatch site app
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `modifier` / `modifiers` | object / array | yes | — | Apoli modifier(s) applied to the duration multiplier |
+| `modifier` / `modifiers` | object / array | no | — | Apoli modifier(s) applied to the duration multiplier. Not schema-required, but supply one: with neither key the loader logs `missing 'modifier'/'modifiers'` and drops the power entirely |
 | `condition` | object / array | no | always | Entity condition gating when the scale applies |
 
 **Example: beneficial effects last 50% longer**
@@ -1241,6 +1259,50 @@ Fires when the holder dies. Apoli compat (Route B), riding the native `death` ev
     "type": "origins:target_action",
     "action": { "type": "origins:execute_command", "command": "function mypack:on_death" }
   }
+}
+```
+
+---
+
+## `apugli:action_on_jump`
+
+Fires when the holder jumps. Apugli compat: the loader remaps it onto `neoorigins:action_on_event` with `event` pinned to `jump`, so the whole `jump` seam and every action in [ACTIONS.md](ACTIONS.md) is available. Apugli was abandoned at 2.11.0+1.20.4, so this id only appears in packs shipped against it — new packs should write `action_on_event` directly.
+
+Because `event` is pinned, the filter fields that only mean something for other events (`block_condition`, `hands`/`hand`, `item_condition`, `effect`, `effect_tag`, `power`, `immunity_ticks`) are not offered here, and neither is `modifier`: the jump seam dispatches the action path only, so a modifier chain would never be consulted.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_action` | EntityAction | no | noop | Action run on the holder when they jump |
+| `condition` | EntityCondition | no | always-true | Gate: the jump only fires the action while this is true |
+| `cooldown_ticks` | int ≥ 0 | no | `0` | After the action fires, suppress further firings for this many ticks (20 = 1s) |
+
+**Example: cost a little hunger per jump**
+```json
+{
+  "type": "apugli:action_on_jump",
+  "entity_action": { "type": "origins:exhaust", "amount": 1.0 }
+}
+```
+
+---
+
+## `apugli:action_on_target_death`
+
+Fires when the holder lands the killing blow on another entity. Apugli compat: remapped onto `neoorigins:action_on_event` with `event` pinned to `kill`. Same deprecation note as `action_on_jump`.
+
+The action runs on the **killer**, never the victim. Apugli's bi-entity spelling has no counterpart here for that reason: the `kill` hook carries only the holder, so a `bientity_action` would be read by nothing and is deliberately not offered. Field set is identical to `action_on_jump`, and for the same reason.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_action` | EntityAction | no | noop | Action run on the holder when they get a kill |
+| `condition` | EntityCondition | no | always-true | Gate: the kill only fires the action while this is true |
+| `cooldown_ticks` | int ≥ 0 | no | `0` | After the action fires, suppress further firings for this many ticks (20 = 1s) |
+
+**Example: heal a heart per kill**
+```json
+{
+  "type": "apugli:action_on_target_death",
+  "entity_action": { "type": "origins:heal", "amount": 2.0 }
 }
 ```
 
@@ -1356,7 +1418,8 @@ Restricts which foods the player can eat. Supports `blacklist` (cannot eat items
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `mode` | string | no | `"blacklist"` | `"blacklist"` or `"whitelist"` |
-| `item_tag` | string or array | yes | — | Single tag/item or array of tags/items. Use `#` prefix for tags (e.g. `"#minecraft:meat"`), bare strings for item IDs (e.g. `"minecraft:spider_eye"`). |
+| `item_tag` | string or array | no | — | Single tag/item or array of tags/items. Use `#` prefix for tags (e.g. `"#minecraft:meat"`), bare strings for item IDs (e.g. `"minecraft:spider_eye"`). Not schema-required, but supply this or `allowed_tags`: with neither, a blacklist restricts nothing and a whitelist forbids everything. |
+| `allowed_tags` | string or array | no | — | Alias for `item_tag`, read only when `item_tag` is absent. Same single-or-array shape. |
 
 **Example: meat-only diet (whitelist)**
 ```json
@@ -1459,9 +1522,14 @@ Reflects a portion of incoming melee damage back to the attacker.
 
 ## `neoorigins:projectile_immunity`
 
-Prevents all incoming projectile damage (arrows, tridents, fireballs, etc.).
+Negates incoming projectile damage (arrows, tridents, fireballs, etc.). Which projectiles are blocked, and how reliably, are both configurable; the defaults block every arrow.
 
-No additional fields beyond `name` and `description`.
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `projectile_types` | list of strings | no | `["arrow"]` | Projectiles blocked: `arrow`, `fireball`, `trident`, `all`, or an entity id. |
+| `chance` | double (0.0–1.0) | no | `1.0` | Probability an incoming matching projectile is negated. |
+| `teleport` | bool | no | `false` | When true a successful dodge triggers a short random teleport. |
+| `teleport_range` | int | no | `16` | Max teleport distance in blocks on a dodge, when `teleport` is enabled. |
 
 **Example:**
 ```json
@@ -1695,8 +1763,8 @@ Applies a status effect while the player is standing in a biome matching the giv
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `biome_tag` | Identifier | yes | — | Biome tag, e.g. `minecraft:is_forest` |
-| `effect` | Identifier | yes | — | Effect to apply, e.g. `minecraft:speed` |
+| `biome_tag` | Identifier | no | `""` | Biome tag, e.g. `minecraft:is_forest`. Not schema-required, but supply it in practice: the default is an empty tag, which matches no biome, so the buff never fires |
+| `effect` | Identifier | no | `minecraft:regeneration` | Effect to apply, e.g. `minecraft:speed` |
 | `amplifier` | int | no | `0` | Effect level |
 
 **Example: Speed I in forests**
@@ -1924,6 +1992,7 @@ Active ability that teleports the player to the block they are looking at, up to
 |---|---|---|---|---|
 | `range` | float | no | `32.0` | Maximum teleport range in blocks |
 | `cooldown_ticks` | int | no | `60` | Cooldown in ticks after each use |
+| `mode` | string | no | `"target"` | `"target"` teleports to the looked-at spot; `"random"` picks a nearby safe spot within `range` instead |
 | `hunger_cost` | int | no | `0` | Food points removed per use |
 
 **Example:**
@@ -1952,6 +2021,7 @@ Active ability that launches the player in their look direction.
 | `cooldown_ticks` | int | no | `40` | Cooldown in ticks |
 | `allow_vertical` | bool | no | `false` | Whether to include vertical component from look direction |
 | `damage` | float | no | `0` | Flat damage dealt to entities along the dash path. The damage sweep runs when either this or `weapon_damage_scale` is above `0` |
+| `set_velocity` | bool | no | `false` | When true the dash replaces the player's velocity outright; when false it is added to whatever they already had |
 | `damage_radius` | float | no | `2.0` | Radius of the capsule swept along the dash path |
 | `weapon_damage_scale` | float | no | `0` | Adds a fraction of the held weapon's attack damage on top of `damage` (e.g. `1.0` = full weapon damage) |
 | `condition` | condition | no | always true | EntityCondition gating the dash. While it fails the keypress does nothing and no cooldown is spent |
@@ -1979,7 +2049,16 @@ Active ability that launches the player straight upward. Useful paired with `ely
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `power` | float | no | `1.5` | Upward launch velocity |
-| `cooldown_ticks` | int | no | `60` | Cooldown in ticks |
+| `cooldown_ticks` | int | no | `60` | Cooldown in ticks. Ignored when `cooldown_resource` is set |
+| `cooldown_resource` | string | no | `""` | Variable/resource power id whose live value (in ticks) becomes the cooldown length on each activation, overriding `cooldown_ticks`. Empty = fixed cooldown |
+| `hunger_cost` | int | no | `0` | Food/exhaustion points consumed per successful activation |
+| `resource_cost` | string | no | `""` | Resource power id whose value is spent on activation. Empty = no resource cost |
+| `resource_cost_amount` | int | no | `0` | Amount of the `resource_cost` resource consumed per activation |
+| `condition` | condition | no | always true | EntityCondition gating the activation. A blocked attempt spends no cooldown |
+| `fail_action` | action | no | none | EntityAction run when an activation attempt is blocked by `condition` — e.g. an `execute_command` tellraw explaining why. Not fired on cooldown or cost aborts |
+| `key` | int / string / object | no | none | Hotkey this active binds to instead of the next free skill slot. Same shape as [`active_ability`'s `key`](#neooriginsactive_ability); see [Named keybinds](API.md#named-keybinds) |
+
+Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_countdown`, `always_show_icon`) described at the top of this file.
 
 **Example:**
 ```json
@@ -2005,6 +2084,16 @@ Cooldown-gated active ability that heals nearby players in a sphere around the c
 | `heal_amount` | float | no | `6.0` | Health restored to each affected player (half-hearts) |
 | `radius` | float | no | `8.0` | Radius of the heal sphere (blocks) |
 | `heal_self` | bool | no | `true` | When true the caster is also healed; when false only other players in range are healed |
+| `cooldown_ticks` | int | no | `60` | Cooldown between uses in ticks (20 = 1s). Ignored when `cooldown_resource` is set |
+| `cooldown_resource` | string | no | `""` | Variable/resource power id whose live value (in ticks) becomes the cooldown length on each activation, overriding `cooldown_ticks`. Empty = fixed cooldown |
+| `hunger_cost` | int | no | `0` | Food/exhaustion points consumed per successful activation |
+| `resource_cost` | string | no | `""` | Resource power id whose value is spent on activation. Empty = no resource cost |
+| `resource_cost_amount` | int | no | `0` | Amount of the `resource_cost` resource consumed per activation |
+| `condition` | condition | no | always true | EntityCondition gating the activation. A blocked attempt spends no cooldown |
+| `fail_action` | action | no | none | EntityAction run when an activation attempt is blocked by `condition`. Not fired on cooldown or cost aborts |
+| `key` | int / string / object | no | none | Hotkey this active binds to instead of the next free skill slot. Same shape as [`active_ability`'s `key`](#neooriginsactive_ability); see [Named keybinds](API.md#named-keybinds) |
+
+Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_countdown`, `always_show_icon`) described at the top of this file.
 
 **Example:**
 ```json
@@ -2029,6 +2118,16 @@ Cooldown-gated active ability that pushes nearby entities outward from the caste
 |---|---|---|---|---|
 | `radius` | float | no | `6.0` | Radius of the push (blocks) |
 | `strength` | float | no | `1.0` | Outward push strength applied to each entity |
+| `cooldown_ticks` | int | no | `60` | Cooldown between uses in ticks (20 = 1s). Ignored when `cooldown_resource` is set |
+| `cooldown_resource` | string | no | `""` | Variable/resource power id whose live value (in ticks) becomes the cooldown length on each activation, overriding `cooldown_ticks`. Empty = fixed cooldown |
+| `hunger_cost` | int | no | `0` | Food/exhaustion points consumed per successful activation |
+| `resource_cost` | string | no | `""` | Resource power id whose value is spent on activation. Empty = no resource cost |
+| `resource_cost_amount` | int | no | `0` | Amount of the `resource_cost` resource consumed per activation |
+| `condition` | condition | no | always true | EntityCondition gating the activation. A blocked attempt spends no cooldown |
+| `fail_action` | action | no | none | EntityAction run when an activation attempt is blocked by `condition`. Not fired on cooldown or cost aborts |
+| `key` | int / string / object | no | none | Hotkey this active binds to instead of the next free skill slot. Same shape as [`active_ability`'s `key`](#neooriginsactive_ability); see [Named keybinds](API.md#named-keybinds) |
+
+Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_countdown`, `always_show_icon`) described at the top of this file.
 
 **Example:**
 ```json
@@ -2143,11 +2242,22 @@ Active ability that applies a mob effect to all living entities within a radius 
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effect` | Identifier | yes | — | Effect to apply, e.g. `minecraft:slowness` |
-| `amplifier` | int | no | `0` | Effect level |
-| `duration_ticks` | int | no | `100` | Duration of the applied effect |
+| `effect` | Identifier | no | `minecraft:weakness` | Effect applied to everyone in range, e.g. `minecraft:slowness` |
+| `amplifier` | int | no | `0` | Effect level minus one (`0` = level I) |
+| `duration` | int | no | `200` | Duration of the applied effect in ticks (20 = 1s) |
+| `duration_ticks` | int | no | — | Synonym for `duration`, accepted because packs mix the two spellings. Wins when both are set |
 | `radius` | float | no | `8.0` | Range in blocks |
-| `cooldown_ticks` | int | no | `60` | Cooldown in ticks |
+| `include_source` | bool | no | `false` | When true the caster is affected too. Leaving it false is what stops an offensive burst (instant damage, wither) from killing its own caster |
+| `cooldown_ticks` | int | no | `60` | Cooldown in ticks. Ignored when `cooldown_resource` is set |
+| `cooldown_resource` | string | no | `""` | Variable/resource power id whose live value (in ticks) becomes the cooldown length on each activation, overriding `cooldown_ticks`. Empty = fixed cooldown |
+| `hunger_cost` | int | no | `0` | Food/exhaustion points consumed per successful activation |
+| `resource_cost` | string | no | `""` | Resource power id whose value is spent on activation. Empty = no resource cost |
+| `resource_cost_amount` | int | no | `0` | Amount of the `resource_cost` resource consumed per activation |
+| `condition` | condition | no | always true | EntityCondition gating the activation. A blocked attempt spends no cooldown |
+| `fail_action` | action | no | none | EntityAction run when an activation attempt is blocked by `condition`. Not fired on cooldown or cost aborts |
+| `key` | int / string / object | no | none | Hotkey this active binds to instead of the next free skill slot. Same shape as [`active_ability`'s `key`](#neooriginsactive_ability); see [Named keybinds](API.md#named-keybinds) |
+
+Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_countdown`, `always_show_icon`) described at the top of this file.
 
 **Example: root all nearby mobs**
 ```json
@@ -2366,11 +2476,11 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effects` | list of EffectSpec | yes | — | Mob effects to apply. See below. May also be a single inline EffectSpec on the top-level object. |
+| `effects` | list of EffectSpec | no | `[]` | Mob effects to apply. See below. May also be a single inline EffectSpec on the top-level object. Not schema-required, but an empty list applies nothing. |
 | `condition` | EntityCondition | no | always-true | DSL condition: effects only apply while it is true. Effects are cleared when it becomes false. |
 | `toggleable` | bool | no | `true` | When true, this is an active-keybind power: pressing the key toggles effects on/off. When false, effects are always applied while condition is true. |
 | `default_off` | bool | no | `false` | Toggleable powers only: when true, the power starts disabled, so effects stay off until the player first toggles it on. |
-| `amplifier` | int | no | — | Root-level override for the **first** effect's amplifier (lets server admins retune strength without editing the `effects` array). Per-effect amplifiers on later specs are unchanged. |
+| `amplifier` | int | no | — | Effect level for the root-level single-effect shorthand. With an `effects` array present it instead overrides the **first** effect's amplifier — winning even over one that entry sets itself — which is how a server admin retunes strength without editing the array. Later specs are unchanged, and unlike its three neighbours below it does not cascade. |
 
 **`EffectSpec` object:**
 
@@ -2490,6 +2600,25 @@ See [EVENTS.md](EVENTS.md) / the Apoli compat docs for the full condition and ac
   "description": "Burns while in the Nether."
 }
 ```
+
+---
+
+## `neoorigins:action_over_time`
+
+A straight alias for [`neoorigins:condition_passive`](#neooriginscondition_passive) — same fields, same behaviour, remapped before any field is read. It exists because "run this action every N ticks" is the use the type is most often reached for, and `condition` is optional, so the name reads better when there is no gate at all. Prefer `condition_passive` in new packs; use this where an existing pack already spells it this way.
+
+`neoorigins:tick_action` is **not** the type to reach for here: it ships no behaviour and dispatches nothing.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `interval` | int | no | `20` | Tick interval between runs, 20 = 1 second (clamped to ≥ 1) |
+| `condition` | EntityCondition | no | always-true | DSL condition tested each interval |
+| `entity_action` | EntityAction | no | noop | Action run against the player when the condition is true |
+| `else_action` | EntityAction | no | noop | Action run when the condition is false |
+| `toggleable` | bool | no | `false` | When true, binds a skill keybind that flips the periodic action on/off. While off the interval action never runs |
+| `default_off` | bool | no | `false` | Toggleable only: when true the power starts disabled so the player opts in via the keybind |
+
+Worked examples (periodic feed, periodic heal) are under [Periodic feed / heal](#periodic-feed--heal-via-neooriginsaction_over_time).
 
 ---
 
@@ -3724,7 +3853,10 @@ Periodically resets villager trade uses for every villager within a radius of th
 
 Adds rare items to the wandering-trader pool. This is a **global effect** hooked via `WandererTradesEvent` at mod init; the power's presence on any player enables it worldwide.
 
-No fields beyond `name` / `description`.
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `master_slots` | int | no | `3` | Random master-tier villager trades added to wandering traders. |
+| `treasure_chance` | double (0.0–1.0) | no | `0.25` | Probability a rare treasure trade is also offered. |
 
 **Example:**
 ```json
