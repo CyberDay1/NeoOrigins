@@ -17,9 +17,11 @@ is closed. Resolution follows standard NeoForge server-config rules:
 These values are read only after a world is active, so they do not participate in
 the boot-time datapack reload.
 
-> **Config split (2.2.2).** `content.toml` is one of four server config files.
-> Its siblings are `gameplay.toml`, `admin.toml`, and `power_overrides.toml`.
-> This doc covers `content.toml` only.
+> **Config split (2.2.2).** `content.toml` is one of four config files, and the
+> only true SERVER config among them: its siblings
+> [`gameplay.toml`](GAMEPLAY_CONFIG.md), [`admin.toml`](ADMIN_CONFIG.md) and
+> `power_overrides.toml` are COMMON configs (loaded early, not synced to
+> clients, no per-world copy). This doc covers `content.toml` only.
 
 ## Global toggles
 

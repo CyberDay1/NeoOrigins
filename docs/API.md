@@ -6,10 +6,10 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types): 120 types + 29 retired
-- [Condition verbs](#condition-verbs): 94 conditions
-- [Action verbs](#action-verbs): 85 actions
-- [Event keys](#event-keys): 49 events
+- [Power types](#power-types): 122 types + 29 retired
+- [Condition verbs](#condition-verbs): 108 conditions
+- [Action verbs](#action-verbs): 95 actions
+- [Event keys](#event-keys): 51 events
 - [Named keybinds](#named-keybinds)
 - [Active theme datapack file](#active-theme-datapack-file)
 - [Namespaces & prefixes](#namespaces--prefixes)
@@ -41,10 +41,13 @@ of `neoorigins:biome` and `neoorigins:not(origins:enchantment)`. The 2.0 design
 goal is that virtually any behaviour a pack wants is a composition of
 verbs that already exist, rather than a bespoke power type.
 
-The upstream layer (for cross-mod pack compatibility) is handled by
-`LegacyPowerTypeAliases.java`, which translates `origins:` / `apace:` /
-`apoli:` / `apugli:` types into the 2.0 vocabulary at load time. See
-[MIGRATION.md](MIGRATION.md).
+The upstream layer (for cross-mod pack compatibility) is handled by the
+compat loader: `origins:` and `apace:` types are translated into the 2.0
+vocabulary by `OriginsPowerTranslator` / `OriginsCompatPowerLoader`, while
+`apoli:` and `apugli:` spellings are canonicalized to `origins:` first.
+`LegacyPowerTypeAliases` is a narrower remap table: retired `neoorigins:`
+ids plus a few cross-mod entries. See [MIGRATION.md](MIGRATION.md) and the
+[Namespaces](#namespaces--prefixes) table.
 
 ---
 
@@ -61,6 +64,8 @@ The upstream layer (for cross-mod pack compatibility) is handled by
 | [PACK_FORMAT.md](PACK_FORMAT.md) | Directory layout, file-name conventions, JSON boilerplate. |
 | [CONTENT_CONFIG.md](CONTENT_CONFIG.md) | Server `content.toml` toggles: global vision / resource-bar switches and per-origin / per-class enable flags. |
 | [CLIENT_CONFIG.md](CLIENT_CONFIG.md) | Per-client `client.toml` options: UI theme, HUD layout, hotkey pool size. |
+| [GAMEPLAY_CONFIG.md](GAMEPLAY_CONFIG.md) | `gameplay.toml` options: Orb of Origins costs, random assignment, evolution kill counts, ocean-origin survival, sun damage, mount consent, friendly fire, armor classes. |
+| [ADMIN_CONFIG.md](ADMIN_CONFIG.md) | `admin.toml` policy: command-power blacklist, dimension restrictions, unique-origin layers, compat origin filtering, taming exclusions, debug flags. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How powers are loaded, dispatched, cached. For debugging. |
 | [COMPATIBILITY.md](COMPATIBILITY.md) | Out-of-the-box mod integrations (Origins/Apoli, Curios, Ars Nouveau, KubeJS, JEI/REI, etc.). |
 
@@ -127,6 +132,8 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. |
 | [`entity_model`](POWER_TYPES.md#neooriginsentity_model) | Replace the player's model with another entity's: a morph. Changes hitbox and voice with it. |
 | [`invisibility`](POWER_TYPES.md#neooriginsinvisibility) | Turn the player invisible, optionally hiding worn armour too. |
+| [`prevent_entity_render`](POWER_TYPES.md#neooriginsprevent_entity_render) | Hide matching living entities from this player only; they still act and collide. |
+| [`pose`](POWER_TYPES.md#neooriginspose) | Hold the player's body in a chosen pose (prone, sneak height, upright) while the power is on. |
 | [`particle`](POWER_TYPES.md#neooriginsparticle) | Emit vanilla particles on the player at a fixed cadence. Server-side. |
 | [`shader`](POWER_TYPES.md#neooriginsshader) | Post-processing shader on the player's view. |
 
@@ -326,7 +333,11 @@ namespace is also accepted; they're aliases). Jumps go to
 `neoorigins:exposed_to_sky` • `neoorigins:exposed_to_sun` • `neoorigins:daytime` •
 `neoorigins:time_of_day` • `neoorigins:moon_phase` • `neoorigins:height` •
 `neoorigins:fluid_height` • `neoorigins:distance` • `neoorigins:near_entity` •
-`neoorigins:nearby_entities` • `neoorigins:near_villager`
+`neoorigins:nearby_entities` • `neoorigins:near_villager` •
+`neoorigins:near_block` • `neoorigins:in_block_anywhere` •
+`neoorigins:distance_from_coordinates` • `neoorigins:cover` •
+`neoorigins:hardness` • `neoorigins:replacable` • `neoorigins:night` •
+`neoorigins:thundering`
 
 ### Player state
 `neoorigins:health` • `neoorigins:relative_health` • `neoorigins:food_level` •
@@ -335,21 +346,35 @@ namespace is also accepted; they're aliases). Jumps go to
 `neoorigins:sprinting` • `neoorigins:swimming` • `neoorigins:invisible` •
 `neoorigins:creative_flying` • `neoorigins:moving` • `neoorigins:passenger` •
 `neoorigins:using_item` • `neoorigins:equipped_item` • `neoorigins:enchantment` •
-`neoorigins:resource` • `neoorigins:living` • `neoorigins:exists` • `neoorigins:ticking`
+`neoorigins:resource` • `neoorigins:living` • `neoorigins:exists` • `neoorigins:ticking` •
+`neoorigins:advancement` • `neoorigins:air` • `neoorigins:body_temperature` •
+`neoorigins:climbing` • `neoorigins:climbing_gate` •
+`neoorigins:collided_horizontally` • `neoorigins:creative_mode` •
+`neoorigins:has_effect` • `neoorigins:status_effect` • `neoorigins:inventory` •
+`neoorigins:saturation_level` • `neoorigins:using_effective_tool` •
+`neoorigins:xp_levels`
+
+### Food context
+`neoorigins:food_item_id` • `neoorigins:food_item_in_tag` •
+`neoorigins:food_item_in_config_list`
 
 ### Entity & damage
 `neoorigins:entity_type` • `neoorigins:target_type` • `neoorigins:target_group` •
 `neoorigins:can_see` • `neoorigins:damage_type` • `neoorigins:damage_tag` •
 `neoorigins:damage_name` • `neoorigins:from_fire` • `neoorigins:from_projectile` •
-`neoorigins:from_explosion`
+`neoorigins:from_explosion` • `neoorigins:actor_condition` •
+`neoorigins:hit_dealt_amount` • `neoorigins:hit_taken_amount` •
+`neoorigins:out_of_combat`
 
 ### Power introspection
-`neoorigins:power_active` • `neoorigins:power_type` • `neoorigins:in_set`
+`neoorigins:power_active` • `neoorigins:power_type` • `neoorigins:in_set` •
+`neoorigins:power` • `neoorigins:origin` • `neoorigins:cooldown` •
+`neoorigins:no_minions_alive`
 
 ### Advanced
 `neoorigins:nbt` • `neoorigins:scoreboard` • `neoorigins:statistic` •
 `neoorigins:command` • `neoorigins:predicate` •
-`neoorigins:amount` • `neoorigins:equal`
+`neoorigins:amount` • `neoorigins:equal` • `neoorigins:config_flag`
 
 ---
 
@@ -360,33 +385,62 @@ Used in `entity_action` fields. All use the `neoorigins:` namespace (the
 
 ### Combinators & control
 `neoorigins:and` • `neoorigins:chance` • `neoorigins:delay` • `neoorigins:if_else` •
-`neoorigins:if_else_list` • `neoorigins:nothing`
+`neoorigins:if_else_list` • `neoorigins:nothing` • `neoorigins:choice` •
+`neoorigins:invert` • `neoorigins:cancel_event`
+
+### Wrappers & targeting
+`neoorigins:actor_action` • `neoorigins:target_action` • `neoorigins:riding_action` •
+`neoorigins:passenger_action` • `neoorigins:equipped_item_action` •
+`neoorigins:block_action_at` • `neoorigins:block_target_action` •
+`neoorigins:selector_action` • `neoorigins:raycast` • `neoorigins:offset`
 
 ### Damage & healing
 `neoorigins:damage` • `neoorigins:heal` • `neoorigins:feed` • `neoorigins:exhaust` •
-`neoorigins:change_resource`
+`neoorigins:change_resource` • `neoorigins:damage_attacker` •
+`neoorigins:ignite_attacker` • `neoorigins:effect_on_attacker`
 
 ### Effects
-`neoorigins:apply_effect` • `neoorigins:clear_effect`
+`neoorigins:apply_effect` • `neoorigins:clear_effect` •
+`neoorigins:spawn_effect_cloud` • `neoorigins:spawn_lingering_area` •
+`neoorigins:modify_temperature`
 
 ### Movement & position
 `neoorigins:add_velocity` • `neoorigins:launch` • `neoorigins:set_fall_distance` •
-`neoorigins:dismount` • `neoorigins:throw_target`
+`neoorigins:dismount` • `neoorigins:throw_target` • `neoorigins:dash` •
+`neoorigins:mount` • `neoorigins:random_teleport` • `neoorigins:swap_positions` •
+`neoorigins:swap_with_entity` • `neoorigins:teleport_target_to_self` •
+`neoorigins:teleport_to_marker` • `neoorigins:teleport_to_target`
 
 ### Items & inventory
 `neoorigins:give` • `neoorigins:modify_food` • `neoorigins:spawn_entity` •
-`neoorigins:spawn_projectile`
+`neoorigins:spawn_projectile` • `neoorigins:drop_inventory` •
+`neoorigins:drop_items` • `neoorigins:force_drop` • `neoorigins:steal_item` •
+`neoorigins:modify_inventory` • `neoorigins:dye` • `neoorigins:shear` •
+`neoorigins:add_xp` • `neoorigins:crafting_table`
 
 ### World & environment
 `neoorigins:set_block` • `neoorigins:set_on_fire` • `neoorigins:extinguish` •
-`neoorigins:explode` • `neoorigins:gain_air` • `neoorigins:area_of_effect`
+`neoorigins:explode` • `neoorigins:gain_air` • `neoorigins:area_of_effect` •
+`neoorigins:grow` • `neoorigins:till` • `neoorigins:path` • `neoorigins:strip` •
+`neoorigins:transform_block` • `neoorigins:spawn_black_hole` •
+`neoorigins:spawn_tornado` • `neoorigins:spawn_projectile_rain` •
+`neoorigins:spawn_telegraph` • `neoorigins:spawn_particles`
 
 ### Power control
-`neoorigins:grant_power` • `neoorigins:revoke_power` • `neoorigins:trigger_cooldown`
+`neoorigins:grant_power` • `neoorigins:revoke_power` • `neoorigins:trigger_cooldown` •
+`neoorigins:activate_power` • `neoorigins:toggle` • `neoorigins:set_resource` •
+`neoorigins:open_layer_picker`
+
+### Entities & sets
+`neoorigins:tame_target` • `neoorigins:chain_to_nearest` •
+`neoorigins:pull_entities` • `neoorigins:add_to_set` •
+`neoorigins:remove_from_set` • `neoorigins:morph_entity_event` •
+`neoorigins:trigger_morph_animation`
 
 ### Integration
 `neoorigins:execute_command` • `neoorigins:play_sound` • `neoorigins:swing_hand` •
-`neoorigins:emit_game_event`
+`neoorigins:emit_game_event` • `neoorigins:kubejs_callback` •
+`neoorigins:cast_spell` • `neoorigins:cast_iron_spell`
 
 ---
 
@@ -395,21 +449,25 @@ Used in `entity_action` fields. All use the `neoorigins:` namespace (the
 Used in `action_on_event`'s `event` field. Case-insensitive.
 
 ### Core lifecycle & combat
-`ATTACK` • `HIT_TAKEN` • `KILL` • `DEATH` • `BLOCK_BREAK` • `BLOCK_PLACE` •
-`ITEM_USE` • `RESPAWN` • `TICK` • `DIMENSION_CHANGE` • `JUMP` • `PROJECTILE_HIT`
+`ATTACK` • `HIT_TAKEN` • `HIT_DEALT` • `KILL` • `DEATH` • `BLOCK_BREAK` •
+`BLOCK_PLACE` • `ITEM_USE` • `RESPAWN` • `TICK` • `DIMENSION_CHANGE` •
+`JUMP` • `CLIMB` • `PROJECTILE_HIT` • `EFFECT_APPLIED`
 
 ### Interactions
-`BONEMEAL` • `FOOD_EATEN` • `BLOCK_USE` • `ENTITY_USE` • `ITEM_PICKUP` •
-`ITEM_USE_FINISH`
+`BONEMEAL` • `FOOD_EATEN` • `FOOD_FINISHED` • `BLOCK_USE` • `ENTITY_USE` •
+`ITEM_PICKUP` • `ITEM_USE_FINISH` • `VILLAGER_INTERACT` • `TRADE_COMPLETED` •
+`BREED` • `TAME` • `CRAFT_ITEM` • `SMELT_ITEM` • `ENCHANT_ITEM` •
+`ANVIL_REPAIR` • `ADVANCEMENT_EARNED`
 
 ### Origin & power lifecycle
-`GAINED` • `LOST` • `CHOSEN` • `WAKE_UP` • `LAND`
+`GAINED` • `LOST` • `CHOSEN` • `WAKE_UP` • `LAND` • `POWER_ACTIVATED`
 
 ### Modifiers (return a float, chain in registration order)
 `MOD_EXHAUSTION` • `MOD_NATURAL_REGEN` • `MOD_ENCHANT_LEVEL` •
 `MOD_HARVEST_DROPS` • `MOD_TELEPORT_RANGE` • `MOD_KNOCKBACK` •
 `MOD_POTION_DURATION` • `MOD_ANVIL_COST` • `MOD_CRAFTED_FOOD_SATURATION` •
-`MOD_BONEMEAL_EXTRA`
+`MOD_BONEMEAL_EXTRA` • `MOD_FALL_DAMAGE` • `MOD_TRADE_PRICE` •
+`MOD_CRAFT_AMOUNT` • `MOD_FOOD_NUTRITION`
 
 See [EVENTS.md](EVENTS.md) for each event's context record.
 
@@ -690,7 +748,7 @@ NeoOrigins accepts legacy prefixes for cross-mod pack compat.
 | `neoorigins:*` | Canonical 2.0 namespace. Use this for new packs. | Direct registry lookup. |
 | `origins:*` | Upstream Apoli / vanilla Origins. | Translator in `OriginsCompatPowerLoader` maps to `neoorigins:*` or a DSL recipe. |
 | `apace:*` | Apace mod variant. | Same translator as `origins:*`. |
-| `apoli:*` | Upstream Apoli mod. | `LegacyPowerTypeAliases` remaps to 2.0 generics. |
+| `apoli:*` | Upstream Apoli mod. | Canonicalized to `origins:*` and fed through the same translator; `LegacyPowerTypeAliases` covers only the odd cross-mod id (e.g. `apoli:edible_item`). |
 | `apugli:*` | Apugli mod. | `LegacyPowerTypeAliases` remaps; Tier-1 aliases only (edible_item, action_on_jump, action_on_target_death). |
 
 Running on a mixed pack: if two prefixes point at the same conceptual

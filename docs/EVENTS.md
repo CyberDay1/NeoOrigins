@@ -80,10 +80,13 @@ via `entity_action`.
 
 ## `attack`
 
-Fires when the player attacks a living entity (pre-damage).
+Fires when the player attacks an entity (pre-damage).
 
-**Context:** the target `LivingEntity` itself. Bientity conditions on the
-power can read it as the target.
+**Context:** `EntityInteractContext(target, event)` when the target is a
+`LivingEntity`: bientity conditions resolve the target, and the wrapped
+`AttackEntityEvent` is what `neoorigins:cancel_event` vetoes. Non-living
+targets (boats, item frames) fall back to the raw `AttackEntityEvent`, so
+`cancel_event` still works there but bientity conditions have no target.
 
 **Dispatch site:** `CombatPowerEvents.onAttackEntity` (hooks
 `AttackEntityEvent`).
@@ -97,10 +100,12 @@ rage meter, spawn a visual shockwave.
 
 Fires when the player takes damage (post-cancel, before final apply).
 
-**Context:** `HitTakenContext(amount, source)`. The amount is the vanilla-
-adjusted damage and the `DamageSource` is the original source. Action verbs
-like `neoorigins:damage_attacker` read `amount` for amount-ratio thorns-style
-retaliation.
+**Context:** `HitTakenContext(amount, source, event)`. The amount is the
+vanilla-adjusted damage, the `DamageSource` is the original source, and
+`event` is the cancellable `LivingIncomingDamageEvent` that makes
+`neoorigins:cancel_event` work (null at dispatch sites without cancel
+semantics). Action verbs like `neoorigins:damage_attacker` read `amount`
+for amount-ratio thorns-style retaliation.
 
 **Dispatch site:** `CombatPowerEvents.onLivingDamage` (`LivingIncomingDamage`
 victim branch).
@@ -134,8 +139,10 @@ counters, on-hit resource gain, big-hit screen shake.
 
 Fires when the player kills a living entity.
 
-**Context:** `KillContext(killed)`, the `LivingEntity` that just died.
-Bientity / entity-type conditions can filter on it.
+**Context:** `KillContext(killed, event)`: the `LivingEntity` that just died
+plus the cancellable `LivingDeathEvent`, which is what lets
+`neoorigins:cancel_event` spare the victim. Bientity / entity-type
+conditions can filter on the killed entity.
 
 **Dispatch site:** `CombatPowerEvents.onLivingDeath` (killer = ServerPlayer
 branch).
@@ -149,7 +156,9 @@ mechanics.
 
 Fires when the player themself dies.
 
-**Context:** none (`null`).
+**Context:** the cancellable `LivingDeathEvent` itself, so
+`neoorigins:cancel_event` can veto the death. After a veto a player still at
+0 HP is patched to 1 HP (totem-style) so they don't re-die next tick.
 
 **Dispatch site:** `CombatPowerEvents.onLivingDeath` (dying-player branch,
 fires before the killer branch).
@@ -284,9 +293,10 @@ Fires when the player jumps.
 
 Fires when a projectile owned by the player hits something (entity or block).
 
-**Context:** `ProjectileHitContext(projectile, result)`, the projectile
-entity and the `HitResult`. Check `result.getType()` for
-`ENTITY` / `BLOCK` / `MISS`.
+**Context:** `ProjectileHitContext(projectile, result, event)`: the
+projectile entity, the `HitResult`, and the cancellable
+`ProjectileImpactEvent` that `neoorigins:cancel_event` negates. Check
+`result.getType()` for `ENTITY` / `BLOCK` / `MISS`.
 
 **Dispatch site:** `CombatPowerEvents.onProjectileImpact`.
 
@@ -385,10 +395,16 @@ Fires when the player wakes from sleeping.
 
 Fires when the player lands after a fall.
 
-**Context:** the fall distance as a boxed `Float`.
+**Context:** the cancellable `LivingFallEvent` itself, so
+`neoorigins:cancel_event` negates the fall damage. On the tick-detector path
+below the context is null: there is no fall event to cancel, so
+`cancel_event` is a no-op for creative/flight landings.
 
-**Dispatch site:** `MovementPowerEvents.onLivingFall` (runs after the
-`prevent_action: FALL_DAMAGE` gate).
+**Dispatch sites:** `MovementPowerEvents.onLivingFall` (runs after the
+`prevent_action: FALL_DAMAGE` gate), and an onGround rising-edge detector in
+`PlayerLifecycleEvents` that catches landings which never raise
+`LivingFallEvent` (creative flight, elytra-adjacent movement). The two sites
+share a per-tick stamp so a survival landing is not dispatched twice.
 
 **Typical use:** landing shockwave, impact-damage scaling, parkour
 streak reset.
@@ -521,11 +537,12 @@ Fires when the player **finishes** using an item (distinct from `ITEM_USE`
 which fires at use-start). Also synthetically fired by
 `EdibleItemPower` after a successful bite.
 
-**Context:** the finished `ItemStack`.
+**Context:** `FoodContext(stack)` wrapping the finished `ItemStack`, so
+`item_condition` filters resolve here the same way they do on `item_use`.
 
 **Dispatch site:** `InteractionPowerEvents.onItemUseFinish`
 (`LivingEntityUseItemEvent.Finish`) and
-`InteractionPowerEvents.onRightClickItem` (for `EdibleItemPower` consumes).
+`InteractionPowerEvents.onEdibleUseFinish` (for `EdibleItemPower` consumes).
 
 **Typical use:** post-eat buffs, empty-bottle return, drink-finish sound.
 
@@ -864,8 +881,9 @@ brief:
 | `mod_fall_damage` | modifier | `MovementPowerEvents` (`LivingFallEvent`) | Chains on the event's damage multiplier, so it stacks with Feather Falling etc. For outright immunity use `prevent_action: FALL_DAMAGE`. |
 | `mod_food_nutrition` | modifier + `FoodContext` | `CompatEventPowers.onFoodEaten` | Nutrition of food actually eaten. Chains after the legacy `origins:modify_food` power. |
 
-Still unwired: `MOD_BREAK_SPEED`. Use the `break_speed_modifier` power
-(attribute-backed) instead.
+There is no `mod_break_speed` event: the name was removed from the enum, so
+authoring it is a load error like any other unknown event. Use the
+`break_speed_modifier` power (attribute-backed) instead.
 
 ---
 

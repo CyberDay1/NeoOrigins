@@ -175,6 +175,7 @@ Adds (or overwrites) velocity to the target. Distinguishes push vs. set via the 
 | `y` | double | no | `0` | Y component |
 | `z` | double | no | `0` | Z component |
 | `set` | bool | no | `false` | If true, replaces delta movement; otherwise adds via `push` |
+| `space` | enum | no | `world` | Coordinate space for x/y/z: `world` (absolute axes), `local` (relative to look direction, +z = forward), `velocity` (relative to current movement direction), plus `_horizontal` variants that ignore the vertical component and `_normalized` variants that ignore the base vector's length (`local_horizontal`, `local_horizontal_normalized`, `velocity_normalized`, `velocity_horizontal`, `velocity_horizontal_normalized`) |
 
 **Example:**
 ```json
@@ -352,7 +353,7 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 | `glow_alpha` | int 0–255 | no | `140` | Glow halo opacity. |
 | `shape` | enum | no | `cross` / effect_type default | One of `cross` / `cube` / `ring` / `sphere`. |
 | `trail_particle` | resource id | no | effect_type default | Vanilla particle id for the flight trail (e.g. `minecraft:witch`). |
-| `count` | int | no | `1` | For plain projectiles: number spawned in one fire (shotgun spread when combined with `inaccuracy`). For the magic orb: trail particles per tick (always one orb). |
+| `count` | int | no | `1` plain / `2` orb | For plain projectiles: number spawned in one fire (shotgun spread when combined with `inaccuracy`), default `1`. For the magic orb: trail particles per tick (always one orb), default `2`. |
 | `spread` | float | no | `0.05` | Trail particle position spread. |
 | `trail_speed` | float | no | `0.0` | Trail particle speed/velocity. Also accepted under the Apoli legacy name `speed_particle`. |
 | `no_gravity` | bool | no | `false` | When `true` the projectile ignores gravity and flies straight along its launch vector (drag still applies). Works for any projectile entity, not just the magic orb. |
@@ -1619,6 +1620,7 @@ Applies a forward impulse in the direction the player is currently facing. Unlik
 |---|---|---|---|---|
 | `strength` | float | no | `1.5` | Velocity magnitude along the look vector |
 | `allow_vertical` | bool | no | `true` | When `false`, pins the dash to horizontal (ignores look Y component) |
+| `set_velocity` | bool | no | `false` | When `true`, replaces delta movement with the dash vector instead of pushing additively |
 
 Sets `hurtMarked = true` internally so the client doesn't discard the server-authoritative velocity change on the next movement packet: same guarantee as `add_velocity`.
 
