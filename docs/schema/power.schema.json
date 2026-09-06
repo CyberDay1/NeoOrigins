@@ -6501,7 +6501,6 @@
         "item": {
           "description": "Singular shape: the one item id granted, e.g. 'minecraft:trident'. Optional only when `stacks` is supplied; with neither, the grant logs a warning and hands out nothing.",
           "type": "string",
-          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$",
           "default": ""
         },
         "count": {
@@ -6518,8 +6517,7 @@
             "properties": {
               "id": {
                 "description": "Enchantment id, e.g. 'minecraft:mending'.",
-                "type": "string",
-                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+                "type": "string"
               },
               "level": {
                 "description": "Enchantment level; default 1.",
@@ -6551,8 +6549,7 @@
             "properties": {
               "item": {
                 "description": "Item id granted for this entry.",
-                "type": "string",
-                "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+                "type": "string"
               },
               "count": {
                 "description": "Stack size for this entry; default 1.",
@@ -6568,8 +6565,7 @@
                   "properties": {
                     "id": {
                       "description": "Enchantment id, e.g. 'minecraft:mending'.",
-                      "type": "string",
-                      "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+                      "type": "string"
                     },
                     "level": {
                       "description": "Enchantment level; default 1.",
