@@ -62,7 +62,7 @@ Add an `upgrades` list to any origin JSON at
 |-------------------------|------------------------------------------------------------------------------|
 | `nether_evolution/`     | Overrides Human so entering the Nether evolves you into a Strider.           |
 | `dragon_slayer_chain/`  | Multi-stage chain: Human -> Revenant (first dragon fight) -> Voidwalker (kill). |
-| `class_tier_up/`        | Class-layer variant: Explorer class promotes to Master Explorer on a chain of exploration advancements. |
+| `class_tier_up/`        | Class-layer variant: Explorer class promotes to Scout on `minecraft:adventure/adventuring_time`. |
 | `custom_class/`         | Adds a complete custom class (Alchemist) to the class screen additively, without overriding any built-in class. See [docs/CLASSES.md](../docs/CLASSES.md). |
 
 Each subfolder is a complete datapack. Drop the folder into

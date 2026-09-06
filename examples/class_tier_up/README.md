@@ -28,9 +28,9 @@ with no interference.
 4. For fast testing: `/advancement grant @s only minecraft:adventure/adventuring_time`
    (normally you'd need to actually visit 40 biomes)
 
-Expected: your class immediately changes from Explorer to Scout. Explorer
-powers (kit, clock, maps, stamina) revoked; Scout powers (night vision,
-speed, no-fall) granted.
+Expected: your class immediately changes from Explorer to Scout. Explorer's
+powers are revoked and Scout's granted, except the two the classes share
+(`step_assist_toggle`, `step_assist_switch`), which carry straight over.
 
 ## Caveat: `adventuring_time` is a big advancement
 
