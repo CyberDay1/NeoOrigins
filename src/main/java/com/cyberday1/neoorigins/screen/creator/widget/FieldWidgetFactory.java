@@ -18,10 +18,20 @@ import java.util.List;
 
 /**
  * Turns a {@link FormFieldSpec} into one editable {@link FieldRow} for the
- * Powers tab. One concrete widget per {@link FormFieldSpec.Kind}; ARRAY /
- * OBJECT / REF / MIXED / UNKNOWN fall to a single-line raw-JSON box (no
- * recursive sub-forms in v1 — the per-power raw-JSON escape hatch covers
- * deep edits).
+ * Powers tab. One concrete widget per {@link FormFieldSpec.Kind}. ARRAY / OBJECT
+ * / REF get recursive inline sub-forms when the spec carries the shape to build
+ * one ({@code items.$ref}, {@code children}, {@code $ref}); MIXED / UNKNOWN and
+ * the shapeless arrays/objects still fall to a single-line raw-JSON box, as does
+ * the per-power raw-JSON escape hatch for deep edits.
+ *
+ * <p><b>Optional fields must be able to say nothing.</b> {@link FieldRow#toJson()}
+ * returning {@code null} removes the key, and several powers read "absent" and
+ * "present with that value" differently. So an optional {@link BoolRow} is
+ * tri-state ("any") and an optional {@link EnumRow} carries a leading "(any)"
+ * entry, both selected when the key is absent and both omitted on save; schema
+ * defaults are seeded for REQUIRED fields only. That also fixes untouched
+ * optional OBJECTs, whose {@link ObjectRow#toJson()} drop-if-empty guard was
+ * dead while every child insisted on a value.
  *
  * <p><b>Numeric randomize affordance (Phase-5 forward design):</b>
  * {@link NumericRow} models its value as <em>either</em> a number <em>or</em>
@@ -450,40 +460,89 @@ public final class FieldWidgetFactory {
 
     // ── boolean ─────────────────────────────────────────────────────────────
 
+    /**
+     * A boolean toggle. Required fields cycle true/false; OPTIONAL ones are
+     * tri-state — {@link #UNSET} omits the key so an untouched field stays
+     * absent. Several powers read absent and present-with-a-value differently
+     * ({@code effect_over_time.default_off}, {@code location.can_see_sky}), so
+     * "always write something" is not a safe default.
+     */
     private static final class BoolRow extends Base {
-        private boolean value;
+        /** Unset label; same wording as the mob creator's TRISTATE cycler. */
+        private static final String UNSET = "any";
+
+        private final boolean optional;
+        private Boolean value;          // null = unset (optional rows only)
         private Button button;
         BoolRow(FormFieldSpec spec) {
             super(spec);
-            value = Boolean.TRUE.equals(spec.defaultValue());
+            optional = !spec.required();
+            value = optional ? null : Boolean.TRUE.equals(spec.defaultValue());
         }
         @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
-            button = Button.builder(label(), b -> { value = !value; button.setMessage(label()); })
+            button = Button.builder(label(), b -> { cycle(); button.setMessage(label()); })
                 .bounds(0, 0, Math.min(fieldW, 70), h).build();
             parent.register(button);
         }
-        private Component label() { return Component.literal(Boolean.toString(value)); }
+        /** any → true → false → any; required rows skip the "any" step. */
+        private void cycle() {
+            if (value == null) value = Boolean.TRUE;
+            else if (value) value = Boolean.FALSE;
+            else value = optional ? null : Boolean.TRUE;
+        }
+        private Component label() {
+            return Component.literal(value == null ? UNSET : Boolean.toString(value));
+        }
         @Override public void reposition(int fieldX, int y) { button.setPosition(fieldX, y); }
         @Override public void setVisible(boolean v) { button.visible = v; button.active = v; }
-        @Override public JsonElement toJson() { return new JsonPrimitive(value); }
+        @Override public JsonElement toJson() {
+            return value == null ? null : new JsonPrimitive(value);
+        }
         @Override public void fromJson(JsonElement el) {
             if (el != null && el.isJsonPrimitive()) value = el.getAsBoolean();
+            else if (optional) value = null;
             if (button != null) button.setMessage(label());
+        }
+        @Override public List<String> tooltip() {
+            List<String> t = super.tooltip();
+            if (optional) t.add("\"" + UNSET + "\" leaves the key out — the power's own default applies.");
+            return t;
         }
     }
 
     // ── enum (cycler) ───────────────────────────────────────────────────────
 
+    /**
+     * A cycling one-of picker. An OPTIONAL enum gets {@link #NONE} as its first
+     * entry and starts there, so an untouched field is omitted rather than
+     * written as its schema default — the web editor's {@code (none)} option
+     * with the same meaning. Required enums are unchanged: they still seed the
+     * default and still block Save when empty.
+     */
     private static final class EnumRow extends Base {
+        /** Unset entry for an optional enum; bracketed so it can't collide with
+         *  a schema value (all of which are bare lowercase ids). */
+        private static final String NONE = "(any)";
+
         private final List<String> values;
+        private final boolean optional;
         private int idx;
         private Button button;
         EnumRow(FormFieldSpec spec) {
             super(spec);
-            values = spec.enumValues().isEmpty() ? List.of("") : spec.enumValues();
-            if (spec.defaultValue() != null) {
-                int i = values.indexOf(String.valueOf(spec.defaultValue()));
-                if (i >= 0) idx = i;
+            optional = !spec.required();
+            List<String> opts = spec.enumValues().isEmpty() ? List.of("") : spec.enumValues();
+            if (optional) {
+                List<String> withNone = new ArrayList<>(opts.size() + 1);
+                withNone.add(NONE);
+                withNone.addAll(opts);
+                values = List.copyOf(withNone);
+            } else {
+                values = opts;
+                if (spec.defaultValue() != null) {
+                    int i = values.indexOf(String.valueOf(spec.defaultValue()));
+                    if (i >= 0) idx = i;
+                }
             }
         }
         @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
@@ -496,18 +555,24 @@ public final class FieldWidgetFactory {
         @Override public void reposition(int fieldX, int y) { button.setPosition(fieldX, y); }
         @Override public void setVisible(boolean v) { button.visible = v; button.active = v; }
         @Override public JsonElement toJson() {
+            if (optional && idx == 0) return null;   // "(any)" → key omitted
             String v = values.get(idx);
             return v.isEmpty() ? null : new JsonPrimitive(v);
         }
         @Override public void fromJson(JsonElement el) {
-            if (el != null && el.isJsonPrimitive()) {
-                int i = values.indexOf(el.getAsString());
-                if (i >= 0) idx = i;
-            }
+            int i = (el != null && el.isJsonPrimitive())
+                ? values.indexOf(el.getAsString()) : -1;
+            if (i >= 0) idx = i;
+            else if (optional) idx = 0;              // absent (or unknown) → unset
             if (button != null) button.setMessage(label());
         }
         @Override public String validationError() {
             return spec.required() && values.get(idx).isEmpty() ? "required" : null;
+        }
+        @Override public List<String> tooltip() {
+            List<String> t = super.tooltip();
+            if (optional) t.add("\"" + NONE + "\" leaves the key out — the power's own default applies.");
+            return t;
         }
         @Override public int height() { return leafHeight(); }
     }
@@ -540,7 +605,9 @@ public final class FieldWidgetFactory {
             }
             this.values = java.util.Collections.unmodifiableList(dedup);
             this.opener = opener;
-            if (spec.defaultValue() != null) {
+            // Only a REQUIRED field is seeded with its default: an optional one
+            // must stay unset so an untouched field is omitted, not written.
+            if (spec.required() && spec.defaultValue() != null) {
                 String d = String.valueOf(spec.defaultValue()).toLowerCase(java.util.Locale.ROOT);
                 if (values.contains(d)) current = d;
             }
