@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.power.builtin;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.compat.CompatEventAliases;
 import com.cyberday1.neoorigins.compat.action.ActionParser;
 import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
@@ -137,7 +138,13 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                 try {
                     ev = EventPowerIndex.Event.valueOf(evStr.toUpperCase(Locale.ROOT));
                 } catch (Exception e) {
-                    return DataResult.error(() -> "action_on_event: unknown event '" + evStr + "'");
+                    // Fall back to the compat spelling table before failing. An
+                    // unknown event is fatal to the whole power, so a pack that
+                    // guessed a plausible name loses the power outright.
+                    ev = CompatEventAliases.resolve(evStr);
+                    if (ev == null) {
+                        return DataResult.error(() -> "action_on_event: unknown event '" + evStr + "'");
+                    }
                 }
 
                 EntityCondition cond = ConditionParser.parseField(obj, "condition", t);

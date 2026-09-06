@@ -98,6 +98,7 @@ public final class EventPowerIndex {
         MOD_POTION_DURATION,    // added-effect duration multiplier
         MOD_ANVIL_COST,         // anvil repair / combine XP cost multiplier
         MOD_CRAFTED_FOOD_SATURATION, // additive saturation bonus for crafted food
+        MOD_FOOD_NUTRITION,     // nutrition multiplier for any food actually eaten
         MOD_BONEMEAL_EXTRA,     // additive extra bonemeal applications
     }
 
