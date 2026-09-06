@@ -6729,20 +6729,6 @@
           "description": "Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.",
           "type": "boolean",
           "default": false
-        },
-        "key": {
-          "description": "Optional hotkey this active power binds to. A plain number N pins it to named-hotkey pool slot 'Hotkey N' (1-64); several powers sharing the same N all fire from that one key. A string is a keybind translation key used as-is (e.g. 'key.jump', 'key.origins.primary_active'). An object takes {\"key\": <number or string>, \"continuous\": true} to fire every tick the key is held. Leave unset for no hotkey. (Client pool_size / slot_defaults live in the [hotkeys] client config.)",
-          "oneOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "object"
-            }
-          ]
         }
       },
       "required": [

@@ -1332,12 +1332,19 @@ public final class BuiltinPowers {
         //     NOT `default_value` as the schema claimed; and it has NO `key`
         //     field at all (the schema's `key` enum was a phantom). The spec's
         //     JSON name is `default`, bound to the `defaultValue` component.
+        //     No KEY_SPEC here, unlike active_ability: TogglePower does not
+        //     override isActivePower(), so registerNativeActiveHotkeys skips it
+        //     on the isActive() gate, and it does not override onActivated
+        //     either, so a keypress would have nothing to run. Keybind a toggle
+        //     with an active_ability whose entity_action is neoorigins:toggle.
         //   • active_ability: the codec reads its `action` component from the
         //     `entity_action` JSON key (bound), defaulting to noop → the schema's
         //     `required: [type, entity_action]` was wrong (not required). It also
-        //     reads resource_cost / resource_cost_amount the schema omitted, and
-        //     has NO `key` field (schema phantom). cooldown_ticks / hunger_cost
-        //     default; condition defaults to alwaysTrue.
+        //     reads resource_cost / resource_cost_amount the schema omitted.
+        //     cooldown_ticks / hunger_cost default; condition defaults to
+        //     alwaysTrue. `key` is NOT on the codec but is still real: it is read
+        //     out of the raw JSON by OriginsCompatPowerLoader#registerNativeActiveHotkeys,
+        //     which is why KEY_SPEC belongs on this branch.
         //   • edible_item: the codec has NO item_condition / fast / meat fields
         //     (all three were schema phantoms) and DOES read consume_sound
         //     (Optional<>) which the schema omitted. Every real field defaults.
@@ -1348,8 +1355,7 @@ public final class BuiltinPowers {
         //     default.
         define("toggle", TogglePower.class, List.of(
             new FieldSpec("default", Kind.BOOLEAN, false).boundTo("defaultValue")
-                .def(false).doc("Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook."),
-            KEY_SPEC));
+                .def(false).doc("Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.")));
         define("active_ability", ActiveAbilityPower.class, List.of(
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(60).range(0.0, null).doc("Cooldown between uses in ticks (20 = 1s); default 60. Ignored when cooldown_resource is set."),
