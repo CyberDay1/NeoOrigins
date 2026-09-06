@@ -1,8 +1,10 @@
 package com.cyberday1.neoorigins.dev;
 
+import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.compat.registry.FieldSpec;
 import com.cyberday1.neoorigins.power.registry.BuiltinPowers;
 import com.cyberday1.neoorigins.power.registry.LegacyAliasPowerSpecs;
+import com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases;
 import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
@@ -89,6 +91,21 @@ public final class DocFieldTableCheck {
     private static final int SYSTEMIC_MIN = 5;
 
     /**
+     * Ids whose {@code power.schema.json} branch is hand-written and spliced in by
+     * {@code PowerSchemaGenerator} rather than generated from FieldSpecs, so there is
+     * no registry side to diff their doc table against.
+     *
+     * <p>Kept deliberately short. {@code starting_equipment} was on this list until it
+     * turned out to be perfectly representable (ARRAY {@code children} covers its
+     * nested stacks/enchantments) and got a real descriptor. {@code particle} is not:
+     * its {@code particle} key is a {@code oneOf} whose object arm has its own
+     * {@code properties}/{@code required}, and {@code spread}/{@code offset} are
+     * {@code minItems}/{@code maxItems}-pinned vec3s — none of which
+     * {@code SchemaNodeBuilder} can emit. Give FieldSpec those and this list empties.
+     */
+    private static final List<String> SPLICED_BRANCH_IDS = List.of("neoorigins:particle");
+
+    /**
      * Namespaces the compat surface expands an {@code origins:} id over
      * ({@code OriginsFormatDetector.legacyPowerTypeSurface}). The doc writes one
      * {@code origins:} section and says the family spelling is equivalent, so a
@@ -101,6 +118,27 @@ public final class DocFieldTableCheck {
     private static final Pattern HEADING_ID =
         Pattern.compile("^#{1,6}\\s+.*`([a-z0-9_.-]+:[a-z0-9_./-]+)`");
 
+    /**
+     * Marker introducing a SHARED FIELD CLAIM: a passage that documents one or
+     * more fields once, for a hand-written list of power types, instead of
+     * repeating the row in each type's own table. The marker names the fields;
+     * the power ids are the backticked bare names in the passage that follows.
+     *
+     * <p>Without this the tool would report every such field as undocumented on
+     * every listed type, which is both wrong and loud enough to bury the real
+     * findings. With it the enumeration itself becomes the checked thing, which
+     * is the part that was never pinned: the doc's list of types is a hand
+     * transcription of a set the code derives at runtime, and a stale entry is a
+     * correctness bug, not a formatting one. An author reading that a type
+     * claims {@code condition} for its own config, when it no longer does,
+     * writes {@code power_condition} and silently gets a different gate.
+     */
+    private static final Pattern SHARED_MARKER =
+        Pattern.compile("^<!--\\s*shared-fields:\\s*([a-z0-9_,\\s]+?)\\s*-->$");
+
+    /** A backticked bare identifier inside a shared-claim passage: a candidate power name. */
+    private static final Pattern BACKTICKED_NAME = Pattern.compile("`([a-z0-9_]+)`");
+
     /** Stand-in for {@code \|} so an escaped pipe does not split a cell. */
     private static final String PIPE_ESCAPE = "\u0000PIPE\u0000";
 
@@ -111,7 +149,13 @@ public final class DocFieldTableCheck {
     /** One row of a doc field table, columns resolved by header name. */
     private record DocRow(String field, Boolean required, String defaultValue, int line) {}
 
+    /** One {@code <!-- shared-fields: … -->} passage: fields documented once for a list of ids. */
+    private record SharedClaim(List<String> fields, Set<String> ids, int line) {}
+
     public static void main(String[] args) throws IOException {
+        boolean emitRows = List.of(args).contains("--rows");
+        // The alias table is populated by an explicit call, not by class load.
+        LegacyPowerTypeAliases.bootstrap();
         List<String> lines = Files.readAllLines(DOC, StandardCharsets.UTF_8);
         Map<String, DocSection> docs = parseSections(lines);
         Map<String, List<FieldSpec>> registry = registry();
@@ -128,10 +172,66 @@ public final class DocFieldTableCheck {
                 + "combined `name` / `description` rows, `<subkey>` placeholders)");
         }
 
+        // ---- shared field claims -------------------------------------------
+        List<SharedClaim> claims = parseSharedClaims(lines, registry.keySet());
+        Map<String, Set<String>> claimedIds = new TreeMap<>();  // field -> ids the doc claims
+        for (SharedClaim c : claims) {
+            for (String f : c.fields()) {
+                claimedIds.computeIfAbsent(f, k -> new TreeSet<>()).addAll(c.ids());
+            }
+        }
+        System.out.println("[doc-fields] " + claims.size() + " shared-field claims covering "
+            + claimedIds.size() + " field names");
+
+        List<String> claimDrift = new ArrayList<>();
+        for (Map.Entry<String, Set<String>> e : claimedIds.entrySet()) {
+            // Only NATIVE ids are in scope. An alias id's fields are parsed by
+            // its remap target (PowerDataManager.resolvePowerType remaps before
+            // any field is read), so the target's entry in the list is what
+            // covers it; listing the alias too would be a second name for one
+            // fact and would go stale independently.
+            Set<String> declared = new TreeSet<>();
+            for (Map.Entry<String, List<FieldSpec>> r : registry.entrySet()) {
+                if (!BuiltinPowers.isRegistered(Identifier.parse(r.getKey()))) continue;
+                if (r.getValue().stream().anyMatch(f -> f.name().equals(e.getKey()))) {
+                    declared.add(r.getKey());
+                }
+            }
+            Set<String> missingFromDoc = new TreeSet<>(declared);
+            missingFromDoc.removeAll(e.getValue());
+            Set<String> staleInDoc = new TreeSet<>(e.getValue());
+            staleInDoc.removeAll(declared);
+            for (String id : missingFromDoc) {
+                claimDrift.add(e.getKey() + ": " + id + " declares it, the doc's list omits it");
+            }
+            for (String id : staleInDoc) {
+                claimDrift.add(e.getKey() + ": the doc lists " + id + ", which does not declare it");
+            }
+        }
+
         // ---- coverage -------------------------------------------------------
         Set<String> anchored = headingIds(lines);
         Set<String> docOnlyIds = new TreeSet<>(docs.keySet());
         docOnlyIds.removeAll(registry.keySet());
+        // Container types carry no fields of their own — they hold a `powers`
+        // list that the expander splits into real powers before any spec is
+        // consulted. PowerEnumCheck exempts the same set for the same reason.
+        docOnlyIds.removeAll(OriginsMultipleExpander.MULTIPLE_TYPES);
+        // The one branch PowerSchemaGenerator still splices verbatim out of the
+        // committed schema, so there is no FieldSpec table to diff its doc against.
+        // Its shape is genuinely beyond SchemaNodeBuilder: `particle` is a oneOf
+        // whose object arm carries its own properties/required, and spread/offset
+        // are minItems/maxItems-pinned vec3s. Until FieldSpec can express those,
+        // the particle doc table is ungated — a real gap, named rather than hidden.
+        List<String> staleExemptions = new ArrayList<>();
+        for (String id : SPLICED_BRANCH_IDS) {
+            // Verify the exception still holds rather than trusting it: once the id
+            // gains a descriptor it is diffable and the exemption must come out.
+            if (!docOnlyIds.remove(id)) {
+                staleExemptions.add(id + "  (now has a FieldSpec table \u2014 drop it from "
+                    + "SPLICED_BRANCH_IDS so its doc table is diffed)");
+            }
+        }
 
         Set<String> regOnlyIds = new TreeSet<>();
         List<String> anchorOnly = new ArrayList<>();
@@ -151,6 +251,8 @@ public final class DocFieldTableCheck {
         List<String> requiredMismatch = new ArrayList<>();
         List<String> falseMarkerOnly = new ArrayList<>();
         List<String> untabled = new ArrayList<>();
+        /** Section id -> the specs it does not document, for {@code --rows}. */
+        Map<String, List<FieldSpec>> undocumented = new LinkedHashMap<>();
 
         Set<String> diffed = new TreeSet<>();
         for (String regId : new TreeSet<>(registry.keySet())) {
@@ -168,11 +270,13 @@ public final class DocFieldTableCheck {
             if (sec.claimsNoAdditional() && !specs.isEmpty()) {
                 falseMarkerOnly.add(id + "  (doc line " + sec.line() + " says none; registry declares "
                     + specs.size() + ": " + String.join(", ", byName.keySet()) + ")");
+                undocumented.put(id, specs);
                 continue; // the whole section is the defect; do not also list every field
             }
             if (!sec.hasTable() && !sec.claimsNoAdditional() && !specs.isEmpty()) {
                 untabled.add(id + "  (doc line " + sec.line() + " has no field table; registry declares "
                     + specs.size() + ")");
+                undocumented.put(id, specs);
                 continue;
             }
 
@@ -180,7 +284,14 @@ public final class DocFieldTableCheck {
                 if (UNIVERSAL.contains(e.getKey())) continue;
                 DocRow row = sec.rows().get(e.getKey());
                 if (row == null) {
+                    // Documented once for a list of types rather than per table:
+                    // the enumeration is checked separately, above. An alias is
+                    // covered by its remap target's entry in that list, since
+                    // the target is what parses the field.
+                    Set<String> claimed = claimedIds.getOrDefault(e.getKey(), Set.of());
+                    if (claimed.contains(id) || claimed.contains(aliasTargetOf(id))) continue;
                     registryOnly.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).add(id);
+                    undocumented.computeIfAbsent(id, k -> new ArrayList<>()).add(e.getValue());
                     continue;
                 }
                 if (row.required() != null && row.required() != e.getValue().required()) {
@@ -200,6 +311,8 @@ public final class DocFieldTableCheck {
         // ---- report ---------------------------------------------------------
         int defects = 0;
 
+        defects += reportList("SHARED-CLAIM DRIFT (the doc's hand-written type list vs the registry)",
+            claimDrift);
         defects += reportOneSided("REGISTRY-ONLY: parses, but no doc row mentions it", registryOnly);
         defects += reportOneSided("DOC-ONLY: a doc row promises it, but no FieldSpec declares it", docOnly);
         defects += reportList("FALSE \"No additional fields\"", falseMarkerOnly);
@@ -210,9 +323,73 @@ public final class DocFieldTableCheck {
         defects += reportList("REGISTERED, NOT DOCUMENTED (no `## ` section for this id)",
             regOnlyIds.stream().toList());
         defects += reportList("NO DEDICATED SECTION (has a doc anchor, but no field table)", anchorOnly);
+        defects += reportList("STALE EXEMPTION (the recorded exception no longer applies)",
+            staleExemptions);
+
+        // Not a defect — a standing, explained gap. Printed every run so it stays
+        // visible instead of decaying into an unexplained line in this source file.
+        if (!SPLICED_BRANCH_IDS.isEmpty()) {
+            System.out.println();
+            System.out.println("-- UNGATED BY DESIGN: " + String.join(", ", SPLICED_BRANCH_IDS)
+                + " (schema branch is hand-written and spliced; no FieldSpec table exists"
+                + " to diff the doc against)");
+        }
 
         System.out.println();
         System.out.println("[doc-fields] " + defects + " findings (report only; this task never fails the build)");
+
+        if (emitRows) emitRows(undocumented);
+    }
+
+    /**
+     * Print, per section, the markdown table rows that would document its
+     * undocumented fields, built from the {@link FieldSpec} itself. The point is
+     * that the row's type, required-ness, default and text come from the thing
+     * that parses the field rather than from a second reading of the code.
+     * Descriptions still want a human pass: several spec docs are a paragraph
+     * written for a tooltip, which is longer than a table cell should carry.
+     */
+    private static void emitRows(Map<String, List<FieldSpec>> undocumented) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, List<FieldSpec>> e : undocumented.entrySet()) {
+            sb.append("\n---- ").append(e.getKey()).append(" ----\n");
+            for (FieldSpec f : e.getValue()) {
+                sb.append("| `").append(f.name()).append("` | ").append(docType(f)).append(" | ")
+                  .append(f.required() ? "yes" : "no").append(" | ").append(docDefault(f)).append(" | ")
+                  .append(f.description() == null ? "" : f.description().replace("|", "\\|"))
+                  .append(" |\n");
+            }
+        }
+        // Written rather than printed: the rows are meant to be pasted back into
+        // the doc verbatim, and the console codepage mangles the em dashes.
+        Path out = Path.of("build/tmp/docFieldRows.md");
+        Files.createDirectories(out.getParent());
+        Files.writeString(out, sb.toString(), StandardCharsets.UTF_8);
+        System.out.println("[doc-fields] suggested rows written to " + out);
+    }
+
+    /** The doc tables' Type vocabulary for a spec's {@code Kind}. */
+    private static String docType(FieldSpec f) {
+        return switch (f.kind()) {
+            case INTEGER -> "int";
+            case NUMBER -> "double";
+            case BOOLEAN -> "bool";
+            case ENUM -> "string";
+            case ARRAY -> "array";
+            case OBJECT -> "object";
+            case REF -> "object";
+            case MIXED -> f.mixedTypes().isEmpty() ? "string / object" : String.join(" / ", f.mixedTypes());
+            case STRING -> f.pattern() != null ? "Identifier" : "string";
+            default -> f.kind().name().toLowerCase(Locale.ROOT);
+        };
+    }
+
+    /** Backticked literal, or the em-dash the tables use for "no default". */
+    private static String docDefault(FieldSpec f) {
+        Object d = f.defaultValue();
+        if (d == null) return "\u2014";
+        if (d instanceof String s) return s.isEmpty() ? "`\"\"`" : "`" + s + "`";
+        return "`" + d + "`";
     }
 
     // ------------------------------------------------------------------ report
@@ -262,6 +439,12 @@ public final class DocFieldTableCheck {
 
     // ------------------------------------------------------------------ inputs
 
+    /** The native type an alias id remaps to, or {@code ""} when it is not an alias. */
+    private static String aliasTargetOf(String id) {
+        Identifier target = LegacyPowerTypeAliases.aliasTarget(Identifier.parse(id));
+        return target == null ? "" : target.toString();
+    }
+
     /** Both hand-maintained spec tables, keyed by canonical id string. */
     private static Map<String, List<FieldSpec>> registry() {
         Map<String, List<FieldSpec>> out = new LinkedHashMap<>();
@@ -284,6 +467,37 @@ public final class DocFieldTableCheck {
         int colon = id.indexOf(':');
         if (colon < 0 || !FAMILY_NS.contains(id.substring(0, colon))) return null;
         return docs.get("origins:" + id.substring(colon + 1));
+    }
+
+    /**
+     * Read every {@code <!-- shared-fields: … -->} marker and the passage it
+     * introduces. The passage runs to the next blank line; its power ids are the
+     * backticked bare names that resolve to a known {@code neoorigins:} id, so
+     * incidental backticks in the same sentence ({@code `toggleable`},
+     * {@code `cooldown_icon`}) drop out on their own.
+     */
+    private static List<SharedClaim> parseSharedClaims(List<String> lines, Set<String> knownIds) {
+        List<SharedClaim> out = new ArrayList<>();
+        for (int i = 0; i < lines.size(); i++) {
+            Matcher m = SHARED_MARKER.matcher(lines.get(i).strip());
+            if (!m.matches()) continue;
+            List<String> fields = new ArrayList<>();
+            for (String f : m.group(1).split(",")) {
+                String s = f.strip();
+                if (!s.isEmpty()) fields.add(s);
+            }
+            Set<String> ids = new TreeSet<>();
+            for (int j = i + 1; j < lines.size(); j++) {
+                if (lines.get(j).isBlank()) break;
+                Matcher n = BACKTICKED_NAME.matcher(lines.get(j));
+                while (n.find()) {
+                    String candidate = "neoorigins:" + n.group(1);
+                    if (knownIds.contains(candidate)) ids.add(candidate);
+                }
+            }
+            out.add(new SharedClaim(fields, ids, i + 1));
+        }
+        return out;
     }
 
     /** Every power id named inside backticks in any heading — a navigable doc anchor. */

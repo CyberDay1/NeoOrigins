@@ -437,6 +437,11 @@ tasks.register('docFieldTableCheck', JavaExec) {
     dependsOn 'classes'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.cyberday1.neoorigins.dev.DocFieldTableCheck'
+    // The doc tables and several FieldSpec doc strings carry em dashes, and
+    // --rows emits text meant to be pasted straight back into the doc, so the
+    // console codepage must not be allowed to mangle it.
+    defaultCharacterEncoding = 'UTF-8'
+    systemProperty 'file.encoding', 'UTF-8'
 }
 
 // Headless guard for the creator's datapack shape rules (origin has no
