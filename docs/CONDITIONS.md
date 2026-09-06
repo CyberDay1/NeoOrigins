@@ -866,13 +866,15 @@ An object selects the stat category explicitly; this is the form upstream Apoli 
 
 ## `neoorigins:command`
 
-Runs an arbitrary server command with suppressed output and returns true if no exception was thrown.
+Runs an arbitrary server command with suppressed output and compares the value the command returned.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `command` | string | yes | — | Command text (no leading slash); always-false when blank |
+| `comparison` | string | no | `">="` | Comparison operator against the command's return value |
+| `compare_to` | int | no | `1` | Return-value threshold |
 
-**Unusual:** this does *not* test exit code. It returns true unless the command threw. Check the feasibility of any JSON-condition written this way carefully.
+**Unusual:** the command is executed every time the condition is evaluated, at permission level 2. A command that throws, and one whose root is blocked by the command guard, both score as a return value of `0`, which is false under the defaults. Check the cost of any JSON-condition written this way carefully.
 
 ## `neoorigins:advancement`
 
@@ -1208,9 +1210,9 @@ True when the column directly above the player contains a non-air block within `
 
 **Aliases:** `origins:block_in_radius`, `apace:block_in_radius`
 
-True when any matching block is within a cubic radius of the player. Accepts any combination of single IDs, ID lists, single tags, and tag lists; a block matches if it appears in ANY of the provided blocks/tags (logical OR).
+Counts the matching blocks within `radius` of the player and compares that count against `compare_to`. Accepts any combination of single IDs, ID lists, single tags, and tag lists; a block matches if it appears in ANY of the provided blocks/tags (logical OR). The defaults `>=` 1 give the plain "is one nearby" reading.
 
-Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-near regen). Capped at radius 8 to avoid expensive per-tick scans.
+Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-near regen). Capped at radius 16 to bound the per-tick scan. The scan stops as soon as the count settles the comparison, so a default `>=` 1 check is cheap even at a large radius.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1219,7 +1221,10 @@ Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-ne
 | `tag` | block tag | no | — | Single block tag (with or without leading `#`) |
 | `tags` | list of block tag | no | `[]` | Additional block tags |
 | `block_condition` | object | no | — | Origins-format nested block condition (`block`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)) |
-| `radius` | int (1–8) | no | `4` | Cubic radius to scan around the player |
+| `radius` | int (1–16) | no | `4` | Radius to scan around the player; values outside the range are clamped |
+| `shape` | string | no | `"cube"` | Scan volume: `cube` (Chebyshev), `star` (Manhattan), `sphere` (Euclidean); an unknown value falls back to `cube` |
+| `comparison` | string | no | `">="` | Comparison operator against the count of matching blocks |
+| `compare_to` | int | no | `1` | Count to compare against |
 
 At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empty.
 
