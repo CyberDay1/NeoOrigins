@@ -45,6 +45,9 @@ import java.util.List;
  *                     it holds a single entry. Without the distinction a new
  *                     {@code and.actions} would serialise as a scalar and fail to
  *                     parse.
+ * @param pattern      when {@link Kind#STRING}, the schema {@code pattern} regex the
+ *                     value must satisfy (the same constraint the web editor
+ *                     enforces); {@code null} when unconstrained.
  */
 public record FormFieldSpec(
     String name,
@@ -59,10 +62,19 @@ public record FormFieldSpec(
     String itemsRef,
     List<FormFieldSpec> children,
     String itemPattern,
-    boolean scalarOrArray
+    boolean scalarOrArray,
+    String pattern
 ) {
     public FormFieldSpec {
         children = children == null ? List.of() : List.copyOf(children);
+    }
+
+    /** Back-compat constructor — the shape before {@link #pattern} existed. */
+    public FormFieldSpec(String name, Kind kind, boolean required, Object defaultValue,
+                         List<String> enumValues, Double min, Double max, String description,
+                         String ref, String itemsRef, List<FormFieldSpec> children,
+                         String itemPattern, boolean scalarOrArray) {
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef, children, itemPattern, scalarOrArray, null);
     }
 
     /**
