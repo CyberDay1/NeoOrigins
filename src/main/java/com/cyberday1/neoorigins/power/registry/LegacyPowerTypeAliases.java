@@ -110,6 +110,19 @@ public final class LegacyPowerTypeAliases {
         return alias.newType;
     }
 
+    /**
+     * The type an alias remaps to, or {@code null} when {@code typeId} is not an
+     * alias. Read-only: unlike {@link #apply} and {@link #simulateApply} it does
+     * not run the remap lambda, so it is safe to ask about a type with no JSON
+     * in hand. {@code PowerDataManager.resolvePowerType} remaps before any field
+     * is read, so this is what says which native type an author's fields are
+     * really parsed by.
+     */
+    public static ResourceLocation aliasTarget(ResourceLocation typeId) {
+        Alias alias = ALIASES.get(typeId);
+        return alias == null ? null : alias.newType;
+    }
+
     /** Count of registered aliases — used by startup diagnostics. */
     public static int size() {
         return ALIASES.size();
