@@ -6,7 +6,7 @@ nav_order: 4
 
 # NeoOrigins 2.0 Condition Reference
 
-Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, bientity interactions, and, as of v2.0.20, **any power type** via the universal condition gate.
+Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, bientity interactions, and (as of v2.0.20) **any power type** via the universal condition gate.
 
 **Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers below still show the traditional `origins:*` names for familiarity with upstream documentation; the JSON examples use the canonical `neoorigins:*` form.
 
@@ -272,7 +272,7 @@ True when creative flight is engaged. No fields.
 
 ## `neoorigins:creative_mode`
 
-True when the player is in creative or spectator gamemode. No fields. Apoli-derivative packs (Medieval Origins Revival etc.) use this to gate resource drains so they don't run for creative players. `medievalorigins:creative_mode` dispatches here via the namespace fallback.
+True when the player is in creative or spectator gamemode. No fields. Apoli-derivative packs (Medieval Origins Revival etc.) use this to gate resource drains so they don't run for creative players; `medievalorigins:creative_mode` dispatches here via the namespace fallback.
 
 ## `neoorigins:block_collision`
 
@@ -304,7 +304,7 @@ True when the entity ran into a wall this tick: a thin wrapper over vanilla `Ent
 
 ## `neoorigins:replacable` (alias `neoorigins:replaceable`)
 
-True when the block at the entity's block position is replaceable (air, short grass, snow layers, etc., per vanilla `canBeReplaced()`). Apoli-parity condition; the misspelled `replacable` is the canonical Apoli name, and the corrected `replaceable` spelling is accepted as a synonym. No fields.
+True when the block at the entity's block position is replaceable (air, short grass, snow layers, etc.; vanilla `canBeReplaced()`). Apoli-parity condition; the misspelled `replacable` is the canonical Apoli name, and the corrected `replaceable` spelling is accepted as a synonym. No fields.
 
 **Example:**
 ```json
@@ -370,32 +370,6 @@ Numeric comparison against the entity's Y coordinate.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | World Y threshold |
 
-## `neoorigins:distance_from_coordinates`
-
-Numeric comparison against the entity's distance from a reference point (`world_origin` at 0,0,0 or `world_spawn`), with selectable distance metric and per-axis exclusion.
-
-| Field | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `comparison` | string | no | `"=="` | Comparison operator |
-| `compare_to` | number | no | `0.0` | Distance threshold (required in practice) |
-| `reference` | string | no | `"world_origin"` | Reference point: `world_origin` (0,0,0) or `world_spawn` |
-| `offset` | object | no | — | Per-axis `{x,y,z}` offset added to the reference point |
-| `shape` | string | no | `"cube"` | Distance metric: `cube` (Chebyshev), `star` (Manhattan), `sphere` (Euclidean) |
-| `ignore_x` | bool | no | `false` | Exclude the X axis from the distance |
-| `ignore_y` | bool | no | `false` | Exclude the Y axis from the distance |
-| `ignore_z` | bool | no | `false` | Exclude the Z axis from the distance |
-| `result_on_the_wrong_dimension` | number | no | — | Distance value substituted when off the reference's dimension (absent → use real distance) |
-
-**Example: within 100 blocks of world spawn (horizontal only)**
-```json
-{ "type": "neoorigins:distance_from_coordinates",
-  "reference": "world_spawn",
-  "shape": "sphere",
-  "ignore_y": true,
-  "comparison": "<=",
-  "compare_to": 100 }
-```
-
 ## `neoorigins:armor_value`
 
 Numeric comparison against the entity's armor value.
@@ -416,7 +390,7 @@ Generic numeric wrapper. **Standalone fallback compares against current health**
 
 ## `neoorigins:xp_level`
 
-Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_levels` (same fields, same behavior: both are canonical types, not aliases).
+Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_levels` (same fields, same behavior; both are canonical types, not aliases).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -425,7 +399,7 @@ Numeric comparison against `experienceLevel`. Also registered as `neoorigins:xp_
 
 ## `neoorigins:xp_levels`
 
-Numeric comparison against the entity's experience level. A synonym of [`neoorigins:xp_level`](#neooriginsxp_level) (same fields, same behaviour: both are canonical types).
+Numeric comparison against the entity's experience level. A synonym of [`neoorigins:xp_level`](#neooriginsxp_level) (same fields, same behaviour; both are canonical types).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -576,7 +550,7 @@ Distinct from `neoorigins:temperature` above (which reads the biome's base tempe
 
 ## `neoorigins:light_level`
 
-Numeric comparison against ambient light at the entity's block position. Also registered as `neoorigins:brightness` (same fields, same behavior: both are canonical types, not aliases).
+Numeric comparison against ambient light at the entity's block position. Also registered as `neoorigins:brightness` (same fields, same behavior; both are canonical types, not aliases).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -588,7 +562,7 @@ Omitting `light_type` (or any value other than `"sky"`/`"block"`) samples the ma
 
 ## `neoorigins:brightness`
 
-Numeric comparison against ambient light at the entity's block position. A synonym of [`neoorigins:light_level`](#neooriginslight_level) (same fields, same behaviour: both are canonical types).
+Numeric comparison against ambient light at the entity's block position. A synonym of [`neoorigins:light_level`](#neooriginslight_level) (same fields, same behaviour; both are canonical types).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -612,7 +586,7 @@ Numeric comparison against `level.getDayTime() % 24000`.
 
 ## `neoorigins:weather`
 
-Checks the current weather state against one of `clear`, `rain`, `raining`, `thunder`, or `thundering`. `rain`/`raining` and `thunder`/`thundering` are synonyms, matched case-insensitively. `clear` means neither raining nor thundering; `rain` means raining but not thundering; `thunder` matches any thunderstorm. **Unusual:** accepts either `"state"` or `"value"`; with both absent the state defaults to `"clear"`.
+Checks the current weather state against one of `clear`, `rain`, `raining`, `thunder`, or `thundering`; `rain`/`raining` and `thunder`/`thundering` are synonyms, matched case-insensitively. `clear` means neither raining nor thundering; `rain` means raining but not thundering; `thunder` matches any thunderstorm. **Unusual:** accepts either `"state"` or `"value"`; with both absent the state defaults to `"clear"`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -709,10 +683,10 @@ Inspects an item in a given equipment slot.
 | `item_condition` | object | no | — | Nested condition (see below) |
 
 **Unusual:** `item_condition` has its own internal shape. Accepts any of:
-- `{ "id": "minecraft:stick" }`: exact item ID
-- `{ "tag": "c:tools/pickaxe" }`: item tag
-- `{ "type": "neoorigins:empty" }`: slot is empty (also `apace:empty`)
-- `{ "ingredient": { "item": "..." } }` or `{ "ingredient": { "tag": "..." } }`: ingredient-style wrapper
+- `{ "id": "minecraft:stick" }` — exact item ID
+- `{ "tag": "c:tools/pickaxe" }` — item tag
+- `{ "type": "neoorigins:empty" }` — slot is empty (also `apace:empty`)
+- `{ "ingredient": { "item": "..." } }` or `{ "ingredient": { "tag": "..." } }` — ingredient-style wrapper
 
 Always-true when `item_condition` is absent.
 
@@ -906,7 +880,7 @@ Numeric comparison against one of the player's vanilla statistics, the same numb
   "compare_to": 24000 }
 ```
 
-An object selects the stat category explicitly. This is the form upstream Apoli documents, and the only way to reach the non-custom categories:
+An object selects the stat category explicitly; this is the form upstream Apoli documents, and the only way to reach the non-custom categories:
 
 ```json
 { "type": "neoorigins:statistic",
@@ -929,13 +903,15 @@ An object selects the stat category explicitly. This is the form upstream Apoli 
 
 ## `neoorigins:command`
 
-Runs an arbitrary server command with suppressed output and returns true if no exception was thrown.
+Runs an arbitrary server command with suppressed output and compares the value the command returned.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `command` | string | yes | — | Command text (no leading slash); always-false when blank |
+| `comparison` | string | no | `">="` | Comparison operator against the command's return value |
+| `compare_to` | int | no | `1` | Return-value threshold |
 
-**Unusual:** this does *not* test exit code. It returns true unless the command threw. Check the feasibility of any JSON-condition written this way carefully.
+**Unusual:** the command is executed every time the condition is evaluated, at permission level 2. A command that throws, and one whose root is blocked by the command guard, both score as a return value of `0`, which is false under the defaults. Check the cost of any JSON-condition written this way carefully.
 
 ## `neoorigins:advancement`
 
@@ -1099,6 +1075,32 @@ Numeric comparison against 3D distance from actor to target. **Default compariso
 | `comparison` | string | no | `"<="` | Comparison operator |
 | `compare_to` | number | no | `0.0` | Distance in blocks |
 
+## `neoorigins:distance_from_coordinates`
+
+Numeric comparison against the entity's distance from a reference point (`world_origin` at 0,0,0 or `world_spawn`), with selectable distance metric and per-axis exclusion.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `comparison` | string | no | `"=="` | Comparison operator |
+| `compare_to` | number | no | `0.0` | Distance threshold (required in practice) |
+| `reference` | string | no | `"world_origin"` | Reference point: `world_origin` (0,0,0) or `world_spawn` |
+| `offset` | object | no | — | Per-axis `{x,y,z}` offset added to the reference point |
+| `shape` | string | no | `"cube"` | Distance metric: `cube` (Chebyshev), `star` (Manhattan), `sphere` (Euclidean) |
+| `ignore_x` | bool | no | `false` | Exclude the X axis from the distance |
+| `ignore_y` | bool | no | `false` | Exclude the Y axis from the distance |
+| `ignore_z` | bool | no | `false` | Exclude the Z axis from the distance |
+| `result_on_the_wrong_dimension` | number | no | — | Distance value substituted when off the reference's dimension (absent → use real distance) |
+
+**Example: within 100 blocks of world spawn (horizontal only)**
+```json
+{ "type": "neoorigins:distance_from_coordinates",
+  "reference": "world_spawn",
+  "shape": "sphere",
+  "ignore_y": true,
+  "comparison": "<=",
+  "compare_to": 100 }
+```
+
 ## `neoorigins:can_see`
 
 True when the actor has line-of-sight to the target. No fields.
@@ -1234,7 +1236,7 @@ True when the player is currently on a climbable block (vanilla ladder, vine, or
 
 ## `neoorigins:climbing_gate`
 
-Internal state machine that drives conditioned `origins:climbing` powers. It is emitted by the compat translator when a climbing power carries a `condition` / `hold_condition`, so it is not normally hand-authored. It is documented for completeness and for authors debugging converted Apoli packs. It tracks per-player climb state: climbing starts while `condition` holds and, when `allow_holding`, keeps going while the player is airborne until `hold_condition` fails or they touch the ground.
+Internal state machine that drives conditioned `origins:climbing` powers. It is emitted by the compat translator when a climbing power carries a `condition` / `hold_condition`, so it is not normally hand-authored, documented for completeness and for authors debugging converted Apoli packs. It tracks per-player climb state: climbing starts while `condition` holds and, when `allow_holding`, keeps going while the player is airborne until `hold_condition` fails or they touch the ground.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1271,9 +1273,9 @@ True when the column directly above the player contains a non-air block within `
 
 **Aliases:** `origins:block_in_radius`, `apace:block_in_radius`
 
-True when any matching block is within a cubic radius of the player. Accepts any combination of single IDs, ID lists, single tags, and tag lists: a block matches if it appears in ANY of the provided blocks/tags (logical OR).
+Counts the matching blocks within `radius` of the player and compares that count against `compare_to`. Accepts any combination of single IDs, ID lists, single tags, and tag lists; a block matches if it appears in ANY of the provided blocks/tags (logical OR). The defaults `>=` 1 give the plain "is one nearby" reading.
 
-Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-near regen). Capped at radius 8 to avoid expensive per-tick scans.
+Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-near regen). Capped at radius 16 to bound the per-tick scan. The scan stops as soon as the count settles the comparison, so a default `>=` 1 check is cheap even at a large radius.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1282,7 +1284,10 @@ Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-ne
 | `tag` | block tag | no | — | Single block tag (with or without leading `#`) |
 | `tags` | list of block tag | no | `[]` | Additional block tags |
 | `block_condition` | object | no | — | Origins-format nested block condition (`block`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)) |
-| `radius` | int (1–8) | no | `4` | Cubic radius to scan around the player |
+| `radius` | int (1–16) | no | `4` | Radius to scan around the player; values outside the range are clamped |
+| `shape` | string | no | `"cube"` | Scan volume: `cube` (Chebyshev), `star` (Manhattan), `sphere` (Euclidean); an unknown value falls back to `cube` |
+| `comparison` | string | no | `">="` | Comparison operator against the count of matching blocks |
+| `compare_to` | int | no | `1` | Count to compare against |
 
 At least one of `block`/`blocks`/`tag`/`tags`/`block_condition` must be non-empty.
 
@@ -1329,7 +1334,7 @@ True when at least one entity of the given type (or entity tag) is within `dista
 
 The counting form of [`near_entity`](#neooriginsnear_entity): it compares how many matching entities are in range, so it can express "fewer than three mobs nearby" as well as "at least one wolf nearby". Same AABB broad scan followed by Euclidean distance filtering, and the same 64-block cap.
 
-Selectors combine as a logical AND: an entity counts when its type matches `entity_type`/`entity_types` (if either is given) *and* it satisfies `bientity_condition` (if given). With no selector at all, every entity in range counts — Apoli's behaviour for a bare `nearby_entities`.
+Selectors combine as a logical AND: an entity counts when its type matches `entity_type`/`entity_types` (if either is given) *and* it satisfies `bientity_condition` (if given). With no selector at all, every entity in range counts, Apoli's behaviour for a bare `nearby_entities`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|

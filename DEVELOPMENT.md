@@ -88,8 +88,7 @@ When a power JSON has an `origins:` or `apace:` type namespace, it goes through 
 {
   "type": "neoorigins:status_effect",
   "effect": "minecraft:water_breathing",
-  "amplifier": 0,
-  "duration": 400
+  "amplifier": 0
 }
 ```
 

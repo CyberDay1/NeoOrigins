@@ -702,7 +702,8 @@ Strength I against all targets.
 ```json
 // data/mypack/origins/powers/mark_clear_on_kill.json — internal: flip off on kill
 {
-  "type": "neoorigins:action_on_kill",
+  "type": "neoorigins:action_on_event",
+  "event": "kill",
   "hidden": true,
   "entity_action": {
     "type": "neoorigins:toggle",
@@ -711,6 +712,11 @@ Strength I against all targets.
   }
 }
 ```
+
+Use `action_on_event` with `"event": "kill"` here, not the legacy
+`neoorigins:action_on_kill`. That alias builds its own `entity_action` from
+`action`/`amount`/`effect` and overwrites whatever the file supplied, so a
+toggle written under it is dropped and the power heals instead.
 
 ```json
 // data/mypack/origins/powers/marked_strength.json — gated buff
