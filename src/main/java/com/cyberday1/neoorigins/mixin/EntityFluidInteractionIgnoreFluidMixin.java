@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.mixin;
 import com.cyberday1.neoorigins.power.capability.IgnoreFluidCapabilities;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityFluidInteraction;
@@ -43,16 +44,24 @@ import org.spongepowered.asm.mixin.injection.At;
  * selected ones. {@code EntityFluidInteraction.getTrackerFor} is private and has
  * no entity reference, so it cannot be used either.
  *
- * <p><b>Known 26.x limitation.</b> The tracker set is fixed at
- * {@code Set.of(FluidTags.WATER, FluidTags.LAVA)}, so a modded fluid outside
- * those tags is never tracked and gets no vanilla buoyancy, drag or push in the
- * first place. There is nothing to suppress for it and the power quietly no-ops.
- * The JSON schema still accepts any fluid id on purpose, so datapacks stay
- * portable across all three branches.
+ * <p><b>Tracker set varies by NeoForge build.</b> Below NeoForge 26.2.0.50-beta
+ * the set is fixed at {@code Set.of(FluidTags.WATER, FluidTags.LAVA)}, so a
+ * modded fluid outside those tags is never tracked and the power quietly no-ops
+ * for it. From 0.50-beta NeoForge keys the trackers by {@code FluidType}, so
+ * modded fluids are tracked — and suppressed here — too. The JSON schema accepts
+ * any fluid id on purpose, so datapacks stay portable across all three branches.
+ *
+ * <p><b>The target is the bare name {@code update}, deliberately (issue #131).</b>
+ * NeoForge 26.2.0.69 moved the scan body into a new
+ * {@code update(Entity, Predicate&lt;FluidType&gt;)} overload and left
+ * {@code update(Entity, boolean)} as a deprecated delegating shim with no
+ * {@code getFluidState} call, so pinning either descriptor breaks one side of
+ * the 0.69 fence. Matching both overloads wraps whichever one contains the scan
+ * ({@code require = 1} still guards it), and {@code @Local} fetches the entity
+ * arg instead of tail-capturing a signature that differs between the two.
  *
  * <p>Wrapped rather than {@code @Redirect}ed so other mods redirecting the same
- * call still compose. The enclosing {@code entity} is a method parameter, so the
- * handler captures it off the end of its own signature.
+ * call still compose.
  *
  * <p>This is a common mixin and runs on both logical sides; the capability lookup
  * is routed through {@code PowerCapabilities}, which resolves the client branch
@@ -67,7 +76,7 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class EntityFluidInteractionIgnoreFluidMixin {
 
     @WrapOperation(
-        method = "update(Lnet/minecraft/world/entity/Entity;Z)V",
+        method = "update*",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/level/BlockGetter;getFluidState(Lnet/minecraft/core/BlockPos;)"
@@ -76,7 +85,7 @@ public abstract class EntityFluidInteractionIgnoreFluidMixin {
     )
     private FluidState neoorigins$ignoreFluidInBodyScan(BlockGetter level, BlockPos pos,
                                                         Operation<FluidState> original,
-                                                        Entity entity, boolean ignoreCurrent) {
+                                                        @Local(argsOnly = true) Entity entity) {
         FluidState state = original.call(level, pos);
         if (entity instanceof Player player && IgnoreFluidCapabilities.ignores(player, state)) {
             return Fluids.EMPTY.defaultFluidState();

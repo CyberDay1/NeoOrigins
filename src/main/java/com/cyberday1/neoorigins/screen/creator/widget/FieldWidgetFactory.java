@@ -1462,8 +1462,9 @@ public final class FieldWidgetFactory {
         @Override public void build(CreatorHost parent, Font font, int fieldW, int h) {
             this.fieldW = fieldW; this.rowH = h;
             int gap = 4, boxW = Math.max(40, fieldW - TOGGLE_W - gap);
-            box = new EditBox(font, 0, 0, boxW, h, Component.literal(spec.name()));
-            box.setFilter(this::accept);
+            FilteredEditBox fb = new FilteredEditBox(font, 0, 0, boxW, h, Component.literal(spec.name()));
+            fb.setFilter(this::accept);
+            box = fb;
             if (spec.defaultValue() != null) box.setValue(String.valueOf(spec.defaultValue()));
             applyHint();
             modeToggle = Button.builder(modeLabel(), b -> {

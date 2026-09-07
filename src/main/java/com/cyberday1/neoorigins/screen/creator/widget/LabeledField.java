@@ -28,9 +28,10 @@ public final class LabeledField {
 
     /** Build the box; register the returned widget with the screen. */
     public EditBox build(Font font, int x, int y, int w, int h) {
-        box = new EditBox(font, x, y, w, h, Component.literal(label));
-        box.setMaxLength(256);
-        if (filter != null) box.setFilter(filter);
+        FilteredEditBox fb = new FilteredEditBox(font, x, y, w, h, Component.literal(label));
+        fb.setMaxLength(256);
+        if (filter != null) fb.setFilter(filter);
+        box = fb;
         return box;
     }
 
