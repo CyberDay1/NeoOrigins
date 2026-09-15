@@ -152,6 +152,10 @@ public final class SchemaFormCheck {
         //     textarea and hides the recursive sub-form picker).
         failures += auditScalarOrArrayRefs(model);
 
+        // 9d. A MIXED field that declares options (boolean|string choice) must reach
+        //     the walker as a dropdown-eligible spec, never as a raw-JSON box.
+        failures += auditBooleanStringChoices(model);
+
         // 10. Action / condition schemas must also be packaged + parse, so the
         //     2.1 RefRow widget can render sub-forms when an entity_action /
         //     condition REF is picked.
@@ -188,28 +192,8 @@ public final class SchemaFormCheck {
      * new powers with the same shape are covered automatically.
      */
     private static int auditScalarOrArrayRefs(SchemaFormModel model) {
-        com.google.gson.JsonObject root;
-        try (java.io.InputStream in = SchemaFormModel.class
-                .getResourceAsStream(SchemaFormModel.RESOURCE_PATH)) {
-            if (in == null) {
-                System.out.println("[schema-check] FAIL  power schema not on classpath"
-                    + " for the scalar-or-array $ref audit");
-                return 1;
-            }
-            root = com.google.gson.JsonParser.parseString(new String(
-                in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-        } catch (java.io.IOException e) {
-            System.out.println("[schema-check] FAIL  cannot read power schema: " + e);
-            return 1;
-        }
-        // No oneOf at all means the schema lost every structured branch — the
-        // audit below would iterate nothing and "pass". That is the failure
-        // mode this guard exists to catch, so it must be loud.
-        if (!root.has("oneOf")) {
-            System.out.println("[schema-check] FAIL  power schema has no 'oneOf' —"
-                + " the scalar-or-array $ref audit had nothing to inspect");
-            return 1;
-        }
+        com.google.gson.JsonObject root = powerSchemaRoot("scalar-or-array $ref");
+        if (root == null) return 1;
 
         int fails = 0, checked = 0;
         java.util.List<String> bad = new java.util.ArrayList<>();
@@ -260,6 +244,116 @@ public final class SchemaFormCheck {
                 checked);
         }
         return fails;
+    }
+
+    /**
+     * The committed power schema as parsed JSON, or {@code null} (having printed the
+     * failure) when it is off the classpath, unreadable, or has lost its top-level
+     * {@code oneOf} — an audit that iterates nothing must be loud, not green.
+     */
+    private static com.google.gson.JsonObject powerSchemaRoot(String auditLabel) {
+        com.google.gson.JsonObject root;
+        try (java.io.InputStream in = SchemaFormModel.class
+                .getResourceAsStream(SchemaFormModel.RESOURCE_PATH)) {
+            if (in == null) {
+                System.out.println("[schema-check] FAIL  power schema not on classpath"
+                    + " for the " + auditLabel + " audit");
+                return null;
+            }
+            root = com.google.gson.JsonParser.parseString(new String(
+                in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        } catch (java.io.IOException e) {
+            System.out.println("[schema-check] FAIL  cannot read power schema: " + e);
+            return null;
+        }
+        if (!root.has("oneOf")) {
+            System.out.println("[schema-check] FAIL  power schema has no 'oneOf' —"
+                + " the " + auditLabel + " audit had nothing to inspect");
+            return null;
+        }
+        return root;
+    }
+
+    /**
+     * Guards the MIXED boolean-or-string CHOICE resolution. {@code SchemaNodeBuilder}
+     * emits an {@code enum} on the STRING arm of a MIXED field that declares
+     * {@code options()}, which is what lets both editors offer a dropdown
+     * ({@code render_elytra}: never / flying / always) instead of a raw-JSON textarea
+     * where the third state is typeable only if you already knew it existed. Every
+     * such node must reach the in-game walker as a MIXED spec that answers
+     * {@link FormFieldSpec#isBooleanStringChoice()} — i.e. carrying BOTH arm types and
+     * the option list, since dropping either one silently reverts it to raw JSON.
+     *
+     * <p>Derived from the schema, not a field list, so any future MIXED spec that
+     * declares options is covered the day it is added.
+     */
+    private static int auditBooleanStringChoices(SchemaFormModel model) {
+        com.google.gson.JsonObject root = powerSchemaRoot("boolean-or-string choice");
+        if (root == null) return 1;
+
+        int checked = 0;
+        java.util.List<String> bad = new java.util.ArrayList<>();
+        for (com.google.gson.JsonElement be : root.getAsJsonArray("oneOf")) {
+            if (!be.isJsonObject()) continue;
+            com.google.gson.JsonObject branch = be.getAsJsonObject();
+            if (!branch.has("properties")) continue;
+            com.google.gson.JsonObject bprops = branch.getAsJsonObject("properties");
+            if (!bprops.has("type") || !bprops.get("type").isJsonObject()) continue;
+            com.google.gson.JsonObject typeNode = bprops.getAsJsonObject("type");
+            if (!typeNode.has("const")) continue;
+            String typeId = typeNode.get("const").getAsString();
+
+            for (var pe : bprops.entrySet()) {
+                if (pe.getKey().equals("type") || !pe.getValue().isJsonObject()) continue;
+                if (!isBooleanStringChoiceNode(pe.getValue().getAsJsonObject())) continue;
+                checked++;
+                FormFieldSpec resolved = null;
+                for (FormFieldSpec f : model.formFor(typeId)) {
+                    if (f.name().equals(pe.getKey())) { resolved = f; break; }
+                }
+                if (resolved == null || !resolved.isBooleanStringChoice()) {
+                    bad.add(typeId + "." + pe.getKey() + " -> "
+                        + (resolved == null ? "absent"
+                            : resolved.kind() + " arms=" + resolved.mixedTypes()
+                              + " options=" + resolved.enumValues()));
+                }
+            }
+        }
+        if (checked == 0) {
+            System.out.println("[schema-check] FAIL  found 0 boolean-or-string choice fields to"
+                + " audit — the power schema no longer emits an enum on a MIXED string arm,"
+                + " so this gate was passing vacuously");
+            return 1;
+        }
+        if (!bad.isEmpty()) {
+            java.util.Collections.sort(bad);
+            System.out.println("[schema-check] FAIL  " + bad.size()
+                + " boolean-or-string choice fields degraded to a raw-JSON box:");
+            for (String b : bad) System.out.println("    " + b);
+            return 1;
+        }
+        System.out.printf("[schema-check] boolean-or-string choice fields: %d resolved to a dropdown%n",
+            checked);
+        return 0;
+    }
+
+    /** True for {@code {"oneOf":[{"type":"boolean"},{"type":"string","enum":[…]}]}} (either order). */
+    private static boolean isBooleanStringChoiceNode(com.google.gson.JsonObject p) {
+        if (!p.has("oneOf") || !p.get("oneOf").isJsonArray()) return false;
+        com.google.gson.JsonArray branches = p.getAsJsonArray("oneOf");
+        if (branches.size() != 2) return false;
+        boolean sawBoolean = false, sawStringEnum = false;
+        for (com.google.gson.JsonElement be : branches) {
+            if (!be.isJsonObject()) return false;
+            com.google.gson.JsonObject b = be.getAsJsonObject();
+            if (!b.has("type") || !b.get("type").isJsonPrimitive()) return false;
+            String t = b.get("type").getAsString();
+            if ("boolean".equals(t)) sawBoolean = true;
+            else if ("string".equals(t) && b.has("enum") && b.get("enum").isJsonArray()
+                    && b.getAsJsonArray("enum").size() >= 2) sawStringEnum = true;
+            else return false;
+        }
+        return sawBoolean && sawStringEnum;
     }
 
     /** True for {@code {"oneOf":[{"$ref":X},{"type":"array","items":{"$ref":X}}]}}. */

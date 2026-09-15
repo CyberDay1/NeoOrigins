@@ -1758,6 +1758,18 @@ public class NeoOriginsNetwork {
     }
 
     /**
+     * True if the wings stay on whether or not the player is fall-flying —
+     * {@code render_elytra: "always"} rather than the default {@code "flying"}. A
+     * refinement of {@link #rendersElytraFrom}, which is also true in that case, so
+     * this is only ever consulted once the wings are known to draw at all. The same
+     * condition-gate reasoning applies: "always" means "whenever the power is active".
+     */
+    private static boolean alwaysRendersElytraFrom(Set<String> capabilities) {
+        return capabilities.contains(
+            com.cyberday1.neoorigins.power.builtin.ElytraFlightPower.CAP_RENDER_ELYTRA_ALWAYS);
+    }
+
+    /**
      * Extract the custom elytra texture id encoded as
      * {@code elytra_texture:<id>} in the capability set, or {@code ""} for the
      * vanilla elytra texture. Only meaningful when {@link #rendersElytraFrom} is true.
@@ -1775,9 +1787,10 @@ public class NeoOriginsNetwork {
     /** Broadcast a player's cosmetic wing state to all tracking clients and the player. */
     private static void broadcastElytraFlight(ServerPlayer player, Set<String> capabilities) {
         boolean render = rendersElytraFrom(capabilities);
+        boolean always = render && alwaysRendersElytraFrom(capabilities);
         String texture = render ? elytraTextureFrom(capabilities) : "";
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(player,
-            new SyncElytraFlightPayload(player.getId(), render, texture));
+            new SyncElytraFlightPayload(player.getId(), render, always, texture));
     }
 
     /**
@@ -1791,7 +1804,8 @@ public class NeoOriginsNetwork {
         collectActivePowers(tracked, powerMap, capabilities);
         if (!rendersElytraFrom(capabilities)) return;
         PacketDistributor.sendToPlayer(observer,
-            new SyncElytraFlightPayload(tracked.getId(), true, elytraTextureFrom(capabilities)));
+            new SyncElytraFlightPayload(tracked.getId(), true,
+                alwaysRendersElytraFrom(capabilities), elytraTextureFrom(capabilities)));
     }
 
     private static void handleSyncFoodNutrition(SyncFoodNutritionPayload payload, IPayloadContext ctx) {
@@ -1812,7 +1826,7 @@ public class NeoOriginsNetwork {
                 }
             }
             com.cyberday1.neoorigins.client.ClientElytraFlightState.set(
-                payload.entityId(), payload.render(), tex);
+                payload.entityId(), payload.render(), payload.always(), tex);
         });
     }
 

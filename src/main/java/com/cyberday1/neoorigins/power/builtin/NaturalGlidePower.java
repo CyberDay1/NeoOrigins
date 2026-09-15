@@ -21,19 +21,21 @@ import java.util.Set;
  * elytra layer keys off the equipped item. Set {@code render_elytra} to opt into the
  * cosmetic wings, which is the same field {@code neoorigins:elytra_flight} carries and
  * goes through the same capability encoding ({@link ElytraFlightPower#addRenderCaps}).
- * It defaults to {@code false} here so packs written against the wingless behaviour
- * keep it; {@code elytra_flight} is the type that defaults it on.
+ * It defaults to {@link ElytraFlightPower.WingRender#NEVER} here so packs written against
+ * the wingless behaviour keep it; {@code elytra_flight} is the type that defaults it on.
  *
  * <p>Used by Phantom (spectral wings). Combine with
  * {@code neoorigins:elytra_boost} for a full glide + launch-boost kit.
  */
 public class NaturalGlidePower extends PowerType<NaturalGlidePower.Config> {
 
-    public record Config(String type, boolean renderElytra, String textureLocation)
+    public record Config(String type, ElytraFlightPower.WingRender renderElytra, String textureLocation)
             implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
-            Codec.BOOL.optionalFieldOf("render_elytra", false).forGetter(Config::renderElytra),
+            ElytraFlightPower.WingRender.CODEC
+                .optionalFieldOf("render_elytra", ElytraFlightPower.WingRender.NEVER)
+                .forGetter(Config::renderElytra),
             Codec.STRING.optionalFieldOf("texture_location", "").forGetter(Config::textureLocation)
         ).apply(inst, Config::new));
     }

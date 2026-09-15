@@ -524,8 +524,8 @@ The launch is refused on the ground, in water, while riding, in spectator, and w
 |---|---|---|---|---|
 | `cooldown_icon` | string | no | `""` | HUD icon (joins the ability cluster); full-bright while toggled on, dimmed while off |
 | `always_show_icon` | boolean | no | `false` | Keep the icon on the HUD even while toggled off |
-| `render_elytra` | boolean | no | `false` | Whether an elytra is drawn on the player's back while flying. Flight works either way; this is cosmetic only. |
-| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra. Only applies when `render_elytra` is true; the model stays the vanilla elytra. |
+| `render_elytra` | boolean or string | no | `false` | When an elytra is drawn on the player's back: `false` / `"never"` (no wings), `true` / `"flying"` (only while flying), or `"always"` (whenever the power is active, folded when not flying). Flight works either way; this is cosmetic only. |
+| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra. Only applies when `render_elytra` draws wings at all; the model stays the vanilla elytra. |
 
 **Example:**
 ```json
@@ -538,7 +538,7 @@ The launch is refused on the ground, in water, while riding, in spectator, and w
 }
 ```
 
-As with `neoorigins:natural_glide`, the flight runs with an empty chest slot, so nothing is drawn on the player's back unless `render_elytra` is set. See the note under `natural_glide` for why that defaults off.
+As with `neoorigins:natural_glide`, the flight runs with an empty chest slot, so nothing is drawn on the player's back unless `render_elytra` is set. See the note under `natural_glide` for why that defaults off, and for the three values it accepts.
 
 ---
 
@@ -4207,8 +4207,8 @@ Emits the `natural_glide` capability tag. The `PlayerStartFallFlyingMixin` reads
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `render_elytra` | boolean | no | `false` | Whether an elytra is drawn on the player's back while fall-flying. Flight works either way; this is cosmetic only. Defaults `false`: this power glides with no visible wings unless you ask for them. |
-| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra, e.g. `mymod:textures/entity/my_wings.png`. Only applies when `render_elytra` is true; the model stays the vanilla elytra (texture swap only). Omit for the vanilla elytra texture. |
+| `render_elytra` | boolean or string | no | `false` | When an elytra is drawn on the player's back: `false` / `"never"` (no wings), `true` / `"flying"` (only while fall-flying), or `"always"` (whenever the power is active, folded against the back when not gliding). Flight works either way; this is cosmetic only. Defaults `false`: this power glides with no visible wings unless you ask for them. |
+| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra, e.g. `mymod:textures/entity/my_wings.png`. Only applies when `render_elytra` draws wings at all; the model stays the vanilla elytra (texture swap only). Omit for the vanilla elytra texture. |
 
 **Example: Phantom spectral wings**
 ```json
@@ -4224,6 +4224,16 @@ Preconditions match vanilla: not on ground, not already fall-flying, not in wate
 
 **Why wings need asking for.** The glide runs with an empty chest slot, and vanilla's elytra render layer keys off the equipped item, so without `render_elytra` the player flies with nothing on their back. The field defaults `false` here rather than `true` so packs authored against the wingless behaviour keep it, including origins that already supply their own wing model. `neoorigins:elytra_flight` is the same mechanic with the default flipped on.
 
+**The three wing states.** `render_elytra` is a tri-state written as a widened boolean, so the old spellings still mean exactly what they always did:
+
+| Value | Wings |
+|---|---|
+| `false` or `"never"` | Never drawn. |
+| `true` or `"flying"` | Drawn only while fall-flying. |
+| `"always"` | Drawn whenever the power is active, folded against the back when not gliding. |
+
+`"always"` is gated by the power's own top-level `condition` like everything else, so it means "whenever the power is active", not literally always. Any other string is rejected at load with the legal values named. A real equipped elytra still wins in every case: vanilla draws that one and this power stays out of the way.
+
 Contrast with `neoorigins:flight`: both are pitch-based elytra gliding, but `flight` is a toggle launched by a mid-air jump, while `natural_glide` is always available and starts from a fall. For creative-mode hover, see `neoorigins:creative_flight`.
 
 ---
@@ -4238,8 +4248,8 @@ The wings are purely cosmetic: gliding works the same whether or not an elytra i
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `render_elytra` | boolean | no | `true` | Whether an elytra is drawn on the player's back while fall-flying. Flight works either way; this is cosmetic only. Set `false` to glide with no visible wings. |
-| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra, e.g. `mymod:textures/entity/my_wings.png`. Only applies when `render_elytra` is true; the model stays the vanilla elytra (texture swap only). Omit for the vanilla elytra texture. |
+| `render_elytra` | boolean or string | no | `true` | When an elytra is drawn on the player's back: `false` / `"never"` (no wings), `true` / `"flying"` (only while fall-flying), or `"always"` (whenever the power is active, folded against the back when not gliding). Flight works either way; this is cosmetic only. |
+| `texture_location` | identifier | no | vanilla elytra | Custom texture for the drawn elytra, e.g. `mymod:textures/entity/my_wings.png`. Only applies when `render_elytra` draws wings at all; the model stays the vanilla elytra (texture swap only). Omit for the vanilla elytra texture. |
 
 **Example: spectral wings you can see**
 ```json
@@ -4261,6 +4271,18 @@ The wings are purely cosmetic: gliding works the same whether or not an elytra i
   "description": "Glide with no visible wings."
 }
 ```
+
+**Example: wings that are always on**
+```json
+{
+  "type": "neoorigins:elytra_flight",
+  "render_elytra": "always",
+  "name": "Winged",
+  "description": "Your wings are part of you: folded on your back when you walk, spread when you glide."
+}
+```
+
+`"always"` draws the wings whenever the power is active rather than only during a glide; vanilla's elytra model folds them against the back when the player is not fall-flying, so the standing pose is the usual tucked one. The power's top-level `condition` still applies, so "always" means "whenever the power is active". This is what the built-in Elytrian origin uses: the wings are its body plan, not a flight effect. See the three-state table under `neoorigins:natural_glide` for the full value list.
 
 If `render_elytra` is false, this is behaviourally identical to `neoorigins:natural_glide`. Pair either with `neoorigins:elytra_boost` for a full glide + launch-boost kit.
 

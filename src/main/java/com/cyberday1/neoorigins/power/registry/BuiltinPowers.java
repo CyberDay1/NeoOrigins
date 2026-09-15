@@ -161,21 +161,38 @@ public final class BuiltinPowers {
      * shipped for years without wings, and turning them on by default would put
      * wings on every existing pack that used them, including packs whose origins
      * already carry their own wing model. So they default off and opt in.
+     *
+     * <p>{@code render_elytra} is a TRI-state spelled as a widened boolean, hence
+     * {@code MIXED} over {@code boolean | string} — the two historical spellings keep
+     * their exact meaning ({@code false} = {@code "never"}, {@code true} =
+     * {@code "flying"}) and {@code "always"} is the new third value, so no existing
+     * pack changes. SCHEMA = PARSER: those are precisely the arms
+     * {@code ElytraFlightPower.WingRender.CODEC} accepts.
+     *
+     * <p>{@code options} ride the MIXED spec: {@code SchemaNodeBuilder} constrains the
+     * STRING arm to them, which is what earns the field a dropdown in both editors
+     * instead of a raw-JSON box. ORDER MATTERS — the first two options are the
+     * {@code false} and {@code true} spellings, so a legacy boolean already on disk
+     * loads onto the right entry (see {@code FormFieldSpec.isBooleanStringChoice}).
      */
     private static final FieldSpec RENDER_ELYTRA_ON_SPEC =
-        new FieldSpec("render_elytra", Kind.BOOLEAN, false)
-            .def(true).doc("When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. When false, the player glides with no visible wings.");
+        new FieldSpec("render_elytra", Kind.MIXED, false)
+            .mixedTypes("boolean", "string")
+            .options("never", "flying", "always")
+            .def(true).doc("When the cosmetic wings are drawn: \"never\" is no wings, \"flying\" is wings only while fall-flying, \"always\" is wings whenever the power is active, folded against the back when not gliding. Defaults to \"flying\". The legacy booleans still parse — false is \"never\", true is \"flying\". Flight works whichever you pick: this is purely cosmetic.");
 
     /** {@link #RENDER_ELYTRA_ON_SPEC} for the power types that default it off. */
     private static final FieldSpec RENDER_ELYTRA_OFF_SPEC =
-        new FieldSpec("render_elytra", Kind.BOOLEAN, false)
-            .def(false).doc("When true, a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. Defaults false, because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.");
+        new FieldSpec("render_elytra", Kind.MIXED, false)
+            .mixedTypes("boolean", "string")
+            .options("never", "flying", "always")
+            .def(false).doc("When the cosmetic wings are drawn: \"never\" is no wings, \"flying\" is wings only while fall-flying, \"always\" is wings whenever the power is active, folded against the back when not gliding. The legacy booleans still parse — false is \"never\", true is \"flying\". Defaults to \"never\", because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.");
 
     /** Custom texture for the drawn wings. Shared by all three flight power types. */
     private static final FieldSpec ELYTRA_TEXTURE_SPEC =
         new FieldSpec("texture_location", Kind.STRING, false)
             .pattern(RESOURCE_LOCATION_PATTERN)
-            .doc("Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.");
+            .doc("Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra draws wings at all; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.");
 
     /**
      * Looser hint for scalar-string lists whose entries are NOT strictly

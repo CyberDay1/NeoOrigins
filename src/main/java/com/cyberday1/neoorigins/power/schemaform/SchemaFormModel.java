@@ -263,8 +263,41 @@ public final class SchemaFormModel {
         String pattern = kind == FormFieldSpec.Kind.STRING
             && p.has("pattern") && p.get("pattern").isJsonPrimitive()
             ? p.get("pattern").getAsString() : null;
+        // MIXED arms: the oneOf's declared types, plus any `enum` an arm constrains
+        // itself to (SchemaNodeBuilder emits one on the STRING arm of a MIXED spec
+        // that declares options). Without both the widget layer cannot tell a closed
+        // two-arm choice from an open union, and every MIXED field degrades to a
+        // raw-JSON box — see FormFieldSpec.isBooleanStringChoice.
+        List<String> mixedTypes = List.of();
+        if (kind == FormFieldSpec.Kind.MIXED) {
+            mixedTypes = mixedArmTypes(p, enumVals);
+        }
         return new FormFieldSpec(name, kind, required, def, enumVals, min, max, desc, ref, itemsRef, children,
-            itemPattern, false, pattern);
+            itemPattern, false, pattern, mixedTypes);
+    }
+
+    /**
+     * Read a MIXED node's {@code oneOf} arms: returns each arm's declared
+     * {@code type} in schema order, and appends any arm's {@code enum} values to
+     * {@code enumVals}. Returns empty (and touches nothing) unless EVERY arm is a
+     * bare {@code {"type":…}} node — a {@code $ref} arm or an inline sub-schema means
+     * this is not a plain type union, and the caller must keep its raw-JSON handling.
+     */
+    private static List<String> mixedArmTypes(JsonObject p, List<String> enumVals) {
+        if (!p.has("oneOf") || !p.get("oneOf").isJsonArray()) return List.of();
+        List<String> types = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        for (JsonElement be : p.getAsJsonArray("oneOf")) {
+            if (!be.isJsonObject()) return List.of();
+            JsonObject b = be.getAsJsonObject();
+            if (!b.has("type") || !b.get("type").isJsonPrimitive()) return List.of();
+            types.add(b.get("type").getAsString());
+            if (b.has("enum") && b.get("enum").isJsonArray()) {
+                for (JsonElement e : b.getAsJsonArray("enum")) values.add(e.getAsString());
+            }
+        }
+        enumVals.addAll(values);
+        return List.copyOf(types);
     }
 
     /**
