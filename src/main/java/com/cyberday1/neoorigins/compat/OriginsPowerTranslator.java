@@ -1468,8 +1468,16 @@ public final class OriginsPowerTranslator {
         // routed to power_condition generically by passThroughUnhandledKeys.
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:elytra_flight");
-        boolean renderElytra = !src.has("render_elytra") || src.get("render_elytra").getAsBoolean();
-        out.addProperty("render_elytra", renderElytra);
+        // The native field is a tri-state, so a string ("never"/"flying"/"always") passes
+        // through verbatim. Apoli itself only ever emits a boolean, so a string can only
+        // come from a hand-edited or NeoOrigins-aware source, and "absent means true" holds.
+        var raw = src.get("render_elytra");
+        boolean isString = raw != null && raw.isJsonPrimitive() && raw.getAsJsonPrimitive().isString();
+        if (isString) {
+            out.addProperty("render_elytra", raw.getAsString());
+        } else {
+            out.addProperty("render_elytra", raw == null || raw.getAsBoolean());
+        }
         if (src.has("texture_location") && src.get("texture_location").isJsonPrimitive()) {
             out.addProperty("texture_location", src.get("texture_location").getAsString());
         }

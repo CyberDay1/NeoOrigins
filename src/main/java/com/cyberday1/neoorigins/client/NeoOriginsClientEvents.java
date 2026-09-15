@@ -311,16 +311,22 @@ public class NeoOriginsClientEvents {
         // player's render state so the entity-less NeoOriginsElytraLayer (26.1 renders
         // from a render state) knows whether — and with what texture — to draw wings.
         // Mirrors the server-synced ClientElytraFlightState, keyed by entity id; we
-        // only stamp when render is wanted (absence = no power wings).
+        // only stamp when render is wanted (absence = no power wings). The "always"
+        // refinement rides its own key, so the render flag keeps its old meaning.
         event.registerAvatarEntityModifier(
             new net.neoforged.neoforge.client.renderstate.AvatarRenderStateModifier() {
                 @Override
                 public <T extends net.minecraft.world.entity.Avatar & net.minecraft.client.entity.ClientAvatarEntity>
                         void accept(T avatar, net.minecraft.client.renderer.entity.state.AvatarRenderState state) {
-                    if (ClientElytraFlightState.shouldRenderElytra(avatar.getId())) {
+                    int id = avatar.getId();
+                    if (ClientElytraFlightState.shouldRenderElytra(id)) {
                         state.setRenderData(ClientElytraFlightState.RENDER_ELYTRA_KEY, Boolean.TRUE);
+                        if (ClientElytraFlightState.alwaysRendersElytra(id)) {
+                            state.setRenderData(
+                                ClientElytraFlightState.RENDER_ELYTRA_ALWAYS_KEY, Boolean.TRUE);
+                        }
                         state.setRenderData(ClientElytraFlightState.ELYTRA_TEXTURE_KEY,
-                            ClientElytraFlightState.textureFor(avatar.getId()));
+                            ClientElytraFlightState.textureFor(id));
                     }
                 }
             });

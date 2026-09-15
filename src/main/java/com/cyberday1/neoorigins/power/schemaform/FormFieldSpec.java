@@ -48,6 +48,13 @@ import java.util.List;
  * @param pattern      when {@link Kind#STRING}, the schema {@code pattern} regex the
  *                     value must satisfy (the same constraint the web editor
  *                     enforces); {@code null} when unconstrained.
+ * @param mixedTypes   when {@link Kind#MIXED}, the JSON types the schema's {@code oneOf}
+ *                     arms declare, in schema order ({@code ["boolean","string"]} for
+ *                     {@code render_elytra}, {@code ["integer","string","object"]} for
+ *                     {@code key}). Empty when the arms are not all bare types. The
+ *                     widget layer needs them to tell a closed two-arm choice — which
+ *                     can be a dropdown, see {@link #isBooleanStringChoice()} — from the
+ *                     open unions that must stay a raw-JSON box.
  */
 public record FormFieldSpec(
     String name,
@@ -63,10 +70,20 @@ public record FormFieldSpec(
     List<FormFieldSpec> children,
     String itemPattern,
     boolean scalarOrArray,
-    String pattern
+    String pattern,
+    List<String> mixedTypes
 ) {
     public FormFieldSpec {
         children = children == null ? List.of() : List.copyOf(children);
+        mixedTypes = mixedTypes == null ? List.of() : List.copyOf(mixedTypes);
+    }
+
+    /** Back-compat constructor — the shape before {@link #mixedTypes} existed. */
+    public FormFieldSpec(String name, Kind kind, boolean required, Object defaultValue,
+                         List<String> enumValues, Double min, Double max, String description,
+                         String ref, String itemsRef, List<FormFieldSpec> children,
+                         String itemPattern, boolean scalarOrArray, String pattern) {
+        this(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef, children, itemPattern, scalarOrArray, pattern, List.of());
     }
 
     /** Back-compat constructor — the shape before {@link #pattern} existed. */
@@ -136,5 +153,35 @@ public record FormFieldSpec(
     /** True when this field carries a usable numeric range (slider-eligible). */
     public boolean hasRange() {
         return (kind == Kind.NUMBER || kind == Kind.INTEGER) && min != null && max != null;
+    }
+
+    /**
+     * True when this {@link Kind#MIXED} field is a boolean-or-string CHOICE: its arms
+     * are exactly {@code boolean} and {@code string}, and the string arm names its
+     * values ({@link #enumValues}). Those options then describe the WHOLE value space —
+     * the two booleans are just legacy spellings of the first two — so both editors
+     * render the dropdown instead of the raw-JSON box, and nothing becomes untypeable.
+     * Every other MIXED field (an open {@code string | object} union, {@code key}) keeps
+     * the raw-JSON escape, because a dropdown there would hide legal values.
+     *
+     * <p>At least two options are required: the boolean arm has two values, and
+     * {@link #choiceFor(boolean)} spells them as the first two options.
+     */
+    public boolean isBooleanStringChoice() {
+        return kind == Kind.MIXED
+            && enumValues.size() >= 2
+            && mixedTypes.size() == 2
+            && mixedTypes.contains("boolean")
+            && mixedTypes.contains("string");
+    }
+
+    /**
+     * The option a legacy boolean spells on an {@link #isBooleanStringChoice()} field:
+     * {@code false} is the first option, {@code true} the second. That ordering is the
+     * declaring {@code FieldSpec.options(…)} contract, and it is what lets an existing
+     * file written as a boolean load onto the right dropdown entry.
+     */
+    public String choiceFor(boolean value) {
+        return enumValues.get(value ? 1 : 0);
     }
 }

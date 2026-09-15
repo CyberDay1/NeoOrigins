@@ -20,9 +20,11 @@ import java.util.List;
  * Turns a {@link FormFieldSpec} into one editable {@link FieldRow} for the
  * Powers tab. One concrete widget per {@link FormFieldSpec.Kind}. ARRAY / OBJECT
  * / REF get recursive inline sub-forms when the spec carries the shape to build
- * one ({@code items.$ref}, {@code children}, {@code $ref}); MIXED / UNKNOWN and
- * the shapeless arrays/objects still fall to a single-line raw-JSON box, as does
- * the per-power raw-JSON escape hatch for deep edits.
+ * one ({@code items.$ref}, {@code children}, {@code $ref}); a MIXED field that is a
+ * closed boolean-or-string choice ({@link FormFieldSpec#isBooleanStringChoice()})
+ * gets the ENUM dropdown; the remaining MIXED / UNKNOWN and the shapeless
+ * arrays/objects still fall to a single-line raw-JSON box, as does the per-power
+ * raw-JSON escape hatch for deep edits.
  *
  * <p><b>Optional fields must be able to say nothing.</b> {@link FieldRow#toJson()}
  * returning {@code null} removes the key, and several powers read "absent" and
@@ -184,7 +186,16 @@ public final class FieldWidgetFactory {
             case OBJECT  -> spec.children().isEmpty()
                                 ? new TextRow(spec, true, null, registryPick)
                                 : new ObjectRow(spec, typePicker, rebuildCb, registryPick);
-            // MIXED/UNKNOWN → raw-JSON escape
+            // A MIXED field whose arms are exactly boolean+string AND which names its
+            // string values is a closed CHOICE (render_elytra's never/flying/always,
+            // the first two being the legacy false/true) — the options cover the whole
+            // value space, so the enum dropdown loses nothing and makes the third
+            // state discoverable instead of typeable-if-you-knew. Every other MIXED
+            // is an open union and keeps the raw-JSON escape.
+            case MIXED   -> spec.isBooleanStringChoice()
+                                ? new EnumRow(spec)
+                                : new TextRow(spec, true, null, registryPick);
+            // UNKNOWN → raw-JSON escape
             default      -> new TextRow(spec, true, null, registryPick);
         };
     }
@@ -536,6 +547,12 @@ public final class FieldWidgetFactory {
      * written as its schema default — the web editor's {@code (none)} option
      * with the same meaning. Required enums are unchanged: they still seed the
      * default and still block Save when empty.
+     *
+     * <p>Also renders a MIXED boolean-or-string CHOICE
+     * ({@link FormFieldSpec#isBooleanStringChoice()}). Such a field may hold a legacy
+     * boolean on disk, so load coerces it to the option that spells it; save always
+     * writes the string, which normalises {@code true} to its spelling on the first
+     * edit — identical semantics, one canonical form.
      */
     private static final class EnumRow extends Base {
         /** Unset entry for an optional enum; bracketed so it can't collide with
@@ -558,7 +575,7 @@ public final class FieldWidgetFactory {
             } else {
                 values = opts;
                 if (spec.defaultValue() != null) {
-                    int i = values.indexOf(String.valueOf(spec.defaultValue()));
+                    int i = values.indexOf(asOption(spec, spec.defaultValue()));
                     if (i >= 0) idx = i;
                 }
             }
@@ -579,10 +596,24 @@ public final class FieldWidgetFactory {
         }
         @Override public void fromJson(JsonElement el) {
             int i = (el != null && el.isJsonPrimitive())
-                ? values.indexOf(el.getAsString()) : -1;
+                ? values.indexOf(asOption(spec, el.getAsJsonPrimitive())) : -1;
             if (i >= 0) idx = i;
             else if (optional) idx = 0;              // absent (or unknown) → unset
             if (button != null) button.setMessage(label());
+        }
+
+        /**
+         * The option a raw value selects. Normally its own string; on a boolean-or-
+         * string choice a boolean is the legacy spelling of one of the first two
+         * options, so it maps there rather than missing every entry (which would
+         * silently drop the key and hand the power its default back).
+         */
+        private static String asOption(FormFieldSpec spec, Object raw) {
+            Boolean asBool = null;
+            if (raw instanceof Boolean b) asBool = b;
+            else if (raw instanceof JsonPrimitive jp && jp.isBoolean()) asBool = jp.getAsBoolean();
+            if (asBool != null && spec.isBooleanStringChoice()) return spec.choiceFor(asBool);
+            return raw instanceof JsonPrimitive jp ? jp.getAsString() : String.valueOf(raw);
         }
         @Override public String validationError() {
             return spec.required() && values.get(idx).isEmpty() ? "required" : null;

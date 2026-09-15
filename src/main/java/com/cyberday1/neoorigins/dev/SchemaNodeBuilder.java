@@ -168,6 +168,16 @@ public final class SchemaNodeBuilder {
                 for (String arm : arms) {
                     JsonObject asType = new JsonObject();
                     asType.addProperty("type", arm);
+                    // A MIXED spec that also declares options() constrains its STRING
+                    // arm to them, exactly as ENUM does — the other arms keep their own
+                    // spelling. That is what tells the editors the value space is closed
+                    // enough to offer a dropdown (render_elytra's never/flying/always).
+                    // MIXED specs without options (key) emit the bare arm as before.
+                    if ("string".equals(arm) && !fs.enumValues().isEmpty()) {
+                        JsonArray values = new JsonArray();
+                        for (String v : fs.enumValues()) values.add(v); // declared order
+                        asType.add("enum", values);
+                    }
                     oneOf.add(asType);
                 }
                 node.add("oneOf", oneOf);

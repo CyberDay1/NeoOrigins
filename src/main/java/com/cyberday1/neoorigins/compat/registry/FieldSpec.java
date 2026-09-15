@@ -277,6 +277,6 @@ public record FieldSpec(
      */
     public FormFieldSpec toFormSpec() {
         return new FormFieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef,
-            children.stream().map(FieldSpec::toFormSpec).toList(), itemPattern, false, pattern);
+            children.stream().map(FieldSpec::toFormSpec).toList(), itemPattern, false, pattern, mixedTypes);
     }
 }
