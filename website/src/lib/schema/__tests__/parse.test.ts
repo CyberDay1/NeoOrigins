@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 import { parsePowerSchema, parseRefSchema, refTypeOptions } from '../SchemaFormModel.js';
+import { asChoiceEnum, choiceOption, isBooleanStringChoice } from '../FormFieldSpec.js';
 import type { FormFieldSpec } from '../FormFieldSpec.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -294,6 +295,59 @@ check('string|object oneOf unions still fall to RawJson(MIXED)', () => {
 	const name = findField(fields, 'name');
 	assert(name.kind === 'RawJson' && name.reason === 'MIXED',
 		`name should stay RawJson(MIXED), got ${name.kind}`);
+});
+
+// ── MIXED boolean|string CHOICE (render_elytra: never / flying / always) ────
+//
+// A closed choice is the one MIXED shape that must NOT edit as a textarea: the
+// options cover the whole value space, so the dropdown loses nothing and the third
+// state stops being typeable-only-if-you-already-knew. The rule is structural, not
+// per-field — arms exactly boolean+string, string arm names its values.
+
+for (const power of ['neoorigins:elytra_flight', 'neoorigins:natural_glide', 'neoorigins:flight']) {
+	check(`${power} render_elytra is a boolean|string choice, not a textarea`, () => {
+		const f = findField(parsePowerSchema(powerSchema, fieldDocs, power), 'render_elytra');
+		assert(f.kind === 'RawJson' && f.reason === 'MIXED',
+			`render_elytra should stay a MIXED spec, got ${f.kind}`);
+		if (f.kind !== 'RawJson') return;
+		assert(f.mixedTypes.join(',') === 'boolean,string',
+			`arms should be boolean,string — got ${f.mixedTypes.join(',')}`);
+		assert(f.options.join(',') === 'never,flying,always',
+			`options should be never,flying,always — got ${f.options.join(',')}`);
+		assert(isBooleanStringChoice(f), 'render_elytra should render as the enum dropdown');
+	});
+}
+
+check('a legacy boolean loads onto the right entry, and the default is spelled out', () => {
+	const on = findField(
+		parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:elytra_flight'), 'render_elytra');
+	const off = findField(
+		parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:natural_glide'), 'render_elytra');
+	assert(on.kind === 'RawJson' && off.kind === 'RawJson', 'both should be MIXED specs');
+	if (on.kind !== 'RawJson' || off.kind !== 'RawJson') return;
+	assert(choiceOption(on, true) === 'flying', `true should be 'flying', got ${choiceOption(on, true)}`);
+	assert(choiceOption(on, false) === 'never', `false should be 'never', got ${choiceOption(on, false)}`);
+	assert(choiceOption(on, 'always') === 'always', 'a string spelling passes through');
+	assert(choiceOption(on, 'Always') === '', 'an unknown spelling shows unset, never a fake entry');
+	// The schema keeps its boolean default; the dropdown speaks options.
+	assert(on.default === 'flying', `elytra_flight should default to flying, got ${on.default}`);
+	assert(off.default === 'never', `natural_glide should default to never, got ${off.default}`);
+	assert(asChoiceEnum(on).options.join(',') === 'never,flying,always', 'enum spec carries the options');
+});
+
+check('open MIXED unions are NOT choices — key stays a raw-JSON textarea', () => {
+	const key = findField(
+		parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:active_ability'), 'key');
+	assert(key.kind === 'RawJson' && key.reason === 'MIXED',
+		`key should be RawJson(MIXED), got ${key.kind}`);
+	if (key.kind !== 'RawJson') return;
+	assert(key.mixedTypes.join(',') === 'integer,string,object',
+		`key arms should be integer,string,object — got ${key.mixedTypes.join(',')}`);
+	assert(key.options.length === 0, 'key must not have gained options');
+	assert(!isBooleanStringChoice(key), 'a 3-arm union must keep the textarea');
+	const name = findField(
+		parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:condition_passive'), 'name');
+	assert(!isBooleanStringChoice(name), 'string|object must keep the textarea');
 });
 
 console.log('\nparseRefSchema');

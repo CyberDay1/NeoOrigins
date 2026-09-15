@@ -13,6 +13,8 @@
 //
 // Field → input mapping:
 //   - leaf (BOOLEAN/INTEGER/NUMBER/ENUM/STRING/RawJson) → inline field widget.
+//                               A RawJson spec that is a closed boolean-or-string
+//                               choice takes the dropdown, not the text box.
 //   - REF condition           → value input  (check 'Condition').
 //   - REF action              → statement input (check 'Action', holds one).
 //   - ARRAY_REF action        → statement input (check 'Action', a stack).
@@ -32,7 +34,7 @@
 //                               OBJECT shapes (item_stack / effect_instance /
 //                               modifier / hud_render) have only leaf children.
 
-import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
+import { isBooleanStringChoice, type FormFieldSpec } from '$lib/schema/FormFieldSpec';
 import { parsePowerSchema, parseRefSchema, refTypeOptions } from '$lib/schema/SchemaFormModel';
 import type { RefSchemas } from '$lib/schema/refSchemaContext';
 
@@ -250,6 +252,18 @@ export function objItemBlockType(ownerBlockType: string, fieldName: string): str
 	return `${ownerBlockType}__item_${fieldName.replace(/[^a-zA-Z0-9]/g, '_')}`;
 }
 
+/** An inline dropdown over `options`, falling back to free text when there are none
+ *  (an unconstrained enum branch must stay typeable). Labels drop the namespace. */
+function dropdownOf(name: string, options: string[]): FieldRender {
+	if (options.length === 0) {
+		return { kind: 'inline', arg: { type: 'field_input', name, text: '' } };
+	}
+	return {
+		kind: 'inline',
+		arg: { type: 'field_dropdown', name, options: options.map((o) => [shortName(o), o]) }
+	};
+}
+
 /** Decide how a FormFieldSpec maps onto Blockly. Shared by defs + serialization. */
 export function renderOf(field: FormFieldSpec): FieldRender {
 	switch (field.kind) {
@@ -269,27 +283,24 @@ export function renderOf(field: FormFieldSpec): FieldRender {
 				arg: { type: 'field_number', name: field.name, value: field.default ?? 0 }
 			};
 		case 'ENUM':
-			if (field.options.length === 0) {
-				return { kind: 'inline', arg: { type: 'field_input', name: field.name, text: '' } };
-			}
-			return {
-				kind: 'inline',
-				arg: {
-					type: 'field_dropdown',
-					name: field.name,
-					options: field.options.map((o) => [shortName(o), o])
-				}
-			};
+			return dropdownOf(field.name, field.options);
 		case 'STRING':
 			return {
 				kind: 'inline',
 				arg: { type: 'field_input', name: field.name, text: field.default ?? '' }
 			};
-		case 'RawJson':
+		case 'RawJson': {
+			// Same rule the form editor states in FieldRow: a CLOSED boolean-or-string
+			// choice's options cover the whole value space, so it takes the dropdown and
+			// loses nothing. Every other MIXED / ARRAY / UNKNOWN fallback keeps the
+			// free-text box, where a dropdown would hide legal values.
+			const choice = isBooleanStringChoice(field) ? field : null;
+			if (choice) return dropdownOf(choice.name, choice.options);
 			return {
 				kind: 'inline',
 				arg: { type: 'field_input', name: field.name, text: field.default ?? '' }
 			};
+		}
 		case 'REF':
 			if (field.refDoc === 'condition') return { kind: 'value', check: 'Condition' };
 			if (field.refDoc === 'block_condition') return { kind: 'value', check: 'BlockCondition' };

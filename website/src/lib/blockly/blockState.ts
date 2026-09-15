@@ -7,7 +7,12 @@
 //   { type, id?, x?, y?, fields?: {NAME: value}, inputs?: {NAME: {block}}, next?: {block} }
 
 import type { ArrayRefFieldSpec, FormFieldSpec } from '$lib/schema/FormFieldSpec';
-import { asRefList, fromRefList } from '$lib/schema/FormFieldSpec';
+import {
+	asRefList,
+	choiceOption,
+	fromRefList,
+	isBooleanStringChoice
+} from '$lib/schema/FormFieldSpec';
 import type { PowerDraft } from '$lib/stores/originDraft';
 import {
 	BLOCK_COND_ITEM_TYPE,
@@ -102,9 +107,17 @@ function encodeLeaf(field: FormFieldSpec, value: unknown): unknown {
 			return typeof value === 'string' ? value : (field.default ?? field.options[0] ?? '');
 		case 'STRING':
 			return typeof value === 'string' ? value : (field.default ?? '');
-		case 'RawJson':
+		case 'RawJson': {
+			// A closed boolean-or-string choice rides the dropdown (see renderOf), so it
+			// has to encode as one of the OPTIONS. `JSON.stringify` below would hand it
+			// "true", which matches no option and Blockly quietly falls back to the first
+			// — stripping the wings off a legacy power the moment its block is dragged.
+			// `choiceOption` is the same coercion the form editor's FieldRow uses.
+			const choice = isBooleanStringChoice(field) ? field : null;
+			if (choice) return choiceOption(choice, value) || choice.default || choice.options[0];
 			if (value === undefined || value === null) return field.default ?? '';
 			return typeof value === 'string' ? value : JSON.stringify(value);
+		}
 		default:
 			return '';
 	}
@@ -318,6 +331,10 @@ function decodeLeaf(field: FormFieldSpec, value: unknown): unknown {
 		case 'STRING':
 			return value == null ? '' : String(value);
 		case 'RawJson': {
+			// The dropdown's value IS the wire value — the string spelling — so saving a
+			// choice writes that, never a boolean. Parsing it as JSON would be wrong for
+			// any option that happens to read as a literal.
+			if (isBooleanStringChoice(field)) return value == null ? '' : String(value);
 			const s = value == null ? '' : String(value);
 			try {
 				return s === '' ? '' : JSON.parse(s);

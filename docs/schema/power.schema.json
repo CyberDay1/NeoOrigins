@@ -3675,12 +3675,24 @@
           "const": "neoorigins:elytra_flight"
         },
         "render_elytra": {
-          "description": "When true (default) a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. When false, the player glides with no visible wings.",
-          "type": "boolean",
+          "description": "When the cosmetic wings are drawn: \"never\" is no wings, \"flying\" is wings only while fall-flying, \"always\" is wings whenever the power is active, folded against the back when not gliding. Defaults to \"flying\". The legacy booleans still parse — false is \"never\", true is \"flying\". Flight works whichever you pick: this is purely cosmetic.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "never",
+                "flying",
+                "always"
+              ]
+            }
+          ],
           "default": true
         },
         "texture_location": {
-          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
+          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra draws wings at all; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
           "type": "string",
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         }
@@ -3945,12 +3957,24 @@
           "default": false
         },
         "render_elytra": {
-          "description": "When true, a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. Defaults false, because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.",
-          "type": "boolean",
+          "description": "When the cosmetic wings are drawn: \"never\" is no wings, \"flying\" is wings only while fall-flying, \"always\" is wings whenever the power is active, folded against the back when not gliding. The legacy booleans still parse — false is \"never\", true is \"flying\". Defaults to \"never\", because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "never",
+                "flying",
+                "always"
+              ]
+            }
+          ],
           "default": false
         },
         "texture_location": {
-          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
+          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra draws wings at all; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
           "type": "string",
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         }
@@ -5233,12 +5257,24 @@
           "const": "neoorigins:natural_glide"
         },
         "render_elytra": {
-          "description": "When true, a vanilla elytra is drawn on the player's back while fall-flying. Flight works either way: this is purely cosmetic. Defaults false, because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.",
-          "type": "boolean",
+          "description": "When the cosmetic wings are drawn: \"never\" is no wings, \"flying\" is wings only while fall-flying, \"always\" is wings whenever the power is active, folded against the back when not gliding. The legacy booleans still parse — false is \"never\", true is \"flying\". Defaults to \"never\", because this power type glides with no visible wings unless you ask for them; neoorigins:elytra_flight is the equivalent that defaults them on.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "never",
+                "flying",
+                "always"
+              ]
+            }
+          ],
           "default": false
         },
         "texture_location": {
-          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra is true; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
+          "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra draws wings at all; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
           "type": "string",
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         }

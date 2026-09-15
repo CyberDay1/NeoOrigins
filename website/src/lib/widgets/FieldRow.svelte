@@ -6,8 +6,16 @@
 	// Reads one FormFieldSpec and dispatches to the matching Tier-A row, the
 	// REF / ARRAY_REF / ARRAY_OBJECT / OBJECT sub-form rows, or the RawJsonRow escape hatch
 	// for the remaining ARRAY / MIXED / UNKNOWN raw-JSON fallbacks.
+	//
+	// One MIXED shape is lifted back out of that fallback: a CLOSED boolean-or-string
+	// choice, whose options cover the whole value space, gets the ENUM dropdown.
 
-	import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
+	import {
+		asChoiceEnum,
+		choiceOption,
+		isBooleanStringChoice,
+		type FormFieldSpec
+	} from '$lib/schema/FormFieldSpec';
 	import BoolRow from './BoolRow.svelte';
 	import NumericRow from './NumericRow.svelte';
 	import EnumRow from './EnumRow.svelte';
@@ -43,6 +51,13 @@
 	<ArrayObjectRow {field} bind:value />
 {:else if field.kind === 'OBJECT'}
 	<ObjectRow {field} bind:value={value as Record<string, unknown> | null} />
+{:else if isBooleanStringChoice(field)}
+	<!-- Load coerces a legacy boolean onto its option; save writes the string, so
+	     editing normalises `true` into its spelling (identical semantics). -->
+	<EnumRow
+		field={asChoiceEnum(field)}
+		bind:value={() => choiceOption(field, value), (v: string) => (value = v)}
+	/>
 {:else}
 	<RawJsonRow {field} bind:value />
 {/if}

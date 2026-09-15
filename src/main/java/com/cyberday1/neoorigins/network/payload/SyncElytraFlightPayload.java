@@ -7,10 +7,10 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * Server → client. Tells receiving clients whether player {@code entityId} currently
- * has a flight power active with {@code render_elytra: true} — i.e. whether a drawn
- * elytra should appear on their back while fall-flying — and, optionally, a custom
- * texture id for that elytra. Any of {@code neoorigins:elytra_flight},
- * {@code neoorigins:natural_glide} or {@code neoorigins:flight} can ask for it.
+ * has a flight power active that asks for drawn wings — i.e. whether an elytra should
+ * appear on their back — and, optionally, a custom texture id for that elytra. Any of
+ * {@code neoorigins:elytra_flight}, {@code neoorigins:natural_glide} or
+ * {@code neoorigins:flight} can ask for it.
  *
  * <p>Like {@link SyncInvisibilityArmorPayload} and {@link SyncPlayerMorphPayload}
  * (and unlike {@link SyncActivePowersPayload}, which only reaches the owning player),
@@ -21,10 +21,16 @@ import net.minecraft.resources.ResourceLocation;
  *
  * <p>{@code texture} is empty ({@code ""}) to mean "render with the vanilla elytra
  * texture"; {@code render} false clears any wings from this power.
+ *
+ * <p>{@code always} carries the third state of {@code render_elytra}: false is the
+ * historical {@code "flying"} (wings only while fall-flying), true is {@code "always"}
+ * (wings whenever the power is active, folded when not gliding). It is only meaningful
+ * while {@code render} is true, and the sender clears it alongside {@code render}.
  */
 public record SyncElytraFlightPayload(
     int entityId,
     boolean render,
+    boolean always,
     String texture
 ) implements CustomPacketPayload {
 
@@ -37,14 +43,16 @@ public record SyncElytraFlightPayload(
     private static void encode(FriendlyByteBuf buf, SyncElytraFlightPayload payload) {
         buf.writeVarInt(payload.entityId());
         buf.writeBoolean(payload.render());
+        buf.writeBoolean(payload.always());
         buf.writeUtf(payload.texture());
     }
 
     private static SyncElytraFlightPayload decode(FriendlyByteBuf buf) {
         int id = buf.readVarInt();
         boolean render = buf.readBoolean();
+        boolean always = buf.readBoolean();
         String texture = buf.readUtf();
-        return new SyncElytraFlightPayload(id, render, texture);
+        return new SyncElytraFlightPayload(id, render, always, texture);
     }
 
     @Override

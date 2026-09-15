@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import { buildBlockRegistry, regKey } from '../blockRegistry.js';
+import { buildBlockRegistry, regKey, renderOf } from '../blockRegistry.js';
 import { draftToState, stateToDraft, powerBlockId, type AuthoredFields } from '../blockState.js';
 import type { FormFieldSpec } from '../../schema/FormFieldSpec.js';
 import type { PowerDraft } from '../../stores/originDraft.js';
@@ -270,6 +270,92 @@ check('a partial position keeps its required siblings so it stays schema-valid',
 	assert(
 		JSON.stringify(after.position) === JSON.stringify({ x: 0, y: 64, z: 0 }),
 		`expected x/z filled in, got ${JSON.stringify(after.position)}`
+	);
+});
+
+// ── MIXED boolean|string CHOICE (render_elytra: never / flying / always) ────
+//
+// A closed choice is the one RawJson shape that must NOT edit as a free-text field:
+// its options cover the whole value space, so the block gets a Blockly dropdown and
+// "always" stops being discoverable only by reading the docs. The rule is structural
+// (arms exactly boolean+string, string arm names its values), never a name check, so
+// the three powers that declare the field all pick it up.
+//
+// The load half is the dangerous one: a legacy boolean has to be spelled as its
+// option before it reaches the widget. `JSON.stringify(true)` gives "true", which
+// matches nothing in the dropdown, and Blockly falls back to the FIRST option —
+// `never` — so one block drag would have stripped the wings off a shipped origin.
+
+console.log('\nblockState — MIXED boolean|string choice');
+
+function fieldOf(type: string, name: string): FormFieldSpec {
+	const f = (reg.fieldsByTypeId.get(regKey('power', type)) ?? []).find((x) => x.name === name);
+	assert(f, `${type} has no field ${name}`);
+	return f;
+}
+
+const elytraPowers = ['neoorigins:elytra_flight', 'neoorigins:natural_glide', 'neoorigins:flight'];
+
+for (const t of elytraPowers) {
+	check(`${t} render_elytra is a dropdown, not a text field`, () => {
+		const r = renderOf(fieldOf(t, 'render_elytra'));
+		assert(r.kind === 'inline', `render_elytra should be an inline widget, got ${r.kind}`);
+		if (r.kind !== 'inline') return;
+		assert(
+			r.arg.type === 'field_dropdown',
+			`expected field_dropdown, got ${String(r.arg.type)} — "always" is untypeable otherwise`
+		);
+		const opts = (r.arg.options as [string, string][]).map(([, v]) => v);
+		assert(
+			opts.join(',') === 'never,flying,always',
+			`expected never,flying,always — got ${opts.join(',')}`
+		);
+	});
+}
+
+const elytra = (fields: Record<string, unknown>) =>
+	roundTrip([power('neoorigins:elytra_flight', fields)])[0].fields.render_elytra;
+
+check('a legacy boolean loads onto its spelling and saves as the string', () => {
+	assert(
+		elytra({ render_elytra: true }) === 'flying',
+		`true should save as "flying", got ${JSON.stringify(elytra({ render_elytra: true }))}`
+	);
+	assert(
+		elytra({ render_elytra: false }) === 'never',
+		`false should save as "never" — the first option is what a boolean-shaped value ` +
+			`would land on by accident, so getting it right matters; got ` +
+			JSON.stringify(elytra({ render_elytra: false }))
+	);
+});
+
+check('the third state survives the canvas', () => {
+	assert(elytra({ render_elytra: 'always' }) === 'always', 'always must round-trip verbatim');
+	assert(elytra({ render_elytra: 'never' }) === 'never', 'never must round-trip verbatim');
+});
+
+check('an untouched elytra_flight gains no render_elytra', () => {
+	const after = roundTrip([power('neoorigins:elytra_flight', {})])[0].fields;
+	assert(
+		!('render_elytra' in after),
+		`render_elytra was invented as ${JSON.stringify(after.render_elytra)} — the power ` +
+			'already defaults to flying, so writing it is an override nobody asked for'
+	);
+});
+
+check('an OPEN MIXED union keeps its text field and its raw round-trip', () => {
+	const r = renderOf(fieldOf('neoorigins:active_ability', 'key'));
+	assert(r.kind === 'inline', 'key should stay an inline widget');
+	if (r.kind !== 'inline') return;
+	assert(
+		r.arg.type === 'field_input',
+		`an integer|string|object union must keep the free-text escape, got ${String(r.arg.type)}`
+	);
+	const before = { key: { key: 'key.neoorigins.primary' } };
+	const after = roundTrip([power('neoorigins:active_ability', before)])[0].fields;
+	assert(
+		JSON.stringify(after.key) === JSON.stringify(before.key),
+		`object-shaped key lost: ${JSON.stringify(after.key)}`
 	);
 });
 

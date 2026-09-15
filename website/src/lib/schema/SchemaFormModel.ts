@@ -404,9 +404,12 @@ function mapProperty(
 	//    (there is no top-level `$ref` key here, only nested in `oneOf`).
 	// 2. Anything else — e.g. the common `name` / `description` fields, which are
 	//    string | object — has no per-branch `$comment` discriminator and stays
-	//    a RawJson MIXED textarea.
+	//    a RawJson MIXED spec. It carries the arms and any arm `enum` so the
+	//    widget layer can lift a CLOSED boolean|string choice (`render_elytra`)
+	//    onto the dropdown; the open unions still render the textarea.
 	if (Array.isArray(p['oneOf'])) {
-		const oneOfRefDoc = scalarOrArrayRefDoc(p['oneOf'] as JsonValue[], selfDoc);
+		const branches = p['oneOf'] as JsonValue[];
+		const oneOfRefDoc = scalarOrArrayRefDoc(branches, selfDoc);
 		if (oneOfRefDoc) {
 			const spec: ArrayRefFieldSpec = {
 				...base,
@@ -416,7 +419,8 @@ function mapProperty(
 			};
 			return spec;
 		}
-		return rawJsonOf(base, 'MIXED', p['default']);
+		const [mixedTypes, options] = mixedArms(branches);
+		return rawJsonOf(base, 'MIXED', p['default'], mixedTypes, options);
 	}
 
 	// Bare `$ref` that survived `derefOneLevel` is a cross-document ref
@@ -567,18 +571,47 @@ function readNumericBounds(p: JsonObject): [number | null, number | null] {
 	return [min, max];
 }
 
+/**
+ * Read a MIXED node's `oneOf` arms: each arm's declared `type` in schema order, plus
+ * the values any arm constrains itself to with `enum` (the generator emits one on the
+ * STRING arm of a MIXED spec that declares options). Returns `[[], []]` unless EVERY
+ * arm is a bare `{"type":…}` node — a `$ref` arm or an inline sub-schema means this is
+ * not a plain type union, and the caller must keep the raw-JSON textarea.
+ */
+function mixedArms(branches: JsonValue[]): [string[], string[]] {
+	const types: string[] = [];
+	const options: string[] = [];
+	for (const branch of branches) {
+		if (!isObject(branch) || typeof branch['type'] !== 'string') return [[], []];
+		types.push(branch['type'] as string);
+		const vals = branch['enum'];
+		if (Array.isArray(vals)) {
+			for (const v of vals) if (typeof v === 'string') options.push(v);
+		}
+	}
+	return [types, options];
+}
+
 function rawJsonOf(
 	base: { path: string; name: string; label: string; description: string; required: boolean },
 	reason: RawJsonFieldSpec['reason'],
-	defaultValue: JsonValue | undefined
+	defaultValue: JsonValue | undefined,
+	mixedTypes: string[] = [],
+	options: string[] = []
 ): RawJsonFieldSpec {
-	const def =
+	let def =
 		defaultValue === undefined
 			? ''
 			: typeof defaultValue === 'string'
 				? defaultValue
 				: JSON.stringify(defaultValue, null, 2);
-	return { ...base, kind: 'RawJson', reason, default: def };
+	// A boolean|string choice may declare its default in the legacy boolean form
+	// (`render_elytra` on elytra_flight defaults to `true`). The dropdown speaks
+	// options, so spell it as one: false is the first, true the second.
+	if (typeof defaultValue === 'boolean' && options.length >= 2 && mixedTypes.includes('boolean')) {
+		def = options[defaultValue ? 1 : 0];
+	}
+	return { ...base, kind: 'RawJson', reason, default: def, mixedTypes, options };
 }
 
 function isObject(v: JsonValue | undefined): v is JsonObject {

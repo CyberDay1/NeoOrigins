@@ -18,7 +18,7 @@ import java.util.Set;
  * <p>Like {@code neoorigins:natural_glide}, the flight runs with an empty chest slot, so
  * vanilla draws no wings. {@code render_elytra} opts into the cosmetic wings through the
  * same capability encoding ({@link ElytraFlightPower#addRenderCaps}), and defaults to
- * {@code false} so existing packs keep the wingless look.
+ * {@link ElytraFlightPower.WingRender#NEVER} so existing packs keep the wingless look.
  */
 public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
 
@@ -30,13 +30,15 @@ public class FlightPower extends AbstractTogglePower<FlightPower.Config> {
     public record Config(String type,
         String cooldownIcon,
         boolean alwaysShowIcon,
-        boolean renderElytra,
+        ElytraFlightPower.WingRender renderElytra,
         String textureLocation) implements PowerConfiguration, HudIconConfig {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon),
-            Codec.BOOL.optionalFieldOf("render_elytra", false).forGetter(Config::renderElytra),
+            ElytraFlightPower.WingRender.CODEC
+                .optionalFieldOf("render_elytra", ElytraFlightPower.WingRender.NEVER)
+                .forGetter(Config::renderElytra),
             Codec.STRING.optionalFieldOf("texture_location", "").forGetter(Config::textureLocation)
         ).apply(inst, Config::new));
     }

@@ -167,6 +167,18 @@ export interface RawJsonFieldSpec extends FieldSpecBase {
 	reason: 'OBJECT' | 'ARRAY' | 'REF' | 'MIXED' | 'UNKNOWN';
 	/** Default JSON value, stringified for the textarea. May be empty string. */
 	default: string;
+	/**
+	 * For `reason: 'MIXED'`: the types the `oneOf` arms declare, in schema order
+	 * (`['boolean','string']` for `render_elytra`, `['integer','string','object']`
+	 * for `key`). `[]` when the arms are not all bare types, and for every other
+	 * reason. Needed to tell a closed two-arm choice from an open union.
+	 */
+	mixedTypes: string[];
+	/**
+	 * For `reason: 'MIXED'`: the values the STRING arm constrains itself to
+	 * (schema `enum`), in declared order; `[]` when it names none.
+	 */
+	options: string[];
 }
 
 /**
@@ -185,6 +197,52 @@ export type FormFieldSpec =
 	| ArrayObjectFieldSpec
 	| ObjectFieldSpec
 	| RawJsonFieldSpec;
+
+/**
+ * True when this MIXED field is a boolean-or-string CHOICE: its arms are exactly
+ * `boolean` and `string`, and the string arm names its values. The options then
+ * describe the WHOLE value space — the two booleans are legacy spellings of the first
+ * two — so the field gets the ENUM dropdown instead of the raw-JSON textarea and
+ * nothing becomes untypeable. Every other MIXED union keeps the textarea, where a
+ * dropdown would hide legal values. Mirrors the in-game
+ * `FormFieldSpec.isBooleanStringChoice()`; the two editors must agree.
+ */
+export function isBooleanStringChoice(field: FormFieldSpec): field is RawJsonFieldSpec {
+	return (
+		field.kind === 'RawJson' &&
+		field.reason === 'MIXED' &&
+		field.options.length >= 2 &&
+		field.mixedTypes.length === 2 &&
+		field.mixedTypes.includes('boolean') &&
+		field.mixedTypes.includes('string')
+	);
+}
+
+/** Present a {@link isBooleanStringChoice} field to the existing ENUM widget. */
+export function asChoiceEnum(field: RawJsonFieldSpec): EnumFieldSpec {
+	return {
+		path: field.path,
+		name: field.name,
+		label: field.label,
+		description: field.description,
+		required: field.required,
+		kind: 'ENUM',
+		default: field.default === '' ? null : field.default,
+		options: field.options
+	};
+}
+
+/**
+ * The option a stored value selects on a {@link isBooleanStringChoice} field. A legacy
+ * boolean is the first (`false`) or second (`true`) option — that ordering is the
+ * declaring spec's contract — so an existing file written as a boolean lands on the
+ * right entry instead of showing blank. Anything else that is not one of the options
+ * (a typo left over from the textarea days) shows as unset.
+ */
+export function choiceOption(field: RawJsonFieldSpec, value: unknown): string {
+	if (typeof value === 'boolean') return field.options[value ? 1 : 0];
+	return typeof value === 'string' && field.options.includes(value) ? value : '';
+}
 
 /** True when this field is one of the five Tier-A kinds (proper widget). */
 export function isTierA(field: FormFieldSpec): boolean {

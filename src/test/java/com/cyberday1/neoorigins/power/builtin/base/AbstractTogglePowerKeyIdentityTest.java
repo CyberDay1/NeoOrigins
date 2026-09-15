@@ -28,7 +28,8 @@ class AbstractTogglePowerKeyIdentityTest {
     private static final ResourceLocation POWER_B = ResourceLocation.parse("mypack:flight_b");
 
     private static FlightPower.Config flightConfig() {
-        return new FlightPower.Config("neoorigins:flight", "", false, false, "");
+        return new FlightPower.Config("neoorigins:flight", "", false,
+            com.cyberday1.neoorigins.power.builtin.ElytraFlightPower.WingRender.NEVER, "");
     }
 
     /**
