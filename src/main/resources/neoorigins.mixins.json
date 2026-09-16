@@ -26,6 +26,7 @@
     "LivingEntityWalkOnFluidMixin",
     "LiquidBlockWalkOnFluidMixin",
     "PlayerPhaseOverrideMixin",
+    "PlayerSneakLedgeMixin",
     "PlayerSoundMixin",
     "LivingEntitySoundInvoker",
     "EntitySwimSoundInvoker",
