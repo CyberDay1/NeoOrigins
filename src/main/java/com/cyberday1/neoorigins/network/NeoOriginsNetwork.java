@@ -1154,15 +1154,29 @@ public class NeoOriginsNetwork {
         });
     }
 
+    /**
+     * The one power the Class Skill key fires for this player, or {@code null} when
+     * the class layer has no active power at all.
+     *
+     * <p>The class layer has exactly one slot, so the binding is decided entirely by
+     * which holder {@link ActiveOriginService#activeClassPowers} puts first — the
+     * origin's declared {@code powers} order, filtered to slot-occupying types. Split
+     * out of the handler so the selection can be driven headlessly; the handler does
+     * nothing else to choose.
+     */
+    // hub: neoorigins/class-skill-slot.md
+    static PowerHolder<?> classPowerForKeypress(ServerPlayer player) {
+        List<PowerHolder<?>> classActives = ActiveOriginService.activeClassPowers(player);
+        return classActives.isEmpty() ? null : classActives.get(0);
+    }
+
     private static void handleActivateClassPower(ActivateClassPowerPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof ServerPlayer sp)) return;
 
-            List<PowerHolder<?>> classActives = ActiveOriginService.activeClassPowers(sp);
-            if (classActives.isEmpty()) return;
+            PowerHolder<?> holder = classPowerForKeypress(sp);
+            if (holder == null) return;
 
-            // Activate the first (and typically only) class active power
-            PowerHolder<?> holder = classActives.get(0);
             holder.onActivatedByKeypress(sp);
             syncCooldownIfStarted(sp, holder, -1);
             if (isToggleLike(holder)) {
@@ -1752,7 +1766,7 @@ public class NeoOriginsNetwork {
      * it costs nothing. Cosmetic wings have no equivalent second check: an ungated
      * flag would draw them whenever the power's condition was unmet.
      */
-    private static boolean rendersElytraFrom(Set<String> capabilities) {
+    static boolean rendersElytraFrom(Set<String> capabilities) {
         return capabilities.contains(
             com.cyberday1.neoorigins.power.builtin.ElytraFlightPower.CAP_RENDER_ELYTRA);
     }
@@ -1764,7 +1778,7 @@ public class NeoOriginsNetwork {
      * this is only ever consulted once the wings are known to draw at all. The same
      * condition-gate reasoning applies: "always" means "whenever the power is active".
      */
-    private static boolean alwaysRendersElytraFrom(Set<String> capabilities) {
+    static boolean alwaysRendersElytraFrom(Set<String> capabilities) {
         return capabilities.contains(
             com.cyberday1.neoorigins.power.builtin.ElytraFlightPower.CAP_RENDER_ELYTRA_ALWAYS);
     }
@@ -1774,7 +1788,7 @@ public class NeoOriginsNetwork {
      * {@code elytra_texture:<id>} in the capability set, or {@code ""} for the
      * vanilla elytra texture. Only meaningful when {@link #rendersElytraFrom} is true.
      */
-    private static String elytraTextureFrom(Set<String> capabilities) {
+    static String elytraTextureFrom(Set<String> capabilities) {
         String prefix = com.cyberday1.neoorigins.power.builtin.ElytraFlightPower.CAP_TEXTURE_PREFIX;
         for (String cap : capabilities) {
             if (cap.startsWith(prefix)) {

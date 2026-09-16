@@ -38,6 +38,13 @@ That pattern (a hidden toggle plus an active that flips it) is the intended
 way to give a class a switchable passive, because it keeps the passive itself
 condition-gated while spending only the one class slot.
 
+The Rogue is the one built-in class that wants two: it carries both the Step
+Assist switch and `class_rogue_stealth`. Only Step Assist is bound; Stealth
+is listed after it and so is left unbound, exactly as the rule above says.
+Both powers are still granted — an unbound active is unreachable, not
+removed. `ClassSkillSlotBindingTest` pins that ordering so it cannot be
+reversed by accident.
+
 ## Adding a class (recommended: additive layer file)
 
 You do **not** need to edit the built-in `class.json`. Any layer file whose
