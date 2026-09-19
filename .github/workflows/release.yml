@@ -55,6 +55,19 @@ jobs:
         with:
           ref: 'master'
 
+      # This workflow checks out branch TIPS, not the tagged commit, so a tag cut
+      # while one tip is stale publishes three jars that disagree with each other
+      # and with the tag's own changelog. Published changelogs are frozen, so that
+      # is not recoverable - refuse the build instead.
+      - name: Release guard
+        env:
+          GUARD_BRANCH: 'master'
+          GUARD_TAG_LINE: 'false'
+          GUARD_EVENT: ${{ github.event_name }}
+          GUARD_REF: ${{ github.ref }}
+          GUARD_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: bash .github/scripts/release-guard.sh
+
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
@@ -74,8 +87,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew build
+      - name: Report gate coverage
+        run: |
+          if grep -q 'powerEnumCheck' build.gradle && grep -q "tasks.named('check')" build.gradle; then
+            echo "Dev harnesses are wired to check on this branch."
+          else
+            echo "::warning::This branch does not gate the dev harnesses on check yet; the jar builds but the schema/compat invariants were NOT verified."
+          fi
+
+      - name: Build and verify
+        run: ./gradlew build check
 
       - name: Find MC 26.1 JAR
         id: jar-26-1
@@ -101,6 +122,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: '1.21.1'
+          # The guard below needs the tag and the history behind it.
+          fetch-depth: 0
+
+      # This workflow checks out branch TIPS, not the tagged commit, so a tag cut
+      # while one tip is stale publishes three jars that disagree with each other
+      # and with the tag's own changelog. Published changelogs are frozen, so that
+      # is not recoverable - refuse the build instead.
+      - name: Release guard
+        env:
+          GUARD_BRANCH: '1.21.1'
+          GUARD_TAG_LINE: 'true'
+          GUARD_EVENT: ${{ github.event_name }}
+          GUARD_REF: ${{ github.ref }}
+          GUARD_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: bash .github/scripts/release-guard.sh
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -121,8 +157,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew build
+      - name: Report gate coverage
+        run: |
+          if grep -q 'powerEnumCheck' build.gradle && grep -q "tasks.named('check')" build.gradle; then
+            echo "Dev harnesses are wired to check on this branch."
+          else
+            echo "::warning::This branch does not gate the dev harnesses on check yet; the jar builds but the schema/compat invariants were NOT verified."
+          fi
+
+      - name: Build and verify
+        run: ./gradlew build check
 
       - name: Find MC 1.21.1 JAR
         id: jar-1-21-1
@@ -149,6 +193,19 @@ jobs:
         with:
           ref: '26.2'
 
+      # This workflow checks out branch TIPS, not the tagged commit, so a tag cut
+      # while one tip is stale publishes three jars that disagree with each other
+      # and with the tag's own changelog. Published changelogs are frozen, so that
+      # is not recoverable - refuse the build instead.
+      - name: Release guard
+        env:
+          GUARD_BRANCH: '26.2'
+          GUARD_TAG_LINE: 'false'
+          GUARD_EVENT: ${{ github.event_name }}
+          GUARD_REF: ${{ github.ref }}
+          GUARD_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: bash .github/scripts/release-guard.sh
+
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
@@ -168,8 +225,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build
-        run: ./gradlew build
+      - name: Report gate coverage
+        run: |
+          if grep -q 'powerEnumCheck' build.gradle && grep -q "tasks.named('check')" build.gradle; then
+            echo "Dev harnesses are wired to check on this branch."
+          else
+            echo "::warning::This branch does not gate the dev harnesses on check yet; the jar builds but the schema/compat invariants were NOT verified."
+          fi
+
+      - name: Build and verify
+        run: ./gradlew build check
 
       - name: Find MC 26.2 JAR
         id: jar-26-2
