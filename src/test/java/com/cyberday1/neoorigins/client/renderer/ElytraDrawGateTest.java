@@ -16,6 +16,7 @@ import net.minecraft.world.item.equipment.Equippable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -110,4 +111,84 @@ class ElytraDrawGateTest {
     void noResolvedTextureDoesNotDraw() {
         assertFalse(NeoOriginsElytraLayer.shouldDrawWings(true, true, false, empty(), null));
     }
+
+    /**
+     * The same 48 inputs, asserted against one literal that is byte-identical on all
+     * three release branches. The three lines are different codebases, so a tree diff
+     * between them proves nothing; this table is what "they carry the same feature"
+     * means, and it fails on whichever line drifts.
+     */
+    @Test
+    void theDrawTableIsIdenticalOnAllThreeReleaseBranches() {
+        assertEquals(EXPECTED_TABLE, renderDrawTable());
+    }
+
+    private static String renderDrawTable() {
+        String[] chestNames = {"empty", "chestplate", "elytra"};
+        StringBuilder sb = new StringBuilder();
+        for (int ff = 0; ff < 2; ff++)
+            for (int fl = 0; fl < 2; fl++)
+                for (int al = 0; al < 2; al++)
+                    for (int c = 0; c < 3; c++)
+                        for (int tx = 0; tx < 2; tx++) {
+                            ItemStack chest = c == 0 ? empty() : c == 1 ? chestplate() : realElytra();
+                            boolean drawn = NeoOriginsElytraLayer.shouldDrawWings(
+                                ff == 1, fl == 1, al == 1, chest, tx == 1 ? TEXTURE : null);
+                            // Explicit LF, never %n -- the literal below must not be platform-dependent.
+                            sb.append(String.format("fly=%d flag=%d always=%d chest=%-10s tex=%d -> %s",
+                                ff, fl, al, chestNames[c], tx, drawn ? "DRAW" : "----")).append("\n");
+                        }
+        return sb.toString();
+    }
+
+    private static final String EXPECTED_TABLE = """
+            fly=0 flag=0 always=0 chest=empty      tex=0 -> ----
+            fly=0 flag=0 always=0 chest=empty      tex=1 -> ----
+            fly=0 flag=0 always=0 chest=chestplate tex=0 -> ----
+            fly=0 flag=0 always=0 chest=chestplate tex=1 -> ----
+            fly=0 flag=0 always=0 chest=elytra     tex=0 -> ----
+            fly=0 flag=0 always=0 chest=elytra     tex=1 -> ----
+            fly=0 flag=0 always=1 chest=empty      tex=0 -> ----
+            fly=0 flag=0 always=1 chest=empty      tex=1 -> ----
+            fly=0 flag=0 always=1 chest=chestplate tex=0 -> ----
+            fly=0 flag=0 always=1 chest=chestplate tex=1 -> ----
+            fly=0 flag=0 always=1 chest=elytra     tex=0 -> ----
+            fly=0 flag=0 always=1 chest=elytra     tex=1 -> ----
+            fly=0 flag=1 always=0 chest=empty      tex=0 -> ----
+            fly=0 flag=1 always=0 chest=empty      tex=1 -> ----
+            fly=0 flag=1 always=0 chest=chestplate tex=0 -> ----
+            fly=0 flag=1 always=0 chest=chestplate tex=1 -> ----
+            fly=0 flag=1 always=0 chest=elytra     tex=0 -> ----
+            fly=0 flag=1 always=0 chest=elytra     tex=1 -> ----
+            fly=0 flag=1 always=1 chest=empty      tex=0 -> ----
+            fly=0 flag=1 always=1 chest=empty      tex=1 -> DRAW
+            fly=0 flag=1 always=1 chest=chestplate tex=0 -> ----
+            fly=0 flag=1 always=1 chest=chestplate tex=1 -> DRAW
+            fly=0 flag=1 always=1 chest=elytra     tex=0 -> ----
+            fly=0 flag=1 always=1 chest=elytra     tex=1 -> ----
+            fly=1 flag=0 always=0 chest=empty      tex=0 -> ----
+            fly=1 flag=0 always=0 chest=empty      tex=1 -> ----
+            fly=1 flag=0 always=0 chest=chestplate tex=0 -> ----
+            fly=1 flag=0 always=0 chest=chestplate tex=1 -> ----
+            fly=1 flag=0 always=0 chest=elytra     tex=0 -> ----
+            fly=1 flag=0 always=0 chest=elytra     tex=1 -> ----
+            fly=1 flag=0 always=1 chest=empty      tex=0 -> ----
+            fly=1 flag=0 always=1 chest=empty      tex=1 -> ----
+            fly=1 flag=0 always=1 chest=chestplate tex=0 -> ----
+            fly=1 flag=0 always=1 chest=chestplate tex=1 -> ----
+            fly=1 flag=0 always=1 chest=elytra     tex=0 -> ----
+            fly=1 flag=0 always=1 chest=elytra     tex=1 -> ----
+            fly=1 flag=1 always=0 chest=empty      tex=0 -> ----
+            fly=1 flag=1 always=0 chest=empty      tex=1 -> DRAW
+            fly=1 flag=1 always=0 chest=chestplate tex=0 -> ----
+            fly=1 flag=1 always=0 chest=chestplate tex=1 -> DRAW
+            fly=1 flag=1 always=0 chest=elytra     tex=0 -> ----
+            fly=1 flag=1 always=0 chest=elytra     tex=1 -> ----
+            fly=1 flag=1 always=1 chest=empty      tex=0 -> ----
+            fly=1 flag=1 always=1 chest=empty      tex=1 -> DRAW
+            fly=1 flag=1 always=1 chest=chestplate tex=0 -> ----
+            fly=1 flag=1 always=1 chest=chestplate tex=1 -> DRAW
+            fly=1 flag=1 always=1 chest=elytra     tex=0 -> ----
+            fly=1 flag=1 always=1 chest=elytra     tex=1 -> ----
+            """;
 }

@@ -8,3 +8,8 @@ compat-golden/compat-verbs.txt text eol=lf
 # with a fixed Gson pretty-printer + single trailing LF. Pin LF so Windows-dev
 # and Linux-CI bytes match and the byte-stable regeneration gate can't flap.
 docs/schema/*.json text eol=lf
+
+# .github/scripts/*.sh runs under bash on Linux CI and via the releaseGuardTest
+# gate locally. autocrlf would hand bash CR-terminated lines and break both, so
+# pin LF the same way the byte-compared generated files above are pinned.
+.github/scripts/*.sh text eol=lf
