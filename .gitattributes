@@ -13,3 +13,8 @@ docs/schema/*.json text eol=lf
 # editor-pages CI workflow re-copies then byte-checks (`git diff --exit-code`). Pin
 # LF to match the docs/schema source so autocrlf can't make the drift gate flap.
 website/static/schemas/*.json text eol=lf
+
+# .github/scripts/*.sh runs under bash on Linux CI and via the releaseGuardTest
+# gate locally. autocrlf would hand bash CR-terminated lines and break both, so
+# pin LF the same way the byte-compared generated files above are pinned.
+.github/scripts/*.sh text eol=lf

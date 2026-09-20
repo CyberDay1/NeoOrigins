@@ -55,6 +55,19 @@ jobs:
         with:
           ref: 'master'
 
+      # This workflow checks out branch TIPS, not the tagged commit, so a tag cut
+      # while one tip is stale publishes three jars that disagree with each other
+      # and with the tag's own changelog. Published changelogs are frozen, so that
+      # is not recoverable - refuse the build instead.
+      - name: Release guard
+        env:
+          GUARD_BRANCH: 'master'
+          GUARD_TAG_LINE: 'false'
+          GUARD_EVENT: ${{ github.event_name }}
+          GUARD_REF: ${{ github.ref }}
+          GUARD_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: bash .github/scripts/release-guard.sh
+
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
@@ -109,6 +122,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: '1.21.1'
+          # The guard below needs the tag and the history behind it.
+          fetch-depth: 0
+
+      # This workflow checks out branch TIPS, not the tagged commit, so a tag cut
+      # while one tip is stale publishes three jars that disagree with each other
+      # and with the tag's own changelog. Published changelogs are frozen, so that
+      # is not recoverable - refuse the build instead.
+      - name: Release guard
+        env:
+          GUARD_BRANCH: '1.21.1'
+          GUARD_TAG_LINE: 'true'
+          GUARD_EVENT: ${{ github.event_name }}
+          GUARD_REF: ${{ github.ref }}
+          GUARD_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: bash .github/scripts/release-guard.sh
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -164,6 +192,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: '26.2'
+
+      # This workflow checks out branch TIPS, not the tagged commit, so a tag cut
+      # while one tip is stale publishes three jars that disagree with each other
+      # and with the tag's own changelog. Published changelogs are frozen, so that
+      # is not recoverable - refuse the build instead.
+      - name: Release guard
+        env:
+          GUARD_BRANCH: '26.2'
+          GUARD_TAG_LINE: 'false'
+          GUARD_EVENT: ${{ github.event_name }}
+          GUARD_REF: ${{ github.ref }}
+          GUARD_INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: bash .github/scripts/release-guard.sh
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4

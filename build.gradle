@@ -612,6 +612,76 @@ tasks.register('goldenMasterVerify') {
     }
 }
 
+// ── Release guard harness ───────────────────────────────────────────────────
+//
+// .github/workflows/release.yml checks out branch TIPS, not the tagged commit,
+// so a tag cut while one tip is stale publishes three jars that disagree with
+// each other and with the tag's frozen changelog. A guard step refuses that
+// build — but it cannot be exercised by running it, because running it means
+// pushing a tag, which means cutting a release. So its logic is driven here
+// instead, over throwaway repos with the same three-parallel-lines topology.
+//
+// hub: neoorigins/release-tag-guard.md
+// Run: ./gradlew releaseGuardTest
+tasks.register('releaseGuardTest', Exec) {
+    group = 'neoorigins'
+    description = '[2.2] Drive .github/scripts/release-guard.sh over its case table.'
+    workingDir = projectDir
+    commandLine 'bash', '.github/scripts/release-guard-test.sh'
+    doFirst {
+        commandLine resolvePosixBash(), '.github/scripts/release-guard-test.sh'
+    }
+}
+
+// release.yml is the only thing that builds a published jar, and running it to
+// check it means cutting a release. So assert its shape instead: every build job
+// gates the jar, and the tag guard runs before it rather than after.
+//
+// hub: neoorigins/release-tag-guard.md
+// Run: ./gradlew releaseWorkflowCheck
+tasks.register('releaseWorkflowCheck', Exec) {
+    group = 'neoorigins'
+    description = '[2.2] Assert every release.yml build job gates the jar and guards the tag.'
+    workingDir = projectDir
+    commandLine 'bash', '.github/scripts/release-workflow-check.sh'
+    doFirst {
+        commandLine resolvePosixBash(), '.github/scripts/release-workflow-check.sh'
+    }
+}
+
+// Windows ships a `bash.exe` in System32 that is the WSL relay, and it wins the
+// PATH race against the Git-for-Windows bash this build already depends on —
+// it answered `execvpe(/bin/bash) failed` the first time this task ran. So
+// resolve a real POSIX bash by path instead of trusting the name.
+String resolvePosixBash() {
+    if (!System.getProperty('os.name').toLowerCase().contains('windows')) {
+        return 'bash'
+    }
+    List<File> found = []
+    (System.getenv('PATH') ?: '').split(File.pathSeparator).each { String dir ->
+        if (!dir) return
+        File f = new File(dir, 'bash.exe')
+        // Compare on forward slashes so this line carries no backslash escapes.
+        String lower = f.absolutePath.toLowerCase().replace(File.separator, '/')
+        if (f.isFile() && !lower.contains('/windows/system32') && !lower.contains('/windowsapps')) {
+            found << f
+        }
+    }
+    if (found.isEmpty()) {
+        ['C:/Program Files/Git/bin/bash.exe', 'C:/Program Files/Git/usr/bin/bash.exe'].each { String c ->
+            File f = new File(c)
+            if (f.isFile()) found << f
+        }
+    }
+    if (found.isEmpty()) {
+        throw new GradleException(
+            'releaseGuardTest needs a POSIX bash. Git for Windows ships one and this build ' +
+            'already requires git, but none was found on PATH outside System32. Run the harness ' +
+            'directly with `bash .github/scripts/release-guard-test.sh` if you have one elsewhere.')
+    }
+    return found[0].absolutePath
+}
+
 // ── Gating ──────────────────────────────────────────────────────────────────
 //
 // Everything above ran in seconds and asserted something real, yet nothing
@@ -620,7 +690,9 @@ tasks.register('goldenMasterVerify') {
 // invariant fails the ordinary build. The three mutating generators stay out,
 // represented by their verify twins.
 tasks.named('check') {
-    dependsOn 'schemaFormCheck',
+    dependsOn 'releaseGuardTest',
+              'releaseWorkflowCheck',
+              'schemaFormCheck',
               'powerEnumCheck',
               'actionConditionSchemaCheck',
               'customPackCheck',
