@@ -24,42 +24,33 @@ public final class ClientActivePowers {
 
     private static Map<Identifier, Boolean> powers = Map.of();
     private static Set<String> capabilities = Set.of();
-    private static Set<Identifier> phaseBlockedBlocks = Set.of();
-    private static List<TagKey<Block>> phaseBlockedTags = List.of();
+    private static com.cyberday1.neoorigins.power.builtin.PhaseBlacklist phaseBlacklist =
+        com.cyberday1.neoorigins.power.builtin.PhaseBlacklist.EMPTY;
 
     public static void set(Map<Identifier, Boolean> powersData, Set<String> capData) {
         powers = Map.copyOf(powersData);
         capabilities = Set.copyOf(capData);
         // Pre-parse the phase blacklist carried as "phase_blocked:<entry>"
         // capability tags (see WraithPhasePower.capabilities) so the per-frame
-        // movement mixin doesn't string-parse on the hot path. An entry is
-        // either a plain block id (minecraft:obsidian) or a tag reference
-        // (#seer:anchor_protected) — Apoli phasing block_conditions are often
-        // tag-based, so both must clamp client-side to keep the blacklist
-        // symmetric with the server.
-        java.util.Set<Identifier> blocked = new java.util.HashSet<>();
-        java.util.List<TagKey<Block>> blockedTags = new java.util.ArrayList<>();
-        for (String cap : capabilities) {
-            if (cap.startsWith("phase_blocked:")) {
-                String entry = cap.substring("phase_blocked:".length());
-                if (entry.startsWith("#")) {
-                    Identifier tagId = Identifier.tryParse(entry.substring(1));
-                    if (tagId != null) blockedTags.add(TagKey.create(Registries.BLOCK, tagId));
-                } else {
-                    Identifier id = Identifier.tryParse(entry);
-                    if (id != null) blocked.add(id);
-                }
-            }
-        }
-        phaseBlockedBlocks = Set.copyOf(blocked);
-        phaseBlockedTags = List.copyOf(blockedTags);
+        // movement mixin doesn't string-parse on the hot path. Parsing is the
+        // server's own, so the two ends cannot disagree about the blacklist.
+        phaseBlacklist = com.cyberday1.neoorigins.power.builtin.PhaseBlacklist
+            .fromCapabilities(capabilities);
     }
 
     public static void clear() {
         powers = Map.of();
         capabilities = Set.of();
-        phaseBlockedBlocks = Set.of();
-        phaseBlockedTags = List.of();
+        phaseBlacklist = com.cyberday1.neoorigins.power.builtin.PhaseBlacklist.EMPTY;
+    }
+
+    /**
+     * The local player's phase blacklist, parsed by the server's own parser.
+     * Used by the client movement clamp and by the {@code noPhysics} mirror in
+     * {@code PlayerPhaseOverrideMixin}.
+     */
+    public static com.cyberday1.neoorigins.power.builtin.PhaseBlacklist phaseBlacklist() {
+        return phaseBlacklist;
     }
 
     /**
@@ -69,7 +60,7 @@ public final class ClientActivePowers {
      * active or its blacklist is empty.
      */
     public static Set<Identifier> phaseBlockedBlocks() {
-        return phaseBlockedBlocks;
+        return phaseBlacklist.ids();
     }
 
     /**
@@ -80,7 +71,7 @@ public final class ClientActivePowers {
      * carries no tags.
      */
     public static List<TagKey<Block>> phaseBlockedTags() {
-        return phaseBlockedTags;
+        return phaseBlacklist.tags();
     }
 
     /** True if the local player has power {@code id} granted, regardless of toggle state. */

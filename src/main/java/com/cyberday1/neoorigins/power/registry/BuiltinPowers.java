@@ -1149,7 +1149,7 @@ public final class BuiltinPowers {
             new FieldSpec("restitution", Kind.NUMBER, false)
                 .def(0.8).range(0.0, 1.0).doc("Fraction of downward impact velocity reflected back up on landing; <1 damps so the player settles (default 0.8)."),
             new FieldSpec("min_velocity", Kind.NUMBER, false)
-                .def(0.3).doc("Minimum downward speed (blocks/tick) needed to trigger a bounce, so walking and small steps don't micro-bounce (default 0.3)."),
+                .def(0.63).doc("Minimum downward speed (blocks/tick) needed to trigger a bounce, so jumps and short drops don't micro-bounce; 0.63 is the floor a 4-block fall clears and a 3-block fall does not (default 0.63)."),
             new FieldSpec("max_velocity", Kind.NUMBER, false)
                 .def(1.6).doc("Cap on the upward launch speed (blocks/tick) so terminal-velocity falls don't fling the player absurdly high (default 1.6).")));
         define("breath_in_fluid", BreathInFluidPower.class, List.of(
