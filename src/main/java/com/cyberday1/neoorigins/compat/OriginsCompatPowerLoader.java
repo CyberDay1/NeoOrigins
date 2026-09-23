@@ -170,6 +170,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return INSTANCE.parseRouteB(id, type, json) != null;
     }
 
+    /** As {@link #compilesForTest}, returning the compiled Config so a test can grant it. */
+    static CompatPower.Config compileForTest(ResourceLocation id, String type, JsonObject json) {
+        return INSTANCE.parseRouteB(id, type, json);
+    }
+
     private static final FileToIdConverter FILE_CONVERTER  = FileToIdConverter.json("origins/powers");
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("powers");
 
@@ -3655,7 +3660,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             return null;
         }
         return CompatPower.Config.builder()
-            .onGranted(player -> NumericModifierRegistry.register(player, kind, idStr, mods))
+            // Unregister first: onLogin/onRespawn re-run onGranted, and a second
+            // entry would apply the modifier twice.
+            .onGranted(player -> {
+                NumericModifierRegistry.unregister(player, kind, idStr);
+                NumericModifierRegistry.register(player, kind, idStr, mods);
+            })
             .onRevoked(player -> NumericModifierRegistry.unregister(player, kind, idStr))
             .build();
     }
@@ -3708,7 +3718,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         var entry = new ModifyCraftingRegistry.Entry(idStr, recipeId, resultItem, resultCount, resultTag);
         return CompatPower.Config.builder()
-            .onGranted(player -> ModifyCraftingRegistry.register(player, entry))
+            .onGranted(player -> {
+                ModifyCraftingRegistry.unregister(player, idStr);
+                ModifyCraftingRegistry.register(player, entry);
+            })
             .onRevoked(player -> ModifyCraftingRegistry.unregister(player, idStr))
             .build();
     }
@@ -3750,7 +3763,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         var entry = new ModifyFoodRegistry.Entry(idStr, itemPred, foodMods, satMods);
         return CompatPower.Config.builder()
-            .onGranted(player -> ModifyFoodRegistry.register(player, entry))
+            // Unregister first: the consumer chains entries, so a re-grant duplicate compounds.
+            .onGranted(player -> {
+                ModifyFoodRegistry.unregister(player, idStr);
+                ModifyFoodRegistry.register(player, entry);
+            })
             .onRevoked(player -> ModifyFoodRegistry.unregister(player, idStr))
             .build();
     }

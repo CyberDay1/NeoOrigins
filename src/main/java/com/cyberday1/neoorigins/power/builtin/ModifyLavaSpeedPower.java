@@ -45,6 +45,9 @@ public class ModifyLavaSpeedPower extends PowerType<ModifyLavaSpeedPower.Config>
     public void onGranted(ServerPlayer player, Config config) {
         ResourceLocation powerId = PowerHolder.currentDispatchId();
         String id = powerId != null ? powerId.toString() : "neoorigins:unknown_lava_speed";
+        // Idempotent: onLogin/onRespawn both re-run onGranted, so drop this power's
+        // prior entry first or every death and relog stacks another copy.
+        NumericModifierRegistry.unregister(player, NumericModifierRegistry.Kind.LAVA_SPEED, id);
         NumericModifierRegistry.register(player, NumericModifierRegistry.Kind.LAVA_SPEED,
             id, config.operation(), config.value());
     }

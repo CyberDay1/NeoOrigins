@@ -40,15 +40,16 @@ public abstract class PlayerPhaseOverrideMixin {
             // block (wraith_phase blocked_blocks): WraithPhasePower.tickEffect
             // deliberately left it false there so vanilla collision pushes the
             // player out. Restoring unconditionally made the blacklist a no-op.
-            if ((com.cyberday1.neoorigins.service.ActiveOriginService.hasCapability(sp, "wall_phase")
-                    && !com.cyberday1.neoorigins.power.builtin.WraithPhasePower.isInBlockedBlock(sp))
-                || com.cyberday1.neoorigins.service.ActiveOriginService.hasCapability(sp, "no_physics")) {
+            if (com.cyberday1.neoorigins.power.builtin.PhaseBlacklist.restoresNoPhysics(
+                    com.cyberday1.neoorigins.service.ActiveOriginService.hasCapability(sp, "no_physics"),
+                    com.cyberday1.neoorigins.service.ActiveOriginService.hasCapability(sp, "wall_phase"),
+                    com.cyberday1.neoorigins.power.builtin.WraithPhasePower.isInBlockedBlock(sp))) {
                 self.noPhysics = true;
             }
         } else if (self.level().isClientSide) {
             // Client side — trampoline through a method body so that
             // ClientActivePowers is never resolved on a dedicated server.
-            if (neoorigins$checkClientPhase()) {
+            if (neoorigins$checkClientPhase(self)) {
                 self.noPhysics = true;
             }
         }
@@ -58,9 +59,19 @@ public abstract class PlayerPhaseOverrideMixin {
      * Isolated in its own method so the JVM only resolves
      * {@code ClientActivePowers} when this method is actually invoked
      * (which only happens on the logical client).
+     *
+     * <p>Mirrors the server branch above, including its blacklist exemption:
+     * {@code wall_phase} must NOT restore {@code noPhysics} while the hitbox
+     * overlaps a blocked block, or the two ends disagree about whether vanilla
+     * collision is pushing the player out of it (#109).
      */
-    private static boolean neoorigins$checkClientPhase() {
-        return com.cyberday1.neoorigins.client.ClientActivePowers.hasCapability("wall_phase")
-            || com.cyberday1.neoorigins.client.ClientActivePowers.hasCapability("no_physics");
+    private static boolean neoorigins$checkClientPhase(Player self) {
+        boolean wallPhase =
+            com.cyberday1.neoorigins.client.ClientActivePowers.hasCapability("wall_phase");
+        return com.cyberday1.neoorigins.power.builtin.PhaseBlacklist.restoresNoPhysics(
+            com.cyberday1.neoorigins.client.ClientActivePowers.hasCapability("no_physics"),
+            wallPhase,
+            wallPhase && com.cyberday1.neoorigins.client.ClientActivePowers
+                .phaseBlacklist().overlaps(self));
     }
 }

@@ -17,7 +17,8 @@ import net.neoforged.neoforge.client.event.RenderGuiEvent;
  * via the in-game HUD editor (keybind: Edit HUD).
  *
  * <p>Bars automatically hide when full and reappear when the resource
- * drops below maximum.
+ * drops below maximum — but not before the resource has been spent once, so a
+ * bar that starts at max is still discoverable. See {@link ResourceBarVisibility}.
  */
 @EventBusSubscriber(value = Dist.CLIENT, modid = NeoOrigins.MOD_ID)
 public class ResourceHudOverlay {
@@ -71,9 +72,11 @@ public class ResourceHudOverlay {
         for (var entry : resources.entrySet()) {
             var res = entry.getValue();
 
-            // Hide when full — unless the bar opted into always_render, which
-            // keeps a regenerating meter on-screen even when topped off.
-            if (!res.alwaysShow() && res.fraction() >= 1.0f) {
+            // Hide when full — unless the bar opted into always_render, or the
+            // resource has never been spent this session (#105), which would
+            // otherwise leave a bar that starts at max invisible from the start.
+            if (!ResourceBarVisibility.shouldDraw(
+                    entry.getKey(), res.alwaysShow(), res.fraction())) {
                 defaultIdx++;
                 continue;
             }

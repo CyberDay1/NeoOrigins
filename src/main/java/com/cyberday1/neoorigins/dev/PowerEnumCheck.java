@@ -90,6 +90,7 @@ public final class PowerEnumCheck {
     private static final int MIN_ENUM = 100;
     private static final int MIN_REGISTERED = 100;
 
+    // hub: neoorigins/editor-parser-drift.md
     /**
      * Ratchet ceiling on the LEGACY half of the branch gap — the
      * {@code origins:}/{@code apace:}/{@code apoli:}/{@code apugli:} ids the compat
@@ -123,8 +124,12 @@ public final class PowerEnumCheck {
      * {@code {apoli, apugli}}, not four namespaces. So a type carries four spellings
      * only when it has an {@code apace:} sibling; three {@code origins:} paths have
      * none and cost two.
+     *
+     * <p>410 → 398, 2026-09-22: {@code 0be40c37} gave {@code cooldown},
+     * {@code modify_fall_damage} and {@code modify_xp_gain} a branch in all four legacy
+     * namespaces, and the ceiling was never lowered to match.
      */
-    private static final int MAX_UNBRANCHED_LEGACY = 410;
+    private static final int MAX_UNBRANCHED_LEGACY = 398;
 
     public static void main(String[] args) throws IOException {
         int failures = 0;

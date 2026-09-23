@@ -81,40 +81,11 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
      * tick (which previously left {@code noPhysics} unset and rubber-banded the
      * player back out of the wall on dedicated servers).
      */
-    private static final Map<List<String>, BlockedMatcher> BLOCKED_CACHE = new ConcurrentHashMap<>();
+    private static final Map<List<String>, PhaseBlacklist> BLOCKED_CACHE = new ConcurrentHashMap<>();
 
-    /** Resolved blocked-block matcher: literal block ids plus block tags. */
-    private record BlockedMatcher(Set<ResourceLocation> ids, List<TagKey<Block>> tags) {
-        boolean matches(BlockState state) {
-            if (ids.isEmpty() && tags.isEmpty()) return false;
-            if (!ids.isEmpty()) {
-                ResourceLocation key = BuiltInRegistries.BLOCK.getKey(state.getBlock());
-                if (ids.contains(key)) return true;
-            }
-            for (TagKey<Block> tag : tags) {
-                if (state.is(tag)) return true;
-            }
-            return false;
-        }
-    }
-
-    private static BlockedMatcher resolveBlocked(List<String> list) {
-        java.util.Set<ResourceLocation> ids = new java.util.HashSet<>();
-        java.util.List<TagKey<Block>> tags = new java.util.ArrayList<>();
-        for (String raw : list) {
-            if (raw == null || raw.isEmpty()) continue;
-            try {
-                if (raw.charAt(0) == '#') {
-                    tags.add(TagKey.create(Registries.BLOCK, ResourceLocation.parse(raw.substring(1))));
-                } else {
-                    ids.add(ResourceLocation.parse(raw));
-                }
-            } catch (RuntimeException e) {
-                com.cyberday1.neoorigins.NeoOrigins.LOGGER.warn(
-                    "[wraith_phase] ignoring unparseable blocked_blocks entry '{}': {}", raw, e.getMessage());
-            }
-        }
-        return new BlockedMatcher(Set.copyOf(ids), List.copyOf(tags));
+    /** The parsed blacklist for {@code config}, parsed once rather than per tick. */
+    public static PhaseBlacklist blacklist(Config config) {
+        return BLOCKED_CACHE.computeIfAbsent(config.blockedBlocks(), PhaseBlacklist::parse);
     }
 
     /**
@@ -145,7 +116,7 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         return CAPS_CACHE.computeIfAbsent(config.blockedBlocks(), list -> {
             java.util.Set<String> caps = new java.util.HashSet<>();
             caps.add("wall_phase");
-            for (String block : list) caps.add("phase_blocked:" + block);
+            for (String block : list) caps.add(PhaseBlacklist.CAPABILITY_PREFIX + block);
             return Set.copyOf(caps);
         });
     }
@@ -192,21 +163,8 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
 
     @Override
     protected void tickEffect(ServerPlayer player, Config config) {
-        // --- blocked-block check (cached to avoid per-tick allocation) ---
-        BlockedMatcher blocked = BLOCKED_CACHE.computeIfAbsent(config.blockedBlocks(),
-            WraithPhasePower::resolveBlocked);
-
-        AABB box = player.getBoundingBox().deflate(0.05);
-        boolean inBlockedBlock = false;
-        for (BlockPos pos : BlockPos.betweenClosed(
-                BlockPos.containing(box.minX, box.minY, box.minZ),
-                BlockPos.containing(box.maxX, box.maxY, box.maxZ))) {
-            BlockState state = player.level().getBlockState(pos);
-            if (!state.isAir() && blocked.matches(state)) {
-                inBlockedBlock = true;
-                break;
-            }
-        }
+        // --- blocked-block check (shared with the client, see PhaseBlacklist) ---
+        boolean inBlockedBlock = blacklist(config).overlaps(player);
 
         // Noclip -- always on so the server accepts client-predicted phased
         // positions. Disabled when inside a blocked block so vanilla collision

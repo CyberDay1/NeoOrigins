@@ -138,6 +138,7 @@ public final class FormModel {
     public static List<FormFieldSpec> forPower(ResourceLocation typeId) {
         String key = typeId.toString();
         List<FormFieldSpec> base;
+        boolean reflected = false;
 
         // Registry-refactor preference order (mirrors the verb migration): a
         // power registered in BuiltinPowers declares its fields directly, so
@@ -167,12 +168,13 @@ public final class FormModel {
             // `glow`, `night_vision`, …) rendered in the creator with no way to
             // set a display name, description, hidden flag or required_mods.
             Class<?> cfg = PowerConfigClassResolver.resolve(typeId);
+            reflected = true;
             base = withCommonFields(
                 (cfg != null && cfg.isRecord()) ? CodecFieldSpecExtractor.extract(cfg) : List.of());
         }
 
         List<FormFieldSpec> out = new ArrayList<>(base.size());
-        for (FormFieldSpec s : base) out.add(enrich(key, s));
+        for (FormFieldSpec s : base) out.add(enrich(key, s, reflected));
         return out;
     }
 
@@ -300,12 +302,12 @@ public final class FormModel {
         // the branch's structured fields directly.
         List<FormFieldSpec> base = s.formFor(typeId);
         List<FormFieldSpec> out = new ArrayList<>(base.size());
-        for (FormFieldSpec spec : base) out.add(enrich(typeId, spec));
+        for (FormFieldSpec spec : base) out.add(enrich(typeId, spec, false));
         return out;
     }
 
     /** EnumHints overlay + config-range/default enrich + doc fallback for one field. */
-    private static FormFieldSpec enrich(String powerId, FormFieldSpec s) {
+    private static FormFieldSpec enrich(String powerId, FormFieldSpec s, boolean reflected) {
         FormFieldSpec.Kind kind = s.kind();
         List<String> enums = s.enumValues();
         Double min = s.min(), max = s.max();
@@ -315,8 +317,11 @@ public final class FormModel {
             desc = FieldDocs.get().describe(powerId, s.name());
         }
 
+        // A declared or schema option list is the parser's own vocabulary and wins;
+        // hints exist to correct reflection, which sees a raw String or enum names.
         List<String> hint = EnumHints.valuesFor(powerId, s.name());
-        if (!hint.isEmpty()) {
+        boolean ownOptions = !reflected && enums != null && !enums.isEmpty();
+        if (!hint.isEmpty() && !ownOptions) {
             kind = FormFieldSpec.Kind.ENUM;
             enums = hint;
         }
