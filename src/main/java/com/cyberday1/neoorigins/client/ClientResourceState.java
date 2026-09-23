@@ -32,8 +32,10 @@ public class ClientResourceState {
         ResourceHudOverlay.clearSheetCache();
         for (var e : incoming.entrySet()) {
             var v = e.getValue();
-            resources.put(e.getKey(), new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),
-                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.alwaysShow()));
+            ResourceEntry entry = new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),
+                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.alwaysShow());
+            resources.put(e.getKey(), entry);
+            ResourceBarVisibility.observe(e.getKey(), entry.fraction());
         }
     }
 
@@ -61,8 +63,10 @@ public class ClientResourceState {
             if (old == null) continue;
             Integer dynMax = maxes.get(e.getKey());
             int max = dynMax != null ? dynMax : old.max();
-            resources.put(e.getKey(), new ResourceEntry(e.getValue(), old.min(), max, old.label(),
-                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint(), old.alwaysShow()));
+            ResourceEntry entry = new ResourceEntry(e.getValue(), old.min(), max, old.label(),
+                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint(), old.alwaysShow());
+            resources.put(e.getKey(), entry);
+            ResourceBarVisibility.observe(e.getKey(), entry.fraction());
         }
     }
 
@@ -72,5 +76,8 @@ public class ClientResourceState {
 
     public static void clear() {
         resources.clear();
+        // Session boundary (handleSyncOrigins runs this on each join), so an
+        // unspent bar is advertised again rather than staying hidden forever.
+        ResourceBarVisibility.reset();
     }
 }
