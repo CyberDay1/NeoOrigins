@@ -10,6 +10,12 @@
     { "id": "#c:foods/raw_fish", "required": false },
     { "id": "#c:foods/cooked_fish", "required": false },
     { "id": "aquaculture:fish_fillet_raw", "required": false },
-    { "id": "aquaculture:sushi", "required": false }
+    { "id": "aquaculture:sushi", "required": false },
+    { "id": "alexsmobs:raw_catfish", "required": false },
+    { "id": "alexsmobs:cooked_catfish", "required": false },
+    { "id": "alexsmobs:blobfish", "required": false },
+    { "id": "alexsmobs:flying_fish", "required": false },
+    { "id": "alexsmobs:cosmic_cod", "required": false },
+    { "id": "oceansdelight:fugu_slice", "required": false }
   ]
 }
