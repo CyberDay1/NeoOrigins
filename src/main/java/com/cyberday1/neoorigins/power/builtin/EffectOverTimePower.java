@@ -12,6 +12,7 @@ import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
+import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -69,7 +70,7 @@ import net.minecraft.server.level.ServerPlayer;
  * }
  * }</pre>
  */
-public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
+public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> implements OffFlagToggle<EffectOverTimePower.Config> {
 
     /** Activation modes for {@link Config#activation()}. */
     public static final String PASSIVE = "passive";
@@ -166,7 +167,8 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
 
     /** True when this aura exposes an on/off keybind — active auras always, and
      *  passive auras only when {@code toggleable:true}. */
-    private boolean hasToggle(Config config) {
+    @Override
+    public boolean hasToggle(Config config) {
         return config.activation().equals(ACTIVE) || config.toggleable();
     }
 
@@ -189,7 +191,7 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> {
     }
 
     /** The pre-2.2.24 shared key, read as a fallback so saved toggles survive. */
-    String legacyToggleKey(Config config) {
+    public String legacyToggleKey(Config config) {
         return getClass().getName() + ':' + config.type() + ':' + config.interval();
     }
 

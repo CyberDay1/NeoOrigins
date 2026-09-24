@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.power.builtin.base.HudIconConfig;
+import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
 import com.cyberday1.neoorigins.power.util.EnabledGate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -68,7 +69,7 @@ import java.util.Set;
  * }
  * }</pre>
  */
-public class PosePower extends PowerType<PosePower.Config> {
+public class PosePower extends PowerType<PosePower.Config> implements OffFlagToggle<PosePower.Config> {
 
     /**
      * The three poses a pack may ask for, in the order they win when more than
@@ -205,12 +206,15 @@ public class PosePower extends PowerType<PosePower.Config> {
         return id != null ? id.toString() : legacyToggleKey(config);
     }
 
+    @Override
+    public boolean hasToggle(Config config) { return config.toggleable(); }
+
     /**
      * Fallback key for a call with no dispatch id to name the power by. This type
      * is new, so there is no pre-2.2.24 saved flag to stay compatible with; the
      * pose keeps two powers forcing different poses from sharing one flag.
      */
-    private String legacyToggleKey(Config config) {
+    public String legacyToggleKey(Config config) {
         return getClass().getName() + ':' + config.pose().token();
     }
 

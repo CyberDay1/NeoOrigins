@@ -964,13 +964,15 @@ NeoOrigins ships these item tags for its diet-restricted origins, under `data/ne
 
 | Tag | Diet / origin | Contents |
 |---|---|---|
-| `#neoorigins:fish_foods` | Pescivore (ocean/aquatic origins) | cod, salmon, tropical fish, pufferfish, cooked cod, cooked salmon; plus optional `#c:foods/raw_fish`, `#c:foods/cooked_fish`, and Aquaculture fish fillet + sushi |
-| `#neoorigins:meat_foods` | Carnivore | beef, porkchop, mutton, chicken, rabbit (raw + cooked each), rabbit stew, rotten flesh; plus optional `#c:foods/raw_meat`, `#c:foods/cooked_meat`, and Aquaculture turtle soup |
+| `#neoorigins:fish_foods` | Pescivore (ocean/aquatic origins) | cod, salmon, tropical fish, pufferfish, cooked cod, cooked salmon; plus optional `#c:foods/raw_fish`, `#c:foods/cooked_fish`, Aquaculture fish fillet + sushi, and the fish of mods that skip the conventional tags: Alex's Mobs raw/cooked catfish, blobfish, flying fish and cosmic cod, and Ocean's Delight fugu slice |
+| `#neoorigins:meat_foods` | Carnivore and vegetarian (`origins:carnivore` / `origins:vegetarian`, read inverted) | beef, porkchop, mutton, chicken, rabbit (raw + cooked each), rabbit stew, rotten flesh; plus optional `#c:foods/raw_meat`, `#c:foods/cooked_meat`, Aquaculture turtle soup, and **all of `#neoorigins:fish_foods`** |
 | `#neoorigins:vampire_foods` | Blood diet (Vampire) | beef, porkchop, chicken, mutton, rabbit, rotten flesh, spider eye |
 | `#neoorigins:skeleton_foods` | Boneless diet (Skeleton, base) | bone meal, rotten flesh, spider eye |
 | `#neoorigins:skeleton_evolved_foods` | Boneless diet (Skeleton, evolved) | skeleton base list + all cooked meats and cooked fish (beef, porkchop, chicken, mutton, rabbit, cod, salmon) |
 
 The fish diet additionally reads a server config allowlist: the `neoorigins:aquatic_fish_diet` power accepts either the `#neoorigins:fish_foods` tag **or** any entry in `ocean_origins.extra_fish_foods` (see `food_item_in_config_list` below), and only enforces the restriction when the `ocean_origins.fish_diet_required` flag is on.
+
+Fish counts as meat: `meat_foods` nests `fish_foods` (as `required: false`, so a broken fish tag cannot take the meat tag down with it). A carnivore may therefore eat any fish, and a vegetarian none. Two consequences for pack authors: a datapack that replaces `fish_foods` changes the carnivore and vegetarian diets too, and the `ocean_origins.*` config options reach the ocean diet only, never `meat_foods`.
 
 ## `neoorigins:food_item_id`
 

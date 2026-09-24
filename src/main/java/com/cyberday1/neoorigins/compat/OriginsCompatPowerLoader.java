@@ -628,8 +628,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * Meat-tag diet gate in canonical {@code action_on_event} form —
      * {@code neoorigins:food_restriction} survives only as a legacy alias, so
      * emit what its remap would have produced: cancel {@code food_eaten} when
-     * the food is (vegetarian) / is not (carnivore) in the meat tag.
+     * the food is (vegetarian) / is not (carnivore) in the meat tag. The tag
+     * nests {@code #neoorigins:fish_foods}, so carnivores may eat fish and vegetarians may not.
      */
+    // hub: neoorigins/diet-tags.md
     private static com.google.gson.JsonObject meatFoodsRestrictionJson(boolean whitelist) {
         com.google.gson.JsonObject inTag = new com.google.gson.JsonObject();
         inTag.addProperty("type", "neoorigins:food_item_in_tag");
