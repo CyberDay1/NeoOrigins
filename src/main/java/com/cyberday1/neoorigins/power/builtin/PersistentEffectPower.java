@@ -7,6 +7,7 @@ import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -52,7 +53,7 @@ import java.util.List;
  * }
  * }</pre>
  */
-public class PersistentEffectPower extends PowerType<PersistentEffectPower.Config> {
+public class PersistentEffectPower extends PowerType<PersistentEffectPower.Config> implements OffFlagToggle<PersistentEffectPower.Config> {
 
     public record EffectSpec(
         Holder<MobEffect> effect,
@@ -227,8 +228,11 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         return id != null ? id.toString() : legacyToggleKey(config);
     }
 
+    @Override
+    public boolean hasToggle(Config config) { return config.toggleable(); }
+
     /** The pre-2.2.24 effect-derived key, read as a fallback so saved toggles survive. */
-    String legacyToggleKey(Config config) {
+    public String legacyToggleKey(Config config) {
         if (config.effects().isEmpty()) return getClass().getName();
         StringBuilder sb = new StringBuilder(getClass().getName());
         for (EffectSpec spec : config.effects()) {

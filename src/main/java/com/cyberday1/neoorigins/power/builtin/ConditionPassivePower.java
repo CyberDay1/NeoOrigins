@@ -9,6 +9,7 @@ import com.cyberday1.neoorigins.compat.action.ActionParser;
 import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -43,7 +44,7 @@ import net.minecraft.server.level.ServerPlayer;
  *
  * <p>Also supersedes {@code tick_action} when condition is absent.
  */
-public class ConditionPassivePower extends PowerType<ConditionPassivePower.Config> {
+public class ConditionPassivePower extends PowerType<ConditionPassivePower.Config> implements OffFlagToggle<ConditionPassivePower.Config> {
 
     public record Config(
         int interval,
@@ -133,8 +134,11 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
         return id != null ? id.toString() : legacyToggleKey(config);
     }
 
+    @Override
+    public boolean hasToggle(Config config) { return config.toggleable(); }
+
     /** The pre-2.2.24 shared key, read as a fallback so saved toggles survive. */
-    String legacyToggleKey(Config config) {
+    public String legacyToggleKey(Config config) {
         return getClass().getName() + ':' + config.type() + ':' + config.interval();
     }
 

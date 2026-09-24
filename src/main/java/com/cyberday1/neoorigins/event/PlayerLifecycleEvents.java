@@ -202,6 +202,8 @@ public class PlayerLifecycleEvents {
         // freshly-granted powers receive their onLogin dispatch in the same pass.
         com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
 
+        com.cyberday1.neoorigins.service.KeylessToggleRelease.release(sp);
+
         ActiveOriginService.forEach(sp, holder -> holder.onLogin(sp));
 
         // Clamp health to the (possibly changed) max — catches stale health

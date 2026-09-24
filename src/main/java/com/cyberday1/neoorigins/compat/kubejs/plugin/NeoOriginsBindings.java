@@ -3,7 +3,10 @@ package com.cyberday1.neoorigins.compat.kubejs.plugin;
 import com.cyberday1.neoorigins.compat.kubejs.JsActivePower;
 import com.cyberday1.neoorigins.compat.kubejs.JsPassivePower;
 import com.cyberday1.neoorigins.compat.kubejs.JsPowerRegistry;
+import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.kubejs.KubeJSCallbacks;
+import com.cyberday1.neoorigins.power.builtin.ResourcePower;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.function.Consumer;
@@ -82,5 +85,35 @@ public final class NeoOriginsBindings {
 
     public boolean hasActivePower(String id) {
         return JsPowerRegistry.hasActive(id);
+    }
+
+    // ── Resource reads ──────────────────────────────────────────────────
+    //
+    // `id` is the resource power's full id, exactly as `/resource get` takes
+    // it: 'mypack:mana', or 'mypack:parent_subkey' for a sub-power of
+    // origins:multiple. Read-only.
+
+    /**
+     * True if the player has this resource: a {@code neoorigins:resource} bar,
+     * a variable or an Apoli resource. A mana-backed bar keeps no stored value,
+     * so it counts when the player holds the power with that id.
+     */
+    public boolean hasResource(ServerPlayer player, String id) {
+        if (player.getData(CompatAttachments.resourceState()).has(id)) return true;
+        if (!CompatAttachments.isManaBacked(id)) return false;
+        String key = CompatAttachments.resolveLegacySyntheticId(id);
+        for (var holder : ActiveOriginService.allPowers(player)) {
+            if (holder.id().toString().equals(key)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * The resource's current value, or {@code null} if the player doesn't have
+     * it, so a missing resource never reads as an empty one. Goes through
+     * {@link ResourcePower#getValue}, so a mana-backed bar reports live mana.
+     */
+    public Integer getResource(ServerPlayer player, String id) {
+        return hasResource(player, id) ? ResourcePower.getValue(player, id) : null;
     }
 }

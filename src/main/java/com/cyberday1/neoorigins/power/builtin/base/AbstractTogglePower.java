@@ -10,7 +10,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 
-public abstract class AbstractTogglePower<C extends PowerConfiguration> extends PowerType<C> {
+public abstract class AbstractTogglePower<C extends PowerConfiguration> extends PowerType<C>
+        implements OffFlagToggle<C> {
 
     @Override
     public final boolean isActivePower() { return true; }
@@ -134,4 +135,10 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     protected String getLegacyToggleKey(C config) {
         return getClass().getName();
     }
+
+    @Override
+    public final String legacyToggleKey(C config) { return getLegacyToggleKey(config); }
+
+    @Override
+    public boolean hasToggle(C config) { return true; }
 }

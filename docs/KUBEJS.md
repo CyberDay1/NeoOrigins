@@ -179,6 +179,31 @@ yet), the action is silently dropped with a debug log; it never errors.
 unknown, so it is skipped at parse time rather than at call time; the surrounding
 power still loads, but that step of the action never runs.
 
+### Resources
+
+Read a player's resource values from a script. Read-only: to change a value,
+run a `neoorigins:change_resource` action or the `/resource` command.
+
+```js
+const mana = NeoOrigins.getResource(player, 'mypack:mana')
+if (mana !== null && mana >= 10) {
+    player.tell(`You have ${mana} mana`)
+}
+```
+
+| Method | Description |
+|--------|-------------|
+| `NeoOrigins.getResource(player, id)` | The current value, or `null` if the player doesn't have that resource. |
+| `NeoOrigins.hasResource(player, id)` | `true` if the player has that resource. |
+
+`id` is the resource power's full id, the same string `/resource get` takes:
+`mypack:mana`, or `mypack:parent_subkey` for a sub-power of an `origins:multiple`.
+It works for `neoorigins:resource` bars, `neoorigins:variable` counters, and
+Origins/Apoli `origins:resource` powers. A bar with `"backing": "irons_spellbooks:mana"`
+reads the player's live Iron's Spells mana.
+
+`player` must be a server-side player, so call these from server scripts.
+
 ### JS-defined powers
 
 Two power types let a JSON power delegate its whole behavior to a JS handler,
