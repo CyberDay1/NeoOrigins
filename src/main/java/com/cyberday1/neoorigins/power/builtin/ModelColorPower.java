@@ -40,8 +40,14 @@ import java.util.Set;
  */
 public class ModelColorPower extends PowerType<ModelColorPower.Config> {
 
-    /** Tracks previous condition result per-player to avoid redundant resyncs. */
-    private static final java.util.Map<java.util.UUID, Boolean> CONDITION_STATE = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * Previous condition result per player AND per power. One slot per player let
+     * several conditional tints overwrite each other, so a tint that turned off
+     * after another had written false never resynced and stayed on the client.
+     * Inner maps are touched on the server thread only.
+     */
+    private static final java.util.Map<java.util.UUID, java.util.Map<Config, Boolean>> CONDITION_STATE =
+        new java.util.concurrent.ConcurrentHashMap<>();
 
     public record Config(
         float red, float green, float blue, float alpha,
@@ -118,7 +124,9 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
         if (player.tickCount % 20 != 0) return;
 
         boolean active = config.condition().get().test(player);
-        Boolean prev = CONDITION_STATE.put(player.getUUID(), active);
+        Boolean prev = CONDITION_STATE
+            .computeIfAbsent(player.getUUID(), k -> new java.util.IdentityHashMap<>())
+            .put(config, active);
         if (prev == null || prev != active) {
             com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncActivePowersToPlayer(player);
         }
@@ -126,7 +134,8 @@ public class ModelColorPower extends PowerType<ModelColorPower.Config> {
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        CONDITION_STATE.remove(player.getUUID());
+        var states = CONDITION_STATE.get(player.getUUID());
+        if (states != null) states.remove(config);
     }
 
     public static void clearPlayer(java.util.UUID uuid) {
