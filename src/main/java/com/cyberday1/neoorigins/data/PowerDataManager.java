@@ -229,14 +229,22 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     /**
      * The pre-parse compat pipeline for a single power entry, in the one order
      * that works: canonicalize Apoli-family &rarr; Route A translate &rarr;
-     * legacy alias remap. Returns {@code null} when the entry is dropped before
-     * parsing (every drop path logs its own reason).
+     * config overrides &rarr; legacy alias remap. Returns {@code null} when the
+     * entry is dropped before parsing (every drop path logs its own reason).
      *
-     * <p>Canonicalization runs BEFORE Route A because the dispatch switch is
-     * keyed on {@code origins:}/{@code apace:} labels only; that ordering is
-     * load-bearing and must not be shuffled. ({@code applyConfigOverrides} runs
-     * later on this branch, from {@link #parsePower}, and is not part of this
-     * pipeline.)
+     * <p>Two orderings here are load-bearing and must not be shuffled:
+     *
+     * <ul>
+     *   <li>{@link #applyConfigOverrides} runs BEFORE
+     *       {@link LegacyPowerTypeAliases#apply}, so remap lambdas with
+     *       value-dependent gates (damage_in_water's {@code dps > 0} check, which
+     *       decides between a damage action and a {@code neoorigins:nothing}
+     *       no-op) and the field-strip step see the server owner's final values
+     *       rather than the pack defaults. Reversing it is how "water damage
+     *       still fires at config 0" happened.</li>
+     *   <li>Canonicalization runs BEFORE Route A, because the dispatch switch is
+     *       keyed on {@code origins:}/{@code apace:} labels only.</li>
+     * </ul>
      *
      * <p>Extracted from {@link #apply} so both the ordering and the alias
      * fallback below are directly testable without a ResourceManager.
@@ -276,6 +284,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         }
 
         Identifier typeId = Identifier.parse(json.get("type").getAsString());
+        // Apply config overrides BEFORE alias remap — see the ordering note above.
+        applyConfigOverrides(id, json);
         // 2.0 legacy alias remap — transparently rewrites old type IDs.
         typeId = LegacyPowerTypeAliases.apply(typeId, json, id);
         return new Resolved(typeId, json);
@@ -337,8 +347,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
     private <C extends PowerConfiguration> void parsePower(
             Identifier id, Identifier typeId, PowerType<C> type, JsonObject json,
             Map<Identifier, PowerHolder<?>> target) {
-        // Apply config overrides before parsing
-        applyConfigOverrides(id, json);
+        // Config overrides are applied upstream in loadPowers/apply() before the
+        // legacy alias remap so value-dependent gates see the user's values.
 
         Component name = extractComponentField(json, "name");
         Component desc = extractComponentField(json, "description");

@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.event;
 import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
+import com.cyberday1.neoorigins.service.RandomOriginPool;
 import com.cyberday1.neoorigins.config.GameplayConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -590,6 +591,23 @@ public class PlayerLifecycleEvents {
         return false;
     }
 
+    /**
+     * One random origin for {@code layer}: available under the layer's conditions,
+     * {@code eligible}, and not in {@code exclude_random}. Null when none qualify.
+     */
+    static Identifier pickRandomOrigin(OriginLayer layer, java.util.Map<Identifier, Identifier> choices,
+                                             java.util.function.Predicate<Identifier> eligible,
+                                             java.util.function.IntUnaryOperator nextInt) {
+        return RandomOriginPool.pick(
+            RandomOriginPool.of(layer, layer.getAvailableOriginIds(choices), eligible.negate()), nextInt);
+    }
+
+    /** What the picker would list: loaded, not unchoosable, not disabled. */
+    private static boolean isOffered(Identifier id) {
+        Origin o = OriginDataManager.INSTANCE.getOrigin(id);
+        return o != null && !o.unchoosable() && !ContentTogglesConfig.isOriginDisabled(id);
+    }
+
     private static void assignRandomOrigins(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         List<String> assigned = new ArrayList<>();
@@ -598,12 +616,9 @@ public class PlayerLifecycleEvents {
             Identifier layerId = layer.id();
             if (data.hasOriginForLayer(layerId)) continue;
 
-            List<Identifier> available = layer.getAvailableOriginIds().stream()
-                .filter(OriginDataManager.INSTANCE::hasOrigin)
-                .toList();
-            if (available.isEmpty()) continue;
-
-            Identifier picked = available.get(sp.getRandom().nextInt(available.size()));
+            Identifier picked = pickRandomOrigin(layer, data.getOrigins(),
+                PlayerLifecycleEvents::isOffered, sp.getRandom()::nextInt);
+            if (picked == null) continue;
             data.setOrigin(layerId, picked);
             ActiveOriginService.applyOriginPowers(sp, layerId, null, picked);
             assigned.add(picked.toString());

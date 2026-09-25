@@ -42,6 +42,15 @@ public final class RealDatapack {
         loaded = true;
     }
 
+    /** A fresh layer manager holding the shipped layers; the shared instance is left alone. */
+    public static com.cyberday1.neoorigins.data.LayerDataManager layers() {
+        var manager = new com.cyberday1.neoorigins.data.LayerDataManager();
+        Map<Identifier, com.google.gson.JsonObject> json = new HashMap<>();
+        read(locate("origin_layers")).forEach((id, el) -> json.put(id, el.getAsJsonObject()));
+        apply(manager, json);
+        return manager;
+    }
+
     /**
      * Loads the shipped data plus one extra pack's {@code data/<ns>/origins/**}. The
      * managers hold the union until {@link #restoreShipped()}, which a caller must run
@@ -131,7 +140,7 @@ public final class RealDatapack {
     }
 
     /** {@code apply} is protected on the vanilla listener, so reach it reflectively. */
-    private static void apply(Object manager, Map<Identifier, JsonElement> json) {
+    private static void apply(Object manager, Map<Identifier, ?> json) {
         try {
             Method m = manager.getClass().getDeclaredMethod("apply", Map.class,
                 net.minecraft.server.packs.resources.ResourceManager.class,

@@ -9,6 +9,7 @@ import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
+import com.cyberday1.neoorigins.service.RandomOriginPool;
 import net.minecraft.resources.Identifier;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
@@ -272,10 +273,16 @@ public class OriginSelectionPresenter {
         return true;
     }
 
-    /** Return a random origin ID from the current layer, or null if none. */
+    /** A random origin from the current layer, or null if none can be rolled. */
     public Identifier randomId() {
-        if (allOriginIds.isEmpty()) return null;
-        return allOriginIds.get((int) (Math.random() * allOriginIds.size()));
+        return randomIdAmong(allOriginIds);
+    }
+
+    /** A random origin from {@code shown}, skipping the layer's {@code exclude_random} list. */
+    public Identifier randomIdAmong(Collection<Identifier> shown) {
+        if (pendingLayers.isEmpty() || isDone()) return null;
+        var pool = RandomOriginPool.of(currentLayer(), shown, id -> false);
+        return RandomOriginPool.pick(pool, n -> (int) (Math.random() * n));
     }
 
     /**

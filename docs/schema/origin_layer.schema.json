@@ -53,6 +53,11 @@
       "description": "If true, this layer participates in random-origin assignment. Default false.",
       "type": "boolean"
     },
+    "exclude_random": {
+      "description": "Origin IDs in this layer that a random roll never lands on: the Random button and server-side random assignment both skip them. They stay pickable directly. Additive layer files add to the list.",
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$" }
+    },
     "default_origin": {
       "description": "Origin ID auto-assigned when the layer is resolved without a player choice.",
       "type": "string",

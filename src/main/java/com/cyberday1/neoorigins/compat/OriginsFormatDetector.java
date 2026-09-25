@@ -124,10 +124,11 @@ public final class OriginsFormatDetector {
      * power dropped outright. That silently costs the pack an origin: enough dropped
      * powers and the coverage gate hides it entirely.
      *
-     * <p>Two guards keep this from being a blanket namespace alias, which would be
-     * badly wrong. The name must be claimed by one of the two dispatch switches, and
-     * it must have NO native power type — so the 34 names that exist in both
-     * vocabularies keep resolving natively, exactly as before. Together they mean
+     * <p>Three guards keep this from being a blanket namespace alias, which would be
+     * badly wrong. The name must be claimed by one of the two dispatch switches, it
+     * must have NO native power type — so the 34 names that exist in both
+     * vocabularies keep resolving natively, exactly as before — and it must not be a
+     * {@code LegacyPowerTypeAliases} source, which loads on its own. Together they mean
      * this only ever fires where the alternative was dropping the power, and it
      * cannot take traffic from anything that loads today.
      *
@@ -145,6 +146,7 @@ public final class OriginsFormatDetector {
      * <p>The author is still told. A pack that only works by our goodwill should say
      * so in the log, or the mistake never gets fixed upstream.
      */
+    // hub: neoorigins/salvage-vs-alias.md
     public static String salvageLegacyPowerSpelling(JsonObject json) {
         if (!json.has("type")) return "";
         String type = json.get("type").getAsString();
@@ -156,6 +158,13 @@ public final class OriginsFormatDetector {
             || OriginsCompatPowerLoader.CONDITIONED_ROUTE_B_TYPES.contains(legacy);
         if (!dispatchable) return type;
         if (com.cyberday1.neoorigins.power.registry.PowerTypes.isBuiltinPath(name)) {
+            return type;
+        }
+        // A retired neoorigins: type the alias table still remaps loads without us;
+        // salvaging it would route the author's fields to a compat reader that
+        // ignores them.
+        if (com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases.hasAlias(
+                net.minecraft.resources.Identifier.tryParse(type))) {
             return type;
         }
         json.addProperty("type", legacy);

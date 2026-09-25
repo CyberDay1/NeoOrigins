@@ -2604,6 +2604,12 @@
           "type": "number",
           "default": 2.0
         },
+        "telegraph_ticks": {
+          "description": "Lead-in ticks the ground telegraph shows before the first projectile lands (default 14; 0 = no lead-in).",
+          "type": "integer",
+          "default": 14,
+          "minimum": 0
+        },
         "weapon_damage_scale": {
           "description": "Per-blade bonus = this × the caster's attack-damage attribute (folds in the held weapon), captured at cast time. 0 = flat damage.",
           "type": "number",

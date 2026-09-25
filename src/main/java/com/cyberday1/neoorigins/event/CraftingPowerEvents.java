@@ -6,7 +6,6 @@ import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.food.FoodProperties;
@@ -316,13 +315,11 @@ public class CraftingPowerEvents {
      * Only fires on actual crafting events — no false positives from pickups/hoppers.
      */
     private static void applyCraftAmountBonus(ServerPlayer sp, ItemStack result) {
+        if (result.isEmpty()) return;
         ActiveOriginService.forEachOfType(sp, CraftAmountBonusPower.class, config -> {
-            var itemOpt = BuiltInRegistries.ITEM.get(Identifier.parse(config.outputItem()));
-            if (itemOpt.isEmpty()) return;
-            var targetItem = itemOpt.get().value();
-            if (!result.is(targetItem)) return;
+            if (!CraftAmountBonusPower.matches(result, config.outputItem())) return;
             if (config.bonusCount() > 0) {
-                sp.getInventory().add(new ItemStack(targetItem, config.bonusCount()));
+                sp.getInventory().add(new ItemStack(result.getItem(), config.bonusCount()));
             }
         });
     }

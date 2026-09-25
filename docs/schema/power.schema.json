@@ -3214,7 +3214,7 @@
           "const": "neoorigins:craft_amount_bonus"
         },
         "output_item": {
-          "description": "Item id whose crafting triggers the bonus (default oak_planks).",
+          "description": "Item id or #tag whose crafting triggers the bonus (default oak_planks).",
           "type": "string",
           "default": "minecraft:oak_planks"
         },
@@ -5491,9 +5491,28 @@
           "type": "boolean",
           "default": false
         },
+        "effect": {
+          "description": "Single-effect shorthand: a mob-effect id (e.g. 'minecraft:speed') applied as if it were a one-entry `effects` list. Read only when `effects` is absent. `id` is accepted as a synonym.",
+          "type": "string"
+        },
         "amplifier": {
           "description": "Effect level minus one (0 = level I, 1 = level II) for the root-level single-effect shorthand; default 0. With an `effects` array present it instead overrides the FIRST entry's amplifier — winning even over an amplifier that entry sets itself, and leaving later entries untouched. It does not cascade the way root ambient/show_particles/show_icon do. That asymmetry is deliberate: it is the hook power_overrides uses to retune one effect's strength without rewriting the array.",
           "type": "integer"
+        },
+        "ambient": {
+          "description": "When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
+        },
+        "show_particles": {
+          "description": "When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": false
+        },
+        "show_icon": {
+          "description": "When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
         },
         "enabled": {
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
@@ -6497,9 +6516,28 @@
             }
           ]
         },
+        "effect": {
+          "description": "Single-effect shorthand: a mob-effect id (e.g. 'minecraft:speed') applied as if it were a one-entry `effects` list. Read only when `effects` is absent. `id` is accepted as a synonym.",
+          "type": "string"
+        },
         "amplifier": {
           "description": "Effect level minus one (0 = level I, 1 = level II) for the root-level single-effect shorthand; default 0. With an `effects` array present it instead overrides the FIRST entry's amplifier — winning even over an amplifier that entry sets itself, and leaving later entries untouched. It does not cascade the way root ambient/show_particles/show_icon do. That asymmetry is deliberate: it is the hook power_overrides uses to retune one effect's strength without rewriting the array.",
           "type": "integer"
+        },
+        "ambient": {
+          "description": "When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
+        },
+        "show_particles": {
+          "description": "When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": false
+        },
+        "show_icon": {
+          "description": "When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
         },
         "enabled": {
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
@@ -6630,25 +6668,6 @@
         "type": {
           "const": "neoorigins:status_effect"
         },
-        "effect": {
-          "description": "Mob-effect id applied while the power is active (e.g. 'minecraft:speed'). The legacy single-effect shorthand: authoring it here is equivalent to a one-entry `effects` list. Applied at infinite duration, so no duration field.",
-          "type": "string"
-        },
-        "ambient": {
-          "description": "When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it.",
-          "type": "boolean",
-          "default": true
-        },
-        "show_particles": {
-          "description": "When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it.",
-          "type": "boolean",
-          "default": false
-        },
-        "show_icon": {
-          "description": "When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.",
-          "type": "boolean",
-          "default": true
-        },
         "effects": {
           "description": "List of effect entries, each {effect|id, amplifier?, ambient?, show_particles?, show_icon?}, applied at INFINITE_DURATION while active. A single effect may instead be authored as the root-level shorthand (effect/amplifier/... at the power root); root-level ambient/show_particles/show_icon/amplifier also cascade as defaults onto every entry that omits them. Empty list = no effect.",
           "type": "array",
@@ -6678,9 +6697,28 @@
           "type": "boolean",
           "default": false
         },
+        "effect": {
+          "description": "Single-effect shorthand: a mob-effect id (e.g. 'minecraft:speed') applied as if it were a one-entry `effects` list. Read only when `effects` is absent. `id` is accepted as a synonym.",
+          "type": "string"
+        },
         "amplifier": {
           "description": "Effect level minus one (0 = level I, 1 = level II) for the root-level single-effect shorthand; default 0. With an `effects` array present it instead overrides the FIRST entry's amplifier — winning even over an amplifier that entry sets itself, and leaving later entries untouched. It does not cascade the way root ambient/show_particles/show_icon do. That asymmetry is deliberate: it is the hook power_overrides uses to retune one effect's strength without rewriting the array.",
           "type": "integer"
+        },
+        "ambient": {
+          "description": "When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
+        },
+        "show_particles": {
+          "description": "When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": false
+        },
+        "show_icon": {
+          "description": "When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.",
+          "type": "boolean",
+          "default": true
         },
         "enabled": {
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",

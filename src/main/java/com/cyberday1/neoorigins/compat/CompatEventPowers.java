@@ -302,6 +302,19 @@ public class CompatEventPowers {
         player.resetFallDistance();
     }
 
+    // ---- modify_xp_gain ----
+
+    /** Applies {@code modify_xp_gain}. XpChange fires for every XP increment, so one hook covers every source. */
+    @SubscribeEvent
+    public static void onXpChange(net.neoforged.neoforge.event.entity.player.PlayerXpEvent.XpChange event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        int original = event.getAmount();
+        if (original <= 0) return;
+        double modified = NumericModifierRegistry.apply(sp, NumericModifierRegistry.Kind.XP_GAIN, original);
+        int rounded = Math.max(0, (int) Math.round(modified));
+        if (rounded != original) event.setAmount(rounded);
+    }
+
     // ---- modify_food ----
 
     /**

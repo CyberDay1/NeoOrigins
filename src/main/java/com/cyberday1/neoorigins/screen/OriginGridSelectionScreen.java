@@ -330,12 +330,8 @@ public class OriginGridSelectionScreen extends Screen implements PickerScreen {
         int cx = width / 2;
 
         var randomBtn = ParchmentButton.parchment(Component.translatable("button.neoorigins.random"), b -> {
-            Identifier id = presenter.randomId();
-            // randomId() draws from the unfiltered set; if search hid the roll,
-            // roll again within what is actually on show.
-            if ((id == null || !browseIds.contains(id)) && !browseIds.isEmpty()) {
-                id = browseIds.get((int) (Math.random() * browseIds.size()));
-            }
+            // Roll within what is on show, so a search narrows the roll too.
+            Identifier id = presenter.randomIdAmong(browseIds);
             if (id == null) return;
             selectOrigin(id);
             page = browseIds.indexOf(id) / perPage();

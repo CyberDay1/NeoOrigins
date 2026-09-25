@@ -8,7 +8,7 @@ nav_order: 3
 
 Entity actions run against an entity target (usually the player who owns the power, or a bientity target depending on the call site). They're the side-effect half of the DSL: conditions filter, actions mutate.
 
-**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names like `"type": "heal"` are auto-prefixed to `neoorigins:heal`. Section headers below still show the traditional `origins:*` names for familiarity with upstream docs; JSON examples use `neoorigins:*`.
+**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Any other namespace (`origins:`, `apoli:`, `apace:`, or another Apoli derivative's, such as `medievalorigins:`) is rewritten to `neoorigins:` with the same path and logs a one-shot `[2.0-legacy]` deprecation warning. Bare type names like `"type": "heal"` are auto-prefixed to `neoorigins:heal`. The one place the namespace changes behaviour is a bientity slot: see [Caster & target](#caster--target-bientity-actions).
 
 **Call sites that dispatch actions:**
 - `action_on_event.entity_action`: runs against the event's actor (player)
@@ -16,9 +16,11 @@ Entity actions run against an entity target (usually the player who owns the pow
 - `conditional.inner_action`: gated by the wrapping condition
 - Nested inside meta verbs (`if_else`, `if_else_list`, `and`, `chance`, `delay`, `area_of_effect`)
 
-**Object or array.** Every entity-action field (`entity_action`, `else_action`, `fail_action`, and the nested actions of the meta verbs: `if_else`, `if_else_list`, `chance`, `delay`, `choice`, `area_of_effect`, `raycast`'s `block_action`/`bientity_action`, etc.) accepts either a single action object **or** an array of them, run in order (an implicit `neoorigins:and`). An empty array, or entries that aren't objects, no-op. *(Previously a bare array in these fields silently did nothing; wrapping in `neoorigins:and` was required.)* The **item-action** verbs (the `(item)` section below) and `block_target_action`'s `action` remain object-only. Sequence those with `neoorigins:and (item)`.
+**Object or array.** The action fields of the native powers (`entity_action`, `else_action`, `fail_action`) and most nested action fields of the verbs below accept either a single action object **or** an array of them, run in order (an implicit `neoorigins:and`): `if_else`, `if_else_list`, `chance`, `delay`, `choice`, `offset`, `block_action_at`, `actor_action`, `riding_action`, `passenger_action`, `selector_action`, `area_of_effect` (`entity_action` / `bientity_action` / `block_action`), `raycast` (`block_action` / `bientity_action` / `miss_action` / `before_action`), `spawn_lingering_area`, the `impact_action` of `spawn_tornado` and `spawn_projectile_rain`, and `spawn_telegraph`'s `on_expire`. An empty array, or entries that aren't objects, no-op. `and`'s own `actions` also accepts a lone object.
 
-On any parse error or unknown `type`, the action silently degrades to a no-op and logs a warning tagged `[CompatB]`.
+These stay **object-only**, and an array there silently does nothing: `target_action`'s `action`, `block_target_action`'s `action`, `spawn_projectile`'s `on_hit_action` and `projectile_action`, the fields of the Apoli-prefixed bientity forms (`actor_action`, `target_action`, `chance`, `invert`, `if_else`), and the item-action fields (`item_action` on `equipped_item_action` / `modify_inventory`, and the branches of `if_else (item)`). Wrap a sequence in `neoorigins:and` (or `neoorigins:and (item)`).
+
+On any parse error or unknown `type`, the action degrades to a no-op. Outside a datapack load this logs a `[CompatB]` warning; during a load the per-action line drops to debug level and the verb is counted in the compat summary instead.
 
 ---
 
@@ -152,6 +154,7 @@ Sets the target on fire for a fixed duration.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `ticks` | int | no | `20` | Fire duration in ticks |
+| `duration` | int | no | — | Apoli alias for `ticks`, read only when `ticks` is absent |
 
 **Example:**
 ```json
@@ -297,9 +300,9 @@ Gives an item to the target. If the inventory is full, the stack drops at their 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `stack.item` | resource id | yes | — | Item id |
-| `stack.count` | int | no | `1` | Stack size |
+| `stack.count` / `stack.amount` | int | no | `1` | Stack size. Apoli's `amount` wins when both are set |
 | `item` | resource id | alt | — | Shorthand: if `stack` is absent, the root object is treated as the stack |
-| `count` | int | alt | `1` | Stack size in shorthand form |
+| `count` / `amount` | int | alt | `1` | Stack size in shorthand form (`amount` wins when both are set) |
 
 **Example:**
 ```json
@@ -331,6 +334,7 @@ Spawns an entity at the target's feet. No orientation control: the entity faces 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_type` | resource id | yes | — | Entity type id |
+| `quantity` | int | no | `1` | Copies to spawn. A value below 1, or a non-numeric one, warns and spawns 1. With more than one, each copy is offset randomly by up to ±0.5 blocks on X and Z |
 
 **Example:**
 ```json
@@ -349,7 +353,7 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 |---|---|---|---|---|
 | `entity_type` / `projectile` | resource id | yes | — | Entity type id |
 | `speed` | float | no | `1.5` | Launch speed |
-| `inaccuracy` | float | no | `0.0` | Random spread |
+| `inaccuracy` / `divergence` | float | no | `0.0` | Random spread (`divergence` is the Apoli name; `inaccuracy` wins when both are set) |
 | `vertical_offset` | float | no | `0.0` | Added to the spawn Y (relative to eye height) |
 | `effect_type` | string | no | `""` | Colour key from `VfxEffectTypes`. Sets **defaults** for `orb_color`/`glow_color`/`shape`/`trail_particle`; explicit fields below override it. |
 | `orb_color` | `[r,g,b]` or `"#RRGGBB"` | no | effect_type colour | Core orb colour. RGB array (0–255) or hex string. |
@@ -363,8 +367,9 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 | `spread` | float | no | `0.05` | Trail particle position spread. |
 | `trail_speed` | float | no | `0.0` | Trail particle speed/velocity. Also accepted under the Apoli legacy name `speed_particle`. |
 | `no_gravity` | bool | no | `false` | When `true` the projectile ignores gravity and flies straight along its launch vector (drag still applies). Works for any projectile entity, not just the magic orb. |
-| `projectile_action` | object | no | — | Entity action applied to the spawned projectile itself (actor = projectile), immediately on launch. |
-| `on_hit_action` | object | no | — | Action fired when the projectile impacts. `area_of_effect` inside this auto-rebases to the impact point. |
+| `tag` | string | no | — | SNBT compound merged onto each spawned projectile (e.g. `"{pickup:1b}"` so fired arrows can be picked up). An unparseable tag warns and is ignored |
+| `projectile_action` | object | no | — | Entity action applied to the spawned projectile itself (actor = projectile), immediately on launch. Object only. On a non-living projectile only `set_on_fire`, `extinguish`, `add_velocity`, `execute_command` / `command`, `and` and `nothing` apply; other verbs are skipped |
+| `on_hit_action` | object | no | — | Action fired when the projectile impacts. `area_of_effect` inside this auto-rebases to the impact point. Object only (an array is ignored) |
 
 **Example: magic-orb with impact-AoE**
 ```json
@@ -558,6 +563,7 @@ Also registered under the legacy alias **`neoorigins:spawn_sword_rain`** (same a
 | `damage_per_impact` | float | no | `4.0` | Flat damage each landing projectile deals to foes near it. Legacy alias: `damage_per_sword` |
 | `knockup` | float | no | `0.5` | Upward velocity applied to struck foes |
 | `impact_radius` | float | no | `2.0` | Horizontal radius of each projectile's hit |
+| `telegraph_ticks` | int | no | `14` | Lead-in ticks the ground telegraph shows before the first projectile lands. `0` = no lead-in |
 | `weapon_damage_scale` | float | no | `0.0` | Per-impact bonus = this × the caster's attack-damage attribute (folds in the held weapon), captured at cast time. `0` = flat damage |
 | `impact_action` | action | no | — | Composable action run at each landing point against entities within `impact_radius`. When set it **replaces** the built-in damage/knockup; omit to keep the default damage. Accepts a single action object or an array (run in order) |
 | `model` | string | no | `"sword"` | Which baked-mesh model the client renders for the falling object. Built-in: `"sword"` (spectral blade). Unknown ids fall back to `"sword"`. Ignored when `projectile` is set |
@@ -566,7 +572,7 @@ Also registered under the legacy alias **`neoorigins:spawn_sword_rain`** (same a
 | `spawn_height` | float | no | `18.0` | Blocks above each scatter point the entity spawns from. Only used when `projectile` is set |
 | `tag` | string | no | — | SNBT compound merged onto each rained entity (e.g. `"{pickup:1b}"` so fired arrows can be picked up). Only used when `projectile` is set |
 | `follow_terrain` | bool | no | `true` | Each blade/projectile lands on the surface Y under its own scatter point (`MOTION_BLOCKING` heightmap), so the storm follows hills/stairs instead of all dropping on one flat plane. Set `false` to lock every drop to the storm center's Y |
-| `origin` | string | no | `"self"` | Where the storm centers: `"self"` (around caster), `"look"` (what the caster aims at), or `"impact"` (projectile hit point, when cast from an on-hit context) |
+| `origin` | string | no | `"self"` | Where the storm centers: `"self"` (around caster), `"look"` (what the caster aims at), or `"impact"` (projectile hit point, when cast from an on-hit context). Inside an on-hit context `"self"` also centres on the hit point; outside one `"impact"` centres on the caster |
 | `effect_type` | string | no | `""` | Colour key |
 
 In **real-projectile mode** the rain keeps owning the scatter pattern, the staggered launch schedule and the lead-in telegraph, but each blade is swapped for a genuine entity that flies and hits on its own, so you can rain any projectile you could otherwise `spawn_projectile`/summon (arrows, tridents, snowballs, fireballs, …). The client skips the fake-blade render so the visuals don't double up.
@@ -639,7 +645,7 @@ Spawns a particle-only ground danger marker: a static outer ring marking the ful
 | `radius` | float | no | `3.0` | Radius of the marked danger zone |
 | `duration_ticks` | int | no | `20` | Wind-up length: ticks the reticle takes to contract before it expires |
 | `on_expire` | action | no | — | Composable action run once when the wind-up ends, against entities within `radius` (caster excluded). Omit for a pure dodge cue with no payoff. Accepts a single action object or an array (run in order) |
-| `origin` | string | no | `"self"` | Where the marker centers: `"self"` (at caster), `"look"` (what the caster aims at), or `"impact"` (projectile hit point) |
+| `origin` | string | no | `"self"` | Where the marker centers: `"self"` (at caster), `"look"` (what the caster aims at), or `"impact"` (projectile hit point). Same resolution as `spawn_projectile_rain`: inside an on-hit context `"self"` also uses the hit point |
 | `effect_type` | string | no | `""` | Colour key |
 
 **Example:** a 1-second marker on what the caster aims at that detonates for damage when it expires
@@ -671,16 +677,11 @@ Also accepted under the alias `command` (Apoli's verb name, same field shape), s
 { "type": "neoorigins:execute_command", "command": "effect give @s minecraft:glowing 10 0" }
 ```
 
-Runs only if the target is on a server (`player.level().getServer() != null`).
+Runs only on the server side, and a blank `command` does nothing.
 
 ### Position resolution
 
-The command source is positioned at the **player by default**. When the
-dispatch context is a block-shaped event (`block_break`, `block_place`,
-`block_use`), the command source is repositioned at the **block's centre**
-instead, so `~ ~ ~` resolves to the broken/placed/used block. Matches
-Apoli's `block_action` pattern; lets pack authors write the standard
-"drop loot at the block" recipe without manual coord lookup:
+The command source is positioned at the **player by default**. When the dispatch context carries a block position, the source is repositioned at that **block's centre**, so `~ ~ ~` resolves to it: `block_break` / `block_place` events, `block_use` / `bonemeal` interactions, a `raycast` block hit, and the block published by `block_action_at`, `offset` or the `area_of_effect` block fan-out. This lets pack authors write the standard "drop loot at the block" recipe without manual coord lookup:
 
 ```json
 {
@@ -694,8 +695,7 @@ Apoli's `block_action` pattern; lets pack authors write the standard
 }
 ```
 
-For non-block events (`hit_taken`, `kill`, `tick`, etc.) the source
-stays at the player.
+For other contexts (`hit_taken`, `kill`, `tick`, a projectile hit, etc.) the source stays at the player.
 
 ---
 
@@ -707,32 +707,6 @@ Apoli-verb alias for [`neoorigins:execute_command`](#neooriginsexecute_command):
 ```json
 { "type": "neoorigins:command", "command": "say hello" }
 ```
-
-Runs only if the target is on a server (`player.level().getServer() != null`).
-
-### Position resolution
-
-The command source is positioned at the **player by default**. When the
-dispatch context is a block-shaped event (`block_break`, `block_place`,
-`block_use`), the command source is repositioned at the **block's centre**
-instead, so `~ ~ ~` resolves to the broken/placed/used block. Matches
-Apoli's `block_action` pattern; lets pack authors write the standard
-"drop loot at the block" recipe without manual coord lookup:
-
-```json
-{
-  "type": "neoorigins:action_on_event",
-  "event": "block_break",
-  "block_condition": { "type": "neoorigins:block", "id": "minecraft:stone" },
-  "entity_action": {
-    "type": "neoorigins:execute_command",
-    "command": "loot spawn ~ ~ ~ loot mypack:generic/stone_drops"
-  }
-}
-```
-
-For non-block events (`hit_taken`, `kill`, `tick`, etc.) the source
-stays at the player.
 
 ---
 
@@ -747,7 +721,7 @@ Position resolution mirrors `execute_command`: drops at the dispatch BlockPos fo
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `items` | array | yes | — | List of drop entries |
-| `mode` | string | no | `"each"` | `"each"` (per-entry independent rolls) or `"one_of"` (weighted single pick) |
+| `mode` | string | no | `"each"` | `"each"` (per-entry independent rolls) or `"one_of"` (weighted single pick; `"single"` and `"weighted"` are synonyms). Case-insensitive; any other value behaves as `"each"` |
 | `rolls` | int | no | `1` | Only used in `"one_of"` mode: repeat the pick with replacement |
 
 ### Per-entry fields
@@ -794,7 +768,7 @@ Use `rolls: N` to repeat the pick (with replacement); same item type can win mul
 ### Notes
 
 - Unknown item ids log a one-shot warning at parse time and skip that entry.
-- Dropped items have default pickup delay (no 0.5s wait), so the triggering player can pick them up immediately.
+- Dropped items get vanilla's default pickup delay of 10 ticks (0.5 s).
 - For random_count without `chance`, omit `chance` (defaults to 1.0 = always).
 - For 80% chance to drop a single item, just `{ "item": "...", "chance": 0.8 }`.
 
@@ -896,7 +870,7 @@ Reopens the origin selection screen scoped to an author-specified subset of laye
 { "type": "neoorigins:open_layer_picker", "layers": ["neoorigins:class"], "commit_mode": "deferred", "cost": 3, "message": "Choose a new class", "consume_item": true }
 ```
 
-The `/origin gui <player> <layers>` command is the admin equivalent; it takes one or more comma- or space-separated layer ids (e.g. `/origin gui Steve neoorigins:origin,neoorigins:class`).
+The `/neoorigins gui <player> <layers>` command (also reachable as `/origin gui`) is the admin equivalent; it takes one or more comma- or space-separated layer ids (e.g. `/neoorigins gui Steve neoorigins:origin,neoorigins:class`).
 
 For a full worked example (binding one of the four inert orb items to a custom layer, granting the power, and adding a crafting recipe), see [COOKBOOK.md § 16](COOKBOOK.md#16-reroll-my-custom-layer-wiring-up-a-spare-orb).
 
@@ -943,23 +917,24 @@ Mutates a `resource` power's stored integer. The resource state lives on a playe
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `resource` | resource id | yes | — | Power id owning the resource |
-| `operation` | string | no | `"add"` | `"add"` (default) or `"set"`. Unknown values fall through to add. |
-| `change` | int | no | `0` | Value to add or set |
+| `operation` | string | no | `"add"` | `"add"` or `"set"`. Apoli's `set_total` and `set_value` also set; every other value (`add_base`, `addition`, `multiply_*`, unknown strings) adds |
+| `change` | int | no | `0` | Value to add or set. Read as an integer: a fractional value is truncated |
+| `modifier` | object | no | — | Apoli form `{ "operation": …, "amount": … }` (`value` is accepted for `amount`). When present it replaces the root `operation` / `change` |
 
 **Example:**
 ```json
 { "type": "neoorigins:change_resource", "resource": "examplepack:mana", "operation": "add", "change": -5 }
 ```
 
-Clamped to `[Integer.MIN_VALUE, Integer.MAX_VALUE]` on add.
+`add` clamps the result to the resource's own `min` / `max` (or a declared variable's bounds); `set` writes the value unclamped. On a resource backed by Iron's Spells mana only `add` applies; `set` is ignored with a one-time log line.
 
-> ⚠️ `resource` must be the **full** namespaced power id. The `*:` / `*:*` self-reference wildcard is **not** resolved for resources (only `power_active` and `origins:multiple` sub-powers support it): a reference containing `*` targets a non-existent key and is warned about at load. This applies equally to `set_resource` and the `neoorigins:resource` condition.
+> ⚠️ `resource` is normally the **full** namespaced power id. A `resource` containing `*` is a glob (`*` matches any run of characters) over the resource keys already stored on the player: `add` / `set` apply to every matching key, and nothing happens while no key matches yet, so the matching resource power must have been granted first. Inside an `origins:multiple` sub-power, `*:*` self-references are resolved against the parent power before this runs. The same rules apply to `set_resource` and the `neoorigins:resource` condition.
 
 ---
 
 ## `neoorigins:modify_resource`
 
-Apoli legacy alias for [`neoorigins:change_resource`](#neooriginschange_resource): same factory and field shape (`resource`, `operation`, `change`). The `change` field also accepts Apoli's nested `modifier` `{operation, amount}` form. Prefer `change_resource` in new packs.
+Apoli legacy alias for [`neoorigins:change_resource`](#neooriginschange_resource): same factory and field shape (`resource`, `operation`, `change`). Apoli's nested `modifier` object (`{operation, amount}`, or `value` for `amount`) is accepted in place of the root `operation` / `change`. Prefer `change_resource` in new packs.
 
 **Example:**
 ```json
@@ -999,7 +974,7 @@ Cold Sweat's `core` (body) temperature runs on a scale of roughly **−100** (fr
 
 ## `neoorigins:set_resource`
 
-Assigns a `resource` power's stored integer to a fixed value (the `set`-only sibling of `change_resource`). Same attachment-backed state and the same full-power-id requirement (no `*` wildcard).
+Assigns a `resource` power's stored integer to a fixed value (the `set`-only sibling of `change_resource`). Same attachment-backed state and the same `resource` rules, including `*` globs over stored keys. The value is written unclamped; on a resource backed by Iron's Spells mana it is ignored.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1050,7 +1025,7 @@ Runs a sequence of actions in order against the same target. `all_of` is Apoli 2
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `actions` | array of action | yes | `[]` | Actions to run in order |
+| `actions` | array of action | no | `[]` | Actions to run in order. A single action object is also accepted; absent means the action does nothing |
 
 **Example:**
 ```json
@@ -1088,7 +1063,7 @@ First-match-wins chain of `(condition, action)` pairs. Stops after the first mat
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `actions` | array | yes | `[]` | Each entry has `condition` + `action` |
+| `actions` | array | no | `[]` | Each entry has `condition` + `action`. An entry whose `condition` is absent or not an object never matches. A lone entry object is accepted as a one-entry list |
 
 **Example:**
 ```json
@@ -1118,17 +1093,17 @@ Probabilistic dispatch. Uses the target's RNG source.
 
 ## `neoorigins:choice`
 
-Picks one action from a weighted list and runs it. Each entry pairs an `action` with a `weight`; one is selected weighted-randomly per dispatch.
+Picks one action from a weighted list and runs it. Each `actions` entry is a **wrapper**, not an action: Apoli's `element` key holds the action (`action` is accepted as a synonym; `element` wins if both are present) and `weight` sets its relative chance. A bare action written directly as an entry has neither key, so that branch does nothing and a warning is logged.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `actions` | array of `{action, weight}` | yes | — | Candidate entries; one is picked weighted-randomly |
+| `actions` | array of `{element, weight}` | yes | — | Candidate entries; one is picked weighted-randomly. `weight` is an int, default `1`. Weights are not validated: keep them positive, since a total of 0 makes the action fail when it runs |
 
 **Example:**
 ```json
 { "type": "neoorigins:choice", "actions": [
-  { "weight": 3, "action": { "type": "neoorigins:heal", "amount": 2.0 } },
-  { "weight": 1, "action": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
+  { "weight": 3, "element": { "type": "neoorigins:heal", "amount": 2.0 } },
+  { "weight": 1, "element": { "type": "neoorigins:set_on_fire", "ticks": 40 } }
 ] }
 ```
 
@@ -1196,7 +1171,7 @@ Iterates every living entity within the radius and runs `entity_action` against 
 | `radius` | float | no | `16.0` | Radius |
 | `shape` | string or object | no | `"sphere"` | `"cube"` skips the distance cull (plain AABB); anything else culls by squared distance. May also be an object: `{ "type": "cone", "angle": 60 }` additionally restricts the sphere to a cone of that full width (degrees) around the caster's look direction |
 | `include_source` | bool | no | see below | Whether the source entity is included |
-| `include_target` | bool | no | `false` | Apoli spelling of `include_source` |
+| `include_target` | bool | no | see below | Apoli spelling of `include_source`, read only when `include_source` is absent |
 | `entity_action` | action | no | noop | Runs per affected entity (mobs + players for entity-general verbs) |
 | `bientity_action` | bientity action | no | — | Apoli form: runs as (caster, affected entity). Takes precedence over `entity_action` |
 | `entity_condition` | condition | no | always-true | Target filter; entity-general conditions filter mobs + players (see above) |
@@ -1271,7 +1246,7 @@ Bientity actions are how a single power can affect *both* sides of an interactio
 
 Both the caster and the target are available at the same time. To route an effect to one side or the other, wrap it in `actor_action` or `target_action`.
 
-These wrapper verbs are Apoli-namespaced (`origins:` / `apoli:` / `apace:` prefixes are all accepted); the inner `action` they wrap is an ordinary entity-action from this reference.
+**The namespace matters in a bientity slot.** The pair forms below (`actor_action`, `target_action`, `and`, `chance`, `invert`, `if_else`, `damage`, `mount`) are selected only by an `origins:`, `apoli:` or `apace:` prefix (`nothing` by `origins:` / `apoli:`). Any other type there, including a `neoorigins:` one or a bare name, is parsed as an ordinary entity action and run on the **actor**, with the target published to the dispatch context. Context-reading verbs still reach the target that way (`neoorigins:target_action`, `neoorigins:actor_action`, the set verbs, `shear`, …), but `neoorigins:damage` hurts the actor rather than the target, `neoorigins:invert` does nothing, and `neoorigins:if_else` tests its condition against the actor. The inner `action` of `actor_action` / `target_action` is an ordinary entity action from this reference.
 
 ## `actor_action`
 
@@ -1291,13 +1266,13 @@ Runs the inner entity-action against the **caster** (the power holder). While it
 Runs the inner entity-action against the **target**: the entity on the other side of the interaction, resolved from the active dispatch context (the entity you hit / were hit by / killed / interacted with, or the entity a projectile struck). If no target resolves, the action is a no-op.
 
 - When the target is a **player**, the full entity-action surface runs on it (PvP-style scenarios). The actor is published to the dispatch context while it runs.
-- When the target is a **non-player mob**, the entity-general verbs run directly on the mob: `apply_effect`, `clear_effect`, `damage`, `heal`, `set_on_fire`, `extinguish`, `add_velocity`, `play_sound`, `set_fall_distance`, `dismount`, `swing_hand`, `nothing`. Verbs that depend on player-only systems (powers, resources, XP, food, inventory, command execution) only apply when the target is a player.
+- When the target is a **non-player mob**, the entity-general verbs run directly on the mob: `apply_effect`, `clear_effect`, `damage`, `heal`, `set_on_fire`, `extinguish`, `add_velocity`, `play_sound`, `spawn_particles`, `set_fall_distance`, `dismount`, `swing_hand`, `shear`, `dye`, `force_drop`, `steal_item`, `nothing`, and an `and` made only of these. On a mob target `damage` reads `amount` and `source.name` only: `damage_type` is ignored, and an unnamed source is attributed to the actor. `add_velocity` ignores `space` on a mob. Verbs that depend on player-only systems (powers, resources, XP, food, inventory, command execution) only apply when the target is a player.
 
 This verb also works directly as a `neoorigins:`-namespaced entity-action (e.g. inside a projectile `on_hit_action`), where it reads the same context target rather than being a transparent pass-through to the holder.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `action` | entity action | yes | noop | Action run against the target entity |
+| `action` | entity action | yes | noop | Action run against the target entity. Object only |
 
 **Example: set the entity you hit on fire and poison it (works on mobs and players alike)**
 ```json
@@ -1309,7 +1284,7 @@ This verb also works directly as a `neoorigins:`-namespaced entity-action (e.g. 
 
 ## `invert`
 
-Swaps actor and target, then runs the inner bientity action against the swapped pair. Because the actor slot must be a player, the swap only takes effect when the original target is itself a player.
+Swaps actor and target, then runs the inner bientity action against the swapped pair. Because the actor slot must be a player, the swap only takes effect when the original target is itself a player. The `neoorigins:invert` entity action is a no-op.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1380,7 +1355,7 @@ Resolves a vanilla entity selector relative to the holder's command source, then
 
 ## `and` / `chance` (bientity form)
 
-`and` runs a list of bientity actions in order against the same (actor, target) pair; `chance` runs one with a probability (uses the actor's RNG). Both mirror their entity-action counterparts but operate on the pair.
+`and` runs a list of bientity actions in order against the same (actor, target) pair; `chance` runs its `action` with probability `chance` (default `0.5`, actor's RNG) and its optional `fail_action` otherwise. Both mirror their entity-action counterparts but operate on the pair.
 
 ```json
 { "type": "apoli:and", "actions": [
@@ -1388,6 +1363,10 @@ Resolves a vanilla entity selector relative to the holder's command source, then
   { "type": "apoli:target_action", "action": { "type": "neoorigins:damage", "amount": 4.0 } }
 ] }
 ```
+
+## `mount` (bientity form)
+
+The actor starts riding the target. No fields. Distinct from the entity action [`neoorigins:mount`](#neooriginsmount), which mounts the nearest entity.
 
 ## `damage` (bientity form)
 
@@ -1406,7 +1385,7 @@ These verbs are new in 2.0 and read from `ActionContextHolder`, the service that
 
 ## `neoorigins:add_to_set`
 
-Adds the current bientity target's UUID to a named entity-set on the actor player. The backing sets power relationship tracking (who I've tagged, who I'm tracking, etc.). Aliased as `neoorigins:add_to_set`.
+Adds the current bientity target's UUID to a named entity-set on the actor player. The backing sets power relationship tracking (who I've tagged, who I'm tracking, etc.).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1423,7 +1402,7 @@ Adds the current bientity target's UUID to a named entity-set on the actor playe
 
 ## `neoorigins:remove_from_set`
 
-Removes the current bientity target's UUID from a named entity-set. Same context requirements as `add_to_set`. Aliased as `neoorigins:remove_from_set`.
+Removes the current bientity target's UUID from a named entity-set. Same context requirements as `add_to_set`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1458,7 +1437,7 @@ See [COOKBOOK.md → Toggleable abilities (no keybind slot)](COOKBOOK.md#15-togg
 
 Cancels the currently dispatched event. Used internally by the `food_restriction` alias to reject food consumption.
 
-**Gotcha (context-only):** works only when the current `ActionContextHolder` value carries a cancellable event. That covers `food_eaten` (`FoodContext`), `effect_applied` (`EffectAppliedContext`), `entity_use` / `villager_interact` / `breed` / `tame` (`EntityInteractContext`), `block_use` / `bonemeal` (`BlockInteractContext`), and any dispatch whose context is itself an `ICancellableEvent` (e.g. `block_place`). No-op elsewhere: post-hoc events like `food_finished`, `trade_completed` or `kill` cannot be cancelled.
+**Gotcha (context-only):** works only when the current `ActionContextHolder` value carries a cancellable event. That covers `food_eaten` (`FoodContext`), `effect_applied` (`EffectAppliedContext`), `entity_use` / `villager_interact` / `breed` / `tame` (`EntityInteractContext`), `block_use` / `bonemeal` (`BlockInteractContext`), `hit_taken` (`HitTakenContext`: negates the hit), `kill` (`KillContext`: the victim is spared), `projectile_hit` (`ProjectileHitContext`), and any dispatch whose context is itself an `ICancellableEvent` (e.g. `block_place`). No-op for any other context.
 
 **Example:**
 ```json
@@ -1804,7 +1783,7 @@ Drops items from the target player's vanilla inventory. By default it scatters e
 
 ## Block-target verbs
 
-These act on the **block on the other side of the interaction** (the block a projectile or raycast impacted) rather than on an entity. They resolve the impacted block from the active dispatch context (a projectile `on_hit_action` that lands on a block, or a `raycast` `block_action`), so you can write them directly as an `on_hit_action` / `block_action` and they self-resolve the hit block. Each no-ops cleanly when no block resolves or the block isn't applicable. To run one against a specific resolved block context explicitly, wrap it in [`block_target_action`](#neooriginsblock_target_action).
+These act on the **block on the other side of the interaction** (the block a projectile or raycast impacted) rather than on an entity. They resolve the impacted block from the active dispatch context (a projectile `on_hit_action` that lands on a block, a `raycast` `block_action`, a `block_use` / `bonemeal` interaction, or the block published by `block_action_at`, `offset` or the `area_of_effect` block fan-out), so you can write them directly as an `on_hit_action` / `block_action` and they self-resolve the hit block. Each no-ops cleanly when no block resolves or the block isn't applicable. To run one against a specific resolved block context explicitly, wrap it in [`block_target_action`](#neooriginsblock_target_action).
 
 ## `neoorigins:strip`
 
@@ -1866,11 +1845,11 @@ The generic primitive: sets the **context block** to `to`, optionally only when 
 
 ## `neoorigins:block_target_action`
 
-The block-side analogue of [`target_action`](#target_action): resolves the impacted block from the active dispatch context and runs the inner block-target verb against it. No-op when no block context resolves or the inner action isn't a block-target verb (`strip` / `till` / `path` / `grow` / `transform_block`). The actor (the power holder) is the one running the power.
+The block-side analogue of [`target_action`](#target_action): resolves the impacted block from the active dispatch context and runs the inner block-target verb against it. No-op when no block context resolves or the inner action isn't a block-target verb (`strip` / `till` / `path` / `grow` or `bonemeal` / `transform_block` / `set_block`). The actor (the power holder) is the one running the power.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `action` | object | no | — | Inner block-target verb to run on the resolved context block. |
+| `action` | object | no | — | Inner block-target verb to run on the resolved context block. Object only |
 
 **Example: a projectile that strips the block it hits, via the wrapper**
 ```json
@@ -1885,7 +1864,7 @@ Teleports the target to an absolute position or by a relative offset. The "marke
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `position.x` / `.y` / `.z` | double | no | — | Absolute target (if `position` is present, offsets are ignored) |
+| `position.x` / `.y` / `.z` | double | no | — | Absolute target (if `position` is present, offsets are ignored). All three are required inside `position`; a missing one makes the action a no-op |
 | `dx` / `dy` / `dz` | double | no | `0` | Relative offset from current position |
 
 **Example:**
@@ -1901,8 +1880,8 @@ Runs an item action on the stack in a given equipment slot. Delegates per-stack 
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, or `"mainhand"` |
-| `item_action` | object | yes | — | Item action to run (see Item Actions below) |
+| `equipment_slot` | string | no | `"mainhand"` | `"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, or `"mainhand"` (case-insensitive). Any other value warns and the action does nothing |
+| `item_action` | object | yes | — | Item action to run (see Item Actions below). The older key `action` is read when `item_action` is absent. Object only |
 | `reset_repair_cost` | bool | no | `false` | Handed down to a `remove_enchantment` item action: also clear the stack's anvil repair cost |
 
 **Example: damage the held item by 5**
@@ -1922,7 +1901,9 @@ Iterates inventory slots and runs an item action on each matching stack.
 |---|---|---|---|---|
 | `item_action` | object | yes | — | Item action to run per matching stack |
 | `item_condition` | object | no | — | Item condition to filter stacks (see Item Conditions below); all stacks if absent |
-| `slot` | string | no | — | Restrict to a single slot name; iterates all slots if absent |
+| `slot` | string | no | — | Restrict to a single slot: `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, or a raw inventory index; iterates all slots if absent. An unknown name warns and the action does nothing |
+| `process_mode` | string | no | `"items"` | `"items"` counts every item of a processed stack toward `limit`; `"stacks"` counts each stack as 1 |
+| `limit` | int | no | `0` | Stop once this many items / stacks have been processed; `0` = no limit. Checked before each stack, so the stack that crosses the limit is still processed whole |
 
 **Example: consume all rotten flesh in inventory**
 ```json
@@ -1945,7 +1926,7 @@ Performs a block and/or entity raycast from the player's eye position along thei
 | `fluid_handling` | enum | no | `none` | How fluids are treated: `none` / `source_only` / `any` |
 | `shape_type` | enum | no | `visual` | Block shape used for the trace: `visual` or `collider` |
 | `block_action` | object | no | — | Action to run at the hit block position (dispatched with `RaycastBlockContext` so `~ ~ ~` resolves to the hit block) |
-| `bientity_action` | object | no | — | Action to run when an entity is hit (actor = caster, target = hit entity) |
+| `bientity_action` | object | no | — | Entity action run on the **caster** when a living entity is hit, with the hit entity published as the context target: wrap target-side effects in `target_action` (a bare `origins:damage` here hurts the caster). Entity hits are checked before blocks |
 | `miss_action` | object | no | — | Action to run when nothing is hit within range |
 | `before_action` | object | no | — | Entity action run once before the ray is cast, regardless of hit outcome (e.g. consume a reagent) |
 | `command_along_ray` | string | no | — | Command run at each step along the ray, hit or miss. Bare `/particle <id> ~ ~ ~` commands are force-rendered so trails stay visible past the client particle setting |
@@ -2131,7 +2112,7 @@ Item actions operate on a single `ItemStack` and are used inside `equipped_item_
 
 ## `neoorigins:merge_nbt`
 
-Merges SNBT data into the stack's data components via `LegacyTagToComponents`. Pre-1.21 SNBT keys (Potion, Enchantments, Damage, Unbreakable, CustomModelData, display.Name/Lore) are auto-translated to modern data components.
+Merges SNBT data into the stack's data components via `LegacyTagToComponents`. Pre-1.21 SNBT keys `Potion`, `CustomModelData`, `Damage`, `Unbreakable`, `RepairCost` and `display` (Name / Lore) are translated to their data components; other keys are merged into `minecraft:custom_data`. `Enchantments`, `StoredEnchantments` and `ench` are dropped, because this path has no registry access to resolve them.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2139,7 +2120,11 @@ Merges SNBT data into the stack's data components via `LegacyTagToComponents`. P
 
 ## `neoorigins:consume`
 
-Removes the stack entirely (sets count to 0). No fields.
+Shrinks the stack by `amount`.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `amount` | int | no | `1` | Items to remove |
 
 ## `neoorigins:damage`
 
@@ -2148,6 +2133,9 @@ Damages the stack's durability.
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `amount` | int | no | `1` | Durability to remove |
+| `ignore_unbreaking` | bool | no | `false` | Accepted, but changes nothing: the damage is always added directly and Unbreaking is never rolled |
+
+A stack whose damage reaches its maximum durability is destroyed. Non-damageable stacks are left alone.
 
 ## `neoorigins:set_count`
 
@@ -2206,7 +2194,7 @@ Runs multiple item actions in sequence.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `actions` | array of item action | yes | — | Actions to run in order |
+| `actions` | array of item action | yes | — | Actions to run in order. Must be an array: any other shape makes the whole action a no-op |
 
 ## `neoorigins:if_else` (item)
 
@@ -2214,9 +2202,9 @@ Conditional item action dispatch.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `condition` | item condition | no | FALSE | Guard |
-| `if_action` | item action | no | noop | Runs when condition passes |
-| `else_action` | item action | no | noop | Runs when condition fails |
+| `condition` | item condition | no | always true | Guard; an absent condition passes |
+| `if_action` | item action | no | noop | Runs when condition passes. Object only |
+| `else_action` | item action | no | noop | Runs when condition fails. Object only |
 
 ---
 

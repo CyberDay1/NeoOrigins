@@ -177,12 +177,9 @@ public class OriginCarouselSelectionScreen extends Screen implements PickerScree
         int cx = width / 2;
 
         var randomBtn = ParchmentButton.parchment(Component.translatable("button.neoorigins.random"), b -> {
-            Identifier id = presenter.randomId();
-            int i = id == null ? -1 : browseIds.indexOf(id);
-            // randomId() draws from the unfiltered set; if search hid the roll,
-            // roll again within what is actually on show.
-            if (i < 0 && !browseIds.isEmpty()) i = (int) (Math.random() * browseIds.size());
-            if (i >= 0) { browseIndex = i; syncSelection(); }
+            // Roll within what is on show, so a search narrows the roll too.
+            Identifier id = presenter.randomIdAmong(browseIds);
+            if (id != null) { browseIndex = browseIds.indexOf(id); syncSelection(); }
         }).bounds(panelX, cy, 70, 28).build();
         randomBtn.visible = layer.allowRandom();
         addRenderableWidget(randomBtn);

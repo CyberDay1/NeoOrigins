@@ -455,7 +455,7 @@ public final class BuiltinPowers {
             ALWAYS_SHOW_ICON_SPEC));
         define("craft_amount_bonus", CraftAmountBonusPower.class, List.of(
             new FieldSpec("output_item", Kind.STRING, false)
-                .def("minecraft:oak_planks").doc("Item id whose crafting triggers the bonus (default oak_planks)."),
+                .def("minecraft:oak_planks").doc("Item id or #tag whose crafting triggers the bonus (default oak_planks)."),
             new FieldSpec("bonus_count", Kind.INTEGER, false)
                 .def(4).doc("Extra copies of the output added per craft (default 4; skipped if <=0).")));
         define("crop_growth_accelerator", CropGrowthAcceleratorPower.class, List.of(
@@ -1664,6 +1664,10 @@ public final class BuiltinPowers {
                 .def(true).doc("When true the power binds a keybind that flips the effects on/off; off clears them (default true)."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .def(false).doc("Toggleable powers only: when true the effects START disabled so the player must opt in via the keybind (default false)."),
+            // Root-level shorthand the codec reads off the raw JSON; see amplifier below.
+            new FieldSpec("effect", Kind.STRING, false)
+                .readBy("com.cyberday1.neoorigins.power.builtin.PersistentEffectPower#decode")
+                .doc("Single-effect shorthand: a mob-effect id (e.g. 'minecraft:speed') applied as if it were a one-entry `effects` list. Read only when `effects` is absent. `id` is accepted as a synonym."),
             // readBy, not a component: the codec reads this off the raw JSON root
             // and folds it into the first EffectSpec, so nothing lifts it.
             //
@@ -1681,6 +1685,18 @@ public final class BuiltinPowers {
                    + "It does not cascade the way root ambient/show_particles/show_icon do. "
                    + "That asymmetry is deliberate: it is the hook power_overrides uses to "
                    + "retune one effect's strength without rewriting the array."),
+            new FieldSpec("ambient", Kind.BOOLEAN, false)
+                .def(true)
+                .readBy("com.cyberday1.neoorigins.power.builtin.PersistentEffectPower#decode")
+                .doc("When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it."),
+            new FieldSpec("show_particles", Kind.BOOLEAN, false)
+                .def(false)
+                .readBy("com.cyberday1.neoorigins.power.builtin.PersistentEffectPower#decode")
+                .doc("When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it."),
+            new FieldSpec("show_icon", Kind.BOOLEAN, false)
+                .def(true)
+                .readBy("com.cyberday1.neoorigins.power.builtin.PersistentEffectPower#decode")
+                .doc("When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it."),
             ENABLED_SPEC_JSON_READ, TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         // effect_immunity lives in the compat package (com.cyberday1.neoorigins.compat),
