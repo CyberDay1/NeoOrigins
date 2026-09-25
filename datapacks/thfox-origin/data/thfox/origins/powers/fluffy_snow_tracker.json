@@ -6,7 +6,7 @@
     "type": "neoorigins:and",
     "conditions": [
       { "type": "neoorigins:exposed_to_sky" },
-      { "type": "neoorigins:in_tag", "tag": "minecraft:is_snowy" }
+      { "type": "neoorigins:in_tag", "tag": "c:is_snowy" }
     ]
   },
   "entity_action": {

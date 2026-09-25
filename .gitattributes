@@ -18,3 +18,6 @@ website/static/schemas/*.json text eol=lf
 # gate locally. autocrlf would hand bash CR-terminated lines and break both, so
 # pin LF the same way the byte-compared generated files above are pinned.
 .github/scripts/*.sh text eol=lf
+
+# POWER_REFERENCE.txt is rendered by PowerReferenceGenerator with LF endings.
+POWER_REFERENCE.txt text eol=lf

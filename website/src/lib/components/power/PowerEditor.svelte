@@ -14,7 +14,7 @@
 	import type { PowerDraft } from '$lib/stores/originDraft';
 	import type { PowerIssues } from '$lib/stores/originValidation';
 	import type { FormFieldSpec } from '$lib/schema/FormFieldSpec';
-	import { parsePowerSchema } from '$lib/schema/SchemaFormModel';
+	import { hasPowerBranch, parsePowerSchema } from '$lib/schema/SchemaFormModel';
 	import PowerTypePicker from './PowerTypePicker.svelte';
 	import FieldRowAdapter from './FieldRowAdapter.svelte';
 
@@ -186,8 +186,8 @@
 
 			{#if formSpec.error}
 				<p class="warn">
-					Power type not recognised by the schema; only raw-JSON editing is
-					available. <span class="warn-detail">{formSpec.error}</span>
+					Power type not recognised by the schema, so this editor has no form for it.
+					<span class="warn-detail">{formSpec.error}</span>
 				</p>
 			{/if}
 
@@ -228,8 +228,13 @@
 						</div>
 					{/each}
 				</div>
-			{:else if !formSpec.error}
-				<p class="note">No structured form fields for this power type — edit the JSON directly in the JSON Preview tab.</p>
+			{/if}
+			{#if !formSpec.error && !hasPowerBranch(schema, power.type)}
+				<p class="note">
+					NeoOrigins accepts this type, but this editor has no form for its own fields; only the
+					common fields above can be set here. Fields already in an imported file are kept as they
+					are. To set others, write them in the power's JSON and import the datapack.
+				</p>
 			{/if}
 		</div>
 	{/if}

@@ -6,7 +6,6 @@ import com.cyberday1.neoorigins.compat.kubejs.JsPowerRegistry;
 import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.kubejs.KubeJSCallbacks;
 import com.cyberday1.neoorigins.power.builtin.ResourcePower;
-import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.function.Consumer;
@@ -100,12 +99,7 @@ public final class NeoOriginsBindings {
      */
     public boolean hasResource(ServerPlayer player, String id) {
         if (player.getData(CompatAttachments.resourceState()).has(id)) return true;
-        if (!CompatAttachments.isManaBacked(id)) return false;
-        String key = CompatAttachments.resolveLegacySyntheticId(id);
-        for (var holder : ActiveOriginService.allPowers(player)) {
-            if (holder.id().toString().equals(key)) return true;
-        }
-        return false;
+        return CompatAttachments.isManaBacked(id) && CompatAttachments.holdsResourcePower(player, id);
     }
 
     /**

@@ -73,7 +73,7 @@ public class ResourceHudOverlay {
             var res = entry.getValue();
 
             // Hide when full — unless the bar opted into always_render, or the
-            // resource has never been spent this session (#105), which would
+            // resource has not been spent since the last sync (#105), which would
             // otherwise leave a bar that starts at max invisible from the start.
             if (!ResourceBarVisibility.shouldDraw(
                     entry.getKey(), res.alwaysShow(), res.fraction())) {

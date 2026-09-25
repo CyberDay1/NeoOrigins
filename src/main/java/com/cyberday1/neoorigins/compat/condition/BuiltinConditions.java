@@ -818,9 +818,9 @@ public final class BuiltinConditions {
 
         // ---- Boolean combinators (recursive; delegate to ConditionParser) ----
         // These mirror the action side's and/if_else/choice combinators: pure
-        // recursive delegators that parse() their sub-conditions. The block-condition
-        // internal and/or shorthand inside parseOnBlock is a SEPARATE code path and is
-        // untouched. The condition switch fully retires with these three.
+        // recursive delegators that parse() their sub-conditions. Block-condition
+        // and/or is a SEPARATE code path (ConditionParser#compileInBlockPredicate).
+        // The condition switch fully retires with these three.
         // and — every sub-condition in `conditions` must pass (empty/absent → true).
         // `all_of` is the Apoli 2.9+ rename of `and` (Origins 1.10+ packs use it);
         // alias, not a counted type — origins:all_of/apoli:all_of canonicalize to

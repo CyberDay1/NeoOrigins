@@ -33,11 +33,12 @@ way to give a class a switchable passive, because it keeps the passive itself
 condition-gated while spending only the one class slot.
 
 The Rogue is the one built-in class that wants two: it carries both the Step
-Assist switch and `class_rogue_stealth`. Only Step Assist is bound; Stealth
-is listed after it and so is left unbound, exactly as the rule above says.
-Both powers are still granted — an unbound active is unreachable, not
-removed. `ClassSkillSlotBindingTest` pins that ordering so it cannot be
-reversed by accident.
+Assist switch and `class_rogue_stealth`. Step Assist is listed first and holds
+the key, so Stealth has none. Both powers are still granted, and because a
+toggle no key can reach is switched back on at every login (see the toggle
+notes in [POWER_TYPES.md](POWER_TYPES.md)), the Rogue's Stealth is simply
+always on: sneak for ten seconds and you turn invisible. A Rogue who switched
+Stealth off before 2.2.28 gets it back the next time they log in.
 
 ## Adding a class (recommended: additive layer file)
 

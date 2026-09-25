@@ -2,7 +2,7 @@
 
 A modern, ground-up reimplementation of the Origins experience for **NeoForge**.
 
-Supports **MC 26.1** (Java 25) and **MC 1.21.1** (Java 21).
+Supports **MC 1.21.1** (Java 21), **MC 26.1** and **MC 26.2** (both Java 25).
 
 📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) (full reference for all 106 power types, 94 conditions, 85 actions, and 49 events).
 
@@ -166,7 +166,7 @@ Pack authors can add their own classes. See [docs/CLASSES.md](docs/CLASSES.md).
 | **Scout** | Night vision, +20% speed, no fall damage, +0.5 step height, starting bread |
 | **Berserker** | +3 attack, +50% hunger drain, +2 damage when HP≤50%, −2 armor, +0.2 KB resist |
 | **Titan** | 1.25× size, +2 hearts, extended reach, +1 attack, +0.2 KB resist, −10% speed |
-| **Rogue** | Hidden nameplate, invisibility while sneaking, backstab 2× damage, 0.5× fall damage, +0.5 step height |
+| **Rogue** | Hidden nameplate, invisibility after sneaking for 10 seconds, +2 attack damage while sneaking, 0.5× fall damage, +0.5 step height (switched on the Class Skill key) |
 | **Lumberjack** | One-hit tree felling, +2 extra planks per craft, bare-hand iron axe, starting iron axe (Unbreaking II) |
 | **Blacksmith** | 0.5× anvil cost, Unbreaking I auto-applied to tools/armor, bare-hand stone pickaxe, 0.5× fire damage, starting 4 iron ingots |
 | **Cook** | Crafted food is more nourishing, bonus XP from smokers, immune hunger/nausea, 1.25× potion duration, starting iron sword (cook's knife) |
@@ -412,7 +412,7 @@ cd NeoOrigins
 # Output: build/libs/neoorigins-<version>.jar
 ```
 
-Requires Java 25 (MC 26.1 branch) or Java 21 (1.21.1 branch).
+Requires Java 21 on the `1.21.1` branch, and Java 25 on `master` (MC 26.1) and `26.2`.
 
 ---
 

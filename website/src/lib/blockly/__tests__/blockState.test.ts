@@ -14,9 +14,11 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
+import * as Blockly from 'blockly';
+
 import { buildBlockRegistry, regKey, renderOf } from '../blockRegistry.js';
 import { draftToState, stateToDraft, powerBlockId, type AuthoredFields } from '../blockState.js';
-import type { FormFieldSpec } from '../../schema/FormFieldSpec.js';
+import { choiceOption, isBooleanStringChoice, type FormFieldSpec } from '../../schema/FormFieldSpec.js';
 import type { PowerDraft } from '../../stores/originDraft.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -32,6 +34,7 @@ const reg = buildBlockRegistry(powerSchema, {
 	itemAction: read('item_action.schema.json'),
 	fieldDocs: read('field_docs.json')
 });
+Blockly.defineBlocksWithJsonArray(reg.defs);
 
 let failed = 0;
 let passed = 0;
@@ -357,6 +360,137 @@ check('an OPEN MIXED union keeps its text field and its raw round-trip', () => {
 		JSON.stringify(after.key) === JSON.stringify(before.key),
 		`object-shaped key lost: ${JSON.stringify(after.key)}`
 	);
+});
+
+// ── what the canvas cannot show, it must still keep ─────────────────────────
+// BlockCanvas re-reads EVERY power on any non-UI event, so a key a block can't
+// hold is lost from all of them the moment anything moves. Only the power level
+// had a preserve map; nested nodes dropped whatever the schema doesn't model.
+
+console.log('\nblockState — unmodelled keys survive at every depth');
+
+/** The canvas cycle through REAL Blockly, which also snaps off-list dropdowns. */
+function blocklyTrip(powers: PowerDraft[]): PowerDraft[] {
+	const authored: AuthoredFields = new Map();
+	const ws = new Blockly.Workspace();
+	Blockly.serialization.workspaces.load(draftToState(reg, powers, authored) as object, ws);
+	const saved = Blockly.serialization.workspaces.save(ws) as Parameters<typeof stateToDraft>[1];
+	ws.dispose();
+	const preserve = new Map<string, Record<string, unknown>>();
+	powers.forEach((p, i) => preserve.set(powerBlockId(i), p.fields ?? {}));
+	return stateToDraft(reg, saved, preserve, authored);
+}
+
+const canon = (v: unknown): unknown =>
+	Array.isArray(v)
+		? v.map(canon)
+		: v && typeof v === 'object'
+			? Object.fromEntries(
+					Object.keys(v as object)
+						.sort()
+						.map((k) => [k, canon((v as Record<string, unknown>)[k])])
+				)
+			: v;
+
+function sameAfter(type: string, before: Record<string, unknown>): void {
+	const after = blocklyTrip([power(type, before)])[0].fields;
+	const a = JSON.stringify(canon(before));
+	const b = JSON.stringify(canon(after));
+	assert(a === b, `\n           in  ${a}\n           out ${b}`);
+}
+
+check('a nested `inverted` survives (ConditionParser#parse reads it on every node)', () => {
+	sameAfter('neoorigins:condition_passive', {
+		interval: 20,
+		condition: { type: 'neoorigins:sneaking', inverted: true },
+		entity_action: { type: 'neoorigins:heal', amount: 1 }
+	});
+});
+
+check('a type-less item condition survives (ItemConditionParser reads a bare tag)', () => {
+	sameAfter('neoorigins:active_dash', {
+		condition: {
+			type: 'neoorigins:equipped_item',
+			equipment_slot: 'mainhand',
+			item_condition: { tag: 'minecraft:swords' }
+		}
+	});
+});
+
+check('a nested type the schema has no block for survives', () => {
+	sameAfter('neoorigins:condition_passive', {
+		interval: 20,
+		condition: {
+			type: 'neoorigins:and',
+			conditions: [{ type: 'neoorigins:sneaking' }, { type: 'somemod:unmodelled_check', level: 3 }]
+		}
+	});
+});
+
+check('an off-list dropdown value is left as written, not snapped to the first option', () => {
+	sameAfter('neoorigins:attribute_modifier', {
+		attribute: 'minecraft:movement_speed',
+		amount: 0.1,
+		operation: 'ADD_MULTIPLIED_TOTAL'
+	});
+});
+
+check('an unmodelled child of a modelled object survives', () => {
+	sameAfter('neoorigins:attribute_modifier', {
+		attribute: 'minecraft:movement_speed',
+		amount: 0.1,
+		equipment_condition: { slot: 'feet', packmod_extra: 'kept' }
+	});
+});
+
+check('an edit still wins over the carried original', () => {
+	const authored: AuthoredFields = new Map();
+	const before = { interval: 20, condition: { type: 'neoorigins:sneaking', inverted: true } };
+	const ws = draftToState(reg, [power('neoorigins:condition_passive', before)], authored);
+	const b = ws.blocks.blocks[0] as unknown as { fields: Record<string, unknown> };
+	b.fields.interval = 40;
+	const after = stateToDraft(reg, ws, new Map([[powerBlockId(0), before]]), authored)[0].fields;
+	assert(after.interval === 40, `edited interval lost: ${JSON.stringify(after.interval)}`);
+	assert(
+		JSON.stringify(after.condition) === JSON.stringify(before.condition),
+		`carried condition lost on edit: ${JSON.stringify(after.condition)}`
+	);
+});
+
+check('picking an option replaces a carried off-list value', () => {
+	const authored: AuthoredFields = new Map();
+	const before = { attribute: 'minecraft:movement_speed', amount: 0.1, operation: 'ADD_MULTIPLIED_TOTAL' };
+	const ws = draftToState(reg, [power('neoorigins:attribute_modifier', before)], authored);
+	const b = ws.blocks.blocks[0] as unknown as { fields: Record<string, unknown> };
+	b.fields.operation = 'add_multiplied_base';
+	const after = stateToDraft(reg, ws, new Map([[powerBlockId(0), before]]), authored)[0].fields;
+	assert(
+		after.operation === 'add_multiplied_base',
+		`the author's pick was overridden by the carried value: ${JSON.stringify(after.operation)}`
+	);
+});
+
+// The shipped corpus through real Blockly. A legacy boolean on a boolean|string
+// choice is the one sanctioned rewrite: it saves as its option (same meaning).
+const catalog = JSON.parse(
+	readFileSync(resolve(__dirname, '../../../../static/builtin-powers-catalog.json'), 'utf-8')
+) as { entries: { id: string; powerBody: Record<string, unknown> }[] };
+
+check('every shipped power survives a no-edit trip through real Blockly', () => {
+	assert(catalog.entries.length > 800, `catalog has ${catalog.entries.length} entries`);
+	const broken: string[] = [];
+	for (const e of catalog.entries) {
+		const { type, ...fields } = e.powerBody as { type: string } & Record<string, unknown>;
+		const expected: Record<string, unknown> = { ...fields };
+		for (const f of reg.fieldsByTypeId.get(regKey('power', type)) ?? []) {
+			if (isBooleanStringChoice(f) && typeof expected[f.name] === 'boolean') {
+				expected[f.name] = choiceOption(f, expected[f.name]);
+			}
+		}
+		const after = blocklyTrip([power(type, fields)])[0]?.fields;
+		if (JSON.stringify(canon(expected)) !== JSON.stringify(canon(after))) broken.push(e.id);
+	}
+	assert(broken.length === 0, `${broken.length} changed: ${broken.join(', ')}`);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

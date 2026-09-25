@@ -37,7 +37,6 @@ import java.util.Map;
 public class ActiveThemeManager extends SimpleJsonResourceReloadListener {
 
     public static final ActiveThemeManager INSTANCE = new ActiveThemeManager();
-    private static final Gson GSON = new Gson();
 
     /**
      * The fixed id under each namespace where we look. Combined with the
@@ -50,7 +49,8 @@ public class ActiveThemeManager extends SimpleJsonResourceReloadListener {
     private volatile ResourceLocation selected;
 
     public ActiveThemeManager() {
-        super(GSON, "neoorigins");
+        // A fresh Gson, not a static field: INSTANCE is built during static init, before any later field.
+        super(new Gson(), "neoorigins");
     }
 
     @Override

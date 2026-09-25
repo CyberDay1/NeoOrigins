@@ -62,9 +62,8 @@ type SelfDoc = 'power' | RefDoc;
  * @param fieldDocs The full parsed `field_docs.json` document.
  * @param powerType The fully-qualified power id (e.g. `"neoorigins:starting_equipment"`).
  * @returns         A `FormFieldSpec[]` ordered as common-fields-then-branch-fields.
- *                  Returns `[]` if `powerType` has no structured `$comment`
- *                  branch (the fallback "type not in enum" branch — the same
- *                  power list the in-game creator drops to raw-JSON for).
+ *                  Only the common fields if `powerType` has no structured
+ *                  `$comment` branch (see {@link hasPowerBranch}).
  * @throws          `Error("power type not in schema enum: <id>")` if `powerType`
  *                  is not in the root `properties.type.enum` universe.
  */
@@ -74,6 +73,11 @@ export function parsePowerSchema(
 	powerType: string
 ): FormFieldSpec[] {
 	return parseDiscriminated(schema, fieldDocs, powerType, 'power', 'power type');
+}
+
+/** True when `powerType` has its own schema branch, i.e. a form for its own fields. */
+export function hasPowerBranch(schema: object, powerType: string): boolean {
+	return findStructuredBranch(schema as JsonObject, powerType) !== null;
 }
 
 /**

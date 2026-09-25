@@ -16,9 +16,10 @@
 //  - The full power body is stored verbatim (including its `type`), so the
 //    loader can deep-copy it into a draft and round-trip on export.
 
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeOrCheck } from './writeOrCheck';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RES = resolve(HERE, '../../src/main/resources');
@@ -116,10 +117,7 @@ function main() {
 		entries
 	};
 
-	mkdirSync(dirname(OUT), { recursive: true });
-	writeFileSync(OUT, JSON.stringify(catalog), 'utf8');
-
-	console.log(`Wrote ${OUT}\n  ${entries.length} built-in power entries`);
+	writeOrCheck(OUT, catalog, `${entries.length} built-in power entries`);
 }
 
 main();

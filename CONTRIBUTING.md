@@ -2,19 +2,19 @@
 
 ## Build Requirements
 
-- Java 21
+- Java 21 for the `1.21.1` branch, Java 25 for `master` (MC 26.1) and `26.2`
 - Gradle (wrapper included; use `./gradlew`)
-- NeoForge 21.11.38-beta (resolved automatically)
+- NeoForge, resolved automatically at the version each branch pins as `deps.neoforge` in `gradle.properties`
 
 ```bash
-./gradlew build          # Compile → build/libs/neoorigins-1.0.0.jar
+./gradlew build          # Compile, run the check gate → build/libs/neoorigins-<version>+<mc>.jar
 ./gradlew runClient      # Launch Minecraft client with the mod
 ./gradlew runServer      # Launch dedicated server (headless)
 ```
 
 Deploy for in-game testing:
 ```
-build/libs/neoorigins-1.0.0.jar  →  <curseforge-instance>/mods/
+build/libs/neoorigins-<version>+<mc>.jar  →  <curseforge-instance>/mods/
 ```
 
 ---

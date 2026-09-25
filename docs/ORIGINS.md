@@ -997,7 +997,7 @@ A gold-obsessed Nether warrior: powerful at home, feared by kin, but weakened ou
 - *Brutal Strikes*: bonus melee damage
 - *Surface Sickness*: weakened in the Overworld
 - *Nether Eyes*: natural night vision
-- *Soul Dread*: extra damage from soul fire
+- *Soul Dread*: takes 0.5 damage a second while in a Soul Sand Valley
 - *Fungal Diet*: eats nether fungi
 
 **Evolution**
@@ -1223,8 +1223,8 @@ A fungal creature that thrives in darkness and mushroom fields: armed with toxic
 - *Spore Cloud*: active, area poison burst
 - *Toxic Resilience*: immune to poison
 - *Mycelial Sight*: natural night vision
-- *Mushroom Symbiosis*: heals near mushrooms
-- *Fungal Contact*: passive spores on attackers
+- *Mushroom Symbiosis*: Regeneration II while in a mushroom biome
+- *Fungal Contact*: heals 1 HP a second while standing on or in mushroom blocks or mycelium
 - *Fungal Shell*: built-in natural armor
 - *Sun Withering*: damage in direct sunlight
 - *Rooted Gait*: reduced movement speed

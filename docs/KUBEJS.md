@@ -193,6 +193,8 @@ Origins/Apoli `origins:resource` powers. A bar with `"backing": "irons_spellbook
 reads the player's live Iron's Spells mana.
 
 `player` must be a server-side player, so call these from server scripts.
+Like everything else on this page, the two methods exist only where the KubeJS
+integration ships: the 1.21.1 and 26.1 builds, not 26.2.
 
 ### JS-defined powers
 

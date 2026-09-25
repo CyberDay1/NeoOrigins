@@ -43,6 +43,46 @@ public final class RealDatapack {
     }
 
     /**
+     * Loads the shipped data plus one extra pack's {@code data/<ns>/origins/**}. The
+     * managers hold the union until {@link #restoreShipped()}, which a caller must run
+     * after, since other tests enumerate every loaded origin and power.
+     */
+    public static synchronized void loadWith(Path packRoot) {
+        Map<ResourceLocation, JsonElement> powers = read(locate("powers"));
+        Map<ResourceLocation, JsonElement> origins = read(locate("origins"));
+        try (Stream<Path> namespaces = Files.list(packRoot.resolve("data"))) {
+            for (Path ns : namespaces.toList()) {
+                String name = ns.getFileName().toString();
+                Path p = ns.resolve("origins/powers");
+                Path o = ns.resolve("origins/origins");
+                if (Files.isDirectory(p)) powers.putAll(read(p, name));
+                if (Files.isDirectory(o)) origins.putAll(read(o, name));
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        apply(PowerDataManager.INSTANCE, powers);
+        apply(OriginDataManager.INSTANCE, origins);
+        loaded = false;
+    }
+
+    /** Puts the managers back to the shipped data alone. */
+    public static synchronized void restoreShipped() {
+        loaded = false;
+        load();
+    }
+
+    /** A path in the source checkout, found by walking up from the working directory. */
+    public static Path projectPath(String relative) {
+        Path dir = Path.of("").toAbsolutePath();
+        for (int up = 0; up < 6 && dir != null; up++, dir = dir.getParent()) {
+            Path candidate = dir.resolve(relative);
+            if (Files.exists(candidate)) return candidate;
+        }
+        throw new IllegalStateException("could not locate " + relative + " above " + Path.of("").toAbsolutePath());
+    }
+
+    /**
      * The shipped {@code data/neoorigins/origins/<kind>} directory. Resolved off the
      * classpath rather than off the working directory, because the harness does not
      * run from the project root; the fallback covers a source checkout whose
@@ -67,13 +107,17 @@ public final class RealDatapack {
     }
 
     private static Map<ResourceLocation, JsonElement> read(Path dir) {
+        return read(dir, "neoorigins");
+    }
+
+    private static Map<ResourceLocation, JsonElement> read(Path dir, String namespace) {
         Map<ResourceLocation, JsonElement> out = new HashMap<>();
         try (Stream<Path> files = Files.walk(dir)) {
             files.filter(p -> p.toString().endsWith(".json")).forEach(p -> {
                 String name = dir.relativize(p).toString().replace(java.io.File.separatorChar, '/');
                 name = name.substring(0, name.length() - ".json".length());
                 try {
-                    out.put(ResourceLocation.fromNamespaceAndPath("neoorigins", name),
+                    out.put(ResourceLocation.fromNamespaceAndPath(namespace, name),
                         JsonParser.parseString(Files.readString(p, StandardCharsets.UTF_8)));
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);

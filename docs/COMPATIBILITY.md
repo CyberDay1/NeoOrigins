@@ -311,7 +311,7 @@ no change on the server or in DS's own config.
 
 | Mod | Mod id | What it adds |
 |---|---|---|
-| **KubeJS** | `kubejs` | A scripting plugin exposing NeoOrigins to KubeJS: register custom powers, actions, and conditions, and hook origin lifecycle events from JS. |
+| **KubeJS** | `kubejs` | A scripting plugin exposing NeoOrigins to KubeJS: register custom powers, actions, and conditions, and hook origin lifecycle events from JS. **Not available on the Minecraft 26.2 build:** KubeJS publishes no 26.2 artifact, so the integration is not compiled in there. See [KUBEJS.md](KUBEJS.md#availability). |
 | **KeybindJS** | `keybindjs` | Hotkey assignment for active powers integrates with KeybindJS bindings on the client. |
 
 ---

@@ -18,9 +18,10 @@
 //    importer's buildDraft resolves); tier-power bodies are intentionally
 //    omitted as dead weight.
 
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeOrCheck } from './writeOrCheck';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RES = resolve(HERE, '../../src/main/resources');
@@ -108,7 +109,8 @@ function main() {
 			const pl = localOf(ref);
 			if (!pl) continue;
 			try {
-				powers[pl] = readFileSync(resolve(POWERS_DIR, `${pl}.json`), 'utf8');
+				// LF always, so the output doesn't depend on the checkout's autocrlf.
+				powers[pl] = readFileSync(resolve(POWERS_DIR, `${pl}.json`), 'utf8').replace(/\r\n/g, '\n');
 			} catch {
 				// Power file missing (built-in/external) — buildDraft will warn on load.
 			}
@@ -139,14 +141,13 @@ function main() {
 		entries
 	};
 
-	mkdirSync(dirname(OUT), { recursive: true });
-	writeFileSync(OUT, JSON.stringify(manifest), 'utf8');
-
 	const classes = entries.filter((e) => e.isClass).length;
 	const origins = entries.length - classes;
 	const withTiers = entries.filter((e) => e.tierPowerCount > 0).length;
-	console.log(
-		`Wrote ${OUT}\n  ${entries.length} entries (${origins} origins, ${classes} classes), ` +
+	writeOrCheck(
+		OUT,
+		manifest,
+		`${entries.length} entries (${origins} origins, ${classes} classes), ` +
 			`${withTiers} carry tier_powers (dropped), pack_format ${packFormat}`
 	);
 }

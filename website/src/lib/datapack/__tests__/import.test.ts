@@ -100,6 +100,26 @@ await check('round-trips an origin-layer draft exactly, with no warnings', async
 	);
 });
 
+// The form has no fields for a type with no schema branch, and says imported ones
+// are kept; this is what makes that true.
+await check('keeps every field of a power type the editor has no form for', async () => {
+	const original = makeDraft();
+	original.powers.push({
+		id: 'arcane_speed',
+		type: 'origins:conditioned_attribute',
+		fields: {
+			modifier: { attribute: 'minecraft:movement_speed', amount: 0.1, operation: 'addition' },
+			condition: { type: 'origins:sneaking', inverted: true },
+			tick_rate: 20
+		}
+	});
+	const res = importDatapack(await exportBytes(original));
+	assert(
+		deepEqual(res.draft.powers, original.powers),
+		`powers mismatch.\n  expected: ${JSON.stringify(original.powers)}\n  got:      ${JSON.stringify(res.draft.powers)}`
+	);
+});
+
 await check('infers target version 1.21.1 from pack_format 48', async () => {
 	const res = importDatapack(await exportBytes(makeDraft(), 48));
 	assert(res.targetVersion === '1.21.1', `got ${res.targetVersion}`);

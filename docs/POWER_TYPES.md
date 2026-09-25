@@ -39,6 +39,8 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 <!-- shared-fields: cooldown_icon, always_show_icon -->
 **Toggleable powers** (`flight`, `creative_flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect`, `condition_passive` and `effect_over_time` when authored with `"toggleable": true` — `effect_over_time` is also toggleable under `"activation": "active"` — and `pose`, which is toggleable unless you set `"toggleable": false`) also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
 
+**A toggle no key can reach comes back on at login.** Toggle state is saved with the player, so a toggle switched off stays off across a relog, which is only safe while some key can switch it back. Outside the class layer the six skill keys go to the player's first six active powers; the class layer has the single Class Skill key, held by its first active power (see [CLASSES.md](CLASSES.md)); and a power with its own `key` binds to that instead (see [API.md](API.md#named-keybinds)). A toggleable power left over after those slots is still granted, but the player has no way to flip it, so at every login NeoOrigins clears its off state and it runs as switched on. That includes a toggle authored with `default_off`, and an `effect_over_time` in `"activation": "active"`, which would otherwise start off. The one exception is a player under the Suppression effect, which switches toggles off on purpose, so the reset waits for a login without it.
+
 Icon slots are labeled with the bound key's short name in the top-right corner; hovering an icon while a screen is open (chat, the HUD editor) shows the power's name and description. The `hud_ability_display` client config picks what the cluster shows besides live cooldowns: `COOLDOWNS_AND_TOGGLES` (default since 2.2.9: cooldown slots only while recharging, plus icon-bearing toggles) or `ALL_ACTIVE_ABILITIES` (every icon-bearing keybind ability keeps a persistent slot, full-bright while idle, sweep while recharging).
 
 The cooldown cluster itself is draggable in the in-game HUD editor (same screen as resource bars); its position persists in `config/neoorigins/hud.json`.
@@ -3905,7 +3907,7 @@ Suppresses the game-event vibrations the player emits, so sculk sensors, calibra
 
 ## `neoorigins:stealth`
 
-After sneaking continuously for a threshold number of ticks, the player gains Invisibility. The effect clears when sneaking stops. Toggleable off via keybind.
+After sneaking continuously for a threshold number of ticks, the player gains Invisibility, renewed every tick for as long as they keep sneaking. The effect is two seconds long and is not removed when they stand up, so it runs out within two seconds of sneaking stopping. Toggleable off via keybind.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4830,6 +4832,7 @@ Reflects the player's downward impact velocity back upward on landing, mimicking
 Notes:
 
 - **Sneaking suppresses the bounce**, matching slime-block behavior and giving players a deliberate way to stop bouncing.
+- **Running speed carries through the bounce.** The launch keeps the horizontal speed the player landed with, so landing mid-sprint springs them onward instead of stopping them where they land.
 - Pair with `neoorigins:prevent_action` (`"action": "fall_damage"`) so the impact driving the bounce doesn't also hurt.
 
 **Example: springy slime body**
@@ -4939,7 +4942,7 @@ Toggleable spectral phasing. When active the player walks through solid blocks h
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `blocked_blocks` | list of string | no | `["minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"]` | Block IDs that cannot be phased through. |
+| `blocked_blocks` | list of string | no | `["minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"]` | Blocks that cannot be phased through, each a block id or a block tag written as `#namespace:tag`. An entry that does not parse is skipped with a warning in the log rather than failing the power. |
 | `exhaustion_per_tick` | float | no | `0.15` | Hunger drain per tick while inside solid blocks. |
 | `always_on` | bool | no | `false` | When `true`, the power is passive (always active, no toggle, no skill key slot). Configurable per tier in the mod config. |
 
@@ -5018,7 +5021,7 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 | `label` | string | no | `"Resource"` | Display label on the HUD bar |
 | `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format |
 | `should_render` | bool | no | `true` | Origins compat: when false, hides the bar |
-| `always_render` | bool | no | `false` | Keep the bar on-screen even when full. By default the HUD hides a full bar (Apoli convention), so a regenerating meter that sits at max is invisible until it's spent; set this to keep it always visible. |
+| `always_render` | bool | no | `false` | Keep the bar on-screen even when full. By default the HUD hides a full bar (the Apoli convention), but only after the resource has been spent once: a bar that starts at max stays visible until its value first drops, so a new player can see it is there. The client forgets that first spend on each join, respawn and origin change, so the bar shows again at those points until it is next spent. Set this to keep the bar visible all the time. |
 | `animated` | string | no | — | Id of an animated bar FX preset, e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar fill renders as an animated texture strip instead of the flat `color`. |
 | `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the animated preset art, so one texture strip can be recolored per power. Ignored when `animated` is unset. |
 

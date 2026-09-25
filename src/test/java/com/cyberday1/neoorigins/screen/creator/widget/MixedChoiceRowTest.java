@@ -131,4 +131,27 @@ class MixedChoiceRowTest {
             assertNull(roundTrip(field(power, "render_elytra"), null), power + " untouched");
         }
     }
+
+    // ── the tooltip: it has to describe the widget the author is looking at ─
+
+    @Test
+    void aChoiceTooltipDescribesTheDropdownAndSpellsItsDefault() {
+        // elytra_flight defaults to wings while flying, the other two to none.
+        // The declared default is the legacy boolean, which is not an entry in the
+        // dropdown, so the tooltip has to spell it the way the dropdown does.
+        List<String> defaults = List.of("flying", "never", "never");
+        for (int i = 0; i < WING_POWERS.size(); i++) {
+            String power = WING_POWERS.get(i);
+            String all = String.join("\n",
+                FieldWidgetFactory.create(field(power, "render_elytra")).tooltip());
+            assertFalse(all.contains("edit this as JSON"), power + " tooltip sends the author to JSON:\n" + all);
+            assertFalse(all.contains("(JSON)"), power + " tooltip names a JSON box:\n" + all);
+            assertTrue(all.contains("type: pick one"), power + " tooltip kind:\n" + all);
+            assertTrue(all.contains("default " + defaults.get(i)), power + " tooltip default:\n" + all);
+        }
+        // The open union keeps the JSON guidance, because it really is a JSON box.
+        String key = String.join("\n",
+            FieldWidgetFactory.create(field("neoorigins:active_ability", "key")).tooltip());
+        assertTrue(key.contains("edit this as JSON"), "open MIXED tooltip:\n" + key);
+    }
 }

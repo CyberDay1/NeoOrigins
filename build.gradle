@@ -359,6 +359,11 @@ tasks.register('compatTest', JavaExec) {
 // FML-bootstrapped JUnit harness (RestrictItemsShieldGateTest et al.).
 tasks.named('test', Test) {
     useJUnitPlatform()
+    // PowerReferenceTest checks POWER_REFERENCE.txt, or rewrites it with -PwritePowerReference.
+    // hub: neoorigins/power-reference.md
+    systemProperty 'neoorigins.projectDir', projectDir.absolutePath
+    systemProperty 'neoorigins.writePowerReference', project.hasProperty('writePowerReference')
+    inputs.file('POWER_REFERENCE.txt')
 }
 
 // ── Compat-verb golden master (registry-refactor Layer-1 regression net) ─────

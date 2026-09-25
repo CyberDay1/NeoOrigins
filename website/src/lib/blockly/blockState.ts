@@ -36,6 +36,21 @@ interface BlockState {
 	fields?: Record<string, unknown>;
 	inputs?: Record<string, { block: BlockState }>;
 	next?: { block: BlockState };
+	/** JSON {@link Carry}. Blockly persists `data` through save, load and copy. */
+	data?: string;
+}
+
+/**
+ * Source JSON a block has no widget for, kept on the block itself so the canvas
+ * can't drop it (`inverted`, a type-less item condition, an unknown nested type).
+ */
+interface Carry {
+	/** Restored verbatim when the block reads back nothing for the key. */
+	keys?: Record<string, unknown>;
+	/** A value no widget option holds; restored while the widget still shows `shown`. */
+	leaves?: Record<string, { raw: unknown; shown: unknown }>;
+	/** Unmodelled children of a modelled object field. */
+	objs?: Record<string, Record<string, unknown>>;
 }
 
 export interface WorkspaceState {
@@ -179,74 +194,86 @@ function fillNode(
 	const inputsOut: Record<string, { block: BlockState }> = {};
 	// Keys that were really in the source JSON — see AuthoredFields.
 	const authored = ctx.authored && state.id ? new Set<string>() : null;
+	const carry: Required<Carry> = { keys: {}, leaves: {}, objs: {} };
+	const modelled = new Set(fields.map((f) => f.name));
+	for (const k of Object.keys(value)) {
+		if (k !== 'type' && !modelled.has(k) && present(value, k)) carry.keys[k] = value[k];
+	}
+	const leaf = (f: FormFieldSpec, key: string, src: Record<string, unknown>): void => {
+		const v = src[f.name];
+		const shown = shownValue(f, encodeLeaf(f, v));
+		fieldsOut[key] = shown;
+		if (present(src, f.name) && !holdsAsWritten(f, v, shown)) carry.leaves[key] = { raw: v, shown };
+	};
 
 	for (const f of fields) {
 		const r = renderOf(f);
 		const v = value[f.name];
-		if (authored && present(value, f.name)) authored.add(f.name);
+		const has = present(value, f.name);
+		if (authored && has) authored.add(f.name);
+		// A value no block can show stays verbatim rather than half-rendered.
+		const keep = (built: BlockState | null): void => {
+			if (built) inputsOut[f.name] = { block: built };
+			else if (has) carry.keys[f.name] = v;
+		};
 		if (r.kind === 'inline') {
-			fieldsOut[f.name] = encodeLeaf(f, v);
+			leaf(f, f.name, value);
 		} else if (r.kind === 'object') {
 			// Encode each leaf child into a flat `<obj>.<child>` field. The object
 			// value may be absent/partial — encodeLeaf falls back to the child default.
-			const objVal = v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+			const objVal = isRecord(v) ? v : {};
+			if (has && !isRecord(v)) carry.keys[f.name] = v;
+			const childNames = new Set(r.children.map((c) => c.name));
+			const extras = Object.fromEntries(Object.entries(objVal).filter(([k]) => !childNames.has(k)));
+			if (Object.keys(extras).length > 0) carry.objs[f.name] = extras;
 			for (const child of r.children) {
 				const cr = renderOf(child);
 				if (cr.kind !== 'inline') continue;
 				const key = objChildFieldName(f.name, child.name);
-				fieldsOut[key] = encodeLeaf(child, objVal[child.name]);
+				leaf(child, key, objVal);
 				if (authored && present(objVal, child.name)) authored.add(key);
 			}
 		} else if (r.kind === 'value') {
 			// single condition reporter
-			if (v && typeof v === 'object') {
-				const child = buildNode(ctx, kindForCheck(r.check), v as Record<string, unknown>);
-				if (child) inputsOut[f.name] = { block: child };
-			}
+			keep(isRecord(v) ? buildNode(ctx, kindForCheck(r.check), v) : null);
 		} else if (r.kind === 'array_object') {
 			// list of fixed-shape objects (e.g. `tiers`) → stack of the generated
 			// per-field wrapper blocks. Each entry is filled through this same
 			// function against the ELEMENT's field list, so an element's leaf
 			// fields and nested lists encode exactly as a top-level block's do.
-			if (Array.isArray(v)) {
+			if (Array.isArray(v) && v.every(isRecord)) {
 				const wrapperType = objItemBlockType(state.type, f.name);
 				const entries: BlockState[] = [];
 				for (const el of v) {
-					if (!el || typeof el !== 'object') continue;
 					const wrapper: BlockState = { type: wrapperType, id: nextNodeId(ctx) };
-					fillNode(ctx, wrapper, r.children, el as Record<string, unknown>);
+					fillNode(ctx, wrapper, r.children, el);
 					entries.push(wrapper);
 				}
 				const head = chain(entries);
 				if (head) inputsOut[f.name] = { block: head };
+			} else if (has) {
+				carry.keys[f.name] = v;
 			}
 		} else if (r.kind === 'statement' && (r.check === 'Action' || r.check === 'ItemAction')) {
 			// single action ref OR action array — both render as a statement stack
 			// (entity Action or ItemAction; both chain directly via `next`).
 			const childKind = kindForCheck(r.check);
 			if (Array.isArray(v)) {
-				const head = chain(
-					v
-						.filter((el): el is Record<string, unknown> => !!el && typeof el === 'object')
-						.map((el) => buildNode(ctx, childKind, el))
-						.filter((b): b is BlockState => b !== null)
-				);
+				const nodes = buildAll(ctx, childKind, v);
+				const head = nodes ? chain(nodes) : null;
 				if (head) inputsOut[f.name] = { block: head };
-			} else if (v && typeof v === 'object') {
-				const child = buildNode(ctx, childKind, v as Record<string, unknown>);
-				if (child) inputsOut[f.name] = { block: child };
+				else if (!nodes) carry.keys[f.name] = v;
+			} else {
+				keep(isRecord(v) ? buildNode(ctx, childKind, v) : null);
 			}
 		} else if (f.kind === 'ARRAY_STRING') {
 			// scalar-string array (e.g. biomes) -> stack of `neo_str_item` wrappers,
 			// each holding one string in its ITEM text field.
-			if (Array.isArray(v)) {
-				const items: BlockState[] = [];
-				for (const el of v) {
-					if (typeof el !== 'string') continue;
-					items.push({ type: STR_ITEM_TYPE, fields: { ITEM: el } });
-				}
-				const head = chain(items);
+			if (Array.isArray(v) && v.every((el) => typeof el === 'string')) {
+				const head = chain(v.map((el): BlockState => ({ type: STR_ITEM_TYPE, fields: { ITEM: el } })));
 				if (head) inputsOut[f.name] = { block: head };
+			} else if (has) {
+				carry.keys[f.name] = v;
 			}
 		} else {
 			// condition / block_condition / item_condition array → stack of wrapper
@@ -256,22 +283,24 @@ function fillNode(
 			// of the "one or many" idiom, so e.g. a `condition: {…}` on an existing
 			// power loads into the stack instead of being silently dropped.
 			const condList = asRefList(v);
-			if (condList.length > 0) {
+			const itemKind = kindForCheck(r.kind === 'statement' ? r.check : 'CondItem');
+			const built = buildAll(ctx, itemKind, condList);
+			if (has && (!built || (condList.length === 0 && !isEmptyList(v)))) {
+				carry.keys[f.name] = v;
+			} else if (built && built.length > 0) {
 				const wrapperType =
 					r.kind === 'statement' && r.check === 'BlockCondItem'
 						? BLOCK_COND_ITEM_TYPE
 						: r.kind === 'statement' && r.check === 'ItemCondItem'
 							? ITEM_COND_ITEM_TYPE
 							: COND_ITEM_TYPE;
-				const itemKind = kindForCheck(r.kind === 'statement' ? r.check : 'CondItem');
-				const items: BlockState[] = [];
-				for (const el of condList) {
-					if (!el || typeof el !== 'object') continue;
-					const child = buildNode(ctx, itemKind, el as Record<string, unknown>);
-					if (!child) continue;
-					items.push({ type: wrapperType, id: nextNodeId(ctx), inputs: { ITEM: { block: child } } });
-				}
-				const head = chain(items);
+				const head = chain(
+					built.map((child) => ({
+						type: wrapperType,
+						id: nextNodeId(ctx),
+						inputs: { ITEM: { block: child } }
+					}))
+				);
 				if (head) inputsOut[f.name] = { block: head };
 			}
 		}
@@ -280,6 +309,63 @@ function fillNode(
 	if (Object.keys(fieldsOut).length > 0) state.fields = fieldsOut;
 	if (Object.keys(inputsOut).length > 0) state.inputs = inputsOut;
 	if (authored && authored.size > 0 && state.id) ctx.authored?.set(state.id, authored);
+	const packed = packCarry(carry);
+	if (packed) state.data = packed;
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+	return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
+function isEmptyList(v: unknown): boolean {
+	return v === null || (Array.isArray(v) && v.length === 0);
+}
+
+/** Every element as a block, or null if any one can't be — so none is dropped. */
+function buildAll(ctx: BuildCtx, kind: BlockKind, els: unknown[]): BlockState[] | null {
+	const out: BlockState[] = [];
+	for (const el of els) {
+		const b = isRecord(el) ? buildNode(ctx, kind, el) : null;
+		if (!b) return null;
+		out.push(b);
+	}
+	return out;
+}
+
+/** What the widget really holds: Blockly snaps an off-list dropdown value to the first option. */
+function shownValue(field: FormFieldSpec, encoded: unknown): unknown {
+	const r = renderOf(field);
+	if (r.kind !== 'inline' || r.arg.type !== 'field_dropdown') return encoded;
+	const opts = (r.arg.options as [string, string][]).map(([, v]) => v);
+	return opts.includes(encoded as string) ? encoded : opts[0];
+}
+
+/** Reading `shown` back gives the author's value, or its sanctioned spelling. */
+function holdsAsWritten(field: FormFieldSpec, raw: unknown, shown: unknown): boolean {
+	if (isBooleanStringChoice(field) && typeof raw === 'boolean') return true;
+	return sameValue(decodeLeaf(field, shown), raw);
+}
+
+function packCarry(c: Required<Carry>): string | undefined {
+	const out: Carry = {};
+	if (Object.keys(c.keys).length > 0) out.keys = c.keys;
+	if (Object.keys(c.leaves).length > 0) out.leaves = c.leaves;
+	if (Object.keys(c.objs).length > 0) out.objs = c.objs;
+	return Object.keys(out).length > 0 ? JSON.stringify(out) : undefined;
+}
+
+function carryOf(state: BlockState): Carry {
+	if (!state.data) return {};
+	try {
+		return JSON.parse(state.data) as Carry;
+	} catch {
+		return {};
+	}
+}
+
+/** Nothing was read back for the key, so the carried original stands in. */
+function isBlank(v: unknown): boolean {
+	return v === undefined || isEmptyList(v) || (isRecord(v) && Object.keys(v).length === 0);
 }
 
 /**
@@ -406,11 +492,19 @@ function readInto(
 	fields: FormFieldSpec[],
 	state: BlockState
 ): void {
+	const carry = carryOf(state);
+	// A carried leaf wins while its widget still shows the stand-in it was given.
+	const carriedLeaf = (key: string): { raw: unknown } | null => {
+		const c = carry.leaves?.[key];
+		return c && sameValue(state.fields?.[key], c.shown) ? c : null;
+	};
 	for (const f of fields) {
 		const r = renderOf(f);
 		if (r.kind === 'inline') {
+			const c = carriedLeaf(f.name);
 			const decoded = decodeLeaf(f, state.fields?.[f.name]);
-			if (keepLeaf(ctx, state, f, decoded, f.name)) out[f.name] = decoded;
+			if (c) out[f.name] = c.raw;
+			else if (keepLeaf(ctx, state, f, decoded, f.name)) out[f.name] = decoded;
 		} else if (r.kind === 'object') {
 			// Reassemble the nested object from its flat `<obj>.<child>` fields.
 			// A child's `required` means "required GIVEN the object exists", so it
@@ -426,7 +520,11 @@ function readInto(
 				if (cr.kind !== 'inline') continue;
 				const key = objChildFieldName(f.name, child.name);
 				const decoded = decodeLeaf(child, state.fields?.[key]);
-				if (wasAuthored(ctx, state, key) || !sameValue(decoded, unsetValue(child))) {
+				const c = carriedLeaf(key);
+				if (c) {
+					touched = true;
+					obj[child.name] = c.raw;
+				} else if (wasAuthored(ctx, state, key) || !sameValue(decoded, unsetValue(child))) {
 					touched = true;
 					obj[child.name] = decoded;
 				} else if (child.required) {
@@ -436,7 +534,9 @@ function readInto(
 			}
 			// An all-unset object is no object — emitting it would silently arm an
 			// optional gate (e.g. an `equipment_condition` nobody wrote).
-			if (touched || keepEmpty(ctx, state, f)) out[f.name] = obj;
+			const extras = carry.objs?.[f.name];
+			if (extras) out[f.name] = { ...extras, ...obj };
+			else if (touched || keepEmpty(ctx, state, f)) out[f.name] = obj;
 		} else if (r.kind === 'value') {
 			const child = state.inputs?.[f.name]?.block;
 			if (child) {
@@ -499,6 +599,9 @@ function readInto(
 				out[f.name] = f.kind === 'ARRAY_REF' ? fromRefList(f as ArrayRefFieldSpec, arr) : arr;
 			}
 		}
+	}
+	for (const [k, v] of Object.entries(carry.keys ?? {})) {
+		if (isBlank(out[k])) out[k] = v;
 	}
 }
 

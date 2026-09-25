@@ -176,9 +176,9 @@
 	{#if unsupported.length > 0}
 		<p class="warn">
 			{unsupported.length}
-			{unsupported.length === 1 ? 'power uses' : 'powers use'} a type not in the schema and can't be
-			shown as blocks ({unsupported.join(', ')}). They're preserved unchanged — edit them in the Form
-			or JSON Preview tab.
+			{unsupported.length === 1 ? 'power uses' : 'powers use'} a type this editor has no form for and
+			can't be shown as blocks ({unsupported.join(', ')}). They're kept unchanged; the Form view
+			edits their common fields.
 		</p>
 	{/if}
 	<div

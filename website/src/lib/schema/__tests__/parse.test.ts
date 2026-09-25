@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import { parsePowerSchema, parseRefSchema, refTypeOptions } from '../SchemaFormModel.js';
+import { hasPowerBranch, parsePowerSchema, parseRefSchema, refTypeOptions } from '../SchemaFormModel.js';
 import { asChoiceEnum, choiceOption, isBooleanStringChoice } from '../FormFieldSpec.js';
 import type { FormFieldSpec } from '../FormFieldSpec.js';
 
@@ -167,15 +167,19 @@ check('unknown power type id — explicit error', () => {
 });
 
 check('fallback branch — power in enum but with no $comment branch returns common fields only', () => {
-	// Pick a power that's in the enum but not in any structured oneOf
-	// branch. `neoorigins:active_bolt` is in the enum but has no $comment
-	// branch (verified by inspection of power.schema.json head).
-	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:active_bolt');
-	const names = fields.map((f) => f.name);
-	// Should at least contain the common fields and nothing branch-specific.
-	assert(names.includes('name'), 'common `name` missing');
-	assert(names.includes('hidden'), 'common `hidden` missing');
-	assert(!names.includes('grant_id'), 'should not include branch-specific fields');
+	// Picked from the schema rather than named: a hard-coded id silently stops
+	// reaching this path once it gains a branch (active_bolt did).
+	const ids = refTypeOptions(powerSchema);
+	const bare = ids.filter((id) => !hasPowerBranch(powerSchema, id));
+	assert(bare.length > 0, 'every enum id has a branch — this check is vacuous');
+	assert(hasPowerBranch(powerSchema, 'neoorigins:active_bolt'), 'active_bolt should have a branch');
+	const common = Object.keys((powerSchema as { properties: object }).properties).filter((k) => k !== 'type');
+	const names = parsePowerSchema(powerSchema, fieldDocs, bare[0]).map((f) => f.name);
+	assert(
+		JSON.stringify(names) === JSON.stringify(common),
+		`${bare[0]} should get exactly the common fields ${common.join(',')}, got ${names.join(',')}`
+	);
+	console.log(`         ${bare.length} of ${ids.length} power type ids have no branch (e.g. ${bare[0]})`);
 });
 
 check('neoorigins:resource — hud_render is OBJECT with label/color/should_render children', () => {

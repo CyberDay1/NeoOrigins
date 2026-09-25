@@ -54,13 +54,13 @@ public class UIThemeManager extends SimpleJsonResourceReloadListener {
     public static final ResourceLocation DEFAULT_ID =
         ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, "parchment");
 
-    private static final Gson GSON = new Gson();
 
     /** Loaded themes keyed by {@code <ns>:<file_stem>}. Populated on each reload. */
     private static volatile Map<ResourceLocation, UITheme> THEMES = Map.of(DEFAULT_ID, UITheme.PARCHMENT);
 
     public UIThemeManager() {
-        super(GSON, "ui_themes");
+        // A fresh Gson, not a static field: INSTANCE is built during static init, before any later field.
+        super(new Gson(), "ui_themes");
     }
 
     @Override
