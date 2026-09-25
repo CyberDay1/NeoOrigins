@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "out",
+  "multiplier": 0.4,
+  "condition": {
+    "type": "neoorigins:food_level",
+    "comparison": "<=",
+    "compare_to": 2
+  },
+  "hidden": true
+}

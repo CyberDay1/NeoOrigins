@@ -272,6 +272,18 @@ public class CompatAttachments {
     /** True when the resource key is backed by the Iron's Spells mana pool. */
     public static boolean isManaBacked(String key) { return BACKING_IRONS_MANA.equals(resourceBacking(key)); }
 
+    /**
+     * True when this player holds the power behind a resource key. The backing
+     * registry is keyed by id and shared by every player, so it cannot answer this.
+     */
+    public static boolean holdsResourcePower(net.minecraft.server.level.ServerPlayer player, String key) {
+        String id = resolveLegacySyntheticId(key);
+        for (var holder : com.cyberday1.neoorigins.service.ActiveOriginService.allPowers(player)) {
+            if (holder.id().toString().equals(id)) return true;
+        }
+        return false;
+    }
+
     // ---- Cooldown power durations (origins:cooldown Route B) ----
     // An Apoli cooldown power is a countdown resource: 0 == ready, >0 == ticks
     // remaining. trigger_cooldown arms it by setting the registered duration;
@@ -388,6 +400,13 @@ public class CompatAttachments {
      * containing all active resources for this player.
      */
     public static void syncResourcesToClient(net.minecraft.server.level.ServerPlayer player) {
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
+            new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(fullSyncEntries(player)));
+    }
+
+    /** The bars a full sync sends this player. */
+    public static Map<String, com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry> fullSyncEntries(
+            net.minecraft.server.level.ServerPlayer player) {
         var state = player.getData(resourceState());
         var entries = new HashMap<String, com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry>();
         for (var e : state.getAll().entrySet()) {
@@ -406,7 +425,7 @@ public class CompatAttachments {
         // them separately, reading the live value through the router.
         for (var be : RESOURCE_BACKING.entrySet()) {
             String key = be.getKey();
-            if (entries.containsKey(key)) continue;
+            if (entries.containsKey(key) || !holdsResourcePower(player, key)) continue;
             ResourceMeta meta = getResourceMeta(key);
             if (meta == null || meta.hidden()) continue;
             var rcond = getResourceRenderCondition(key);
@@ -424,8 +443,7 @@ public class CompatAttachments {
                 meta.spriteLocation() == null ? "" : meta.spriteLocation(),
                 meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.alwaysShow()));
         }
-        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(player,
-            new com.cyberday1.neoorigins.network.payload.SyncResourcePayload(entries));
+        return entries;
     }
 
     /**
@@ -454,7 +472,7 @@ public class CompatAttachments {
         // Externally-backed bars: read the live pool value (see syncResourcesToClient).
         for (var be : RESOURCE_BACKING.entrySet()) {
             String key = be.getKey();
-            if (values.containsKey(key)) continue;
+            if (values.containsKey(key) || !holdsResourcePower(player, key)) continue;
             ResourceMeta meta = getResourceMeta(key);
             if (meta == null || meta.hidden()) continue;
             var rcond = getResourceRenderCondition(key);

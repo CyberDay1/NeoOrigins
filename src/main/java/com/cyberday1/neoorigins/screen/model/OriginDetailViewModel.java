@@ -27,6 +27,7 @@ import java.util.*;
  * labels use) or {@code ""} for passives. Screens draw it after the power
  * name in an accent color.
  */
+// hub: neoorigins/lang-fallback.md
 public record OriginDetailViewModel(
     Origin origin,
     List<String> powerNames,

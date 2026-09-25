@@ -320,6 +320,7 @@ no change on the server or in DS's own config.
 | Mod | Mod id | What it adds |
 |---|---|---|
 | **Jade** | `jade` | Shows the looked-at entity's NeoOrigins origin in the tooltip/probe overlay. |
+| **The One Probe** | `theoneprobe` | Shows the looked-at entity's NeoOrigins origin in the tooltip/probe overlay. |
 | **AppleSkin** | `appleskin` | Makes the food tooltip and the held-food HUD preview show what a `modify_food_nutrition` power will actually give, rather than the item's vanilla value. |
 
 **AppleSkin, in more detail.** `neoorigins:modify_food_nutrition` never

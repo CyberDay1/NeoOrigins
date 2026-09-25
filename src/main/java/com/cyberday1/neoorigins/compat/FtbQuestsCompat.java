@@ -41,16 +41,13 @@ import java.util.Collection;
  * call for a backlog item that explicitly permits "ship the standalone power"
  * if the reward route is too unstable.
  *
- * <p><b>Reflection (not typed) on this branch:</b> there is no FTB Quests build
- * for this MC version, so FTBQ is not on the compile classpath here and the
- * event is bound by reflection. The class/field names below are verified
- * against {@code ftb-quests-neoforge-2101.1.25} (the 1.21.1 line), whose
- * package layout FTBQ keeps stable across MC versions; the gate means none of
- * it classloads at runtime unless an {@code ftbquests} build is ever present.
- *
- * <p>If a future version of FTBQ stabilises {@code RewardType.Provider}, the
- * {@link #registerRewardType()} stub below is the hook to wire it up.
+ * <p><b>Reflection (not typed) on this branch.</b> There is no FTB Quests build
+ * for 26.2 (re-checked 2026-09-24). The names below are the 1.21.1 line's
+ * ({@code ftb-quests-neoforge-2101.1.25}), and the 26.1.2 builds no longer ship
+ * {@code ObjectCompletedEvent} or Architectury, so expect a 26.2 FTBQ to need
+ * a port to {@code FTBQuestsEvent.QuestProgress} rather than this hook.
  */
+// hub: neoorigins/upstream-compat-blocks.md
 public final class FtbQuestsCompat {
 
     private FtbQuestsCompat() {}

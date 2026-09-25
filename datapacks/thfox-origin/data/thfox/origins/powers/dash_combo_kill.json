@@ -1,0 +1,25 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "kill",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:on_ground",
+    "inverted": true
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.experience_orb.pickup",
+        "volume": 0.5,
+        "pitch": 1.5
+      },
+      {
+        "type": "neoorigins:feed",
+        "food": 1,
+        "saturation": 0.5
+      }
+    ]
+  }
+}

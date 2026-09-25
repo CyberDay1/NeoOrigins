@@ -14,6 +14,9 @@
   "origins.examplepack.void_knight.name": "Void Knight",
   "origins.examplepack.void_knight.description": "A guardian of the End. Picking this origin warps you to an End City — and sends you back there on death if you have no bed.",
 
+  "power.examplepack.double_jump.name": "Double Jump",
+  "power.examplepack.double_jump.description": "Tap jump again in mid-air to leap a second time. The extra jump recharges the moment you land.",
+
   "power.examplepack.pyromancer_fire_immunity.name": "Fire Immunity",
   "power.examplepack.pyromancer_fire_immunity.description": "Immune to fire, lava, and all burning damage.",
 

@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "name": "Singular shape with legacy_tag NBT",
+  "description": "Mixed: legacy singular shape carrying an Apoli-style flat SNBT in legacy_tag. Exercises the LegacyTagToComponents bridge from the singular path post-refactor.",
+  "grant_id": "test:starting_equipment_singular_legacy_tag",
+  "item": "minecraft:potion",
+  "count": 1,
+  "legacy_tag": "{Potion:\"minecraft:long_water_breathing\"}"
+}

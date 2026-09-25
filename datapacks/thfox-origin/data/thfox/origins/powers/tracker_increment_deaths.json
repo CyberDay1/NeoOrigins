@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "death",
+  "hidden": true,
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_deaths",
+    "change": 1
+  }
+}

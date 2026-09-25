@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "sleep",
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "thfox:hunt_toggle"
+  },
+  "hidden": true
+}

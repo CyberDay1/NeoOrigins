@@ -1,6 +1,8 @@
 {
   "pack": {
-    "pack_format": 57,
+    "pack_format": 107,
+    "min_format": 88,
+    "max_format": 107,
     "description": "NeoOrigins example pack — demonstrates all built-in power types"
   }
 }

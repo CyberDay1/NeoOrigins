@@ -200,6 +200,10 @@ public class NeoOrigins {
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerStopping);
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerTickPost);
 
+        // The One Probe soft-compat. TOP takes providers over IMC, and the send is
+        // guarded by a ModList check with every TOP type confined to compat.top.
+        modEventBus.addListener(NeoOrigins::onInterModEnqueue);
+
         // Optional mod compat — only loads if the target mod is present
         if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
             com.cyberday1.neoorigins.compat.ArsNouveauCompat.register();
@@ -212,9 +216,9 @@ public class NeoOrigins {
         if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
             com.cyberday1.neoorigins.compat.FtbQuestsCompat.register();
         }
-        // FTB Ultimine soft-compat is omitted on the 26.2 build. Verified against
-        // maven.ftb.dev/releases on 2026-07-29: ftb-ultimine-neoforge stops at
-        // 26.1.2.5 and ftb-library-neoforge at 26.1.2.6, so there is no 26.2 line
+        // FTB Ultimine soft-compat is omitted on the 26.2 build. Re-verified against
+        // maven.ftb.dev/releases on 2026-09-24: ftb-ultimine-neoforge stops at
+        // 26.1.2.5 and ftb-library-neoforge at 26.1.2.8, so there is no 26.2 line
         // to compile the restriction-handler bridge against. The
         // neoorigins:ultimine power stays registered as an inert marker;
         // vein-mining isn't gated until the integration is restored (port
@@ -232,6 +236,12 @@ public class NeoOrigins {
         if (FMLEnvironment.getDist() == Dist.CLIENT
                 && net.neoforged.fml.ModList.get().isLoaded("appleskin")) {
             com.cyberday1.neoorigins.compat.appleskin.AppleSkinBridge.register();
+        }
+    }
+
+    private static void onInterModEnqueue(net.neoforged.fml.event.lifecycle.InterModEnqueueEvent event) {
+        if (net.neoforged.fml.ModList.get().isLoaded("theoneprobe")) {
+            com.cyberday1.neoorigins.compat.top.TopIntegration.enqueueImc();
         }
     }
 

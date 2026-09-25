@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "effects": [
+    {
+      "effect": "minecraft:invisibility",
+      "amplifier": 0,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": false
+    }
+  ],
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "thfox:foxify_toggle"
+  },
+  "hidden": true
+}

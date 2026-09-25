@@ -533,69 +533,9 @@ public final class ConditionParser {
             // Some packs omit block_condition entirely — treat as "standing on any block"
             return p -> p != null && p.onGround();
         }
-        JsonObject blockCond = json.getAsJsonObject("block_condition");
-        String bcType = blockCond.has("type") ? blockCond.get("type").getAsString() : "";
-        // Strip namespace for matching
-        String bareType = bcType.contains(":") ? bcType.substring(bcType.indexOf(':') + 1) : bcType;
-
-        // Simple block match: { "type": "origins:block", "block": "minecraft:water" }
-        // or legacy: { "id": "minecraft:stone" }
-        String blockId = blockCond.has("block") ? blockCond.get("block").getAsString()
-                       : blockCond.has("id") ? blockCond.get("id").getAsString() : null;
-        if (bareType.equals("block") || (blockId != null && !blockId.isBlank())) {
-            if (blockId == null || blockId.isBlank()) {
-                return failClosed("origins:on_block", contextId, "block_condition.block is empty");
-            }
-            Identifier bid = Identifier.parse(blockId);
-            return player -> {
-                if (!player.onGround()) return false;
-                BlockPos below = player.blockPosition().below();
-                return BuiltInRegistries.BLOCK.getKey(player.level().getBlockState(below).getBlock()).equals(bid);
-            };
-        }
-        // Tag match: { "type": "origins:in_tag", "tag": "minecraft:ice" }
-        if (bareType.equals("in_tag") && blockCond.has("tag")) {
-            TagKey<Block> tag = parseBlockTag(blockCond.get("tag").getAsString());
-            return player -> {
-                if (!player.onGround()) return false;
-                return player.level().getBlockState(player.blockPosition().below()).is(tag);
-            };
-        }
-        // Boolean combinators: { "type": "origins:and/or", "conditions": [...] }
-        // all_of/any_of are the Apoli 2.9+ renames of and/or — same shapes.
-        if (bareType.equals("and") || bareType.equals("or")
-                || bareType.equals("all_of") || bareType.equals("any_of")) {
-            // Block conditions don't map cleanly to entity conditions, but we can
-            // evaluate them against the block below the player.
-            boolean isAnd = bareType.equals("and") || bareType.equals("all_of");
-            JsonArray conditions =
-                com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(blockCond, "conditions");
-            List<EntityCondition> subconds = new ArrayList<>();
-            for (JsonElement el : conditions) {
-                if (!el.isJsonObject()) continue;
-                JsonObject wrapper = new JsonObject();
-                wrapper.add("block_condition", el.getAsJsonObject());
-                subconds.add(parseOnBlock(wrapper, contextId));
-            }
-            return player -> {
-                for (EntityCondition c : subconds) {
-                    boolean result = c.test(player);
-                    if (isAnd && !result) return false;
-                    if (!isAnd && result) return true;
-                }
-                return isAnd;
-            };
-        }
-        // Anything the arms above do not recognise — block_state, height,
-        // adjacent, offset, fluid — is handed to the shared block-condition
-        // compiler, evaluated against the block below. The arms above are left
-        // alone on purpose: they are what every authoring in the pack corpus
-        // actually uses, and rerouting a working path buys nothing.
-        BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
-        // Dropping the filter and passing through as bare onGround() was the old
-        // behaviour, and it is fail-OPEN: the power fires while standing on
-        // anything at all, which is not what "on this block" was asked for. The
-        // compiler already reports the unreadable verb, so fail closed here.
+        // Every shape goes through the shared compiler so `inverted` is honoured
+        // at every node, the same as in_block. An uncompilable node fails closed.
+        BlockPosCondition pred = compileInBlockPredicate(json.getAsJsonObject("block_condition"), contextId);
         if (pred == null) return EntityCondition.alwaysFalse();
         return player -> player != null && player.onGround()
             && pred.test(player.level(), player.blockPosition().below());
@@ -1014,7 +954,10 @@ public final class ConditionParser {
         boolean hasLeaf = blockCond.has("block") || blockCond.has("id") || blockCond.has("tag");
         if (!hasLeaf && (bare.isEmpty() || bare.equals("block"))) return EntityCondition.alwaysTrue();
 
-        BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
+        // Inline, the node IS the root, and parse() has already applied its `inverted`.
+        BlockPosCondition pred = blockCond == json
+            ? compileBlockLeaf(blockCond, contextId)
+            : compileInBlockPredicate(blockCond, contextId);
         if (pred == null) return EntityCondition.alwaysFalse();
         return player -> pred.test(player.level(), player.blockPosition());
     }
@@ -1433,6 +1376,15 @@ public final class ConditionParser {
         return inverted ? (level, pos) -> !base.test(level, pos) : base;
     }
 
+    /**
+     * One block-condition node without its {@code inverted} flag, for the
+     * loader's compiler, which applies {@code inverted} itself. Null means the
+     * node could not be compiled; the caller picks the fail direction.
+     */
+    public static BlockPosCondition compileBlockLeaf(JsonObject bc, String contextId) {
+        return compileInBlockLeaf(bc, contextId);
+    }
+
     private static BlockPosCondition compileInBlockLeaf(JsonObject bc, String contextId) {
         String type = bc.has("type") ? bc.get("type").getAsString() : "";
         String bare = type.contains(":") ? type.substring(type.indexOf(':') + 1) : type;
@@ -1444,7 +1396,8 @@ public final class ConditionParser {
                 com.cyberday1.neoorigins.compat.LegacyBlockIds.remap(blockId));
             return (level, pos) -> BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).equals(bid);
         }
-        if (bare.equals("in_tag") && bc.has("tag")) {
+        // A `block` node may carry `tag` instead of `block`, as the Route B compiler already reads it.
+        if ((bare.equals("in_tag") || bare.equals("block")) && bc.has("tag")) {
             TagKey<Block> tag = parseBlockTag(bc.get("tag").getAsString());
             return (level, pos) -> level.getBlockState(pos).is(tag);
         }

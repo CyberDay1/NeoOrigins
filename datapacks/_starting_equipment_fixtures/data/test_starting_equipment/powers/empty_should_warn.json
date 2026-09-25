@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "name": "Broken — no item and empty stacks list",
+  "description": "Negative test: harness should produce a WARN/structural complaint; runtime parser logs a warn and skips the grant.",
+  "grant_id": "test:starting_equipment_empty_should_warn",
+  "stacks": []
+}

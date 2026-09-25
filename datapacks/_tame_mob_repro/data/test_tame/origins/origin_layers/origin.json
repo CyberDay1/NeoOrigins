@@ -1,0 +1,7 @@
+{
+  "id": "test_tame:origin",
+  "order": 0,
+  "origins": [
+    {"type": "origins", "origins": ["test_tame:tamer", "test_tame:control"]}
+  ]
+}

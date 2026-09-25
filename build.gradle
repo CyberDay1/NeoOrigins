@@ -63,6 +63,10 @@ repositories {
         url = 'https://maven.ftb.dev/releases'           // FTB Ultimine / FTB Library
         content { includeGroup 'dev.ftb.mods' }
     }
+    maven {
+        url = 'https://maven.k-4u.nl'                    // The One Probe
+        content { includeGroup 'mcjty.theoneprobe' }
+    }
 }
 
 dependencies {
@@ -89,17 +93,31 @@ dependencies {
     compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:${property('deps.rei')}"
 
     // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
+    // EMI has no integration here: re-checked 2026-09-24, EMI's newest NeoForge
+    // release is still 1.1.24+1.21.1 and it ships no build for any 26.x Minecraft.
+    // hub: neoorigins/upstream-compat-blocks.md
     compileOnly "maven.modrinth:jade:${property('deps.jade')}"
+
+    // The One Probe – probe overlay. Compile-only soft dep against the -api jar.
+    // TopProviderTest runs against the real mod: its api types must load in FML's
+    // game layer beside Minecraft, which a plain library jar does not.
+    compileOnly "mcjty.theoneprobe:theoneprobe:${property('deps.top')}:api"
+    testCompileOnly "mcjty.theoneprobe:theoneprobe:${property('deps.top')}:api"
+    testRuntimeOnly "mcjty.theoneprobe:theoneprobe:${property('deps.top')}"
 
     // FTB Ultimine – would back the `ultimine` vein-mining power via a registered
     // RestrictionHandler (see compat/ftbultimine on the 26.1 branch).
-    // BLOCKED ON 26.2, checked 2026-07-29: maven.ftb.dev/releases publishes no 26.2
-    // line at all — ftb-ultimine-neoforge stops at 26.1.2.5 and ftb-library-neoforge
-    // at 26.1.2.6. Not an "unchecked assumption": the maven-metadata.xml was read.
+    // BLOCKED ON 26.2, re-checked 2026-09-24: maven.ftb.dev/releases still publishes
+    // no 26.2 line — ftb-ultimine-neoforge stops at 26.1.2.5 and ftb-library-neoforge
+    // at 26.1.2.8. Not an "unchecked assumption": the maven-metadata.xml was read.
     // The neoorigins:ultimine power stays registered as an inert marker until then;
     // re-check the metadata and port compat/ftbultimine from 26.1 when 26.2 lands.
     //   compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
     //   compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
+
+    // Also absent on 26.2 for want of an upstream build, re-checked 2026-09-24:
+    // KubeJS (newest 26.1.2-8.0.6, nothing for 26.2), FTB Quests (26.1.2.8), EMI
+    // (1.1.24+1.21.1), Accessories (1.1.0-beta.53+1.21.1) and Sable (2.0.5+mc1.21.1).
 
     // Build A Spell (buildaspell) – the `cast_spell` action casts an inline
     // author-baked spell via BuildASpellAPI. Every BaS-typed reference is
@@ -161,6 +179,11 @@ tasks.named('jar') {
 // FML-bootstrapped JUnit harness (MinionOwnerCodecTest).
 tasks.named('test', Test) {
     useJUnitPlatform()
+    // PowerReferenceTest checks POWER_REFERENCE.txt, or rewrites it with -PwritePowerReference.
+    // hub: neoorigins/power-reference.md
+    systemProperty 'neoorigins.projectDir', projectDir.absolutePath
+    systemProperty 'neoorigins.writePowerReference', project.hasProperty('writePowerReference')
+    inputs.file('POWER_REFERENCE.txt')
 }
 
 tasks.withType(ProcessResources).configureEach {

@@ -41,17 +41,24 @@ license = "${mod_license}"
 # overlay. Client-only, reflective via the @WailaPlugin entrypoint — the mod
 # runs unchanged when Jade is absent.
 #
-# No EMI or The One Probe equivalent is declared, and the reason is not "not yet"
-# in any near sense. Checked 2026-07-29: EMI's newest NeoForge release is
-# 1.1.24+1.21.1 and The One Probe's is 1.21_neo-12.0.8, so neither has shipped a
-# build for ANY 26.x Minecraft, let alone 26.2. Re-check the upstream release
-# lists before assuming that changed.
+# No EMI equivalent is declared. Re-checked 2026-09-24: EMI's newest NeoForge
+# release is still 1.1.24+1.21.1, with no build for any 26.x Minecraft.
 [[dependencies.${mod_id}]]
     modId = "jade"
     type = "optional"
     versionRange = "[26,)"
     ordering = "AFTER"
     side = "CLIENT"
+
+# TOP's mod version is `26.2_neo-15.0.1`, which Maven's ComparableVersion reads
+# starting from the Minecraft version, so a numeric bound on the TOP version
+# compares the wrong piece. Unbounded; ModList.isLoaded gates the integration.
+[[dependencies.${mod_id}]]
+    modId = "theoneprobe"
+    type = "optional"
+    versionRange = "[0,)"
+    ordering = "AFTER"
+    side = "BOTH"
 
 # FTB Quests soft-compat (v2.1.6 backlog #3): the loot_pool_grant power
 # accepts FTBQ quest tags of the form `neoorigins_loot_pool_grant:<table_id>`

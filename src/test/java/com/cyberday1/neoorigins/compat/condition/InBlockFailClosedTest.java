@@ -438,4 +438,51 @@ class InBlockFailClosedTest {
         assertTrue(cond.test(standingInDryStone()));
         assertFalse(cond.test(standingInAWaterloggedSlab()));
     }
+
+    // ── inverted applies once per node ───────────────────────────────────
+
+    /** Inline, the node is the root, so parse() and the compiler both saw one flag. */
+    @Test
+    void inlineInvertedIsAppliedOnce() {
+        EntityCondition plain = ConditionParser.parse(
+            obj("{ \"type\": \"neoorigins:block\", \"block\": \"minecraft:stone\" }"), "block-inline");
+        EntityCondition inverted = ConditionParser.parse(obj("""
+            { "type": "neoorigins:block", "block": "minecraft:stone", "inverted": true }
+            """), "block-inline-inverted");
+        assertTrue(plain.test(standingInDryStone()));
+        assertFalse(plain.test(standingInAWaterloggedSlab()));
+        assertFalse(inverted.test(standingInDryStone()), "inverted stone must not match stone");
+        assertTrue(inverted.test(standingInAWaterloggedSlab()), "inverted stone must match a non-stone block");
+    }
+
+    @Test
+    void anInvertedWrapperIsAppliedOnce() {
+        EntityCondition cond = ConditionParser.parse(obj("""
+            { "type": "neoorigins:block", "inverted": true,
+              "block_condition": { "type": "origins:block", "block": "minecraft:stone" } }
+            """), "block-wrapper-inverted");
+        assertFalse(cond.test(standingInDryStone()));
+        assertTrue(cond.test(standingInAWaterloggedSlab()));
+    }
+
+    @Test
+    void anInvertedNestedNodeIsAppliedOnce() {
+        EntityCondition cond = ConditionParser.parse(obj("""
+            { "type": "neoorigins:block",
+              "block_condition": { "type": "origins:block", "block": "minecraft:stone", "inverted": true } }
+            """), "block-nested-inverted");
+        assertFalse(cond.test(standingInDryStone()));
+        assertTrue(cond.test(standingInAWaterloggedSlab()));
+    }
+
+    /** Two nodes, two flags: these two negations are the author's, and they cancel. */
+    @Test
+    void anInvertedWrapperAroundAnInvertedNodeCancels() {
+        EntityCondition cond = ConditionParser.parse(obj("""
+            { "type": "neoorigins:block", "inverted": true,
+              "block_condition": { "type": "origins:block", "block": "minecraft:stone", "inverted": true } }
+            """), "block-both-inverted");
+        assertTrue(cond.test(standingInDryStone()));
+        assertFalse(cond.test(standingInAWaterloggedSlab()));
+    }
 }

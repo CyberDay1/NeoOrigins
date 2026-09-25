@@ -48,6 +48,11 @@
           "description": "Neighbour-count threshold, 0..6 (default 1 — i.e. \"any matching neighbour\").",
           "type": "number",
           "default": 1.0
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -78,6 +83,11 @@
           "items": {
             "$ref": "block_condition.schema.json"
           }
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -103,6 +113,15 @@
         "id": {
           "description": "Legacy alias for `block`.",
           "type": "string"
+        },
+        "tag": {
+          "description": "Block tag the block must be in; read when `block` and `id` are absent.",
+          "type": "string"
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -149,6 +168,11 @@
           "description": "Number the property value is compared against (default 0).",
           "type": "number",
           "default": 0.0
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -167,6 +191,11 @@
             "apoli:exposed_to_sky",
             "apugli:exposed_to_sky"
           ]
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -188,6 +217,11 @@
         "fluid_condition": {
           "description": "Condition on the fluid at the tested position. Types: `in_tag` (with `tag`), `fluid` (with `fluid`/`id`), `empty`, `still`, `constant` (with `value`), and `and`/`or` over `conditions[]`. Every node also honours `inverted`.",
           "type": "object"
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -224,6 +258,11 @@
           "description": "Y level to compare against (default 0; 63 is sea level).",
           "type": "number",
           "default": 0.0
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -245,6 +284,11 @@
         "tag": {
           "description": "Block tag the block must be in (e.g. minecraft:ice).",
           "type": "string"
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -291,6 +335,11 @@
             "any"
           ],
           "default": "any"
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -308,6 +357,11 @@
             "apoli:movement_blocking",
             "apugli:movement_blocking"
           ]
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -344,6 +398,11 @@
           "description": "Z offset in blocks (default 0).",
           "type": "integer",
           "default": 0
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -373,6 +432,11 @@
           "items": {
             "$ref": "block_condition.schema.json"
           }
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [

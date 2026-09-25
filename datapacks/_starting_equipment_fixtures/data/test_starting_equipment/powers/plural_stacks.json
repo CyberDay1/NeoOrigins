@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "name": "Plural shape (v2.1.6) — multi-item stacks list",
+  "description": "Verifies the new plural shape: one grant_id covers a bundle of N items granted in array order.",
+  "grant_id": "test:starting_equipment_plural_stacks",
+  "stacks": [
+    { "item": "minecraft:bread",         "count": 4 },
+    { "item": "minecraft:torch",         "count": 16 },
+    { "item": "minecraft:iron_pickaxe",  "count": 1, "enchantments": [ { "id": "minecraft:efficiency", "level": 1 } ] }
+  ]
+}

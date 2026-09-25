@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:active_self",
+  "name": "Quantity=5 — pack of wolves",
+  "description": "Positive test: spawn 5 wolves per activation with jitter so they don't visually stack.",
+  "key": { "key": "key.origins.primary_active" },
+  "cooldown": 100,
+  "entity_action": {
+    "type": "neoorigins:spawn_entity",
+    "entity_type": "minecraft:wolf",
+    "quantity": 5
+  }
+}

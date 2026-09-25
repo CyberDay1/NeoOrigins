@@ -3,7 +3,7 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 930   typed-objects: 1442   distinct-types: 149
+# files-scanned: 933   typed-objects: 1463   distinct-types: 154
 
 == RECOGNIZED VERBS ==
 [action] (94)
@@ -248,23 +248,24 @@ apoli:climbing	x1	recognized=condition	fields={description,hidden,name}
 apoli:exhaust	x1	recognized=action	fields={amount}
 apoli:heal	x1	recognized=action	fields={amount}
 apoli:submerged_in_water	x1	recognized=condition	fields={}
-neoorigins:action_on_event	x46	recognized=-	fields={condition,description,entity_action,event,modifier,name}
+neoorigins:action_on_event	x47	recognized=-	fields={condition,description,entity_action,event,hidden,modifier,name}
 neoorigins:action_on_hit	x6	recognized=-	fields={action,amount,amplifier,description,duration,effect,name,target_group}
 neoorigins:active_ability	x49	recognized=-	fields={condition,cooldown_icon,cooldown_ticks,description,entity_action,hunger_cost,key,name,resource_cost,resource_cost_amount}
 neoorigins:active_dash	x3	recognized=-	fields={allow_vertical,condition,cooldown_icon,cooldown_ticks,damage,damage_radius,description,name,power,set_velocity,weapon_damage_scale}
 neoorigins:active_phase	x3	recognized=-	fields={cooldown_icon,cooldown_ticks,hunger_cost,max_depth,resource_cost,resource_cost_amount}
 neoorigins:active_place_block	x3	recognized=-	fields={block_id,cooldown_icon,cooldown_ticks,max_distance,resource_cost,resource_cost_amount}
 neoorigins:active_teleport	x4	recognized=-	fields={cooldown_icon,cooldown_ticks,description,mode,name,range,resource_cost,resource_cost_amount}
-neoorigins:add_velocity	x5	recognized=action	fields={set,space,y}
-neoorigins:and	x65	recognized=action,condition,item_action,item_condition	fields={actions,conditions}
-neoorigins:any_of	x1	recognized=item_condition	fields={conditions}
-neoorigins:apply_effect	x56	recognized=action	fields={amplifier,duration,effect,effects,show_icon}
-neoorigins:area_of_effect	x30	recognized=action	fields={amplifier,duration,effect,entity_action,exclude_self,include_source,radius}
+neoorigins:add_velocity	x6	recognized=action	fields={set,space,y}
+neoorigins:and	x66	recognized=action,condition,item_action,item_condition	fields={actions,conditions}
+neoorigins:any_of	x4	recognized=item_condition	fields={conditions}
+neoorigins:apply_effect	x57	recognized=action	fields={amplifier,duration,effect,effects,show_icon}
+neoorigins:area_of_effect	x30	recognized=action	fields={entity_action,include_source,radius}
 neoorigins:armor_value	x1	recognized=condition,item_condition	fields={compare_to,comparison}
 neoorigins:attribute_modifier	x353	recognized=-	fields={amount,attribute,condition,description,equipment_condition,hidden,location_condition,name,operation,required_mods}
 neoorigins:bare_hand_tool	x6	recognized=-	fields={tool}
 neoorigins:become_dragon	x3	recognized=-	fields={description,name,required_mods,species,stage}
 neoorigins:biome	x19	recognized=condition	fields={biome,biome_tag,tag}
+neoorigins:block	x8	recognized=condition	fields={block}
 neoorigins:bounce_on_land	x1	recognized=-	fields={hidden,restitution}
 neoorigins:break_speed_modifier	x7	recognized=-	fields={multiplier}
 neoorigins:breath_out_of_fluid	x4	recognized=-	fields={fluid}
@@ -307,7 +308,7 @@ neoorigins:hide_hud_bar	x2	recognized=-	fields={bar}
 neoorigins:horde_regen	x1	recognized=-	fields={combat_cooldown_ticks,heal_amount,interval_ticks}
 neoorigins:if_else	x3	recognized=action,item_action	fields={condition,else_action,if_action}
 neoorigins:if_else_list	x8	recognized=action	fields={actions}
-neoorigins:in_block	x1	recognized=condition	fields={block}
+neoorigins:in_block	x1	recognized=condition	fields={block_condition}
 neoorigins:in_water	x25	recognized=condition	fields={}
 neoorigins:item_magnetism	x1	recognized=-	fields={cooldown_icon}
 neoorigins:lava_vision	x1	recognized=-	fields={strength}
@@ -330,6 +331,7 @@ neoorigins:no_projectile_divergence	x1	recognized=-	fields={}
 neoorigins:no_slowdown	x1	recognized=-	fields={description,name}
 neoorigins:not	x20	recognized=condition,item_condition	fields={condition}
 neoorigins:nothing	x1	recognized=action	fields={}
+neoorigins:on_block	x1	recognized=condition	fields={block_condition}
 neoorigins:on_ground	x2	recognized=condition	fields={inverted}
 neoorigins:or	x4	recognized=condition,item_condition	fields={conditions}
 neoorigins:out_of_combat	x1	recognized=condition	fields={ticks}
@@ -345,10 +347,11 @@ neoorigins:random_teleport	x1	recognized=action	fields={range}
 neoorigins:rare_wandering_loot	x1	recognized=-	fields={}
 neoorigins:relative_health	x6	recognized=condition	fields={compare_to,comparison}
 neoorigins:repulse	x1	recognized=-	fields={cooldown_icon,cooldown_ticks,radius,resource_cost,resource_cost_amount,strength}
-neoorigins:resource	x38	recognized=condition	fields={compare_to,comparison,description,hidden,hud_render,max,min,name,regen_condition,regen_interval,regen_rate,resource,start_value}
+neoorigins:resource	x39	recognized=condition	fields={compare_to,comparison,description,hidden,hud_render,max,min,name,regen_condition,regen_interval,regen_rate,resource,start_value}
 neoorigins:restrict_armor	x1	recognized=-	fields={restrictions}
 neoorigins:scare_entities	x6	recognized=-	fields={description,entity_types,name}
 neoorigins:set_on_fire	x10	recognized=action	fields={ticks}
+neoorigins:set_resource	x2	recognized=action	fields={resource,value}
 neoorigins:shadow_orb	x2	recognized=-	fields={cooldown_icon,cooldown_ticks,max_orbs,radius,resource_cost,resource_cost_amount,tick_interval}
 neoorigins:size_scaling	x12	recognized=-	fields={modify_reach,reach_bonus,scale}
 neoorigins:slime_death_save	x1	recognized=-	fields={moisture_threshold,recovery_ticks,split_max_hp,teleport_distance,teleport_y_range}
@@ -376,10 +379,12 @@ neoorigins:toggle	x3	recognized=action	fields={default,hidden,power,value}
 neoorigins:trade_availability	x1	recognized=-	fields={}
 neoorigins:tree_felling	x1	recognized=-	fields={}
 neoorigins:underwater_mining_speed	x2	recognized=-	fields={}
+neoorigins:variable	x1	recognized=-	fields={max,min,start}
 neoorigins:wall_climbing	x5	recognized=-	fields={description,name}
 neoorigins:water_breathing	x14	recognized=-	fields={description,name}
 neoorigins:wraith_phase	x3	recognized=-	fields={blocked_blocks,cooldown_icon,exhaustion_per_tick}
 origins:action_over_time	x1	recognized=-	fields={condition,description,entity_action,hidden,interval,name}
+origins:active_self	x1	recognized=-	fields={condition,description,entity_action,key,name}
 origins:all_of	x2	recognized=item_condition	fields={actions,conditions}
 origins:any_of	x1	recognized=item_condition	fields={conditions}
 origins:conditioned_attribute	x1	recognized=-	fields={condition,description,hidden,modifier,name}

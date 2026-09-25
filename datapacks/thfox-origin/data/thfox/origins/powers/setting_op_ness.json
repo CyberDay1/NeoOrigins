@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 100000,
+  "start_value": 400,
+  "hidden": true,
+  "name": "Damage Scaling",
+  "description": "Damage multiplier scaling factor for pounce and hunt"
+}

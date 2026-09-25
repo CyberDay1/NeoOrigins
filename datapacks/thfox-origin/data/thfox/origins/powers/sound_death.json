@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "death",
+  "hidden": true,
+  "entity_action": {
+    "type": "neoorigins:play_sound",
+    "sound": "minecraft:entity.fox.death",
+    "volume": 1.0,
+    "pitch": 1.0
+  }
+}

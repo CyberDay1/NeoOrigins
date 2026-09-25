@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:power_active", "power": "thfox:hunt_toggle" },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:hunt_sneak_timer",
+        "comparison": ">=",
+        "compare_to": 75
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:execute_command",
+    "command": "effect give @e[distance=..16,type=!player,type=!item,type=!experience_orb] minecraft:glowing 3 0 true"
+  }
+}

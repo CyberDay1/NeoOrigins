@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "name": "Legacy singular shape — single item",
+  "description": "Pre-2.1.6 shape: top-level item/count/enchantments. Must keep parsing post-fix (backwards-compatible).",
+  "grant_id": "test:starting_equipment_legacy_singular",
+  "item": "minecraft:iron_sword",
+  "count": 1,
+  "enchantments": [
+    { "id": "minecraft:sharpness", "level": 2 }
+  ]
+}

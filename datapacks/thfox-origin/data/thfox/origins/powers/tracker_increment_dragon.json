@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "kill",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:target_type",
+    "entity_type": "minecraft:ender_dragon"
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_dragon_kills",
+    "change": 1
+  }
+}

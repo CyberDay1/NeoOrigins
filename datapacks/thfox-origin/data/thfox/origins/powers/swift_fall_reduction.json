@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "damage_type": "minecraft:fall",
+  "multiplier": 0.5,
+  "hidden": true
+}

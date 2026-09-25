@@ -1,0 +1,9 @@
+{
+  "order": 0,
+  "origins": [
+    {
+      "origin": "thfox:fox",
+      "allow_random": true
+    }
+  ]
+}

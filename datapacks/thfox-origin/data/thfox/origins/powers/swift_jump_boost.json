@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "effects": [
+    {
+      "effect": "minecraft:jump_boost",
+      "amplifier": 0,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": false
+    }
+  ],
+  "hidden": true
+}

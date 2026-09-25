@@ -56,7 +56,10 @@
     "neoorigins:qi_cultivator",
     "neoorigins:golden_body",
     "neoorigins:iron_monk",
-    "neoorigins:sword_immortal"
+    "neoorigins:sword_immortal",
+    "neoorigins:cave_dragon",
+    "neoorigins:forest_dragon",
+    "neoorigins:sea_dragon"
   ],
   "allow_random": true,
   "auto_choose": false,

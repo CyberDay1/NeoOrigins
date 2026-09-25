@@ -1,0 +1,22 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:weather", "weather": "thunder" },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:tracker_thunderstruck",
+        "comparison": "<",
+        "compare_to": 16
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_fear_level",
+    "change": 12
+  }
+}

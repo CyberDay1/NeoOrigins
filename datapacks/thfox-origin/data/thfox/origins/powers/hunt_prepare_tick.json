@@ -1,0 +1,29 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 1,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:sneaking" },
+      { "type": "neoorigins:on_ground" },
+      { "type": "neoorigins:moving", "inverted": true },
+      { "type": "neoorigins:power_active", "power": "thfox:hunt_toggle" }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:hunt_sneak_timer",
+    "change": 1
+  },
+  "else_action": {
+    "type": "neoorigins:if_else",
+    "condition": { "type": "neoorigins:power_active", "power": "thfox:hunt_toggle" },
+    "if_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        { "type": "neoorigins:change_resource", "resource": "thfox:hunt_sneak_timer", "change": -3 }
+      ]
+    }
+  }
+}

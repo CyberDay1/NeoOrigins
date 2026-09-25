@@ -335,7 +335,7 @@ Powers of type `neoorigins:resource` display a HUD bar. The appearance is config
 | `color` | string (hex) | `"#55AAFF"` | Fill colour as `#RRGGBB`. |
 | `animated` | string (preset id) | — | Animated bar FX preset to render instead of the flat fill, e.g. `"neoorigins:fire"`. Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`. See [POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource) for the preset format and [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture authoring. |
 
-Bars automatically **hide when full** and reappear when the resource drops below max. Players can reposition bars via the **Edit HUD** keybind (unbound by default). Positions persist across sessions in `config/neoorigins/hud.json`.
+Bars automatically **hide when full** and reappear when the resource drops below max. A bar that starts full is the exception until it is first spent: it stays on screen from the start, so players can find it, and begins hiding at full only once its value has dropped. The client forgets that first spend on each join, respawn and origin change. Set `always_render` in `hud_render` to keep a bar visible all the time. Players can reposition bars via the **Edit HUD** keybind (unbound by default). Positions persist across sessions in `config/neoorigins/hud.json`.
 
 ---
 

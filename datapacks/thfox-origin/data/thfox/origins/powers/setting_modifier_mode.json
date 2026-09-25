@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 1,
+  "start_value": 0,
+  "hidden": true,
+  "name": "Modifier Mode",
+  "description": "0=multiplicative, 1=additive damage mode"
+}

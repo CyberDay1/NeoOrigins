@@ -305,7 +305,10 @@ public final class FieldWidgetFactory {
                     .DOC.get(spec.name());
                 if (doc != null) t.add(doc);
             }
-            String kind = switch (spec.kind()) {
+            // A boolean-or-string choice is built as the ENUM dropdown, so it is
+            // described as one, with a legacy boolean default spelled as its option.
+            boolean choice = spec.isBooleanStringChoice();
+            String kind = choice ? "pick one" : switch (spec.kind()) {
                 case STRING  -> "text";
                 case INTEGER -> "whole number";
                 case NUMBER  -> "decimal number";
@@ -323,7 +326,9 @@ public final class FieldWidgetFactory {
                     .append(" .. ").append(fmt(spec.max()));
             }
             if (spec.defaultValue() != null) {
-                meta.append("   default ").append(spec.defaultValue());
+                Object def = spec.defaultValue();
+                if (choice && def instanceof Boolean b) def = spec.choiceFor(b);
+                meta.append("   default ").append(def);
             }
             t.add(meta.toString());
             if (!spec.enumValues().isEmpty()) {
@@ -340,7 +345,7 @@ public final class FieldWidgetFactory {
                 }
             }
             if (spec.ref() != null) t.add("references: " + spec.ref());
-            switch (spec.kind()) {
+            switch (choice ? FormFieldSpec.Kind.ENUM : spec.kind()) {
                 case REF, MIXED, UNKNOWN ->
                     t.add("No guided sub-form yet — edit this as JSON.");
                 case ARRAY -> {

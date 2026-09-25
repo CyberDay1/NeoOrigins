@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "sleep",
+  "condition": {
+    "type": "neoorigins:exposed_to_sky"
+  },
+  "hidden": true
+}
