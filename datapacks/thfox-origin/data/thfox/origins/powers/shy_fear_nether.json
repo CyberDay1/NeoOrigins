@@ -1,0 +1,28 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 40,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:dimension", "dimension": "minecraft:the_nether" },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:tracker_nether_time",
+        "comparison": "<",
+        "compare_to": 12000
+      },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_can_adapt_dimensions",
+        "comparison": ">=",
+        "compare_to": 1
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_fear_level",
+    "change": 8
+  }
+}

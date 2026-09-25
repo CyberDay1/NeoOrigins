@@ -1,0 +1,80 @@
+name: CI
+
+# Until now the only workflow that compiled Java was release.yml, and that
+# fires on a tag push. Every gate therefore ran for the first time at the
+# single worst moment: after the tag existed. This runs the same gates on
+# every push and pull request so a broken invariant surfaces before a release
+# is ever cut.
+#
+# `./gradlew build` depends on `check`, and `check` now depends on the eight
+# assertion-only dev harnesses (schemaFormCheck, powerEnumCheck,
+# actionConditionSchemaCheck, customPackCheck, smokeTestAliases, compatTest,
+# schemaDriftVerify, goldenMasterVerify). All eight finish in seconds, so
+# there is no slow tier that needs its own workflow or its own trigger: one
+# build covers them. The three MUTATING generators (generatePowerSchema,
+# generateActionConditionSchema, goldenMaster) are deliberately never run in
+# CI — they rewrite tracked files, and their verify twins assert the same
+# thing without touching the tree.
+
+on:
+  push:
+    branches: [1.21.1, master, '26.2']
+  pull_request:
+    branches: [1.21.1, master, '26.2']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A second push to the same branch supersedes the first: nobody needs the
+# result of a superseded commit, and the runners are shared with release.yml.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The branches build on different JDKs (1.21.1 on 21, the 26.x branches
+      # on 25). Read the version out of build.gradle rather than keeping a
+      # branch -> JDK table here, which would go stale at the next MC bump.
+      - name: Resolve JDK from the Gradle toolchain
+        id: jdk
+        run: |
+          V=$(sed -n 's/.*JavaLanguageVersion\.of(\([0-9]\+\)).*/\1/p' build.gradle | head -1)
+          if [ -z "$V" ]; then
+            echo "::error::Could not read the Java toolchain version out of build.gradle"
+            exit 1
+          fi
+          echo "Toolchain: JDK $V"
+          echo "version=$V" >> $GITHUB_OUTPUT
+
+      - name: Set up JDK ${{ steps.jdk.outputs.version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ steps.jdk.outputs.version }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-ci-${{ github.ref_name }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-ci-${{ github.ref_name }}-
+            ${{ runner.os }}-gradle-ci-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # `check` is named alongside `build` on purpose. `build` already depends
+      # on it, but spelling it out means the gates cannot quietly stop running
+      # if the build ever gets reconfigured or invoked with -x check.
+      - name: Build and verify
+        run: ./gradlew build check

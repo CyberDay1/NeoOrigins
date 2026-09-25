@@ -1,0 +1,35 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 1,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:moving", "inverted": true },
+      { "type": "neoorigins:on_ground" },
+      { "type": "neoorigins:sneaking", "inverted": true },
+      {
+        "type": "neoorigins:resource",
+        "resource": "thfox:setting_enable_sleepin_mode",
+        "comparison": ">=",
+        "compare_to": 1
+      },
+      { "type": "neoorigins:power_active", "power": "thfox:foxify_toggle", "inverted": true }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_afk_timer",
+    "change": 1
+  },
+  "else_action": {
+    "type": "neoorigins:if_else",
+    "condition": { "type": "neoorigins:power_active", "power": "thfox:foxify_toggle", "inverted": true },
+    "if_action": {
+      "type": "neoorigins:change_resource",
+      "resource": "thfox:tracker_afk_timer",
+      "operation": "set",
+      "change": 0
+    }
+  }
+}

@@ -9,6 +9,7 @@ import com.cyberday1.neoorigins.compat.action.ActionParser;
 import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
+import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -163,25 +164,21 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
     public void onGranted(ServerPlayer player, Config config) {
         if (ContentTogglesConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);
-        CompatAttachments.registerResourceBacking(key, config.backing());
+        registerShared(key, config);
         // A mana-backed bar has no internal store to seed — its value lives in
         // the Iron's pool, which is authoritative. Only seed start_value for
         // internally-stored resources.
         if (!CompatAttachments.isManaBacked(key)) {
             player.getData(CompatAttachments.resourceState()).set(key, config.startValue());
         }
-        CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
-                config.hidden(), config.animated(), config.tint(), config.alwaysShow()));
         CompatAttachments.syncResourcesToClient(player);
     }
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         String key = storageKey(player, config);
+        // Meta and backing are keyed by id and shared by every holder; a reload clears them.
         player.getData(CompatAttachments.resourceState()).remove(key);
-        CompatAttachments.unregisterResourceMeta(key);
-        CompatAttachments.unregisterResourceBacking(key);
         CompatAttachments.syncResourcesToClient(player);
         PREV_VALUES.remove(player.getUUID() + ":" + key);
     }
@@ -190,7 +187,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
     public void onLogin(ServerPlayer player, Config config) {
         if (ContentTogglesConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);
-        CompatAttachments.registerResourceBacking(key, config.backing());
+        registerShared(key, config);
         // Restore resource meta on relog WITHOUT touching a stored value.
         // The base PowerType.onLogin default delegates to onGranted, but
         // onGranted resets the stored resource to config.startValue() — so a
@@ -198,9 +195,6 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         // every relog. This override re-registers the meta and re-syncs the
         // client (so the bar renders) while leaving the persisted value in
         // the attachment untouched. GitHub #90.
-        CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
-                config.hidden(), config.animated(), config.tint(), config.alwaysShow()));
         // Seed the state attachment if it has no entry for this key. Hits two
         // cases: (a) players granted this power before resource_state shipped,
         // who never had their state seeded by onGranted; (b) a state map that
@@ -214,6 +208,28 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
             var state = player.getData(CompatAttachments.resourceState());
             if (!state.has(key)) {
                 state.set(key, config.startValue());
+            }
+        }
+        CompatAttachments.syncResourcesToClient(player);
+    }
+
+    /** Meta and backing are keyed by id and shared by every holder; a reload clears them. */
+    private static void registerShared(String key, Config config) {
+        CompatAttachments.registerResourceBacking(key, config.backing());
+        CompatAttachments.registerResourceMeta(key,
+            new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
+                config.hidden(), config.animated(), config.tint(), config.alwaysShow()));
+    }
+
+    /**
+     * Re-registers what a reload cleared for every resource this player holds and
+     * re-sends the bars. Stored values are left alone.
+     */
+    public static void restoreAfterReload(ServerPlayer player) {
+        if (ContentTogglesConfig.isResourceBarsDisabled()) return;
+        for (var holder : ActiveOriginService.allPowers(player)) {
+            if (holder.type() instanceof ResourcePower && holder.config() instanceof Config config) {
+                registerShared(storageKey(player, config), config);
             }
         }
         CompatAttachments.syncResourcesToClient(player);

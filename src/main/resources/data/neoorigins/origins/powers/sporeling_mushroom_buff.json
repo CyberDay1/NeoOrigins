@@ -1,7 +1,7 @@
 {
   "type": "neoorigins:condition_passive",
   "interval": 20,
-  "condition": { "type": "neoorigins:biome", "biome_tag": "minecraft:is_mushroom" },
+  "condition": { "type": "neoorigins:biome", "biome_tag": "c:is_mushroom" },
   "entity_action": {
     "type": "neoorigins:apply_effect",
     "effect": "minecraft:regeneration",

@@ -21,13 +21,14 @@ import java.util.Map;
  * render a real type-picker sub-form instead of a raw-JSON box.
  *
  * <p><b>Editor-metadata ONLY.</b> Unlike {@link BuiltinConditions}, these
- * descriptors do not back any runtime dispatch — block-condition parsing stays
- * verbatim in {@link ConditionParser#parseOnBlock} (and the {@code near_block} /
- * {@code in_block} variants). The {@link ConditionType.Factory} here is a never-
- * invoked passthrough, present only so the descriptor reuses the same shape the
- * schema generator already consumes for actions/conditions.
+ * descriptors do not back any runtime dispatch — block-condition parsing lives
+ * in {@link ConditionParser#compileInBlockPredicate} (shared by {@code on_block} /
+ * {@code in_block} / {@code block}) and the loader's {@code compileBlockPredicate}.
+ * The {@link ConditionType.Factory} here is a never-invoked passthrough, present
+ * only so the descriptor reuses the same shape the schema generator already
+ * consumes for actions/conditions.
  *
- * <p><b>Shapes</b> (type-discriminated, mirroring {@code parseOnBlock}'s switch on
+ * <p><b>Shapes</b> (type-discriminated, mirroring {@code compileInBlockPredicate}'s switch on
  * the stripped {@code type}):
  * <ul>
  *   <li>{@code block} — exact block id via {@code block} (or legacy {@code id}).</li>
@@ -65,12 +66,20 @@ public final class BuiltinBlockConditions {
     /** Insertion-ordered so generation/audit output is deterministic. */
     private static final Map<Identifier, ConditionType> DESCRIPTORS = new LinkedHashMap<>();
 
-    /** Never-invoked passthrough: parsing lives in {@link ConditionParser#parseOnBlock}. */
+    /** Never-invoked passthrough: parsing lives in {@link ConditionParser#compileInBlockPredicate}. */
     private static final ConditionType.Factory PASSTHROUGH = (json, ctx) -> EntityCondition.alwaysTrue();
 
     private static void define(String path, List<FieldSpec> fields) {
         Identifier id = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
-        DESCRIPTORS.put(id, new ConditionType(id, PASSTHROUGH, fields));
+        DESCRIPTORS.put(id, new ConditionType(id, PASSTHROUGH, withInverted(fields)));
+    }
+
+    /** Every block-condition node honours {@code inverted}, on every compiler path. */
+    private static List<FieldSpec> withInverted(List<FieldSpec> fields) {
+        List<FieldSpec> out = new java.util.ArrayList<>(fields);
+        out.add(new FieldSpec("inverted", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+            .doc("When true, this node's result is negated."));
+        return List.copyOf(out);
     }
 
     /**
@@ -84,7 +93,7 @@ public final class BuiltinBlockConditions {
         List<Identifier> aliases = aliasPaths.stream()
             .map(p -> Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, p))
             .toList();
-        DESCRIPTORS.put(id, new ConditionType(id, PASSTHROUGH, fields, aliases));
+        DESCRIPTORS.put(id, new ConditionType(id, PASSTHROUGH, withInverted(fields), aliases));
     }
 
     static {
@@ -93,7 +102,9 @@ public final class BuiltinBlockConditions {
             new FieldSpec("block", FormFieldSpec.Kind.STRING, false)
                 .doc("Block id to match (e.g. minecraft:water)."),
             new FieldSpec("id", FormFieldSpec.Kind.STRING, false)
-                .doc("Legacy alias for `block`.")));
+                .doc("Legacy alias for `block`."),
+            new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                .doc("Block tag the block must be in; read when `block` and `id` are absent.")));
         // in_tag — block-tag membership.
         define("in_tag", List.of(
             new FieldSpec("tag", FormFieldSpec.Kind.STRING, true)

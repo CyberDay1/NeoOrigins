@@ -1,0 +1,7 @@
+{
+  "name": "Tame Mob Control",
+  "description": "No tame_mob power. Baseline for comparison.",
+  "icon": "minecraft:stick",
+  "impact": "low",
+  "powers": []
+}

@@ -41,16 +41,14 @@ import java.util.Collection;
  * call for a backlog item that explicitly permits "ship the standalone power"
  * if the reward route is too unstable.
  *
- * <p><b>Reflection (not typed) on this branch:</b> there is no FTB Quests build
- * for this MC version, so FTBQ is not on the compile classpath here and the
- * event is bound by reflection. The class/field names below are verified
- * against {@code ftb-quests-neoforge-2101.1.25} (the 1.21.1 line), whose
- * package layout FTBQ keeps stable across MC versions; the gate means none of
- * it classloads at runtime unless an {@code ftbquests} build is ever present.
- *
- * <p>If a future version of FTBQ stabilises {@code RewardType.Provider}, the
- * {@link #registerRewardType()} stub below is the hook to wire it up.
+ * <p>FTBQ 26.1.2.x dropped {@code ObjectCompletedEvent} and Architectury and posts
+ * {@code FTBQuestsEvent.QuestProgress} on the NeoForge bus; the typed
+ * {@link com.cyberday1.neoorigins.compat.ftbquests.FtbQuestsProgressListener}
+ * handles it. The reflective Architectury path below is the 1.21.1 line's and is
+ * only a fallback. Reflection must not enumerate {@code Quest}'s methods on a
+ * dedicated server: some of them name client-only classes.
  */
+// hub: neoorigins/upstream-compat-blocks.md
 public final class FtbQuestsCompat {
 
     private FtbQuestsCompat() {}
@@ -59,7 +57,7 @@ public final class FtbQuestsCompat {
     public static final String TAG_PREFIX = "neoorigins_loot_pool_grant:";
 
     public static void register() {
-        boolean eventOk = tryRegisterCompletedEventListener();
+        boolean eventOk = tryRegisterProgressListener() || tryRegisterCompletedEventListener();
         // TODO(v2.2): FTBQ soft-compat reward registration —
         // wire registerRewardType() once FTBQ's RewardType.Provider API
         // stabilises across versions. Tag-marker path covers the same use
@@ -71,6 +69,16 @@ public final class FtbQuestsCompat {
             NeoOrigins.LOGGER.warn("[Compat] FTB Quests detected but the quest-completed hook "
                 + "could not be wired — pack-side tag-marker rewards will be inert. "
                 + "loot_pool_grant still works as a normal active power.");
+        }
+    }
+
+    private static boolean tryRegisterProgressListener() {
+        try {
+            com.cyberday1.neoorigins.compat.ftbquests.FtbQuestsProgressListener.register();
+            return true;
+        } catch (LinkageError e) {
+            NeoOrigins.LOGGER.debug("[Compat] FTBQ QuestProgress event not present: {}", e.toString());
+            return false;
         }
     }
 
@@ -142,32 +150,36 @@ public final class FtbQuestsCompat {
             if (!(membersRaw instanceof Collection<?> members) || members.isEmpty()) return;
 
             String questId = stringFrom(reflectGet(questData, "getCodeString", "getId", "id"));
-            if (questId == null) questId = "ftbq_unknown";
-
-            for (Object t : tags) {
-                if (!(t instanceof String tag)) continue;
-                if (!tag.startsWith(TAG_PREFIX)) continue;
-                String tableIdRaw = tag.substring(TAG_PREFIX.length()).trim();
-                if (tableIdRaw.isEmpty()) continue;
-                Identifier tableId;
-                try {
-                    tableId = Identifier.parse(tableIdRaw);
-                } catch (Exception e) {
-                    NeoOrigins.LOGGER.warn(
-                        "[Compat][FTBQ] quest '{}' tag '{}' has unparseable loot_table id: {}",
-                        questId, tag, e.getMessage());
-                    continue;
-                }
-                String grantId = "ftbq:" + questId + ":" + tableIdRaw;
-                for (Object m : members) {
-                    if (m instanceof ServerPlayer sp) {
-                        LootPoolGrantPower.fireLootPoolGrant(sp, tableId, grantId);
-                    }
-                }
-            }
+            grantForTags(questId, tags, members);
         } catch (Throwable t) {
             // Best-effort; never throw out of an FTBQ event listener.
             NeoOrigins.LOGGER.debug("[Compat][FTBQ] quest-completed handler errored: {}", t.toString());
+        }
+    }
+
+    /** Rolls every loot table a completed quest's tags name, for each online team member. */
+    public static void grantForTags(String questId, Collection<?> tags, Collection<?> members) {
+        if (questId == null) questId = "ftbq_unknown";
+        for (Object t : tags) {
+            if (!(t instanceof String tag)) continue;
+            if (!tag.startsWith(TAG_PREFIX)) continue;
+            String tableIdRaw = tag.substring(TAG_PREFIX.length()).trim();
+            if (tableIdRaw.isEmpty()) continue;
+            Identifier tableId;
+            try {
+                tableId = Identifier.parse(tableIdRaw);
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.warn(
+                    "[Compat][FTBQ] quest '{}' tag '{}' has unparseable loot_table id: {}",
+                    questId, tag, e.getMessage());
+                continue;
+            }
+            String grantId = "ftbq:" + questId + ":" + tableIdRaw;
+            for (Object m : members) {
+                if (m instanceof ServerPlayer sp) {
+                    LootPoolGrantPower.fireLootPoolGrant(sp, tableId, grantId);
+                }
+            }
         }
     }
 

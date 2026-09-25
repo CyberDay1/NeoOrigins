@@ -204,6 +204,10 @@ public class NeoOrigins {
         // handful that follow an origin pick.
         NeoForge.EVENT_BUS.addListener(NeoOrigins::onServerTickPost);
 
+        // The One Probe soft-compat. TOP takes providers over IMC, and the send is
+        // guarded by a ModList check with every TOP type confined to compat.top.
+        modEventBus.addListener(NeoOrigins::onInterModEnqueue);
+
         // Optional mod compat — only loads if the target mod is present
         if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
             com.cyberday1.neoorigins.compat.ArsNouveauCompat.register();
@@ -235,6 +239,12 @@ public class NeoOrigins {
         if (FMLEnvironment.getDist() == Dist.CLIENT
                 && net.neoforged.fml.ModList.get().isLoaded("appleskin")) {
             com.cyberday1.neoorigins.compat.appleskin.AppleSkinBridge.register();
+        }
+    }
+
+    private static void onInterModEnqueue(net.neoforged.fml.event.lifecycle.InterModEnqueueEvent event) {
+        if (net.neoforged.fml.ModList.get().isLoaded("theoneprobe")) {
+            com.cyberday1.neoorigins.compat.top.TopIntegration.enqueueImc();
         }
     }
 

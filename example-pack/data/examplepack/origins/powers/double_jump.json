@@ -1,0 +1,26 @@
+{
+  "type": "origins:active_self",
+  "name": "power.examplepack.double_jump.name",
+  "description": "power.examplepack.double_jump.description",
+  "key": "key.jump",
+  "condition": {
+    "type": "neoorigins:resource",
+    "resource": "examplepack:double_jump_charge",
+    "comparison": "==",
+    "compare_to": 1
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:add_velocity",
+        "y": 0.6
+      },
+      {
+        "type": "neoorigins:set_resource",
+        "resource": "examplepack:double_jump_charge",
+        "value": 0
+      }
+    ]
+  }
+}

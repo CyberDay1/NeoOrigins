@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "out",
+  "multiplier": 2.0,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:on_ground", "inverted": true },
+      { "type": "neoorigins:fall_flying", "inverted": true },
+      { "type": "neoorigins:sneaking", "inverted": true }
+    ]
+  },
+  "hidden": true
+}

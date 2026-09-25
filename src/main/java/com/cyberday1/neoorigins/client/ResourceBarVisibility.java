@@ -18,9 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ResourceBarVisibility {
 
     /**
-     * Resource keys seen below full at least once this session. Session-scoped
-     * on purpose — {@link ClientResourceState#clear()} resets it on each join,
-     * so a relog re-advertises the bar rather than hiding it forever.
+     * Resource keys seen below full since the last origins sync. Not persisted:
+     * {@link ClientResourceState#clear()} resets it on every SyncOriginsPayload,
+     * which the server sends on join, respawn and origin change.
      */
     private static final Set<String> SPENT = ConcurrentHashMap.newKeySet();
 

@@ -1,6 +1,8 @@
 {
   "pack": {
-    "description": "NeoOrigins example: Human evolves into Strider on entering the Nether.",
-    "pack_format": 48
+    "pack_format": 101,
+    "min_format": 101,
+    "max_format": 101,
+    "description": "NeoOrigins example: Human evolves into Strider on entering the Nether."
   }
 }

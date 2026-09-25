@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:loot_pool_grant",
+  "name": "Minimal valid — single roll, default cooldown",
+  "description": "Smallest legal loot_pool_grant config. Harness should PASS.",
+  "grant_id": "test:loot_pool_grant_minimal",
+  "loot_table": "neoorigins:rewards/wood_starter"
+}

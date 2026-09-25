@@ -1,0 +1,8 @@
+{
+  "pack": {
+    "pack_format": 101,
+    "min_format": 101,
+    "max_format": 101,
+    "description": "tame_mob aggro/defend repro (v2.1.6 backlog #6)"
+  }
+}

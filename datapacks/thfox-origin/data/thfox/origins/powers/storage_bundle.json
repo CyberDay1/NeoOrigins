@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:starting_equipment",
+  "grant_id": "thfox:storage_bundle",
+  "item": "minecraft:bundle",
+  "count": 1,
+  "name": "power.thfox.storage_bundle.name",
+  "description": "power.thfox.storage_bundle.description"
+}

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "damage_tag": "minecraft:is_fire",
+  "multiplier": 1.75,
+  "name": "power.thfox.fluffy_fire_vuln.name",
+  "description": "power.thfox.fluffy_fire_vuln.description"
+}

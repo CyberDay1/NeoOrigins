@@ -1,6 +1,8 @@
 {
   "pack": {
-    "pack_format": 84,
+    "pack_format": 101,
+    "min_format": 101,
+    "max_format": 101,
     "description": "Slime Morph Example - demonstrates neoorigins:entity_model"
   }
 }

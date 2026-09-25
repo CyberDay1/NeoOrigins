@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "hit_taken",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:damage_type",
+    "damage_type": "minecraft:lightning_bolt"
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_thunderstruck",
+    "change": 1
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:active_self",
+  "name": "Default — quantity absent",
+  "description": "Positive test: no quantity field, parser keeps the legacy single-spawn behavior.",
+  "key": { "key": "key.origins.primary_active" },
+  "cooldown": 20,
+  "entity_action": {
+    "type": "neoorigins:spawn_entity",
+    "entity_type": "minecraft:wolf"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "hit_taken",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "thfox:foxify_toggle"
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:toggle", "power": "thfox:foxify_toggle", "value": false },
+      { "type": "neoorigins:execute_command", "command": "kill @e[type=fox,distance=..5,tag=thfox_sleeping]" },
+      { "type": "neoorigins:clear_effect", "effect": "minecraft:invisibility" }
+    ]
+  }
+}

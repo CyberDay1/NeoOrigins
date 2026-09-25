@@ -1,0 +1,8 @@
+{
+  "pack": {
+    "pack_format": 101,
+    "min_format": 101,
+    "max_format": 101,
+    "description": "ThFox Origin — Native NeoOrigins port of ThDilos Fox Origin"
+  }
+}

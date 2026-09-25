@@ -1089,7 +1089,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             };
             barRevoked = player -> {
                 player.getData(CompatAttachments.resourceState()).remove(idStr);
-                CompatAttachments.unregisterResourceMeta(idStr);
                 PREV_COOLDOWN_BAR.remove(player.getUUID() + ":cdbar:" + idStr);
                 CompatAttachments.syncResourcesToClient(player);
             };
@@ -1694,6 +1693,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation));
+        // Registered here, not on grant: a reload clears it and does not re-grant online players.
+        CompatAttachments.registerResourceBacking(key, backing);
         if (renderCondition != null) {
             CompatAttachments.registerResourceRenderCondition(key, renderCondition);
         } else {
@@ -1703,7 +1704,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         return CompatPower.Config.builder()
             .onGranted(player -> {
-                CompatAttachments.registerResourceBacking(key, backing);
                 // Backed bars have no internal store to seed; the pool is authoritative.
                 if (!CompatAttachments.isManaBacked(key)) {
                     player.getData(CompatAttachments.resourceState()).set(key, startValue);
@@ -1711,10 +1711,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 CompatAttachments.syncResourcesToClient(player);
             })
             .onRevoked(player -> {
+                // Meta, render condition and backing are shared by every holder; a reload clears them.
                 player.getData(CompatAttachments.resourceState()).remove(key);
-                CompatAttachments.unregisterResourceMeta(key);
-                CompatAttachments.unregisterResourceRenderCondition(key);
-                CompatAttachments.unregisterResourceBacking(key);
                 PREV_RENDER_CONDITIONS.remove(player.getUUID() + ":rcond:" + key);
                 CompatAttachments.syncResourcesToClient(player);
             })
@@ -1839,9 +1837,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             })
             .onRevoked(player -> {
                 player.getData(CompatAttachments.resourceState()).remove(key);
-                CompatAttachments.unregisterResourceMeta(key);
-                CompatAttachments.unregisterCooldownDuration(key);
-                CompatAttachments.unregisterResourceRenderCondition(key);
                 PREV_RENDER_CONDITIONS.remove(player.getUUID() + ":rcond:" + key);
                 CompatAttachments.syncResourcesToClient(player);
             })
@@ -3676,6 +3671,20 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
                 return comparison.test(count, compareTo);
             };
+        }
+
+        // The world-reading leaves share the in_block compiler's leaf. It skips
+        // `inverted`, which compileBlockPredicate applies, so it is negated once.
+        if (bareType.equals("fluid") || bareType.equals("light_level")
+                || bareType.equals("exposed_to_sky") || bareType.equals("movement_blocking")) {
+            var leaf = com.cyberday1.neoorigins.compat.condition.ConditionParser
+                .compileBlockLeaf(condJson, contextId);
+            if (leaf == null) {
+                CompatWarningCollector.recordUnsupportedCondition(
+                    type, contextId, "fluid has no readable `fluid_condition` — matches ALL blocks");
+                return (player, pos) -> true;
+            }
+            return (player, pos) -> leaf.test(player.level(), pos);
         }
 
         String blockId = condJson.has("block") ? condJson.get("block").getAsString() : null;

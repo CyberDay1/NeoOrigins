@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 1200,
+  "start_value": 0,
+  "hidden": true,
+  "name": "AFK Timer",
+  "description": "Idle timer — triggers foxify at max"
+}

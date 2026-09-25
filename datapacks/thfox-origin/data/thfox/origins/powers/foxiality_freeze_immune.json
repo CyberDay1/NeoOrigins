@@ -1,0 +1,5 @@
+{
+  "type": "neoorigins:invulnerability",
+  "damage_types": ["minecraft:freeze"],
+  "hidden": true
+}

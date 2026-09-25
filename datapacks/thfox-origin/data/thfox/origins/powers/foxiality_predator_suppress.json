@@ -1,0 +1,19 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 10,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:near_entity",
+    "entity_type": "#thfox:predator",
+    "radius": 8
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:execute_command",
+        "command": "effect give @e[type=#thfox:predator,distance=..8] minecraft:speed 3 1 true"
+      }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 5,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:power_active", "power": "thfox:foxify_toggle" },
+      {
+        "type": "neoorigins:or",
+        "conditions": [
+          { "type": "neoorigins:moving" },
+          { "type": "neoorigins:sneaking" }
+        ]
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      { "type": "neoorigins:toggle", "power": "thfox:foxify_toggle", "value": false },
+      {
+        "type": "neoorigins:execute_command",
+        "command": "kill @e[type=fox,distance=..5,tag=thfox_sleeping]"
+      },
+      {
+        "type": "neoorigins:clear_effect",
+        "effect": "minecraft:invisibility"
+      },
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.fox.ambient",
+        "volume": 0.6,
+        "pitch": 1.2
+      }
+    ]
+  }
+}

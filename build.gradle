@@ -67,6 +67,10 @@ repositories {
         url = 'https://maven.latvian.dev/releases'       // KubeJS
         content { includeGroup 'dev.latvian.mods' }
     }
+    maven {
+        url = 'https://maven.k-4u.nl'                    // The One Probe
+        content { includeGroup 'mcjty.theoneprobe' }
+    }
 }
 
 dependencies {
@@ -91,11 +95,17 @@ dependencies {
     compileOnly "me.shedaniel:RoughlyEnoughItems-api-neoforge:${property('deps.rei')}"
 
     // Jade – entity tooltip overlay. Compile-only soft dep (Modrinth maven).
-    // EMI and The One Probe have no integration here, and it is not a near-term
-    // "not yet": checked 2026-07-29, EMI's newest NeoForge release is
-    // 1.1.24+1.21.1 and The One Probe's is 1.21_neo-12.0.8 — neither ships a build
-    // for any 26.x Minecraft. Re-read the upstream release lists before assuming.
+    // EMI has no integration here: re-checked 2026-09-24, EMI's newest NeoForge
+    // release is still 1.1.24+1.21.1 and it ships no build for any 26.x Minecraft.
+    // hub: neoorigins/upstream-compat-blocks.md
     compileOnly "maven.modrinth:jade:${property('deps.jade')}"
+
+    // The One Probe – probe overlay. Compile-only soft dep against the -api jar.
+    // TopProviderTest runs against the real mod: its api types must load in FML's
+    // game layer beside Minecraft, which a plain library jar does not.
+    compileOnly "mcjty.theoneprobe:theoneprobe:${property('deps.top')}:api"
+    testCompileOnly "mcjty.theoneprobe:theoneprobe:${property('deps.top')}:api"
+    testRuntimeOnly "mcjty.theoneprobe:theoneprobe:${property('deps.top')}"
 
     // FTB Ultimine – the `ultimine` vein-mining power grants ultimine to active
     // origin holders via a registered RestrictionHandler. Compile-only soft dep;
@@ -106,6 +116,9 @@ dependencies {
     // compile classpath too.
     compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
     compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
+    // FTB Quests – the tag-marker listener. Non-transitive so it can't move the
+    // ftb-library pin above; only classloaded when ftbquests is present.
+    compileOnly("dev.ftb.mods:ftb-quests-neoforge:${property('deps.ftbquests')}") { transitive = false }
 
     // Build A Spell (buildaspell) – the `cast_spell` action casts an inline
     // author-baked spell via BuildASpellAPI. Every BaS-typed reference is
@@ -138,6 +151,10 @@ dependencies {
     // API break that matters is KubeJSPlugin.clearCaches(), which 8.x dropped in
     // favour of beforeScriptsLoaded(ScriptManager). See NeoOriginsKubeJSPlugin.
     compileOnly "dev.latvian.mods:kubejs-neoforge:${property('deps.kubejs')}"
+
+    // Absent on 26.1, re-checked 2026-09-24. No upstream build: Accessories
+    // (1.1.0-beta.53+1.21.1) and Sable (2.0.5+mc1.21.1). FTB Quests 26.1.2.8 changed
+    // its reward API, so the typed reward is unported; the tag-marker path is.
 }
 
 sourceSets {
@@ -172,6 +189,11 @@ tasks.named('jar') {
 // FML-bootstrapped JUnit harness (MinionOwnerCodecTest).
 tasks.named('test', Test) {
     useJUnitPlatform()
+    // PowerReferenceTest checks POWER_REFERENCE.txt, or rewrites it with -PwritePowerReference.
+    // hub: neoorigins/power-reference.md
+    systemProperty 'neoorigins.projectDir', projectDir.absolutePath
+    systemProperty 'neoorigins.writePowerReference', project.hasProperty('writePowerReference')
+    inputs.file('POWER_REFERENCE.txt')
 }
 
 tasks.withType(ProcessResources).configureEach {

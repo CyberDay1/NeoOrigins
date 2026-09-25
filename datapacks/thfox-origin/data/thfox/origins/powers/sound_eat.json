@@ -1,0 +1,15 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:food_item_in_tag",
+    "tag": "#thfox:neutral_food"
+  },
+  "entity_action": {
+    "type": "neoorigins:play_sound",
+    "sound": "minecraft:entity.fox.eat",
+    "volume": 1.0,
+    "pitch": 1.0
+  }
+}

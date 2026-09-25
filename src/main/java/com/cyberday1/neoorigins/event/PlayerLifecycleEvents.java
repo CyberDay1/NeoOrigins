@@ -314,6 +314,8 @@ public class PlayerLifecycleEvents {
             // Re-apply global power sets so a /reload that added or removed an
             // apoli:global set immediately grants/revokes for online players.
             com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(sp);
+            // The reload cleared native resource meta and backing; grant and login are the only other places they're set.
+            com.cyberday1.neoorigins.power.builtin.ResourcePower.restoreAfterReload(sp);
             NeoOriginsNetwork.syncRegistryToPlayer(sp);
             NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
             NeoOriginsNetwork.syncActiveThemeToPlayer(sp);

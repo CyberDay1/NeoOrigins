@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:invulnerability",
+  "msg_ids": ["inWall"],
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "thfox:foxify_toggle"
+  },
+  "hidden": true
+}

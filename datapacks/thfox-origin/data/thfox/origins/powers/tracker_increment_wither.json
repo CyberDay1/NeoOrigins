@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "kill",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:target_type",
+    "entity_type": "minecraft:wither"
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_wither_kills",
+    "change": 1
+  }
+}

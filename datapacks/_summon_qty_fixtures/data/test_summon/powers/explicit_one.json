@@ -1,0 +1,12 @@
+{
+  "type": "neoorigins:active_self",
+  "name": "Explicit quantity=1 (no-op default)",
+  "description": "Positive test: explicit quantity=1 matches the absent-field default; harness must accept it.",
+  "key": { "key": "key.origins.primary_active" },
+  "cooldown": 20,
+  "entity_action": {
+    "type": "neoorigins:spawn_entity",
+    "entity_type": "minecraft:wolf",
+    "quantity": 1
+  }
+}

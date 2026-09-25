@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:loot_pool_grant",
+  "name": "Broken — zero rolls and no bonus rolls",
+  "description": "Negative test: harness should produce a WARN ('rolls' must be positive); runtime logs a warn and skips the grant.",
+  "grant_id": "test:loot_pool_grant_zero_rolls",
+  "loot_table": "neoorigins:rewards/wood_starter",
+  "rolls": 0,
+  "bonus_rolls": 0
+}

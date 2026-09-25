@@ -1,7 +1,7 @@
 {
   "type": "neoorigins:condition_passive",
   "interval": 20,
-  "condition": { "type": "neoorigins:biome", "biome_tag": "minecraft:soul_sand_valley" },
+  "condition": { "type": "neoorigins:biome", "biome": "minecraft:soul_sand_valley" },
   "entity_action": {
     "type": "neoorigins:damage",
     "amount": 0.5,

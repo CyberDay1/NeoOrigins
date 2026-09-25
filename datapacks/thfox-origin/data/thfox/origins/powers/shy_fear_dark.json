@@ -1,0 +1,18 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 40,
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:light_level", "comparison": "<=", "compare_to": 4 },
+      { "type": "neoorigins:exposed_to_sky", "inverted": true },
+      { "type": "neoorigins:height", "comparison": "<=", "compare_to": 40 }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:change_resource",
+    "resource": "thfox:tracker_fear_level",
+    "change": 5
+  }
+}

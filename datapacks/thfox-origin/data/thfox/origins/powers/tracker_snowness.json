@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:resource",
+  "min": 0,
+  "max": 100,
+  "start_value": 0,
+  "regen_rate": -1,
+  "regen_interval": 20,
+  "hidden": true,
+  "name": "Snow",
+  "description": "Snow exposure on fur — decays when warm"
+}
