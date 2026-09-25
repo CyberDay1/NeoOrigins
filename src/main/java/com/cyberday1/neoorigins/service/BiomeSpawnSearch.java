@@ -82,11 +82,11 @@ public final class BiomeSpawnSearch {
         // into [minY, maxY]; BoundedBiomeSpiral instead returns no levels at all
         // when the origin sits outside the band (see verticalLevels), which would
         // turn the whole search into a zero-sample miss. The search centre here is
-        // getSharedSpawnPos(), normally Y ~64 and comfortably inside every
-        // dimension's band, so this is insurance rather than a live bug — but the
-        // 26.x branches search from BlockPos.ZERO, where the Nether and the End
-        // (both getMinY() == 0, band starting at Y = 1) hit it for real. Clamp on
-        // all three branches so the spiral always sees what vanilla would have.
+        // LocationCondition#spawnSearchOrigin, normally Y ~64 and comfortably inside every
+        // dimension's band, so this is insurance rather than a live bug. The Nether
+        // and the End start their band at Y = 1, one above their build floor, so a
+        // world spawn at the floor would miss. Clamp so the spiral always sees what
+        // vanilla would have.
         final int originY = Math.max(minY, Math.min(maxY, searchOrigin.getY()));
 
         return Optional.of(new Query(

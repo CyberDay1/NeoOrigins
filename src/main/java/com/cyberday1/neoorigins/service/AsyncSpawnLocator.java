@@ -147,7 +147,7 @@ public final class AsyncSpawnLocator {
             return;
         }
         ServerLevel target = resolved.get();
-        BlockPos searchOrigin = target.getSharedSpawnPos();
+        BlockPos searchOrigin = LocationCondition.spawnSearchOrigin(target);
 
         // Structure-driven and dimension-only specs skip the biome search (it
         // is either irrelevant or superseded), but they still have to refine a

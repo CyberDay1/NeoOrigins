@@ -16,6 +16,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
@@ -182,6 +184,27 @@ public record LocationCondition(
     public record SpawnTarget(ServerLevel level, Vec3 pos) {}
 
     /**
+     * Search centre for a spawn resolution in {@code target}: the world spawn,
+     * scaled into the target's coordinates the way a portal would (Nether: /8).
+     * The Nether's own shared spawn is the Overworld's, unscaled, so a moved world
+     * spawn used to send Nether origins eight times further out.
+     */
+    public static BlockPos spawnSearchOrigin(ServerLevel target) {
+        ServerLevel overworld = target.getServer().overworld();
+        BlockPos spawn = overworld.getSharedSpawnPos();
+        if (target == overworld) return spawn;
+        double scale = DimensionType.getTeleportationScale(overworld.dimensionType(), target.dimensionType());
+        return scaleSpawn(spawn, scale, target.getMinBuildHeight(), target.getMaxBuildHeight() - 1,
+            target.getWorldBorder());
+    }
+
+    /** Pure core of {@link #spawnSearchOrigin}: scale X/Z, clamp Y to the build band and X/Z to the border. */
+    static BlockPos scaleSpawn(BlockPos spawn, double scale, int minY, int maxY, WorldBorder border) {
+        int y = Math.max(minY, Math.min(maxY, spawn.getY()));
+        return border.clampToBounds(spawn.getX() * scale, y, spawn.getZ() * scale);
+    }
+
+    /**
      * Resolves the dimension this spec searches in: the explicit {@code dimension}
      * if given, else the player's current level. Empty when the named dimension
      * is not loaded. Cheap — safe to call on the server thread.
@@ -283,7 +306,7 @@ public record LocationCondition(
         if (resolved.isEmpty()) return Optional.empty();
         ServerLevel target = resolved.get();
 
-        BlockPos searchOrigin = target.getSharedSpawnPos();
+        BlockPos searchOrigin = spawnSearchOrigin(target);
         BlockPos found;
 
         if (usesStructureSearch()) {
@@ -297,7 +320,7 @@ public record LocationCondition(
             found = biomeCenter.get();
         } else {
             // Dimension-only spec (no biome/structure filter). Use the
-            // dimension's shared spawn pos as the search center. For ceiling
+            // scaled world spawn as the search center. For ceiling
             // dimensions (Nether) the spawn pos is often inside solid
             // netherrack, so the wider column search below will spiral
             // outward to find habitable terrain.
