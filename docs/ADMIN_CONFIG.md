@@ -27,7 +27,7 @@ from the legacy `neoorigins-common.toml`, where they were also top-level).
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `debug_power_loading` | bool | `false` | Log per-namespace power counts after each data reload. Useful for addon and datapack authors debugging load issues. |
+| `debug_power_loading` | bool | `false` | Log per-namespace power counts, and the origin ids loaded per namespace, after each data reload. Useful for addon and datapack authors debugging load issues. |
 | `debug_compat_actions` | bool | `false` | Send in-game chat feedback when a compat power action resolves to no-op (unsupported action type). Useful for pack authors debugging why their imported powers aren't working. |
 | `debug_hud` | bool | `false` | Diagnostic logging for the ability HUD cluster and flight-ability syncing: logs hover-state changes on the cooldown cluster (client) and every server-side grant/clear/accept of flight abilities. One line per state change, not per tick. Leave off in normal play. |
 
@@ -42,7 +42,7 @@ dimension(s).
 | Format | `"<power_id> = <dimension1>, <dimension2>, ..."` |
 | Example | `"neoorigins:elytrian_flight = minecraft:the_nether, minecraft:the_end"` |
 | Validation | Each rule must contain an `=`, and the power id before it must contain a `:`. Invalid rules are rejected by the config loader. |
-| Reloads | The parsed rule set is rebuilt whenever the list changes, so `/reload`-driven config refreshes take effect without a restart. |
+| Reloads | The parsed rule set is cached and rebuilt whenever the loaded list's contents change (checked on each lookup), so a config file reload takes effect without a restart. |
 
 ```toml
 [dimension_restrictions]
@@ -59,7 +59,9 @@ claimed by only one player on the server.
 | Key | `unique_origin_layers`, a list of layer IDs. Default `[]`. |
 | Scope | Per-layer: only the layer IDs listed are affected. Example: `["neoorigins:origin"]`. |
 | Effect | Once a player picks an origin in a listed layer, no one else can pick that same origin there. |
-| Release | Claims are released only by `/neoorigins unlock`, an Orb of Origin re-pick, or `/neoorigins reset`. |
+| Release | Claims are released only by `/neoorigins unlock`, an Orb of Origin re-pick, `/neoorigins reset`, or an `every_death` random reroll. |
+| Picker | An origin another player holds stays listed but is marked claimed, with the holder's name. Confirm is disabled on it and the Random button skips it. The server refuses it either way. |
+| Random assignment | `random_assignment` never hands out an origin someone else holds, and claims the one it hands out. |
 | Bypass | Operators in creative mode (and `/neoorigins set`) bypass the lock and take over the claim. |
 
 ## `[compat_filtering]`: hide broken addon origins
@@ -95,7 +97,9 @@ permission level: a blocked command is refused and logged instead of run.
 Global entity exclusions for the mob-control power family: `tame_mob`,
 `scare_entities` and `mobs_ignore_player`. Entities listed here can never be
 tamed, scared, or made to ignore a player by **any** power, on top of the
-hardcoded boss-tier exclusion and any per-power `entity_blacklist`.
+hardcoded boss-tier exclusion and any per-power `entity_blacklist`. The same
+check also exempts listed entities from `mobs_target_player`, `attract_mobs`
+and the `feared_by` flee sweep of `entity_group`.
 
 | Behaviour | Detail |
 |---|---|

@@ -30,7 +30,7 @@ convention as player and mob origins.)
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_types` | string array | no | all entities | Entity ids and/or entity-type tag refs the set targets (see below). Absent or empty = every player **and** every mob. |
-| `powers` | string array | yes | — | Power ids to grant. Unknown ids are logged and skipped. |
+| `powers` | string array | no | `[]` | Power ids to grant. Unknown ids are skipped (a `[global-power]` warning is logged on the player path; the mob path skips them silently). |
 | `order` | int | no | `0` | Apply ordering across sets: **lower applies first**. |
 
 **`entity_types` matching**: the list may **mix** literal entity ids
@@ -53,8 +53,10 @@ by id; powers in declaration order within each set).
   matching) the player's grant is revoked on the next login / `/reload`, unless an
   origin still supplies that power.
 - **Mobs**: matching, **mob-applicable** powers are applied at spawn
-  (`FinalizeSpawnEvent`), the same hook mob origins use. Already-spawned mobs do
-  **not** live-update; they pick up datapack changes on respawn / reload only.
+  (`FinalizeSpawnEvent`), the same hook mob origins use. This runs once per fresh
+  spawn: mobs already in the world (including ones loaded back from disk) are
+  **not** re-processed, and `/reload` does not update them. Datapack changes reach
+  mobs spawned afterwards.
 
 ## Examples
 

@@ -157,7 +157,7 @@ public final class OriginsPowerTranslator {
         Map.entry("origins-classes:sneaky",                 () -> simpleType("neoorigins:sneaky")),
         Map.entry("origins-classes:stealth",                () -> simpleType("neoorigins:stealth")),
         Map.entry("origins-classes:tree_felling",           () -> simpleType("neoorigins:tree_felling")),
-        Map.entry("origins-classes:more_planks_from_logs",  () -> simpleType("neoorigins:craft_amount_bonus")),
+        Map.entry("origins-classes:more_planks_from_logs",  () -> simpleType("neoorigins:craft_amount_bonus", "output_item", "#minecraft:planks")),
         Map.entry("origins-classes:tamed_animal_boost",     () -> simpleType("neoorigins:tamed_animal_boost")),
         Map.entry("origins-classes:tamed_potion_diffusal",  () -> simpleType("neoorigins:tamed_potion_diffusal")),
         Map.entry("origins-classes:stealth_descriptor",     () -> simpleType("neoorigins:more_smoker_xp")), // display-only, no-op

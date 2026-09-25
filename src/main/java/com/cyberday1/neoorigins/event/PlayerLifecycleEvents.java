@@ -2,7 +2,10 @@ package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
+import com.cyberday1.neoorigins.data.OriginClaimsData;
+import com.cyberday1.neoorigins.service.RandomOriginPool;
 import com.cyberday1.neoorigins.config.GameplayConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -263,6 +266,7 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOriginsNetwork.syncClaimsToPlayer(sp);
         NeoOriginsNetwork.syncEvolutionToPlayer(sp);
         NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
     }
@@ -465,6 +469,11 @@ public class PlayerLifecycleEvents {
         if (GameplayConfig.getRandomMode() == RandomMode.EVERY_DEATH) {
             ActiveOriginService.revokeAllPowers(sp);
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            // The reroll gives these up, so their unique-layer claims must go too.
+            var claims = OriginClaimsData.get(sp.getServer());
+            data.getOrigins().forEach((layer, origin) -> {
+                if (AdminConfig.isUniqueLayer(layer)) claims.releaseIfOwner(layer, origin, sp.getUUID());
+            });
             data.clear();
             assignRandomOrigins(sp);
         } else {
@@ -627,6 +636,30 @@ public class PlayerLifecycleEvents {
         return false;
     }
 
+    /**
+     * One random origin for {@code layer}: available under the layer's conditions,
+     * {@code eligible}, and not in {@code exclude_random}. Null when none qualify.
+     */
+    static ResourceLocation pickRandomOrigin(OriginLayer layer, java.util.Map<ResourceLocation, ResourceLocation> choices,
+                                             java.util.function.Predicate<ResourceLocation> eligible,
+                                             java.util.function.IntUnaryOperator nextInt) {
+        return RandomOriginPool.pick(
+            RandomOriginPool.of(layer, layer.getAvailableOriginIds(choices), eligible.negate()), nextInt);
+    }
+
+    /** What the picker would list: loaded, not unchoosable, not disabled. */
+    private static boolean isOffered(ResourceLocation id) {
+        Origin o = OriginDataManager.INSTANCE.getOrigin(id);
+        return o != null && !o.unchoosable() && !ContentTogglesConfig.isOriginDisabled(id);
+    }
+
+    /** Origins another player holds in a unique layer; an OP in creative is not blocked, as in the picker. */
+    private static java.util.function.Predicate<ResourceLocation> claimBlocker(ServerPlayer sp, ResourceLocation layerId) {
+        if (!AdminConfig.isUniqueLayer(layerId) || (sp.hasPermissions(2) && sp.isCreative())) return id -> false;
+        OriginClaimsData claims = OriginClaimsData.get(sp.getServer());
+        return id -> claims.isClaimedByOther(layerId, id, sp.getUUID());
+    }
+
     private static void assignRandomOrigins(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         List<String> assigned = new ArrayList<>();
@@ -635,19 +668,21 @@ public class PlayerLifecycleEvents {
             ResourceLocation layerId = layer.id();
             if (data.hasOriginForLayer(layerId)) continue;
 
-            List<ResourceLocation> available = layer.getAvailableOriginIds().stream()
-                .filter(OriginDataManager.INSTANCE::hasOrigin)
-                .toList();
-            if (available.isEmpty()) continue;
-
-            ResourceLocation picked = available.get(sp.getRandom().nextInt(available.size()));
+            var heldByOther = claimBlocker(sp, layerId);
+            ResourceLocation picked = pickRandomOrigin(layer, data.getOrigins(),
+                id -> isOffered(id) && !heldByOther.test(id), sp.getRandom()::nextInt);
+            if (picked == null) continue;
             data.setOrigin(layerId, picked);
+            if (AdminConfig.isUniqueLayer(layerId)) {
+                OriginClaimsData.get(sp.getServer()).claim(layerId, picked, sp.getUUID());
+            }
             ActiveOriginService.applyOriginPowers(sp, layerId, null, picked);
             assigned.add(picked.toString());
         }
 
         data.setHadAllOrigins(true);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOriginsNetwork.syncClaimsToAll(sp.getServer());
         NeoOrigins.LOGGER.info("Randomly assigned origins to {}: {}",
             sp.getName().getString(), String.join(", ", assigned));
     }

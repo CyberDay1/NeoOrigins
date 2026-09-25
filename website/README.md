@@ -63,13 +63,22 @@ Output goes to `build/` (SvelteKit `adapter-static`).
 
 ### Deploy
 
-Deployed to `cyberday1.github.io/NeoOrigins/editor/` by
-`.github/workflows/editor-pages.yml` on every push to `1.21.1` that
-touches `website/**`, `docs/schema/**`, or the workflow itself.
+Published at `cyberday1.github.io/NeoOrigins/editor/` by the combined
+Pages workflow on `master` (`.github/workflows/pages.yml`), which checks
+out this branch (`1.21.1`) and builds the editor alongside the Jekyll
+docs site. `.github/workflows/editor-pages.yml` on this branch only
+builds the editor as a check and, when the `PAGES_DISPATCH_TOKEN` secret
+is set, sends `master` a `repository_dispatch` to redeploy. Without the
+secret, run the Pages workflow on `master` by hand.
 
 ### Schemas
 
-The source of truth lives at `docs/schema/*.json` (alongside the
-mkdocs docs). CI copies those files into `static/schemas/` on every
-build. **Do not hand-edit `static/schemas/`**; edit `docs/schema/`
-and let the workflow re-sync.
+The source of truth is `docs/schema/*.json`, generated from the parsers
+by the Gradle schema tasks. `static/schemas/` holds committed copies:
+**do not hand-edit them**. After changing `docs/schema/`, copy the files
+across and commit both (`cp ../docs/schema/*.json static/schemas/`).
+`./gradlew schemaDriftVerify` and the drift step in `editor-pages.yml`
+both fail when the copies differ.
+
+The deployed editor serves this branch's schema to authors on every
+Minecraft line, so it can offer fields a 26.x build does not read.

@@ -169,38 +169,10 @@ public final class LegacyAliasPowerSpecs {
     // ── persistent_effect targets ───────────────────────────────────────────
 
     private static void registerPersistentEffectAliases() {
-        // status_effect — PASSTHROUGH. persistent_effect's own fields, plus the
-        // root-level single-effect shorthand its hand-rolled codec reads but
-        // BuiltinPowers cannot declare (those keys fold INTO each EffectSpec and
-        // are not Config record components, which the drift audit requires). The
-        // shorthand IS the legacy status_effect shape — example-pack's
-        // status_effect power authors effect/amplifier/ambient/show_particles —
-        // so leaving it out would be the whole reason this branch exists.
-        define("status_effect", concat(List.of(
-            new FieldSpec("effect", Kind.STRING, false)
-                .doc("Mob-effect id applied while the power is active (e.g. 'minecraft:speed'). The legacy single-effect shorthand: authoring it here is equivalent to a one-entry `effects` list. Applied at infinite duration, so no duration field."),
-            // `amplifier` is NOT declared here. It used to be, with a doc claiming it
-            // cascades onto every `effects` entry that omits its own — which the codec
-            // does not do (parseSpec defaults amplifier to 0 locally; the root value
-            // overwrites specs.get(0) alone, explicit or not). It is persistent_effect's
-            // field, arrives via fieldsOf below, and is described correctly there.
-            // Redeclaring it here just gave two contradictory descriptions of one key.
-            //
-            // Both defaults follow PersistentEffectPower's EffectSpec decode, which
-            // is ambient=true / show_particles=false — the beacon-style presentation
-            // the legacy status_effect shape has always had. They were declared the
-            // other way round until 2.2.25, so the editors and the generated schemas
-            // advertised the opposite of what the loader does.
-            new FieldSpec("ambient", Kind.BOOLEAN, false)
-                .def(true)
-                .doc("When true the effect renders as ambient (faint beacon-style particles); default true. Cascades onto `effects` entries that omit it."),
-            new FieldSpec("show_particles", Kind.BOOLEAN, false)
-                .def(false)
-                .doc("When false the effect's swirling particles are suppressed; default false. Cascades onto `effects` entries that omit it."),
-            new FieldSpec("show_icon", Kind.BOOLEAN, false)
-                .def(true)
-                .doc("When false the effect's HUD status icon is hidden; default true. Cascades onto `effects` entries that omit it.")),
-            fieldsOf("persistent_effect")));
+        // status_effect — PASSTHROUGH. persistent_effect's own fields, which include
+        // the root-level single-effect shorthand (effect/amplifier/ambient/
+        // show_particles/show_icon) that is the legacy status_effect shape.
+        define("status_effect", fieldsOf("persistent_effect"));
 
         // stacking_status_effects — PASSTHROUGH with `toggleable` forced false.
         // Dropping toggleable also drops the three fields it gates:

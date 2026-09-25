@@ -34,6 +34,11 @@ Gates are evaluated with AND semantics: every gate in the list must pass.
 For OR semantics, ship multiple recipes with the same output and one gate
 each.
 
+`gates` and `inner` are both required. An `inner` recipe that is not a
+crafting recipe fails to load. A gate `type` must use the `neoorigins:`
+namespace (`origins:has_origin` and other namespaces are a load error), and
+every field shown for a gate below is required.
+
 ## Gate shapes
 
 ### `neoorigins:has_origin`

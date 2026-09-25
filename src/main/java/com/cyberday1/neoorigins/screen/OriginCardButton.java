@@ -46,6 +46,7 @@ public class OriginCardButton extends Button {
     /** Wrapped once at construction — a grid draws ~30 cards per frame. */
     private final List<FormattedCharSequence> nameLines;
     private boolean selected;
+    private String claimedBy;
 
     public OriginCardButton(int x, int y, int w, int h, Origin origin, OnPress onPress) {
         super(x, y, w, h, origin.name(), onPress, DEFAULT_NARRATION);
@@ -63,6 +64,12 @@ public class OriginCardButton extends Button {
     public Origin getOrigin()                 { return origin; }
     public boolean isSelected()               { return selected; }
     public void setSelected(boolean selected) { this.selected = selected; }
+
+    /** Marks the origin as held by {@code owner} (null = free): muted name and a tooltip. */
+    public void setClaimedBy(String owner) {
+        this.claimedBy = owner;
+        setTooltip(OriginButton.claimTooltip(owner));
+    }
 
     /** Up to {@link #maxNameLines} lines, the last ellipsised when it overflows. */
     private List<FormattedCharSequence> wrapName(int maxW) {
@@ -103,7 +110,8 @@ public class OriginCardButton extends Button {
         OriginButton.renderIcon(g, origin.icon(), 0, 0);
         g.pose().popPose();
 
-        int nameColor = selected ? theme.nameColor() : theme.descriptionColor();
+        int nameColor = claimedBy != null ? theme.mutedColor()
+            : selected ? theme.nameColor() : theme.descriptionColor();
         int ty = iconY + iconSize + nameGap;
         for (FormattedCharSequence line : nameLines) {
             g.drawString(font, line, cx - font.width(line) / 2, ty, nameColor, false);

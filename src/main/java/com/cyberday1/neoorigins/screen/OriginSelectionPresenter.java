@@ -4,11 +4,13 @@ import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.api.origin.Impact;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.api.origin.OriginLayer;
+import com.cyberday1.neoorigins.client.ClientOriginClaims;
 import com.cyberday1.neoorigins.client.ClientOriginState;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.ChooseOriginPayload;
 import com.cyberday1.neoorigins.screen.model.OriginListEntry;
+import com.cyberday1.neoorigins.service.RandomOriginPool;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -252,7 +254,7 @@ public class OriginSelectionPresenter {
      * Returns true if more layers remain, false if all layers are filled.
      */
     public boolean confirm() {
-        if (selectedOriginId == null) return !isDone();
+        if (!canConfirm()) return !isDone();
         OriginLayer layer = currentLayer();
         PacketDistributor.sendToServer(new ChooseOriginPayload(layer.id(), selectedOriginId));
         var updated = new HashMap<>(ClientOriginState.getOrigins());
@@ -272,10 +274,27 @@ public class OriginSelectionPresenter {
         return true;
     }
 
-    /** Return a random origin ID from the current layer, or null if none. */
+    /** A random origin from the current layer, or null if none can be rolled. */
     public ResourceLocation randomId() {
-        if (allOriginIds.isEmpty()) return null;
-        return allOriginIds.get((int) (Math.random() * allOriginIds.size()));
+        return randomIdAmong(allOriginIds);
+    }
+
+    /** A random origin from {@code shown}, skipping {@code exclude_random} and claimed origins. */
+    public ResourceLocation randomIdAmong(Collection<ResourceLocation> shown) {
+        if (pendingLayers.isEmpty() || isDone()) return null;
+        var pool = RandomOriginPool.of(currentLayer(), shown, id -> claimedBy(id) != null);
+        return RandomOriginPool.pick(pool, n -> (int) (Math.random() * n));
+    }
+
+    /** Who holds {@code id} in the current layer, or null when it is free to pick. */
+    public String claimedBy(ResourceLocation id) {
+        if (id == null || pendingLayers.isEmpty() || isDone()) return null;
+        return ClientOriginClaims.owner(currentLayer().id(), id);
+    }
+
+    /** A selection the server would accept: set, and not claimed by someone else. */
+    public boolean canConfirm() {
+        return selectedOriginId != null && claimedBy(selectedOriginId) == null;
     }
 
     /**

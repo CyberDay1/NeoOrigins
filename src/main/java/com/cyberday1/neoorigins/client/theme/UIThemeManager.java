@@ -11,6 +11,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Loads {@link UITheme} definitions from {@code assets/<ns>/ui_themes/*.json}.
@@ -48,6 +49,7 @@ import java.util.Map;
  * }
  * }</pre>
  */
+// hub: neoorigins/theme-template-boot.md
 public class UIThemeManager extends SimpleJsonResourceReloadListener {
 
     public static final UIThemeManager INSTANCE = new UIThemeManager();
@@ -76,7 +78,8 @@ public class UIThemeManager extends SimpleJsonResourceReloadListener {
             JsonElement el = entry.getValue();
             if (el == null || !el.isJsonObject()) continue;
             try {
-                loaded.put(id, parse(el.getAsJsonObject()));
+                loaded.put(id, withResolvablePanel(id, parse(el.getAsJsonObject()),
+                    panel -> rm.getResource(panel).isPresent()));
             } catch (Exception e) {
                 NeoOrigins.LOGGER.error("Failed to load UI theme {} — skipping", id, e);
             }
@@ -105,6 +108,15 @@ public class UIThemeManager extends SimpleJsonResourceReloadListener {
         if (id == null) return UITheme.PARCHMENT;
         UITheme t = THEMES.get(id);
         return t != null ? t : UITheme.PARCHMENT;
+    }
+
+    /** A textured theme whose panel PNG is missing keeps parchment's panel instead of the missing-texture checkerboard. */
+    static UITheme withResolvablePanel(ResourceLocation id, UITheme theme, Predicate<ResourceLocation> exists) {
+        ResourceLocation panel = theme.panelBackground();
+        if (theme.flat() || panel == null || exists.test(panel)) return theme;
+        NeoOrigins.LOGGER.warn("[theming] theme {}: panel_background {} does not exist, using the {} panel",
+            id, panel, DEFAULT_ID);
+        return theme.withPanelOf(UITheme.PARCHMENT);
     }
 
     private static UITheme parse(JsonObject o) {

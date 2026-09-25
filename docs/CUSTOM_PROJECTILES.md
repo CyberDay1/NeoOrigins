@@ -4,7 +4,7 @@ Guide for pack authors and mod developers who want to extend NeoOrigins's
 visual-effects pipeline beyond the built-in `magic_orb` / `lingering_area` /
 vanilla-projectile options.
 
-**Four levels of customisation** cover most cases:
+**Five levels of customisation** cover most cases:
 
 0. **[Datapack visuals](#level-0-datapack-data-driven-visuals)**: pick the
    built-in `neoorigins:magic_orb`'s colour, shape, size, glow, and trail
@@ -17,6 +17,9 @@ vanilla-projectile options.
 3. **[Model-loaded custom entity](#level-3-model-loaded-custom-entity)**:
    ship a Bedrock `.geo.json` model + texture, use `GeoJsonModel` to load
    it, write a custom renderer that draws the baked mesh.
+4. **[Arbitrary triangle meshes](#level-4-arbitrary-triangle-meshes-bakedmeshmodel)**:
+   bake a glTF/GLB mesh offline into an `NBM1` blob and draw it with
+   `BakedMeshModel`.
 
 Each builds on the previous. All paths plug into the existing
 `spawn_projectile` / `spawn_lingering_area` DSL verbs. Pack authors
@@ -41,8 +44,8 @@ data, so the client renderer reads it live. Set any of these fields on the
 | `glow_size` | float | `0.7` | Glow base scale. |
 | `glow_alpha` | int 0–255 | `140` | Glow opacity. |
 | `shape` | `cross`/`cube`/`ring`/`sphere` | `cross` | Procedural geometry. |
-| `trail_particle` | particle id | effect_type default | Flight trail. |
-| `count` / `spread` / `trail_speed` | int / float / float | `2` / `0.05` / `0` | Trail tuning. |
+| `trail_particle` | particle id | effect_type default | Flight trail. Only simple (no-data) particle types work; any other id falls back to the effect_type trail. |
+| `count` / `spread` / `trail_speed` | int / float / float | `2` / `0.05` / `0` | Trail tuning: particles per tick / position spread / particle speed. `speed_particle` is an alias for `trail_speed`. On a non-orb projectile `count` instead sets how many projectiles fire (default `1`). |
 | `no_gravity` | bool | `false` | Physics, not visual: `true` makes the projectile fly straight along its launch vector (ignores gravity; drag still applies). |
 
 **Colour formats.** Both colour fields accept either an RGB array
@@ -80,13 +83,16 @@ round from any angle (a cheap faithful approximation, not a tessellated mesh).
 ## Prerequisites
 
 - NeoOrigins 2.0+ (API under `com.cyberday1.neoorigins.api.content.vfx`)
-- **MC 1.21.1 or 26.1**: the public API (abstract hooks, animation
-  parameters, effect-type registry, model loader) is identical on both
-  versions. Only the base classes' internal render flow differs (1.21.1
-  uses the classic `render()` + `MultiBufferSource` path; 26.1 uses the
-  state-pattern `submit()` + `SubmitNodeCollector`). Subclass code
-  compiles unchanged across both, so the same mod jar is rarely the goal;
-  multi-version builds are.
+- **MC 1.21.1 vs 26.x**: the animation-parameter hooks, `resolveColor()`,
+  `renderType()`, the effect-type registry and the model loaders are the same
+  on both. Renderer plumbing is not: on 1.21.1 `ProceduralQuadRenderer<T, S>`
+  extends `EntityRenderer<T>`, declares its own `protected abstract`
+  `createRenderState()` / `extractRenderState(...)` (no `super` call), and
+  every renderer must implement `getTextureLocation(T)`; drawing happens in
+  `render()` with a `MultiBufferSource`. On 26.x the renderer extends
+  `EntityRenderer<T, S>` and uses the vanilla `public` state methods plus
+  `submit()` + `SubmitNodeCollector`. Renderer subclasses therefore need a
+  per-version source file. The examples below are written for 1.21.1.
 - A companion mod project: these are Java examples, not datapack JSON.
   For a pure-datapack approach, use the pre-registered `neoorigins:magic_orb`
   with one of the built-in `effect_type` keys (see the
@@ -129,6 +135,12 @@ any pack JSON can reference the key:
   "speed": 1.6
 }
 ```
+
+To also give the key a default shape and trail particle, call
+`VfxEffectTypes.registerDefaults("verdant_glow", "ring", "minecraft:happy_villager")`
+(shape is `cross`/`cube`/`ring`/`sphere`). Without it the key renders as a
+`cross` with the orb's fallback `minecraft:witch` trail. Explicit
+`spawn_projectile` fields still override both.
 
 **That's it.** No entity class, no renderer, no assets. Pack authors get
 a new colored orb keyed by the name you picked.
@@ -194,18 +206,14 @@ package yourmod.client;
 
 import com.cyberday1.neoorigins.api.content.vfx.ProceduralQuadRenderer;
 import yourmod.entity.CrystalShardProjectile;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 public class CrystalShardRenderer extends ProceduralQuadRenderer<CrystalShardProjectile, CrystalShardRenderState> {
-    private static final Identifier TEXTURE =
-        Identifier.fromNamespaceAndPath("yourmod", "textures/entity/crystal_shard.png");
-    private static final RenderType RENDER_TYPE = RenderTypes.entityTranslucentEmissive(TEXTURE);
+    private static final ResourceLocation TEXTURE =
+        ResourceLocation.fromNamespaceAndPath("yourmod", "textures/entity/crystal_shard.png");
+    private static final RenderType RENDER_TYPE = RenderType.entityTranslucentEmissive(TEXTURE);
 
     public CrystalShardRenderer(EntityRendererProvider.Context ctx) { super(ctx); }
 
@@ -230,20 +238,20 @@ public class CrystalShardRenderer extends ProceduralQuadRenderer<CrystalShardPro
     }
 
     @Override
-    public CrystalShardRenderState createRenderState() { return new CrystalShardRenderState(); }
+    public ResourceLocation getTextureLocation(CrystalShardProjectile entity) { return TEXTURE; }
 
     @Override
-    public void extractRenderState(CrystalShardProjectile entity, CrystalShardRenderState state, float partialTick) {
-        super.extractRenderState(entity, state, partialTick);
+    protected CrystalShardRenderState createRenderState() { return new CrystalShardRenderState(); }
+
+    @Override
+    protected void extractRenderState(CrystalShardProjectile entity, CrystalShardRenderState state, float partialTick) {
+        // The base render() has already set state.partialTick.
         state.lifetime = entity.tickCount;
     }
 
+    // The base render() draws the core + glow layers with this render type.
     @Override
-    public void submit(CrystalShardRenderState state, PoseStack poseStack,
-                       SubmitNodeCollector collector, CameraRenderState camera) {
-        submitQuads(state, poseStack, collector, RENDER_TYPE);
-        super.submit(state, poseStack, collector, camera);
-    }
+    protected RenderType renderType() { return RENDER_TYPE; }
 }
 ```
 
@@ -257,7 +265,7 @@ public static final DeferredHolder<EntityType<?>, EntityType<CrystalShardProject
             .sized(0.3F, 0.3F)
             .clientTrackingRange(4)
             .updateInterval(10)
-            .build(CRYSTAL_SHARD_KEY));
+            .build("crystal_shard"));
 
 // In your client events handler (EntityRenderersEvent.RegisterRenderers)
 event.registerEntityRenderer(ModEntities.CRYSTAL_SHARD.get(), CrystalShardRenderer::new);
@@ -284,8 +292,9 @@ isn't producing. Still no assets required.
 **Goal:** a giant rotating runestone that spins in place for 10 seconds,
 rendering a complex geometric shape too detailed for procedural quads.
 
-**What you ship:** one `.geo.json` + one `.png` texture, plus three Java
-classes.
+**What you ship:** one `.geo.json` + one `.png` texture, plus two Java
+classes (entity + renderer; a 1.21.1 `EntityRenderer<T>` reads the entity
+directly, so no render-state class is needed).
 
 ### The asset files
 
@@ -328,79 +337,59 @@ public class RunestoneVfx extends AbstractVfxEntity {
 }
 ```
 
-### Render state
-
-```java
-public class RunestoneRenderState extends AbstractVfxRenderState {
-    // Inherits range + lifetime — that's all the render math needs.
-}
-```
-
 ### Renderer: uses GeoJsonModel
 
 ```java
 package yourmod.client;
 
-import com.cyberday1.neoorigins.api.content.vfx.AbstractVfxRenderState;
 import com.cyberday1.neoorigins.api.content.vfx.GeoJsonModel;
 import com.cyberday1.neoorigins.api.content.vfx.VfxEffectTypes;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
-import net.minecraft.resources.Identifier;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
 import yourmod.entity.RunestoneVfx;
 
-public class RunestoneRenderer extends EntityRenderer<RunestoneVfx, RunestoneRenderState> {
+public class RunestoneRenderer extends EntityRenderer<RunestoneVfx> {
     // Load the model once at class load.
     private static final GeoJsonModel MODEL = GeoJsonModel.load("/assets/yourmod/geo/runestone.geo.json");
 
-    private static final Identifier TEXTURE =
-        Identifier.fromNamespaceAndPath("yourmod", "textures/entity/runestone.png");
-    private static final RenderType RENDER_TYPE = RenderTypes.entityTranslucentEmissive(TEXTURE);
+    private static final ResourceLocation TEXTURE =
+        ResourceLocation.fromNamespaceAndPath("yourmod", "textures/entity/runestone.png");
+    private static final RenderType RENDER_TYPE = RenderType.entityTranslucentEmissive(TEXTURE);
 
     public RunestoneRenderer(EntityRendererProvider.Context ctx) { super(ctx); }
 
     @Override
-    public RunestoneRenderState createRenderState() { return new RunestoneRenderState(); }
+    public ResourceLocation getTextureLocation(RunestoneVfx entity) { return TEXTURE; }
 
     @Override
-    public void extractRenderState(RunestoneVfx entity, RunestoneRenderState state, float partialTick) {
-        super.extractRenderState(entity, state, partialTick);
-        AbstractVfxRenderState.extract(entity, state);
-    }
-
-    @Override
-    public void submit(RunestoneRenderState state, PoseStack poseStack,
-                       SubmitNodeCollector collector, CameraRenderState camera) {
-        float time = state.lifetime + state.partialTick;
+    public void render(RunestoneVfx entity, float yaw, float partialTick,
+                       PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
+        float time = entity.getLifetime() + partialTick;
 
         // Scale by range so larger radii get bigger runestones.
-        float scale = state.range / MODEL.getRadius();
+        float scale = entity.getRange() / MODEL.getRadius();
         // Tint by the effect_type color for themed variants.
-        int[] color = VfxEffectTypes.get(state.effectType);
+        int[] color = VfxEffectTypes.get(entity.getEffectType());
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(time * 2.0f)); // slow spin
         poseStack.scale(scale, scale, scale);
-        collector.submitCustomGeometry(poseStack, RENDER_TYPE, (pose, consumer) ->
-            MODEL.renderTinted(
-                new PoseStack() {{ /* unused; the model uses the passed pose internally */ }},
-                consumer, color[0], color[1], color[2], 255,
-                0xF000F0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY));
+        MODEL.renderTinted(poseStack, buffer.getBuffer(RENDER_TYPE),
+            color[0], color[1], color[2], 255, 0xF000F0, OverlayTexture.NO_OVERLAY);
         poseStack.popPose();
-        super.submit(state, poseStack, collector, camera);
+        super.render(entity, yaw, partialTick, poseStack, buffer, packedLight);
     }
 }
 ```
 
-(Note: the exact renderer wiring uses `GeoJsonModel.renderTinted(poseStack, consumer, ...)`; the
-intermediate stack adapter in the example above is illustrative. See
-`BlackHoleRenderer` in the NeoOrigins source for the real pattern.)
+(See `BlackHoleRenderer` in the NeoOrigins source for the same pattern; it
+uses the untinted `MODEL.render(poseStack, consumer, light, overlay)`.)
 
 ### Registration & DSL
 
@@ -494,14 +483,42 @@ if (model == null) {
 ### Rendering
 
 Aim and spin in the renderer, then hand the `PoseStack` + `VertexConsumer` to the
-model. This is the real thrown-sword renderer, trimmed:
+model. This is NeoOrigins' own thrown-sword renderer, with your paths.
+`ThrownSwordProjectile` stands for your projectile class (an
+`AbstractNeoProjectile`, as in Level 2):
 
 ```java
+package yourmod.client;
+
+import com.cyberday1.neoorigins.api.content.vfx.BakedMeshModel;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import yourmod.entity.ThrownSwordProjectile;
+
 public class ThrownSwordRenderer extends EntityRenderer<ThrownSwordProjectile> {
 
-    private static final RenderType RENDER_TYPE =
-        RenderType.entityTranslucent(TEXTURE);
+    private static final String MODEL_PATH = "/assets/yourmod/geo/yourmodel.bakedmesh";
+    private static final float MODEL_SCALE = 0.055f;
+    private static BakedMeshModel model;
+
+    private static final ResourceLocation TEXTURE =
+        ResourceLocation.fromNamespaceAndPath("yourmod", "textures/entity/yourmodel.png");
+    private static final RenderType RENDER_TYPE = RenderType.entityTranslucent(TEXTURE);
     private static final int TINT_R = 175, TINT_G = 215, TINT_B = 255, TINT_A = 235;
+    private static final float SPIN_PER_TICK = 27f; // degrees per tick about the travel axis
+
+    public ThrownSwordRenderer(EntityRendererProvider.Context ctx) { super(ctx); }
+
+    @Override
+    public ResourceLocation getTextureLocation(ThrownSwordProjectile entity) { return TEXTURE; }
 
     @Override
     public void render(ThrownSwordProjectile entity, float yaw, float partialTick,
@@ -509,6 +526,12 @@ public class ThrownSwordRenderer extends EntityRenderer<ThrownSwordProjectile> {
         if (model == null) model = BakedMeshModel.load(MODEL_PATH, MODEL_SCALE);
 
         // Aim the blade's +Z down its velocity vector, then spin about that axis.
+        Vec3 v = entity.getDeltaMovement();
+        float aimYaw = -entity.getYRot(), aimPitch = -entity.getXRot();
+        if (v.lengthSqr() > 1.0e-6) {
+            aimYaw = (float) (Mth.atan2(v.x, v.z) * (180.0 / Math.PI));
+            aimPitch = (float) (Mth.atan2(v.y, Math.sqrt(v.x * v.x + v.z * v.z)) * (180.0 / Math.PI));
+        }
         float spin = (entity.tickCount + partialTick) * SPIN_PER_TICK;
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(aimYaw));
@@ -536,8 +559,10 @@ public class ThrownSwordRenderer extends EntityRenderer<ThrownSwordProjectile> {
 ### Registration & DSL
 
 Same as Level 3: register the entity type and its renderer; pack JSON points at
-the entity via `spawn_projectile` / `spawn_projectile_rain` (the rain action's
-`model` field selects which baked mesh to use). The thrown sword and the
+the entity via `spawn_projectile`. `spawn_projectile_rain`'s `model` field
+picks from a fixed, built-in table in `ProjectileRainRenderer` (currently only
+`sword`; unknown ids fall back to it), so it cannot select a companion mod's
+mesh. The thrown sword and the
 sword-rain it seeds both reference one `spectral_sword.bakedmesh`, so they read
 as a single effect.
 
@@ -555,8 +580,8 @@ Rendering paths:
 |---|---|---|---|
 | Level 1 (pack-author) | none | 0 | Themed color variants of the default magic orb |
 | Level 2 (procedural) | none | 3 (entity + state + renderer) | Custom animation math without geometry |
-| Level 3 (model-loaded) | .geo.json + .png | 3 (entity + state + renderer) + assets | Distinctive geometric shapes from Bedrock cubes |
-| Level 4 (baked mesh) | .bakedmesh + .png | 3 (entity + state + renderer) + assets + offline bake | Arbitrary triangle meshes (glTF/GLB) that aren't cube-soup |
+| Level 3 (model-loaded) | .geo.json + .png | 2 (entity + renderer) + assets | Distinctive geometric shapes from Bedrock cubes |
+| Level 4 (baked mesh) | .bakedmesh + .png | 2 (entity + renderer) + assets + offline bake | Arbitrary triangle meshes (glTF/GLB) that aren't cube-soup |
 
 They all plug into `spawn_projectile` identically; the pack author
 doesn't know (or care) which level implemented the visual.
@@ -564,7 +589,9 @@ doesn't know (or care) which level implemented the visual.
 ### When you need the entity to actually *do* things during flight
 
 Level 2 entities can override any `Entity` method: `tick()` to adjust
-velocity (homing), `onHit()` to trigger custom impact behaviour, etc. See
+velocity (homing), `onImpact()` for custom impact behaviour (`onHit()`
+is `final` in `AbstractNeoProjectile`: it calls `onImpact()` server-side,
+then discards the projectile), etc. See
 `HomingProjectile` in the NeoOrigins source for a working example that
 steers toward the nearest living entity each tick.
 
@@ -573,7 +600,7 @@ steers toward the nearest living entity each tick.
 Use `neoorigins:spawn_lingering_area`, no custom entity needed. The
 action accepts any nested `entity_action` to run on interval. Pair it
 with a `spawn_projectile` + `on_hit_action` and the lingering area
-lands at the projectile's impact point. See `docs/COOKBOOK.md` recipe 11
+lands at the projectile's impact point. See `docs/COOKBOOK.md` recipe 14
 for a worked example.
 
 ### Stability contract
@@ -608,10 +635,11 @@ both sides (entities sync via `SynchedEntityData`; renderers read the
 registry on render).
 
 **"`.geo.json` loads but the model shape is wrong."**
-`GeoJsonModel` only reads cubes from the first bone of the first
-geometry. Multi-bone skeletal models are out of scope. Use a
-single-bone cube soup (Blockbench: merge all cubes into one bone before
-exporting) or invest in GeckoLib.
+`GeoJsonModel` reads the cubes of every bone in the first geometry, but
+applies no bone or cube `pivot`/`rotation`: each cube is placed at its raw
+`origin`, and `origin`/`size`/`uv` are read as whole numbers. Rotated or
+skeletal models are out of scope. Use unrotated, whole-pixel cube soup or
+invest in GeckoLib.
 
 **"Pack authors don't see my entity in `spawn_projectile`."**
 Registered entities appear in the DSL as soon as they're registered in

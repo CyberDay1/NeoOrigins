@@ -136,9 +136,11 @@ The primary condition type. Checks if a specific origin was chosen in a specific
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `type` | string | required | `"origins:origin"`, `"apace:origin"`, or `"neoorigins:origin"` |
-| `layer` | string | `"origins:origin"` | The layer ID to check |
+| `layer` | string | `"neoorigins:origin"` | The layer ID to check. `origins:origin` and `apace:origin` are rewritten to `neoorigins:origin`, the layer they are merged into. |
 | `origin` | string | required | The origin ID the player must have chosen |
 | `inverted` | boolean | `false` | When `true`, passes when the origin was NOT chosen |
+
+A condition the parser can't use (an unknown `type`, an `origins:origin` without `origin`, or an `and` / `or` whose `conditions` yield nothing usable) is dropped without a warning, and the entry is then shown unconditionally.
 
 ### `origins:and` — All conditions must pass
 
@@ -177,7 +179,7 @@ order: 2  → "Dwarven Clan"   (Hill, Mountain — only if Race=Dwarf)
 order: 3  → "Cantrip"        (only if Lineage=High Elf)
 ```
 
-Multiple sub-layers can share the same `order` value: they'll be shown in registration order, and layers with no visible origins are automatically skipped.
+Multiple sub-layers can share the same `order` value, but their relative order is then undefined: the loader sorts layers by `order` alone. Layers with no visible origins are automatically skipped.
 
 ---
 

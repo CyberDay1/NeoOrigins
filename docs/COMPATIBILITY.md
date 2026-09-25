@@ -2,7 +2,8 @@
 
 NeoOrigins ships with built-in support for a number of other mods. Every
 integration is a **soft dependency**: each is gated behind a mod-list check (or
-runtime reflection), so none of these mods are required. If a mod is absent the
+runtime reflection, an optional mixin, or the other mod's own plugin discovery),
+so none of these mods are required. If a mod is absent the
 integration simply stays dormant; NeoOrigins runs normally without it.
 
 If a prose doc disagrees with the code, the code wins.
@@ -77,18 +78,22 @@ tail after `run` is excluded, so the selectors ahead of it are still repaired.
 
 | Mod | Mod id | What it adds |
 |---|---|---|
-| **Curios API** | `curios` | Lets conditions inspect equipped curio slots: the `equipped_item` condition's `accessory` slot and umbrella detection both read worn curios. Reflection-based, no hard dependency. |
-| **Accessories** | `accessories` | Wisp Forest's accessory system. The `equipped_item` condition's `accessory` slot (and umbrella detection) also reads worn Accessories, alongside Curios. Compile-only soft dependency; **1.21.1 only** (no 26.1 build exists). |
+| **Curios API** | `curios` | Lets conditions inspect equipped curio slots: the `equipped_item` condition's `accessory` slot (optionally narrowed by `slot_type`) and umbrella detection both read worn curios, and `neoorigins:keep_inventory` keeps matching curio-slot items through death. Reflection-based, no hard dependency. |
+| **Accessories** | `accessories` | Wisp Forest's accessory system. The `equipped_item` condition's `accessory` slot, umbrella detection and `keep_inventory` also cover worn Accessories, alongside Curios. Compile-only soft dependency; **1.21.1 only** (the 26.1 and 26.2 builds contain no Accessories code). |
 | **Vampires Need Umbrellas** | `vampiresneedumbrellas` | An equipped umbrella shields the holder from both weather-damage conditions: `exposed_to_sun` (sun-burn origins) and `in_rain` (rain/water-damage origins like Wet Fur and True Hydrophobia). Every item in the `vampiresneedumbrellas` namespace is treated as an umbrella, detected in either hand or any Curios/Accessories slot. |
 | **Artifacts** | `artifacts` | The Artifacts umbrella (`artifacts:umbrella`) shields the holder from `exposed_to_sun` and `in_rain`, the same as a Vampires Need Umbrellas umbrella. Wired through the `neoorigins:umbrellas` item tag as an optional entry — no dependency, and the entry no-ops when Artifacts is absent. Datapacks can add their own umbrellas to that tag; see [Umbrella items](CONDITIONS.md#umbrella-items). |
-| **Ars Nouveau** | `ars_nouveau` | Undead-type origins are healed (rather than harmed) by Ars Nouveau harm spells, mirroring vanilla undead behaviour. |
-| **FTB Teams** | `ftbteams` | Players on the same or an allied FTB team are treated as trusted for mount consent: a teammate or ally can ride your mountable origin without sending a consent request. |
-| **Open Parties & Claims** | `openpartiesandclaims` | Same as FTB Teams, but using OPAC party membership. |
-| **FTB Quests** | `ftbquests` | Adds a first-class "NeoOrigins: Grant Loot Pool" reward type to the quest editor. Set the loot table id and roll count directly on the quest. Quests tagged `neoorigins_loot_pool_grant:<table_id>` grant a loot pool on completion too; both routes share the same roll-and-grant pipeline. |
+| **Ars Nouveau** | `ars_nouveau` | A player whose `neoorigins:entity_group` power uses a group with `invert_instant_effects` (the undead behaviour) is healed rather than harmed by a spell containing Ars Nouveau's Harm effect, mirroring vanilla undead behaviour. Reflection-based. |
+| **FTB Teams** | `ftbteams` | Players on the same or an allied FTB team are treated as trusted for mount consent: a teammate or ally can ride your mountable origin without sending a consent request. Reflection-based. |
+| **Open Parties & Claims** | `openpartiesandclaims` | Same as FTB Teams, but using OPAC party membership. Reflection-based. |
+| **FTB Quests** | `ftbquests` | Two routes, both rolling a loot table into the player's inventory (overflow drops at their feet). **Reward type:** a "NeoOrigins: Grant Loot Pool" reward (`neoorigins:loot_pool`) in the quest editor, with a `loot_table` id and `rolls` (1 to 256, default 1); it rolls for the player who claims it. **Tag marker:** a quest tagged `neoorigins_loot_pool_grant:<table_id>` rolls that table once, on completion, for every online member of the completing team. Each route grants at most once per player per reward or per quest-and-table, and a roll that yields no items is not counted, so it can grant later. Compile-only soft dependency. See [FTB Quests](#ftb-quests) for what the other Minecraft versions support. |
 | **FTB Ultimine** | `ftbultimine` | Powers the `neoorigins:ultimine` power: NeoOrigins registers a restriction handler so vein-mining is gated to players holding an active `ultimine` power. The integration is completely dormant unless a loaded pack defines a `neoorigins:ultimine` power; while no pack uses it, FTB Ultimine behaves exactly as vanilla. Once at least one `ultimine` power is loaded, vein-mining is restricted to players who hold one. Block count, tool requirement, and shape follow FTB Ultimine's own server config; the restriction API exposes no override for them. Compile-only soft dependency. |
 | **Dragon Survival** | `dragonsurvival` | The `neoorigins:become_dragon` power drives Dragon Survival's own dragon state, so an origin can make its holder a DS dragon of a configured species and stage; DS supplies the actual traits, growth, abilities, altar economy and hunters. Ships with three built-in origins (Cave / Forest / Sea Dragon) gated behind `"required_mods": ["dragonsurvival"]`, so they only load and appear in the picker when DS is installed. Reflection-based, no hard dependency. See the [Dragon Survival](#dragon-survival) section and the caveat below. |
-| **Pehkui** | `pehkui` | Origin body-scale powers drive the Pehkui scale system so resizing renders and collides correctly. See the caveat below. |
-| **Epic Fight** | `epicfight` | Origin scaling is applied to Epic Fight's custom entity renderer via a mixin, so scaled origins render correctly with Epic Fight installed. |
+| **Pehkui** | `pehkui` | No live integration: origin body-scale powers set the vanilla `minecraft:scale` attribute and never write Pehkui's scale. What exists is a stand-in for Pehkui's `/scale` command, registered **only when Pehkui is absent**, so Origins packs whose functions call `scale ...` still parse and run their other lines. The stand-in accepts any arguments; `set`, `add` or `reset` with `pehkui:base`, `pehkui:width`, `pehkui:height`, `pehkui:model_width` or `pehkui:model_height` and a numeric value set the executing player's vanilla scale to that value (`add` behaves like `set`); every other form, including a `reset` with no value and types such as `pehkui:flight`, does nothing and still reports success. See the caveat below. |
+| **Epic Fight** | `epicfight` | Origin scaling is applied to Epic Fight's custom entity renderer via a client-side mixin (it scales Epic Fight's pose by the entity's scale), so scaled origins render correctly with Epic Fight installed. The mixin is optional and skipped when Epic Fight is absent. |
+| **Build A Spell** | `buildaspell` | The `neoorigins:cast_spell` action casts an inline Build A Spell spell (`delivery` plus an ordered `components` list) from an origin power. Without Build A Spell installed the action logs a warning and does nothing. Compiled against a checked-in API stub, never bundled. See [ACTIONS.md](ACTIONS.md#neooriginscast_spell). |
+| **GeckoLib** | `geckolib` | The `neoorigins:trigger_morph_animation` action starts or stops a triggerable animation on the morph model a player is drawn as, when that model is a GeckoLib entity. Only animation names the mob's own author registered can be triggered. Reflection-based. See [ACTIONS.md](ACTIONS.md#neooriginstrigger_morph_animation). |
+| **Aliens vs Predator** | (targets `com.alien.common.util.AlienPredicates`) | A player holding a `neoorigins:xeno_passive` power is not a viable facehugger host: an optional mixin makes the mod's host check return false for them. Nothing ships that grants the power; pair it with a `mobs_ignore_player` power for the targeting half. The mixin is skipped when the mod is absent. |
+| **Sable** | `sable` | For a player standing on a Sable sub-level (e.g. a Create Aeronautics airship): `neoorigins:active_teleport` converts its ship-space landing spot to real-world space, and `active_teleport`, `active_swap` and the `teleport_to_marker`, `random_teleport` and `swap_positions` actions detach the moved entities from the deck. Compile-only soft dependency; **1.21.1 only** (the 26.1 and 26.2 builds contain no Sable code). |
 | **Iron's Spells 'n Spellbooks** | `irons_spellbooks` | Three surfaces: the `neoorigins:cast_iron_spell` action casts an Iron's spell from an origin power; a `neoorigins:resource` power can back its bar with the player's Iron's mana pool (`"backing": "irons_spellbooks:mana"`); and `attribute_modifier` powers can modify Iron's custom attributes (max mana, spell power, cooldown reduction, …). Compile-only soft dependency (never bundled). See the full [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section below. |
 | **Modded attributes** | (any) | `attribute_modifier` powers can target attributes added by other mods (e.g. Iron's Spells, Apothic Attributes). Attribute IDs resolve with or without the `generic.`/`player.` prefix. For Iron's specifically, see the [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section. |
 | **Figura** | `figura` | Exposes a read-only `neoorigins` Lua global to Figura avatars, so a custom-avatar script can react to the wearer's origin, active powers, capabilities, and evolution tier (e.g. swap models per origin or per tier). Origins declare opaque model keys via the `figura_model` / `figura_models` datapack fields. Compile-only soft dependency; Figura only ever reads NeoOrigins state. Full reference: [FIGURA.md](FIGURA.md). |
@@ -307,12 +312,57 @@ no change on the server or in DS's own config.
 
 ---
 
+## FTB Quests
+
+What a quest author can use differs by Minecraft version:
+
+| Feature | 1.21.1 | 26.1 | 26.2 |
+|---|---|---|---|
+| "NeoOrigins: Grant Loot Pool" reward type (`neoorigins:loot_pool`) | Yes | No | No |
+| `neoorigins_loot_pool_grant:<table_id>` quest tag | Yes | Yes | No |
+
+- **1.21.1** registers the reward type at common setup and listens for quest
+  completion through FTB Quests' `ObjectCompletedEvent`. Both are wired only
+  when `ftbquests` is loaded.
+- **26.1** has the tag marker only. The typed reward has not been ported to
+  FTB Quests 26.1, so no reward type is registered and the quest editor offers
+  no NeoOrigins reward. Completion is read from FTB Quests 26.1's
+  `FTBQuestsEvent.QuestProgress` (completed quests only).
+- **26.2** has no working FTB Quests support. The build does not compile
+  against FTB Quests, since none exists for 26.2, and keeps only a
+  reflection hook for the older `ObjectCompletedEvent`, which FTB Quests' 26.x
+  line no longer has. If FTB Quests is installed the hook finds nothing,
+  logs that tag-marker rewards are inert, and no reward type exists.
+
+The `neoorigins:loot_pool_grant` power is unaffected by any of this and works
+on every version.
+
+---
+
+## Availability by Minecraft version
+
+Not every integration is compiled into every build. "Yes" means the build
+contains the integration's code; the other mod still has to exist for that
+Minecraft version.
+
+| Integration | 1.21.1 | 26.1 | 26.2 |
+|---|---|---|---|
+| Accessories | Yes | No | No |
+| EMI | Yes | No | No |
+| Sable | Yes | No | No |
+| FTB Quests | Reward type and tag marker | Tag marker only | No (see above) |
+| FTB Ultimine | Yes | Yes | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated |
+| KubeJS | Yes | Yes | No: see [KUBEJS.md](KUBEJS.md#availability) |
+| Everything else on this page | Yes | Yes | Yes |
+
+---
+
 ## Scripting
 
 | Mod | Mod id | What it adds |
 |---|---|---|
 | **KubeJS** | `kubejs` | A scripting plugin exposing NeoOrigins to KubeJS: register custom powers, actions, and conditions, and hook origin lifecycle events from JS. **Not available on the Minecraft 26.2 build:** KubeJS publishes no 26.2 artifact, so the integration is not compiled in there. See [KUBEJS.md](KUBEJS.md#availability). |
-| **KeybindJS** | `keybindjs` | Hotkey assignment for active powers integrates with KeybindJS bindings on the client. |
+| **KeybindJS** | `keybindjs` | Client-side: when KeybindJS is loaded, a key mapping registered outside NeoOrigins under an active power's declared `key` name is used for that power instead of one of NeoOrigins' numbered hotkey slots, so the key is not bound twice. |
 
 ---
 
@@ -322,7 +372,7 @@ no change on the server or in DS's own config.
 |---|---|---|
 | **JEI** | `jei` | Adds an information panel for the Orb of Origin item. |
 | **REI** | `roughlyenoughitems` | Adds the Orb of Origin to the item list. |
-| **EMI** | `emi` | Adds an information panel for the Orb of Origin item (the same copy as the JEI panel). |
+| **EMI** | `emi` | Adds an information panel for the Orb of Origin item (the same copy as the JEI panel). **1.21.1 only**: the 26.1 and 26.2 builds contain no EMI plugin. |
 
 ---
 
@@ -330,8 +380,8 @@ no change on the server or in DS's own config.
 
 | Mod | Mod id | What it adds |
 |---|---|---|
-| **Jade** | `jade` | Shows the looked-at entity's NeoOrigins origin in the tooltip/probe overlay. |
-| **The One Probe** | `theoneprobe` | Shows the looked-at entity's NeoOrigins origin in the tooltip/probe overlay. |
+| **Jade** | `jade` | Meant to show the mob origin (from the Mob Origin System) of a looked-at living entity. Player origins are not shown. See the caveat below: the line does not currently appear. |
+| **The One Probe** | `theoneprobe` | Shows the mob origin (from the Mob Origin System) of a looked-at living entity in the probe overlay. Player origins are not shown. |
 | **AppleSkin** | `appleskin` | Makes the food tooltip and the held-food HUD preview show what a `modify_food_nutrition` power will actually give, rather than the item's vanilla value. |
 
 **AppleSkin, in more detail.** `neoorigins:modify_food_nutrition` never
@@ -350,18 +400,22 @@ sync. Nothing here classloads when AppleSkin is absent.
 
 ## Caveats and known gaps
 
-- **Pehkui scaling is last-write-wins.** NeoOrigins sets the Pehkui scale
-  directly rather than composing with it, so an origin scale power and a manual
-  `/scale` command will clobber one another; whichever ran last takes effect.
-  There is no additive/multiplicative composition between the two.
+- **Pehkui's scale and origin scale are separate.** With Pehkui installed,
+  NeoOrigins never touches Pehkui's scale: origin size powers use the vanilla
+  `minecraft:scale` attribute and Pehkui's own `/scale` is the real command, so
+  the two stack however Pehkui combines its scale with the vanilla attribute.
+  Without Pehkui, the `/scale` stand-in adds its own non-saved modifier to
+  `minecraft:scale` on top of the origin's, so it is lost on relog.
 - **FTB Quests grants loot pools, not origins.** Both the reward type and the
   tag-marker path roll a loot table and deposit the items; neither assigns an
   origin directly. Use a loot table that yields the relevant items, or pair the
   grant with an origin-granting power.
-- **GeckoLib is not an active integration (roadmap).** NeoOrigins only probes
-  for `geckolib`; the planned `AnimatedProjectileRenderer` has not shipped, so
-  projectiles fall back to standard item rendering. Listed here so its absence
-  from the table above isn't mistaken for an oversight.
+- **GeckoLib covers morph animations only.** Custom projectiles still render
+  as items; NeoOrigins ships no GeckoLib projectile renderer.
+- **The Jade origin line does not currently appear.** The Jade provider runs
+  on the client and reads the mob origin from the entity's own data, but that
+  data is only kept on the server (clients receive mob origins through a
+  separate cache). The One Probe reads it on the server and is unaffected.
 - **Dragon Survival binds reflectively.** DS exposes no public addon API, so
   the bridge resolves its internal classes and methods by name at runtime. If a
   future DS release renames them, `become_dragon` logs one warning and stops

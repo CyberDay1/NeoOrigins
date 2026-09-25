@@ -1,0 +1,21 @@
+To ship your own TTF font with the theme:
+
+1. Put your_font.ttf in this 'font/' folder (lowercase file names only).
+   Honour the font's license; if it's OFL you must ship the license file too.
+
+2. Create my_theme_font.json in this folder:
+
+   {
+     "providers": [
+       { "type": "ttf", "file": "_replace_:your_font.ttf",
+         "shift": [0, 1], "size": 11, "oversample": 2, "skip": "" },
+       { "type": "reference", "id": "minecraft:default" }
+     ]
+   }
+
+3. In ui_themes/my_theme.json, add:  "font": "_replace_:my_theme_font"
+
+Do not make a font whose providers are just a "reference" to
+neoorigins:parchment. The theme already uses that font when "font" is not
+set, and on Minecraft 1.21.1 two fonts sharing one TTF can crash the game
+while it loads.

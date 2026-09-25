@@ -23,8 +23,9 @@ The integration is entirely optional and one-directional:
   each visible player's state down to every client (so any observer's copy of that
   player's avatar answers correctly), and the Lua `neoorigins` global is read-only.
 - **The datapack fields are opaque.** The model keys and labels you declare on an
-  origin (`figura_model` / `figura_models`) are strings NeoOrigins never interprets
-  or validates. They are passed straight through to the Lua sandbox. Their meaning
+  origin (`figura_model` / `figura_models`) are strings NeoOrigins does not
+  interpret, apart from reading `tiers` keys as integers and `powers` keys as
+  power ids. They are passed straight through to the Lua sandbox. Their meaning
   lives entirely in the avatar author's script.
 
 If Figura is installed but the wearer's avatar has no NeoOrigins-aware script, the
@@ -52,7 +53,8 @@ The base model key: a single opaque string, e.g. `"knight"`. Read from Lua as
 
 ### `figura_models` (object)
 
-Reactive maps for advanced setups. Every key and value is an opaque string.
+Reactive maps for advanced setups. Every key and value is an opaque string,
+except the `powers` keys, which must parse as resource ids.
 
 | Sub-map | Key | Value | Meaning |
 |---|---|---|---|
@@ -69,7 +71,7 @@ Reactive maps for advanced setups. Every key and value is an opaque string.
   "powers": ["mypack:shield_wall"],
   "figura_model": "knight",
   "figura_models": {
-    "tiers":        { "1": "knight_ascended", "2": "knight_apex" },
+    "tiers":        { "2": "knight_ascended", "3": "knight_apex" },
     "powers":       { "mypack:shield_wall": "knight_guard" },
     "capabilities": { "natural_glide": "knight_winged" },
     "vocab": {

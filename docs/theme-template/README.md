@@ -59,8 +59,9 @@ Players just install the pack: no client config, no separate datapack juggling.
    `textures/gui/themes/<your_id>/PANEL_PNG_GOES_HERE.txt` with a 256x256
    `panel.png`. Skip this step entirely if you only want to recolour text.
 
-5. **(Optional) Ship a TTF font.** Edit `font/my_theme_font.json` and put the
-   TTF beside it. Skip this step to inherit Newsreader from the base mod.
+5. **(Optional) Ship a TTF font.** Follow `font/your_font_goes_here.txt`: it
+   has the font JSON to create and the `font` line to add to your theme.
+   Skip this step to inherit Newsreader from the base mod.
 
 6. **Point `active_theme.json` at your id.** Open
    `data/<your_ns>/neoorigins/active_theme.json` and confirm `"theme"` matches
@@ -85,8 +86,9 @@ Three options:
 ## How the active-theme selection works
 
 The mod scans every loaded pack for `data/<ns>/neoorigins/active_theme.json`.
-If exactly one pack declares it, that pack wins. If several do, the one
-loaded last wins (and a warning is logged listing the conflict). Players can
+If exactly one pack declares it, that pack wins. If several namespaces do,
+one of them wins and a warning is logged listing the conflict; the winner is
+not tied to pack load order, so ship only one declaration. Players can
 force a specific theme regardless via `config/neoorigins/client.toml`:
 
 ```toml
@@ -99,11 +101,14 @@ The override is per-client, useful for solo players.
 ## Troubleshooting
 
 - **The theme doesn't apply**: check the server log for
-  `[theming] active UI theme set by ...`. If you see
-  `[theming] active theme '<id>' is not loaded`, the resource side didn't
-  load: your theme JSON likely isn't where the mod expects it.
+  `[theming] active UI theme set by ...`. If that line names your id but the
+  screens still show parchment, the resource side didn't load it: your theme
+  JSON likely isn't where the mod expects it. An unknown theme id falls back
+  to parchment without any log line.
 - **Panel still shows parchment**: `panel_background` in the theme JSON
   must be a valid resource location pointing to a PNG that exists in your
-  pack. Typos fall back silently to the parchment default.
+  pack. A path that doesn't resolve falls back to the parchment panel, and
+  the client log says `[theming] theme <id>: panel_background <path> does
+  not exist`.
 - **Font didn't change**: Minecraft font reloads are picky. Hit `F3+T`
   after editing the JSON, or rejoin the world.

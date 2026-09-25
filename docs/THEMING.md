@@ -19,7 +19,7 @@ The short version:
 3. (Optional) drop a 256x256 `panel.png` into
    `assets/<ns>/textures/gui/themes/<id>/`.
 4. (Optional) put a `.ttf` in `assets/<ns>/font/` and update
-   `<id>_font.json`.
+   `my_theme_font.json`.
 5. Zip it (or wrap it in a mod jar) and ship.
 
 The template's README walks through each step in more detail.
@@ -55,27 +55,33 @@ wins):
    { "theme": "examplepack:dark_woods" }
    ```
    The server reads these on world load + each `/reload` and broadcasts the
-   selection to every client at login. Conflict rule: if multiple packs each
-   declare an `active_theme.json`, the one loaded **last** wins and a warning
-   is logged listing every contributor. Adjust pack load order if you want
-   a different outcome.
+   selection to every client at login and after each `/reload`. Conflict rule:
+   if multiple namespaces each declare an `active_theme.json`, one of them
+   wins and a warning is logged listing every contributor. The winner is the
+   last entry in the loader's internal map, which is not tied to pack load
+   order, so ship only one declaration.
 
 3. Falls back to `neoorigins:parchment` when neither resolves.
 
+An id that names a theme no loaded pack registered is skipped without a log
+line (only a malformed `theme_override` id is warned about), so resolution
+falls through to the next layer rather than failing.
+
 ### The classic-picker accessibility override
 
-`classic_picker_style` under `[ui]` in `config/neoorigins/client.toml` outranks
-every layer listed above. Selection itself still runs (an unknown id is still
-warned about, and the resolved theme is still stored), but while the option is
-`true` the screens read the built-in flat high-contrast skin (dark navy panels,
-light text, vanilla font) instead, so whatever resolved has no visible effect.
-If a pack's theme appears to do nothing, check this setting first.
+`classic_picker_style` under `[ui]` in `config/neoorigins/client.toml`
+outranks every layer listed above. Selection itself still runs (a malformed
+`theme_override` id is still warned about, and the resolved theme is still
+stored), but while the option is `true` the screens read the built-in flat
+high-contrast skin (dark navy panels, light text, vanilla font) instead, so
+whatever resolved has no visible effect. If a pack's theme appears to do
+nothing, check this setting first.
 
 ## Theme JSON schema
 
 `assets/<ns>/ui_themes/<id>.json`. All fields optional: missing fields keep
-the parchment default. Colours are ARGB hex strings (`"0xFF2A1810"`) or raw
-ints.
+the parchment default. Colours are ARGB hex strings (`"0xFF2A1810"`,
+`"#FF2A1810"` or bare hex) or raw ints.
 
 | Field                      | Type             | Default                                              |
 |----------------------------|------------------|------------------------------------------------------|
@@ -94,6 +100,16 @@ ints.
 | `texture_width` / `texture_height`        | int (px) | `256`                                      |
 | `flat`                     | bool             | `false`: paint a plain fill + outline instead of the 9-slice panel art; `panel_background` and the `inset_*` / `texture_*` fields are then unused |
 | `panel_color`              | ARGB             | `0x00000000`: panel fill, used only when `flat` is true |
+
+A `panel_background` that names a file no loaded pack ships keeps the parchment
+panel (and its `inset_*` / `texture_*` values) rather than drawing the
+missing-texture checkerboard; the client log names the missing path in a
+`[theming]` warning.
+
+For `font`, give your font JSON its own `ttf` provider. On Minecraft 1.21.1 a
+font whose providers `reference` another TTF font, such as
+`neoorigins:parchment`, can crash the client while fonts load, because both
+fonts then share one FreeType face. To keep Newsreader, leave `font` unset.
 
 ## Direct resource-pack overrides
 

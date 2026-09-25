@@ -51,6 +51,9 @@ The prompt is checked on every mob kill, not only on the kill that crosses a
 threshold. Once the kill count is at or past the next tier's requirement, a kill
 sends a chat prompt with clickable **[EVOLVE]** and **[DECLINE]** buttons.
 `/neoorigins evolve accept` and `/neoorigins evolve decline` do the same thing.
+Operators (permission level 2) can force a tier with
+`/neoorigins evolve <player> <tier>` (`base`, `evolved`, `ascended`, `apex` or
+`0`-`3`) and check a player's kills and tier with `/neoorigins evolve query <player>`.
 
 Declining records the tier that was offered and stops that tier being offered
 again. The tier is not lost: it stays available, and `/neoorigins evolve accept`
@@ -108,12 +111,20 @@ origin's JSON if you need the exact list.
 | 2 - Ascended | +4 HP, Poison Immunity | Evolved HP |
 | 3 - Apex | +6 HP, Night Vision | Ascended HP |
 
+### Asura
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Undying Rage (Regeneration II and fire immunity below 15% HP) | -- |
+| 2 - Ascended | Blood Tithe (heal 1 HP on each hit dealt) | -- |
+| 3 - Apex | Wrath Eruption (active shockwave) | -- |
+
 ### Automaton
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
+| 2 - Ascended | +4 HP, Overclock (Speed I and Haste I below 50% HP) | Evolved HP |
 | 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
 
 ### Avian
@@ -137,8 +148,16 @@ origin's JSON if you need the exact list.
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, Slow Falling | Evolved HP |
+| 2 - Ascended | +4 HP | Evolved HP |
 | 3 - Apex | +6 HP, Jump Boost | Ascended HP |
+
+### Cave Dragon
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Hardened Scales (+2 HP) | -- |
+| 2 - Ascended | Draconic Might (+2 Attack Damage) | -- |
+| 3 - Apex | Apex Wyrm (+6 HP) | Evolved HP |
 
 ### Caveborn
 
@@ -153,8 +172,8 @@ origin's JSON if you need the exact list.
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
-| 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
+| 2 - Ascended | +4 HP, Ember Shield (attackers take 1 damage and burn for 3s) | Evolved HP |
+| 3 - Apex | +6 HP | Ascended HP |
 
 ### Darkness Mage
 
@@ -193,15 +212,15 @@ origin's JSON if you need the exact list.
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, Sky Piercer, +0.1 Speed | Evolved HP |
-| 3 - Apex | +6 HP, Apex Sky Piercer, Fall Immunity | Ascended HP, Ascended Sky Piercer |
+| 2 - Ascended | +4 HP, Sky Piercer | Evolved HP |
+| 3 - Apex | +6 HP, Apex Sky Piercer | Ascended HP, Ascended Sky Piercer |
 
 ### Enderian
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, Pearl Immunity | Evolved HP |
+| 2 - Ascended | +4 HP, Pearl Mastery (no fall damage, which covers ender pearl damage) | Evolved HP |
 | 3 - Apex | +6 HP | Ascended HP, Water Damage |
 
 ### Enderite
@@ -225,8 +244,16 @@ origin's JSON if you need the exact list.
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, Fire Resistance | Evolved HP |
+| 2 - Ascended | +4 HP | Evolved HP |
 | 3 - Apex | +6 HP, +2 Attack Damage | Ascended HP |
+
+### Forest Dragon
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Bark Hide (+2 HP) | -- |
+| 2 - Ascended | Verdant Fury (+2 Attack Damage) | -- |
+| 3 - Apex | Elder Wyrm (+6 HP) | Evolved HP |
 
 ### Frostborn
 
@@ -235,6 +262,14 @@ origin's JSON if you need the exact list.
 | 1 - Evolved | +2 HP | -- |
 | 2 - Ascended | +4 HP, Reduced Fire Weakness | Evolved HP, Base Fire Weakness |
 | 3 - Apex | +6 HP | Ascended HP, Ascended Fire Weakness |
+
+### Golden Body
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Diamond Body (+6 Armor Toughness) | -- |
+| 2 - Ascended | Reflected Force (attackers take 8 damage) | -- |
+| 3 - Apex | Bell Toll (active area attack) | -- |
 
 ### Golem
 
@@ -282,7 +317,15 @@ origin's JSON if you need the exact list.
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
 | 2 - Ascended | +4 HP, +0.15 Speed | Evolved HP |
-| 3 - Apex | +6 HP, Slow Falling (Dodge) | Ascended HP |
+| 3 - Apex | +6 HP, 15% Dodge Chance | Ascended HP |
+
+### Iron Monk
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Counter Stance (while guarding, attackers take half the damage back) | -- |
+| 2 - Ascended | Sea of Stamina (stamina regenerates while guarding) | -- |
+| 3 - Apex | Lohan Palm (active area attack, 30 stamina) | -- |
 
 ### Kraken
 
@@ -329,16 +372,24 @@ origin's JSON if you need the exact list.
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
+| 2 - Ascended | +4 HP, Brute Rage (Strength II below 30% HP) | Evolved HP |
 | 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
+
+### Qi Cultivator
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Dantian Expansion (Qi regenerates while not sneaking) | -- |
+| 2 - Ascended | Core Pressure (+30% damage dealt while Qi is at least 50) | -- |
+| 3 - Apex | Flying Sword of Qi (active projectile, 40 Qi) | -- |
 
 ### Revenant
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
-| 3 - Apex | +6 HP, +4 Armor, Fire Resistance | Ascended HP, Ascended Armor |
+| 2 - Ascended | +4 HP, Undying Will (Strength II and Resistance I below 25% HP) | Evolved HP |
+| 3 - Apex | +6 HP, +4 Armor, Fire Resistance | Ascended HP, Undying Will |
 
 ### Sculkborn
 
@@ -347,6 +398,14 @@ origin's JSON if you need the exact list.
 | 1 - Evolved | +2 HP | -- |
 | 2 - Ascended | +4 HP, Night Vision | Evolved HP |
 | 3 - Apex | +6 HP, +2 Armor | Ascended HP |
+
+### Sea Dragon
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Tidal Hide (+2 HP) | -- |
+| 2 - Ascended | Riptide Fury (+2 Attack Damage) | -- |
+| 3 - Apex | Leviathan (+6 HP) | Evolved HP |
 
 ### Shulk
 
@@ -402,7 +461,15 @@ origin's JSON if you need the exact list.
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
 | 2 - Ascended | +4 HP, +10% Speed | Evolved HP |
-| 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
+| 3 - Apex | +6 HP | Ascended HP |
+
+### Sword Immortal
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Sword Heart Unity (+2 Attack Damage with a sword in hand) | -- |
+| 2 - Ascended | Heavenly Sword Formation (active area attack, sword in hand) | -- |
+| 3 - Apex | Heaven-Severing Slash (active projectile, sword in hand) | -- |
 
 ### Sylvan
 
@@ -418,14 +485,14 @@ origin's JSON if you need the exact list.
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
 | 2 - Ascended | +4 HP, +0.1 Speed | Evolved HP |
-| 3 - Apex | +6 HP, Jump Boost (Evasion) | Ascended HP |
+| 3 - Apex | +6 HP, Evasion (20% Dodge Chance) | Ascended HP |
 
 ### Umbral
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | -- |
-| 2 - Ascended | +4 HP, Shadow Meld, Night Vision | Evolved HP |
+| 2 - Ascended | +4 HP, Shadow Meld | Evolved HP |
 | 3 - Apex | +6 HP, +15% Speed | Ascended HP |
 
 ### Vampire
@@ -467,6 +534,14 @@ origin's JSON if you need the exact list.
 | 1 - Evolved | +2 HP | -- |
 | 2 - Ascended | +4 HP, +0.2 Swim Speed | Evolved HP |
 | 3 - Apex | +6 HP, Conduit Power | Ascended HP |
+
+### Windwalker
+
+| Tier | Added | Removed |
+|------|-------|---------|
+| 1 - Evolved | Sky Dancer (glide) | -- |
+| 2 - Ascended | Riding the Wind (creative-style flight) | -- |
+| 3 - Apex | Eye of the Storm (larger tornado ability) | Heaven-Rending Typhoon |
 
 ### Wraith
 

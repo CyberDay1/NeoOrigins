@@ -60,7 +60,8 @@
     "client.AbstractClientPlayerSkinMixin",
     "client.EntityRendererShadowInvoker",
     "client.LivingEntityRendererShadowMixin",
-    "client.EntityRenderDispatcherHideMixin"
+    "client.EntityRenderDispatcherHideMixin",
+    "client.TrueTypeGlyphProviderLockMixin"
   ],
   "injectors": {
     "defaultRequire": 1

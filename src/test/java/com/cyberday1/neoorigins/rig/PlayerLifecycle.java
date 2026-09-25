@@ -38,12 +38,17 @@ public final class PlayerLifecycle {
 
     /** A genuine {@link ServerPlayer} over a deep-stubbed level: real attributes, food and attachments. */
     public static ServerPlayer realPlayer() {
+        return realPlayer(Mockito.mock(MinecraftServer.class, Mockito.RETURNS_DEEP_STUBS));
+    }
+
+    /** As {@link #realPlayer()}, on a given server, so several players can share one. */
+    public static ServerPlayer realPlayer(MinecraftServer server) {
         ServerLevel level = Mockito.mock(ServerLevel.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(level.getSharedSpawnPos()).thenReturn(new BlockPos(0, 64, 0));
         Mockito.when(level.getSharedSpawnAngle()).thenReturn(0f);
         Mockito.when(level.getWorldBorder()).thenReturn(new WorldBorder());
+        Mockito.when(level.getServer()).thenReturn(server);
         Mockito.when(level.noCollision(Mockito.any(Entity.class), Mockito.any(AABB.class))).thenReturn(false);
-        MinecraftServer server = Mockito.mock(MinecraftServer.class, Mockito.RETURNS_DEEP_STUBS);
         UUID uuid = UUID.randomUUID();
         GameProfile profile = new GameProfile(uuid, "rig_" + uuid.toString().substring(0, 8));
         return new ServerPlayer(server, level, profile, ClientInformation.createDefault());

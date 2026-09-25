@@ -7,8 +7,10 @@ import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -39,16 +41,27 @@ public class CraftAmountBonusPower extends PowerType<CraftAmountBonusPower.Confi
             if (!(event.getEntity() instanceof ServerPlayer sp)) return;
 
             ItemStack crafted = event.getCrafting();
+            if (crafted.isEmpty()) return;
             ActiveOriginService.forEachOfType(sp, CraftAmountBonusPower.class, config -> {
-                var itemOpt = BuiltInRegistries.ITEM.getOptional(ResourceLocation.parse(config.outputItem()));
-                if (itemOpt.isEmpty()) return;
-                if (!crafted.is(itemOpt.get())) return;
+                if (!matches(crafted, config.outputItem())) return;
 
                 int bonus = config.bonusCount();
                 if (bonus > 0) {
-                    sp.getInventory().add(new ItemStack(itemOpt.get(), bonus));
+                    sp.getInventory().add(new ItemStack(crafted.getItem(), bonus));
                 }
             });
+        }
+
+        /** {@code output_item} is an item id or a {@code #tag}; the Lumberjack uses {@code #minecraft:planks}. */
+        static boolean matches(ItemStack crafted, String outputItem) {
+            if (outputItem.startsWith("#")) {
+                ResourceLocation tagId = ResourceLocation.tryParse(outputItem.substring(1));
+                return tagId != null && crafted.is(TagKey.create(Registries.ITEM, tagId));
+            }
+            ResourceLocation id = ResourceLocation.tryParse(outputItem);
+            if (id == null) return false;
+            var item = BuiltInRegistries.ITEM.getOptional(id);
+            return item.isPresent() && crafted.is(item.get());
         }
     }
 }

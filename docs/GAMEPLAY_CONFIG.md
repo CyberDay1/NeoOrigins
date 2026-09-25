@@ -52,7 +52,7 @@ Controls XP cost behaviour when a player uses an Orb of Origin or Orb of Class.
 | Option | Type | Default | Range | Description |
 |---|---|---|---|---|
 | `mode` | enum | `DISABLED` | | When to randomly assign origins. `DISABLED`: players choose normally. `FIRST_JOIN`: origins are randomly assigned on first join (no selection screen). `EVERY_DEATH`: origins are randomly re-assigned on each respawn. |
-| `rerolls` | int | `0` | -1 – 100 | Number of times a player may reroll after random assignment. `0`: no rerolls (stuck with what you get). `-1`: unlimited rerolls via Orb of Origin. |
+| `rerolls` | int | `0` | -1 – 100 | Intended as the number of times a player may reroll after random assignment (`0` none, `-1` unlimited). **Currently has no effect:** the value is defined but no code reads it. |
 
 ## `[evolution]`: essence evolution
 
@@ -95,7 +95,11 @@ Siren).
 Tuning for the helmet absorption rule on sun-damage origins (Abyssal,
 Caveborn, Vampire, Phantom, Warden, etc.). When the player is in direct sun
 and wearing a damageable helmet, the helmet absorbs the burn at the cost of
-its own durability.
+its own durability. Helmets in the `neoorigins:sun_permeable` item tag
+(`minecraft:chainmail_helmet` by default) count as no helmet: they neither
+shade the player nor lose durability. An item from the `neoorigins:umbrellas`
+tag, held in either hand or worn in a Curios/Accessories slot, blocks the sun before the helmet rule is checked, so it
+costs no helmet durability.
 
 | Option | Type | Default | Range | Description |
 |---|---|---|---|---|
@@ -106,8 +110,8 @@ its own durability.
 
 | Option | Type | Default | Range | Description |
 |---|---|---|---|---|
-| `consent_mode` | enum | `ALWAYS` | | How mounting consent works. `ALWAYS`: mount any player without consent. `PROMPT`: the target must click **[ACCEPT]** or run `/neoorigins mount accept`. `TEAM`: auto-allow if both players share a team (FTB Teams or Open Parties and Claims); falls back to `ALWAYS` if no team mod is loaded. |
-| `request_timeout_seconds` | int | `30` | 5 – 300 | Seconds before a mount request expires (only used in `PROMPT` mode). |
+| `consent_mode` | enum | `ALWAYS` | | How mounting consent works. `ALWAYS`: mount any player without consent. `PROMPT`: the target must click **[ACCEPT]** or run `/neoorigins mount accept`. `TEAM`: auto-allow if both players share a team or are on allied teams (FTB Teams) or share a party (Open Parties and Claims); otherwise the target gets the same prompt as `PROMPT`. Falls back to `ALWAYS` if neither team mod is loaded. |
+| `request_timeout_seconds` | int | `30` | 5 – 300 | Seconds before a mount request expires. Used whenever a request is sent: `PROMPT` mode, and `TEAM` mode when the players are not teammates. |
 
 ## `[friendly_fire]`: AOE target filtering
 

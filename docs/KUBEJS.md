@@ -8,17 +8,17 @@ JavaScript without touching Java.
 
 ## Availability
 
-KubeJS support is a **soft dependency**. It ships in the NeoOrigins 2.1+ builds
+KubeJS support is a **soft dependency**. It ships in the NeoOrigins 2.1.2+ builds
 for Minecraft 1.21.1 and, from 2.2.24, in the Minecraft 26.1 build as well. The
 **26.2 build does not bundle it**: the `NeoOrigins` / `NeoOriginsEvents` globals,
 the `neoorigins:kubejs_callback` action and the `neoorigins:js_custom` /
 `neoorigins:js_active` power types are all absent there, and no amount of KubeJS
 being installed brings them back.
 
-The reason is upstream, not a choice of ours. Checked 2026-08-09: across all 323
-of KubeJS's published NeoForge releases the highest Minecraft version is 26.1.2,
-so on 26.2 there is simply no artifact to compile against. Re-check KubeJS's
-release list before repeating that claim.
+The reason is upstream, not a choice of ours: KubeJS has published no NeoForge
+build for Minecraft 26.2, so the 26.2 build declares no KubeJS dependency and
+carries none of the integration's classes. Re-check KubeJS's release list before
+repeating that claim.
 
 On 26.1, KubeJS `8.0.4` itself requires NeoForge `26.1.2.84` or newer, so a pack
 on an older 26.1 loader has to move up before KubeJS will load at all. That is
@@ -76,12 +76,13 @@ each event.
 | Event | Fires when | Properties |
 |-------|-----------|------------|
 | `originChosen` | A player picks an origin on a layer for the **first** time | `player`, `layerId`, `originId` |
-| `originChanged` | A player's active origin on a layer changes (first pick, `/set`, or reset) | `player`, `layerId`, `oldOriginId`*, `newOriginId`* |
+| `originChanged` | A player's origin on a layer changes: a pick in the selection screen, `/neoorigins set`, an advancement upgrade, automatic or random assignment, or a layer being cleared (Orb of Origin, re-opening a layer picker, a dependent layer invalidated) | `player`, `layerId`, `oldOriginId`*, `newOriginId`* |
 | `evolutionTierChanged` | A player's evolution tier changes | `player`, `oldTier`, `newTier` |
 | `evolutionDeclined` | A player declines an evolution prompt that is standing | `player` |
 
 \* `oldOriginId` is `null` on a first-time selection; `newOriginId` is `null`
-when the origin is cleared/reset. Evolution tiers are integers:
+when the layer is cleared. The `/neoorigins reset` command does **not** fire
+`originChanged` (nor `powerRevoked`): it tears powers down directly. Evolution tiers are integers:
 `0` base, `1` evolved, `2` ascended, `3` apex.
 
 `evolutionDeclined` only fires when there is an offer to decline: the player has
@@ -96,13 +97,20 @@ again fires the event again.
 
 | Event | Fires when | Properties |
 |-------|-----------|------------|
-| `powerGranted` | A power is granted (origin change, world load, re-grant sweep) | `player`, `powerId` |
-| `powerRevoked` | A power is revoked (origin change away) | `player`, `powerId` |
-| `powerActivated` | A keybind power **successfully** fires (after cooldown/cost is paid) | `player`, `powerId` |
+| `powerGranted` | A power is granted by an origin change (any of the `originChanged` paths above) | `player`, `powerId` |
+| `powerRevoked` | A power is revoked by an origin change | `player`, `powerId` |
+| `powerActivated` | A cooldown-based active power **successfully** fires (after cooldown/cost is paid) | `player`, `powerId` |
 | `powerTick` | Every server tick, per active power, per player | `player`, `powerId` |
 
+`powerGranted` / `powerRevoked` do not fire on login (powers are re-applied,
+not re-granted), for global powers, for powers swapped by an evolution-tier
+change, or for a full reset.
+
 `powerActivated` does **not** fire when a use is aborted by cooldown, hunger,
-resource cost, or a no-op return. `powerTick` is high-frequency and only fires at
+resource cost, or a no-op return. It only covers the cooldown-based active
+power types (including `neoorigins:js_active`). Toggle powers and active powers
+translated from Origins/Apoli packs never post it, even though they do trigger
+the datapack-side `power_activated` event. `powerTick` is high-frequency and only fires at
 all when at least one JS listener is registered, but inside the listener,
 assume it runs constantly and keep the body cheap.
 
@@ -125,9 +133,11 @@ assume it runs constantly and keep the body cheap.
 | `mountStarted` | A player starts riding a target | `rider`, `vehicle`, `position` |
 | `mountEnded` | A player ends a mount-power ride | `rider`, `vehicle` |
 
-`position` is `"centered"` or `"shoulder"`. `mountEnded` only covers explicit
-dismounts via the mount power; vanilla dismount paths (jumping off, the vehicle
-dying) are not currently reported.
+`position` is the mount power's `mount_position` (default `"centered"`).
+`mountEnded` fires whenever a ride that the mount power started ends, whatever
+removed the rider (it hooks the game's own passenger removal, so sneaking off
+and deaths count as well as the power's own dismount). It fires once per ride.
+Rides not started by the mount power (a horse, a boat) never fire it.
 
 ---
 
@@ -190,7 +200,10 @@ if (mana !== null && mana >= 10) {
 `mypack:mana`, or `mypack:parent_subkey` for a sub-power of an `origins:multiple`.
 It works for `neoorigins:resource` bars, `neoorigins:variable` counters, and
 Origins/Apoli `origins:resource` powers. A bar with `"backing": "irons_spellbooks:mana"`
-reads the player's live Iron's Spells mana.
+reads the player's live Iron's Spells mana, truncated to a whole number; for such a
+bar `hasResource` is `true` only when the player holds that resource power. While
+`disable_resource_bars` is on in `neoorigins/content.toml`, a `neoorigins:resource`
+bar is never seeded, so both methods report it as absent.
 
 `player` must be a server-side player, so call these from server scripts.
 Like everything else on this page, the two methods exist only where the KubeJS

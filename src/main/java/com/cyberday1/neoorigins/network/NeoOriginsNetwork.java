@@ -564,7 +564,7 @@ public class NeoOriginsNetwork {
 
     private static void handleSyncOriginClaims(SyncOriginClaimsPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientOriginClaims.set(payload.claims())
+            com.cyberday1.neoorigins.client.ClientOriginClaims.applySync(payload.claims())
         );
     }
 
@@ -984,6 +984,7 @@ public class NeoOriginsNetwork {
                 sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "That origin has already been claimed by another player on this server.")
                     .withStyle(net.minecraft.ChatFormatting.RED));
+                reopenAfterRefusal(sp, validationData);
                 return;
             }
 
@@ -1060,6 +1061,7 @@ public class NeoOriginsNetwork {
             data.setOrigin(layerId, event.getNewOrigin());
             if (uniqueLayer) {
                 OriginClaimsData.get(sp.getServer()).claim(layerId, event.getNewOrigin(), sp.getUUID());
+                syncClaimsToAll(sp.getServer());
             }
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
             // CHOSEN runs the origin's entity_action_chosen callbacks
@@ -2028,6 +2030,28 @@ public class NeoOriginsNetwork {
             });
         }
         PacketDistributor.sendToPlayer(player, new SyncOriginClaimsPayload(locked));
+    }
+
+    /** Re-sends every online player's lock view; call after any claim or release. */
+    public static void syncClaimsToAll(net.minecraft.server.MinecraftServer server) {
+        if (server == null || AdminConfig.UNIQUE_ORIGIN_LAYERS.get().isEmpty()) return;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) syncClaimsToPlayer(p);
+    }
+
+    /**
+     * The client advanced past a pick the server then refused, and believes it holds
+     * the origin. Correct its state and reopen the walk it was in, so the player is
+     * not left with an empty layer and no picker.
+     */
+    private static void reopenAfterRefusal(ServerPlayer sp, PlayerOriginData data) {
+        syncToPlayer(sp);
+        if (data.isPendingOrbCommit()) {
+            openSelectionScreen(sp, true, true,
+                java.util.List.of(com.cyberday1.neoorigins.content.OrbOfOriginItem.ORIGIN_LAYER));
+        } else {
+            // A deferred layer picker keeps its free cancel; its layers are already cleared.
+            openSelectionScreen(sp, data.isPendingLayerPickerCommit(), false);
+        }
     }
 
     private static String ownerName(net.minecraft.server.MinecraftServer server, java.util.UUID id) {

@@ -18,8 +18,8 @@ import java.util.UUID;
  * claims survive restarts.
  *
  * <p>Claims are sticky: nothing here auto-expires. They are released only by
- * the admin {@code /neoorigins unlock} command, an Orb of Origin re-pick, or
- * {@code /neoorigins reset} — all of which call {@link #release} explicitly.
+ * the admin {@code /neoorigins unlock} command, an Orb of Origin re-pick,
+ * {@code /neoorigins reset} or an {@code every_death} random reroll.
  */
 public class OriginClaimsData extends SavedData {
 

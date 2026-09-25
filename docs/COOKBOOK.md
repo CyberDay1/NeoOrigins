@@ -8,7 +8,7 @@ this doc is the _how do I actually build a thing_ companion.
 Contents:
 - [Zero to origin in five minutes](#zero-to-origin-in-five-minutes)
 - [Anatomy of a power file](#anatomy-of-a-power-file)
-- [Recipes](#recipes): 15 common patterns (incl. toggleable abilities)
+- [Recipes](#recipes): common patterns (incl. toggleable abilities)
 - [Essence Evolution](#essence-evolution-tier-progression): kill-based tier progression
 - [Built-in mechanics](#built-in-mechanics): undead potion reversal, aquatic shared powers
 - [Testing & debugging](#testing--debugging)
@@ -126,7 +126,7 @@ the JSON is whatever fields that power type accepts. See
 3. **Active ability**: things the player fires with a keybind.
    `active_ability` + `entity_action`.
 
-Each of the 10 recipes below is one of these three shapes.
+Most recipes below are one of these three shapes.
 
 ---
 
@@ -151,14 +151,15 @@ Each of the 10 recipes below is one of these three shapes.
 {
   "type": "neoorigins:enhanced_vision",
   "name": "Night Adapted",
-  "description": "See clearly in the dark.",
-  "exposure": 0.7
+  "description": "See clearly in the dark."
 }
 ```
 
-`enhanced_vision` is the 2.0 replacement for the legacy `night_vision` /
-`glow` toggle. It sets a brightness floor without the intrusive full-white
-overlay of the vanilla Night Vision effect.
+`enhanced_vision` sets a brightness floor without the intrusive full-white
+overlay of the vanilla Night Vision effect. It takes no keybind slot; the
+player's "Toggle Night Vision" key (K by default) switches it off and on. The
+codec also accepts an `exposure` field (0.0-1.0), but the client currently
+ignores it and applies a fixed floor.
 
 ### 3. "Carnivore: can only eat meat"
 
@@ -172,9 +173,10 @@ overlay of the vanilla Night Vision effect.
 }
 ```
 
-For finer control, list items explicitly under `item_tag` as an array.
-Tags (prefixed with `#`) and bare item IDs can be mixed; the player
-can eat anything matching any entry.
+For finer control, list several tags under `item_tag` as an array; the
+player can eat anything in any listed tag. Every entry is read as an item
+tag (the leading `#` is optional), so put individual items in a tag of
+your own rather than listing bare item IDs.
 
 ### 3b. "Restricted diet + make non-food items edible" (Skeleton pattern)
 
@@ -224,8 +226,10 @@ With the companion tag at `data/mypack/tags/item/skeleton_bone_meal.json`:
 
 The origin JSON references both powers: `food_restriction` blocks
 normal eating, `edible_item` grants the bone meal override. The
-whitelist tag must include ALL items the player can eat (both vanilla
-food and edible-item-promoted items).
+whitelist tag must include every food item the player can eat. Items
+that `edible_item` makes edible and that have no vanilla food component
+(bone meal here) never reach the `food_restriction` check, so listing
+them is harmless but not required.
 
 ### 3c. "Food restores more hunger and saturation"
 
@@ -254,14 +258,16 @@ rather than the vanilla one, so players can see the buff before they eat.
 | `food_tag` | string | no | — | Restrict to this item tag (leading `#` optional). |
 
 To add a flat bonus on top of normal eating instead of overriding, pair
-`neoorigins:modify_food` with a `food_eaten` action:
+`neoorigins:modify_food` with a `food_finished` action. (`food_eaten` fires
+when the player starts eating, before the food applies; use it to cancel an
+eat, not to add to one.)
 
 ```json
 {
   "type": "neoorigins:action_on_event",
   "name": "Well Fed",
   "description": "Gain +2 extra saturation whenever you eat.",
-  "event": "FOOD_EATEN",
+  "event": "food_finished",
   "entity_action": {
     "type": "neoorigins:modify_food",
     "food": 0,
@@ -301,8 +307,8 @@ LAVA + HOT_FLOOR + FIREBALL in one rule. Bare `damage_type` strings
 }
 ```
 
-`persistent_effect` keeps the effect refreshed automatically (default
-every 300 ticks). Set `show_icon: false` so the effects HUD doesn't
+`persistent_effect` applies the effect at infinite duration and re-applies
+it if it goes missing. Set `show_icon: false` so the effects HUD doesn't
 clutter. Set `toggleable: false` so the player can't turn it off.
 
 ### 6. "Heal in water"
@@ -355,8 +361,10 @@ See [EVENTS.md](EVENTS.md) for the full list of event keys. Common ones:
 }
 ```
 
-Active abilities bind to the primary skill keybind by default. Set
-`key: "secondary"` for a second-slot binding (Y by default).
+Active abilities take skill slots in the order they appear in the origin's
+`powers` array: the first on Skill 1 (V by default), the next on Skill 2 (G),
+and so on. To bind one to a named hotkey instead, set `key` to a number N
+(Hotkey N).
 
 ### 9. "Summon a minion"
 
@@ -388,7 +396,7 @@ summoner, and they fight back against whatever the summoner is fighting.
   "name": "Sun Allergy",
   "description": "Takes damage while exposed to daylight.",
   "condition": { "type": "neoorigins:exposed_to_sun" },
-  "entity_action": { "type": "neoorigins:damage", "amount": 1, "source": "on_fire" },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1, "source": { "name": "on_fire" } },
   "interval": 40
 }
 ```
@@ -420,22 +428,19 @@ with an `on_hit_action` attached.
       "type": "neoorigins:area_of_effect",
       "radius": 5.0,
       "include_source": false,
+      "entity_condition": { "type": "neoorigins:target_group", "group": "undead" },
       "entity_action": {
-        "type": "neoorigins:if_else",
-        "condition": { "type": "neoorigins:target_group", "group": "undead" },
-        "if_action": {
-          "type": "neoorigins:and",
-          "actions": [
-            { "type": "neoorigins:apply_effect",
-              "effect": "minecraft:slowness",
-              "duration": 120,
-              "amplifier": 2,
-              "show_icon": true },
-            { "type": "neoorigins:damage",
-              "amount": 1.0,
-              "source": { "name": "drown" } }
-          ]
-        }
+        "type": "neoorigins:and",
+        "actions": [
+          { "type": "neoorigins:apply_effect",
+            "effect": "minecraft:slowness",
+            "duration": 120,
+            "amplifier": 2,
+            "show_icon": true },
+          { "type": "neoorigins:damage",
+            "amount": 1.0,
+            "source": { "name": "drown" } }
+        ]
       }
     }
   }
@@ -451,8 +456,11 @@ with an `on_hit_action` attached.
   Works because the projectile-impact dispatcher installs a
   `ProjectileHitContext` on the action-context holder before invoking
   your action; `area_of_effect` reads it and rebuilds its AABB.
-- **Undead-only filter**: `neoorigins:if_else` with `target_group: undead`
-  wraps the damage+effect so normal mobs and players aren't caught.
+- **Undead-only filter**: `entity_condition` with `target_group: undead`
+  filters each caught entity (mobs and players alike) before the
+  damage+effect runs, so normal mobs and players aren't caught. Put the
+  filter here, not in an `if_else` inside `entity_action`: `if_else` has no
+  mob-target form, so an `if_else` there only ever runs on caught players.
 - **Drown-tagged damage**: `source: { name: "drown" }` makes the hit read
   as drowning, with the correct sound and hit indicator.
 
@@ -488,8 +496,8 @@ the rest of the 2.0 action pipeline.
 
 ### 12. "Black hole: pull everything nearby toward a point and damage the center"
 
-Active ability that spawns a lingering gravity well at the caster's look
-target. Pulls for two seconds, then expires.
+Active ability that spawns a lingering gravity well at the caster's
+position. Pulls for two seconds, then expires.
 
 ```json
 {
@@ -684,9 +692,12 @@ Strength I against all targets.
 {
   "type": "neoorigins:action_on_hit",
   "entity_action": {
-    "type": "neoorigins:toggle",
-    "power": "mypack:marked",
-    "value": true
+    "type": "neoorigins:actor_action",
+    "action": {
+      "type": "neoorigins:toggle",
+      "power": "mypack:marked",
+      "value": true
+    }
   },
   "name": "Hunter's Mark",
   "description": "Marks the next target in line."
@@ -706,6 +717,11 @@ Strength I against all targets.
   }
 }
 ```
+
+`action_on_hit` runs a bare `entity_action` against the entity you hit, so
+the toggle above is wrapped in `actor_action` to flip the attacker's own
+flag. Unwrapped, it would do nothing on a mob and flip the victim's flag on
+a player.
 
 Use `action_on_event` with `"event": "kill"` here, not the legacy
 `neoorigins:action_on_kill`. That alias builds its own `entity_action` from
@@ -890,7 +906,7 @@ The 2.2 spell-caster kit: gravity-free projectiles with full visual
 control, one-line elemental cast powers, conditional mob aggression for
 mob origins, and a ride-anything mount power.
 
-### 16. "Arcane bolt": a straight-flying spell projectile (no gravity)
+### 17. "Arcane bolt": a straight-flying spell projectile (no gravity)
 
 Recipe #11 fires a projectile that arcs under gravity. Set
 `no_gravity: true` and it flies dead straight along your aim like a laser
@@ -916,19 +932,26 @@ hit.
     "size": 0.35,
     "trail_particle": "minecraft:soul_fire_flame",
     "on_hit_action": {
-      "type": "neoorigins:damage",
-      "amount": 6.0,
-      "source": { "name": "magic" }
+      "type": "neoorigins:target_action",
+      "action": {
+        "type": "neoorigins:damage",
+        "amount": 6.0,
+        "source": { "name": "magic" }
+      }
     }
   }
 }
 ```
 
+`on_hit_action` runs on the caster, so the damage is wrapped in
+`target_action`, which retargets it onto the entity the bolt hit (and does
+nothing on a block hit). A bare `damage` here would hurt the caster.
+
 `no_gravity` works on **any** projectile entity (vanilla `minecraft:arrow`
 included), not just the magic orb; it sets the vanilla no-gravity flag so
 drag still applies but the projectile never drops.
 
-### 17. "Elemental cast": one-line fireball / wind bolt
+### 18. "Elemental cast": one-line fireball / wind bolt
 
 For a quick spell without wiring up `spawn_projectile` yourself, the
 dedicated active cast powers fire a styled projectile on the skill key.
@@ -945,11 +968,10 @@ dedicated active cast powers fire a styled projectile on the skill key.
 ```
 
 Swap to `"type": "neoorigins:active_bolt"` for a knockback wind charge
-(`speed` default 1.2, `cooldown_ticks` default 80). Both bind to the
-primary skill key; pair with `key: "secondary"` to put one on the second
-slot.
+(`speed` default 1.2, `cooldown_ticks` default 80). Both take the next free
+skill slot, like any active ability (see recipe #8).
 
-### 18. "Hunting predator": conditional mob aggression (mob origins)
+### 19. "Hunting predator": conditional mob aggression (mob origins)
 
 `mob_behavior` rewrites a mob origin's AI so the mob hunts players. With
 `aggression: "conditional"` the mob only turns hostile when **all**
@@ -976,7 +998,7 @@ Set `aggression: "hostile"` to always hunt (skip `hostile_when`), or leave
 it `"neutral"` to keep vanilla AI and only fight back when hit.
 `target_type` lets the mob hunt another entity type instead of players.
 
-### 19. "Beast rider": mount entities on demand
+### 20. "Beast rider": mount entities on demand
 
 `mount` raycasts for an entity in front of you and seats you on it. Great
 for a tamer/druid origin: ride mobs (and optionally players) with one key.
@@ -1111,9 +1133,10 @@ a vanilla elytra user. No chest-slot requirement.
 ```
 
 Pair with `neoorigins:elytra_boost` for launch-speed amplification.
-Contrast: `neoorigins:flight` is creative-mode-style hover (hold space
-to ascend). `natural_glide` is pitch-based gliding, the real-elytra
-feel.
+Contrast: `neoorigins:flight` is a toggle power (it takes a skill slot)
+that, while on, launches the same elytra-style flight from a jump in
+mid-air. `natural_glide` needs no toggle; it is pitch-based gliding, the
+real-elytra feel.
 
 ---
 
@@ -1146,7 +1169,7 @@ fires when any are found. Accepts any combination of `block`/`blocks`/
 { "type": "neoorigins:condition_passive",
   "condition": {
     "type": "neoorigins:near_block",
-    "tags": ["minecraft:campfires", "#c:fire"],
+    "tags": ["minecraft:campfires", "#minecraft:fire"],
     "radius": 5
   },
   "entity_action": {
@@ -1158,7 +1181,7 @@ fires when any are found. Accepts any combination of `block`/`blocks`/
 }
 ```
 
-Radius is capped at 8 to keep the per-tick scan cheap.
+Radius defaults to 4 and is clamped to 1-16 to keep the scan cheap.
 
 ---
 
@@ -1290,8 +1313,8 @@ special format. Any power type works as a tier reward.
 
 ### Built-in evolution powers
 
-NeoOrigins ships ~250 evolution power JSONs covering all bundled
-origins. These live at:
+NeoOrigins ships over 270 evolution power JSONs covering all bundled
+origins (classes do not evolve). These live at:
 
 ```
 data/neoorigins/origins/powers/<origin>_evolved_*.json
@@ -1299,7 +1322,8 @@ data/neoorigins/origins/powers/<origin>_ascended_*.json
 data/neoorigins/origins/powers/<origin>_apex_*.json
 ```
 
-All bundled origins have full three-tier evolution tracks. Pack authors
+All bundled origins (the class layer aside) have full three-tier
+evolution tracks. Pack authors
 can override them with higher-priority datapacks or use them as examples
 for their own origins.
 
@@ -1309,17 +1333,19 @@ for their own origins.
 
 ### Undead potion reversal
 
-Origins with `"entity_group": "undead"` (Revenant, Necromancer, Skeleton)
-automatically receive vanilla-style undead potion interactions:
+Origins holding a `neoorigins:entity_group` power with `"group": "undead"`
+(Revenant, Necromancer, Skeleton, Vampire) automatically receive
+vanilla-style undead potion interactions:
 
 - **Poison**: immune (no effect)
 - **Regeneration**: immune (no effect)
 - **Instant Health**: deals damage instead of healing (vanilla formula `6 × 2^amplifier`)
-- **Instant Damage**: heals instead of dealing damage (same formula)
+- **Instant Damage**: heals instead of dealing damage (vanilla formula `4 × 2^amplifier`)
 - **Food healing**: works normally (natural regen from saturation is not blocked)
 
-This is built into the engine for any origin that declares
-`"entity_group": "undead"`; no extra power JSON is needed.
+This comes with the built-in `undead` group itself, so
+`{ "type": "neoorigins:entity_group", "group": "undead" }` is the only power
+JSON needed.
 
 ### Aquatic origin shared powers
 
@@ -1447,8 +1473,10 @@ targeting the player.
 
 **"My power JSON parsed but nothing happens."**
 Most often the `condition` you attached is evaluating false every tick.
-Add a `neoorigins:always_true` placeholder condition to confirm the wiring
-works, then narrow it back down.
+Swap in `{ "type": "neoorigins:constant", "value": true }` as a
+placeholder condition to confirm the wiring works, then narrow it back
+down. (There is no `always_true` condition; an unknown condition type
+evaluates to false.)
 
 **"My size-scaling power makes me punch through walls."**
 `modify_reach` defaults to `true`, so reach tracks body size unless you turn
@@ -1463,10 +1491,10 @@ last-picked layer wins instead, the build predates the cross-layer stacking
 fix. `attribute_modifier` bonuses stack across layers the same way.
 
 **"My active ability triggers but the server disagrees with the client."**
-`add_velocity` needs `hurtMarked` to survive the client's next physics
-tick. The 2.0 alias handles this; if you're on the raw `spawn_projectile`
-action, set `set: false` and keep the magnitude conservative (<1.5 per
-axis).
+A velocity change needs `hurtMarked` to survive the client's next physics
+tick. `add_velocity` and `dash` both set it for you; if the motion still
+snaps back, keep the magnitude conservative (<1.5 per axis). `add_velocity`
+adds to the current motion by default; `set: true` replaces it instead.
 
 **"My action_on_event fires twice on respawn."**
 `onLogin` and `onRespawn` both default to calling `onGranted`. If your
@@ -1476,8 +1504,10 @@ rather than registering listeners from a custom power.
 
 **"My custom power type shows as unknown."**
 The type field is case-sensitive and must be fully qualified:
-`"neoorigins:persistent_effect"`, not `"persistent_effect"`. Check the
-`[CompatB]` log if a type you expected to be registered isn't resolving.
+`"neoorigins:persistent_effect"`, not `"persistent_effect"` (a bare id
+resolves to the `minecraft:` namespace). The log names the offender:
+`Unknown power type '<type>' for power <id>`, with a hint when the path is
+really an action or condition.
 
 **"Packets say UI sent but players see nothing."**
 Most often: the client is running a much older version of NeoOrigins than

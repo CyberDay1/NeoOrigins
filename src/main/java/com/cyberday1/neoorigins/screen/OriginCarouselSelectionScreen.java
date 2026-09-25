@@ -116,7 +116,22 @@ public class OriginCarouselSelectionScreen extends Screen implements PickerScree
         var layer = presenter.currentLayer();
         detail.setOrigin(OriginDetailViewModel.compute(id,
             PickerCloseBehaviour.CLASS_LAYER_ID.equals(layer != null ? layer.id() : null)));
-        if (confirmButton != null) confirmButton.active = true;
+        updateConfirm();
+    }
+
+    /** Confirm is live only for a pick the server would take; a claimed one says so. */
+    private void updateConfirm() {
+        if (confirmButton == null) return;
+        String owner = presenter.claimedBy(presenter.selectedOriginId());
+        confirmButton.active = presenter.canConfirm();
+        confirmButton.setMessage(Component.translatable(
+            owner == null ? "gui.neoorigins.button.confirm" : "gui.neoorigins.picker.claimed"));
+        confirmButton.setTooltip(OriginButton.claimTooltip(owner));
+    }
+
+    @Override
+    public void onClaimsChanged() {
+        if (!presenter.isDone()) refreshWidgets();
     }
 
     /** Step the browsed origin (wraps around). */
@@ -176,12 +191,9 @@ public class OriginCarouselSelectionScreen extends Screen implements PickerScree
         int cx = width / 2;
 
         var randomBtn = ParchmentButton.parchment(Component.translatable("button.neoorigins.random"), b -> {
-            ResourceLocation id = presenter.randomId();
-            int i = id == null ? -1 : browseIds.indexOf(id);
-            // randomId() draws from the unfiltered set; if search hid the roll,
-            // roll again within what is actually on show.
-            if (i < 0 && !browseIds.isEmpty()) i = (int) (Math.random() * browseIds.size());
-            if (i >= 0) { browseIndex = i; syncSelection(); }
+            // Roll within what is on show, so a search narrows the roll too.
+            ResourceLocation id = presenter.randomIdAmong(browseIds);
+            if (id != null) { browseIndex = browseIds.indexOf(id); syncSelection(); }
         }).bounds(panelX, cy, 70, 28).build();
         randomBtn.visible = layer.allowRandom();
         addRenderableWidget(randomBtn);
@@ -195,7 +207,7 @@ public class OriginCarouselSelectionScreen extends Screen implements PickerScree
         confirmButton = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.confirm"),
                 b -> confirmSelection())
             .bounds(cx + 12, cy, 80, 28).build();
-        confirmButton.active = presenter.selectedOriginId() != null;
+        updateConfirm();
         addRenderableWidget(confirmButton);
     }
 

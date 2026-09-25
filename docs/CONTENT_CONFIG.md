@@ -45,15 +45,16 @@ pressing it reports that night vision is disabled and changes nothing. See the
 
 ## `[origins]`: per-origin enable toggles
 
-Every built-in origin has a boolean here, defaulting to `true`. Set one to
+The built-in origins each have a boolean here, defaulting to `true`. Set one to
 `false` to hide that origin from the selection screen.
 
 | Behaviour | Detail |
 |---|---|
 | Key | The origin's path id (e.g. `merling`, `automaton`, `stoneguard`). |
+| Keys generated | `human`, `merling`, `avian`, `blazeling`, `elytrian`, `enderian`, `arachnid`, `shulk`, `phantom`, `feline`, `golem`, `caveborn`, `sylvan`, `draconic`, `revenant`, `tiny`, `abyssal`, `voidwalker`, `stoneguard`, `verdant`, `umbral`, `inchling`, `sporeling`, `frostborn`, `strider`, `siren`, `piglin`, `hiveling`, `cinderborn`, `sculkborn`, `enderite`, `necromancer`, `gorgon`, `automaton`, `kraken`, `warden`, `dwarf`, `breeze`, `vampire`, `air_mage`, `darkness_mage`, `earth_mage`, `fire_mage`, `gravity_mage`, `water_mage`, `monster_tamer`, `skeleton`, `slime`, `wraith`, `asura`, `windwalker`, `qi_cultivator`, `golden_body`, `iron_monk`, `sword_immortal` (55 keys). The Dragon Survival origins (`cave_dragon`, `forest_dragon`, `sea_dragon`) have **no** toggle here. |
 | Default | `true` (enabled). |
 | When disabled | Hidden from the selection screen, but still **assignable** via `/neoorigins set <player> neoorigins:<id>`. The origin stays registered. |
-| Scope | Only built-in `neoorigins:*` origins listed in this section. Origins added by datapacks or `originpacks/` are **not** affected by these toggles. |
+| Scope | Matched by id: a toggle applies to `neoorigins:<key>` only. Origins in any other namespace, whether from datapacks or `originpacks/`, are **not** affected by these toggles. |
 
 ```toml
 [origins]
@@ -70,8 +71,9 @@ The same mechanism for the built-in classes (`class_warrior`, `class_archer`,
 | Behaviour | Detail |
 |---|---|
 | Key | The class's path id (e.g. `class_warrior`). |
+| Keys generated | `class_warrior`, `class_archer`, `class_miner`, `class_beastmaster`, `class_explorer`, `class_sentinel`, `class_herbalist`, `class_scout`, `class_berserker`, `class_titan`, `class_rogue`, `class_lumberjack`, `class_blacksmith`, `class_cook`, `class_merchant`, `class_cleric`, `class_nitwit`, `class_fisher`, `class_mason`, `class_paladin` (20 keys). |
 | Default | `true` (enabled). |
-| When disabled | Removed from the class selection screen after data loading. |
+| When disabled | Hidden from the class selection screen, the same way as a disabled origin: the class stays registered and is still assignable via `/neoorigins set`. |
 | All disabled | If **every** class is set to `false`, the class selection screen is skipped entirely. |
 
 ```toml

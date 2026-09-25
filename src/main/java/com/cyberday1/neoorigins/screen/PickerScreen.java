@@ -8,4 +8,6 @@ package com.cyberday1.neoorigins.screen;
  * picker layout must implement it too.
  */
 public interface PickerScreen {
+    /** New unique-origin claims arrived; redraw anything that shows them. */
+    default void onClaimsChanged() {}
 }

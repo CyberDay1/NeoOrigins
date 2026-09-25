@@ -2,11 +2,11 @@
 
 Conditions evaluate to true/false against an entity (usually the power's owning player). They gate power activation, `action_on_event` triggers, `conditional` wrappers, and bientity interactions. Any power can also be gated as a whole via the top-level `power_condition` / `power_condition_mode` fields. See the common-fields table in [POWER_TYPES.md](POWER_TYPES.md).
 
-**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Legacy `origins:*` and `apace:*` prefixes still work but log a one-shot `[2.0-legacy]` deprecation warning. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers below still show the traditional `origins:*` names for familiarity with upstream documentation; the JSON examples use the canonical `neoorigins:*` form.
+**Canonical namespace:** `neoorigins:*` is the preferred form for new packs. Any other namespace (`origins:`, `apace:`, `apoli:`, `medievalorigins:`, …) is rewritten to `neoorigins:` plus the same name, and logs a one-shot `[2.0-legacy]` deprecation warning per distinct type. Bare type names (e.g. `"type": "and"`) are auto-prefixed with `neoorigins:`. Section headers and JSON examples below use the canonical `neoorigins:*` form.
 
 **Fail-closed semantics:** a malformed or unsupported condition logs a warning and returns `false` rather than throwing. Bientity / damage / food conditions that require a dispatch context also return `false` when evaluated outside that context.
 
-**Object or array.** Every condition-valued field (`condition`, …) accepts either a single condition object **or** an array. An array is combined as logical AND (an implicit `neoorigins:and`): every element must pass. An empty array is treated as always-true. *(Previously a bare array in these fields silently no-opped.)*
+**Object or array.** A power's own condition field (`condition`, `regen_condition`, …) accepts either a single condition object **or** an array. An array is combined as logical AND (an implicit `neoorigins:and`): every element must pass. An empty array is treated as always-true. *(Previously a bare array in these fields silently no-opped.)* Inside a condition, a single-condition field (`not`'s `condition`, `actor_condition`'s `condition`, …) must be an object; the `conditions` list of `and`/`or` accepts an array or a single object.
 
 **Universal `inverted` field:** every condition supports a top-level `"inverted": true` flag that flips its result. Compatible with the Apoli/Origins convention used by upstream packs.
 
@@ -37,7 +37,7 @@ Logical AND of nested conditions. `all_of` is Apoli 2.9+'s rename of `and`: impo
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `conditions` | array of condition objects | yes | `[]` | Inner conditions; all must pass |
+| `conditions` | array of condition objects | no | `[]` | Inner conditions; all must pass. Absent or empty → true |
 
 **Example:**
 ```json
@@ -50,7 +50,7 @@ Logical OR of nested conditions. `any_of` is Apoli 2.9+'s rename of `or`: import
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `conditions` | array of condition objects | yes | `[]` | Inner conditions; at least one must pass |
+| `conditions` | array of condition objects | no | `[]` | Inner conditions; at least one must pass. Absent or empty → false |
 
 ## `neoorigins:not`
 
@@ -137,7 +137,7 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True during daytime (time 0–11999) with sky access and no rain. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets that are innately fire/lava resistant — anything carrying the `minecraft:fire_resistant` component, which in vanilla means netherite alone — shade the player without losing any durability; unbreakable helmets already did. Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios/Accessories slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
+True during daytime (time 0–11999) with sky access and no rain in the world (server-side only); returns false while mounted. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets that are innately fire/lava resistant — anything carrying the `minecraft:fire_resistant` component, which in vanilla means netherite alone — shade the player without losing any durability; unbreakable helmets already did. Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios/Accessories slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
 
 ### Umbrella items
 
@@ -220,7 +220,9 @@ True when the entity's bounding box, shifted by `offset_x`/`offset_y`/`offset_z`
 | `offset_x` | float | no | `0.0` | Box X shift as a multiple of the entity's width |
 | `offset_y` | float | no | `0.0` | Box Y shift as a multiple of the entity's height |
 | `offset_z` | float | no | `0.0` | Box Z shift as a multiple of the entity's width |
-| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the `offset` wrapper |
+| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the `offset` wrapper. `inverted` is honoured on every node |
+
+Unlike the other block-testing conditions, a `block_collision` block condition fails **open**: a node it cannot read (an unknown type, `offset` without `condition`, `adjacent` without `adjacent_condition`, `block_state` without `property`) matches every block, and is reported in the `[CompatB] Compatibility summary`. A node of any other type (or none) that carries `block`/`id` or `tag` is read as a block or tag test, and `tag` here takes no leading `#`.
 
 **Example: touching an iron-tagged block on either side**
 ```json
@@ -321,7 +323,7 @@ Numeric comparison against the entity's distance from a reference point (`world_
 | `ignore_x` | bool | no | `false` | Exclude the X axis from the distance |
 | `ignore_y` | bool | no | `false` | Exclude the Y axis from the distance |
 | `ignore_z` | bool | no | `false` | Exclude the Z axis from the distance |
-| `result_on_the_wrong_dimension` | number | no | — | Distance value substituted when off the reference's dimension (absent → use real distance) |
+| `result_on_the_wrong_dimension` | number | no | — | Distance value substituted when the entity is outside the overworld, the dimension of both reference points (absent → use real distance) |
 
 **Example: within 100 blocks of world spawn (horizontal only)**
 ```json
@@ -574,19 +576,23 @@ True when the entity is on ground and the block directly below matches the neste
 | `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, or an `and`/`or` combinator (aliases `all_of`/`any_of`)); absent → on any ground |
 | `block_condition.id` | resource location | no | — | Block ID to match (also accepts `block`) |
 
+Every node of `block_condition` honours its own `inverted` flag, at the root and inside `and`/`or`. Inverting `block_condition` negates only the block test: the entity must still be on the ground. An `inverted` on the `on_block` condition itself negates the whole result, ground check included.
+
 ## `neoorigins:block`
 
-Block check at the entity's current position: accepts either a nested `block_condition` object or the same fields at the top level.
+Block check at the entity's current position: accepts either a nested `block_condition` object or `block`/`id`/`tag` at the top level.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | no | — | Optional wrapper; the full block-condition grammar (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)) |
-| `block` / `id` | resource location | no | — | Exact block ID |
-| `tag` | resource location | no | — | Block tag (used when ID absent) |
+| `block_condition` | object | no | — | Optional wrapper; the full block-condition grammar (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)). When present, the top-level `block`/`id`/`tag` are ignored |
+| `block` / `id` | resource location | no | — | Exact block ID; `block` wins over `id` |
+| `tag` | resource location | no | — | Block tag (leading `#` optional); read only when neither `block` nor `id` is set |
 
-**Unusual:** accepts `block` or `id` for the block ID, and will read fields at top level if `block_condition` is omitted.
+**Top-level form:** `{ "type": "neoorigins:block", "tag": "minecraft:logs" }` tests tag membership, and `{ "type": "neoorigins:block", "block": "minecraft:stone" }` tests the exact block. Only `block`, `id` and `tag` are read at the top level. A top-level `inverted` negates the result once.
 
-A wrapper with no block condition in it at all still means "any block". A block condition the game cannot read means **no** block — see the note under `neoorigins:in_block`.
+**Wrapper form:** inside `block_condition`, a node that uses `tag` needs `"type": "neoorigins:in_tag"` or `"type": "neoorigins:block"`; a node with `block`/`id` works with or without a type. The wrapper's `inverted` and the outer condition's `inverted` are separate, and each applies once.
+
+A condition with none of these fields (no `block_condition`, `block`, `id` or `tag`), or an empty `block_condition`, means "any block". A block condition the game cannot read means **no** block — see the note under `neoorigins:in_block_anywhere`.
 
 ## `neoorigins:in_block`
 
@@ -602,13 +608,15 @@ Counts every block position the entity's bounding box overlaps whose block match
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | no | — | Nested block condition; absent → any block |
+| `block_condition` | object | no | — | Nested block condition; absent → always true (no count is taken) |
 | `comparison` | string | no | `">="` | Comparison operator against the count |
 | `compare_to` | int | no | `1` | Count to compare against |
 
 ### When a block condition cannot be read
 
-If a `block_condition` names a verb this version does not implement, the whole condition matches **nothing** — the power never fires, and its `inverted` twin does not fire either. It is deliberately not the other way round: a check that silently passes is a check nobody notices is broken. The unreadable verb is named in the `[CompatB] Compatibility summary` block written at pack reload.
+This applies to `on_block`, `block`, `in_block` and `in_block_anywhere`, and to `near_block` (where an unreadable `block_condition` matches no block, so only `block`/`blocks`/`tag`/`tags` beside it can still count). If a `block_condition` names a verb this version does not implement, the whole condition matches **nothing** — the power never fires, and its `inverted` twin does not fire either. The same holds when any child of an `and`/`or` cannot be read. It is deliberately not the other way round: a check that silently passes is a check nobody notices is broken. The unreadable verb is named in the `[CompatB] Compatibility summary` block written at pack reload.
+
+`block_collision` is the exception: its `block_condition` goes through a different compiler, where an unreadable node matches **every** block (also reported in the summary).
 
 ## `neoorigins:hardness`
 
@@ -630,8 +638,8 @@ Checks entity type against a resource location. For a player entity this is alwa
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `entity_type` | resource location | no | — | Entity type ID |
-| `type_id` | resource location | no | — | Alias for `entity_type` |
+| `entity_type` | resource location | no | — | Full entity type ID, matched exactly as written (no `#tag` form) |
+| `type_id` | resource location | no | — | Alias for `entity_type` (read when `entity_type` is absent) |
 
 Always-true when both fields are absent.
 
@@ -700,11 +708,11 @@ Numeric comparison against a named resource power's stored value.
 | `comparison` | string | no | `">="` | Comparison operator |
 | `compare_to` | int | no | `0` | Threshold |
 
-> ⚠️ `resource` must be the **full** namespaced power ID (e.g. `mypack:thorns/resource`). Unlike `power_active`, the `*:` / `*:*` self-reference wildcard is **not** resolved here — a reference containing `*` silently reads as `0` (and is warned about at load). The same applies to the `change_resource` / `set_resource` actions.
+A missing or blank `resource` fails closed. Otherwise `resource` is a full namespaced power ID (e.g. `mypack:thorns/resource`), or a pattern containing `*`, which matches any run of characters. A pattern is compared against every resource the player has stored whose key matches (a `/` in the key may also be matched as `_`), and the condition is true when **any** of them passes. While no matching resource has been stored yet, the pattern compares as `0`.
 
 ## `neoorigins:resource_level`
 
-Synonym of [`neoorigins:resource`](#neooriginsresource): same factory and fields (`resource`, `comparison`, `compare_to`), accepted so Apoli-format packs using `resource_level` dispatch directly. The same full-power-id requirement (no `*` wildcard) applies.
+Synonym of [`neoorigins:resource`](#neooriginsresource): same factory and fields (`resource`, `comparison`, `compare_to`), accepted so Apoli-format packs using `resource_level` dispatch directly. The same `resource` rules, `*` patterns included, apply.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -739,9 +747,13 @@ Whether a named toggle power is currently active (toggled on) on this entity. Wo
 
 Use this to gate other powers so they only tick while a specific toggle is on. For example, apply debuffs only while phasing is active, or drain a resource only while flight is toggled on.
 
+For a power that is not a toggle, the condition is true when the player has that power granted and the power's own condition currently holds (a power that refers back to itself through `power_active` reads false for that evaluation). A non-toggle ID the player does not have is false.
+
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `power` | resource location | yes | — | Power ID to check (e.g. `"mypack:wraith_phase"`, `"mypack:my_toggle"`) |
+| `power` | resource location | yes | — | Power ID to check (e.g. `"mypack:wraith_phase"`, `"mypack:my_toggle"`); missing → fails closed |
+
+**Wildcard:** a `power` containing `*` is not read as an ID. The text after the last `*` is matched as a suffix against the player's toggle states, and the condition is true when any toggle ending in it is on (e.g. `"*:*_toggle"`). Only toggle states are searched on this path.
 
 ```json
 {
@@ -769,14 +781,14 @@ Combine with `neoorigins:and` to add extra gates:
 
 ## `neoorigins:power_type`
 
-Whether any power granted to this entity has a matching `type` ID.
+Whether any power listed by one of the entity's current origins has a matching `type` ID. Dynamically granted powers are not checked.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `power_type` | resource location | yes | — | Power type ID (e.g. `neoorigins:toggle`) |
-| `id` | resource location | no | — | Alias for `power_type` |
+| `power_type` | resource location | yes | — | Power type ID (e.g. `neoorigins:toggle`); missing → fails closed |
+| `id` | resource location | no | — | Alias for `power_type` (read when `power_type` is absent) |
 
-Bare type names (no `:`) are auto-prefixed with `neoorigins:`.
+Write the full registered type ID, e.g. `neoorigins:toggle`. The value is compared exactly: it is not rewritten from `origins:` to `neoorigins:`, and a bare name without `:` does not resolve to a `neoorigins:` type.
 
 ## `neoorigins:origin`
 
@@ -807,11 +819,16 @@ True when the player currently has the named origin, optionally scoped to a sing
 
 ## `neoorigins:nbt`
 
-Simplified NBT presence check: true when the entity's persistent data contains a given top-level key.
+Partial NBT match: true when the entity's saved NBT contains the given SNBT compound. Lists match by containment, so `{Tags:["seer_astral"]}` is true whenever the entity's scoreboard tags (added with `/tag`) include `seer_astral`, whatever else is in the list.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `nbt` | string | no | — | Compound key name; always-true when absent |
+| `nbt` | string | no | — | SNBT compound, e.g. `"{Tags:[\"seer_astral\"]}"`; always-true when absent, blank or `{}`. SNBT that does not parse never matches, with a warning at load |
+
+**Example:**
+```json
+{ "type": "neoorigins:nbt", "nbt": "{Tags:[\"seer_astral\"]}" }
+```
 
 ## `neoorigins:scoreboard`
 
@@ -870,7 +887,7 @@ Runs an arbitrary server command with suppressed output and compares the value t
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `command` | string | yes | — | Command text (no leading slash); always-false when blank |
+| `command` | string | yes | — | Command text; a leading `/` is stripped. Always-false when missing or blank |
 | `comparison` | string | no | `">="` | Comparison operator against the command's return value |
 | `compare_to` | int | no | `1` | Return-value threshold |
 
@@ -1024,12 +1041,15 @@ These evaluate against a pair: the entity under test (actor) plus a target pulle
 
 **Target extraction rules** (from `ActionContextHolder.get()`):
 - `HitTakenContext`: target = the damage source entity (if it's a `LivingEntity`)
+- `HitDealtContext`: target = the entity the player damaged
 - `KillContext`: target = the killed entity
 - `EntityInteractContext`: target = the interacted entity
 - `ProjectileHitContext`: target = the entity hit (if any)
 - otherwise: null, condition returns false
 
-**Apoli `bientity_condition` fields.** Where a field is typed *bientity condition* (`area_of_effect.bientity_condition`, `prevent_entity_use.bientity_condition`, the bientity `if_else` gate), the pair is handed in directly rather than pulled from the dispatch context. Those slots accept `target_condition` and `actor_condition` (each wrapping an ordinary condition, evaluated against that side of the pair), `can_see`, `constant`, and the combinators `and`/`all_of`, `or`/`any_of`, `not`; `inverted` is honoured on every node. Anything else cannot be compiled, and each call site documents what it does about that.
+**Apoli `bientity_condition` fields.** Where a field is typed *bientity condition* (`area_of_effect.bientity_condition`, `prevent_entity_use.bientity_condition`, the bientity `if_else` gate, `nearby_entities.bientity_condition`), the pair is handed in directly rather than pulled from the dispatch context. Those slots accept `target_condition` and `actor_condition` (each wrapping a condition in `condition`, evaluated against that side of the pair), `can_see`, `constant`, and the combinators `and`/`all_of`, `or`/`any_of`, `not`; `inverted` is honoured on every node. Anything else cannot be compiled, and each call site documents what it does about that.
+
+`actor_condition` takes any ordinary condition. The target may be any entity, so `target_condition` takes only the verbs that can read a non-player: `living`, `on_fire`/`fire`, `entity_type`/`target_type` (`entity_type` or `type_id`, an ID or a `#tag`), `in_tag` (an entity-type tag), `target_group`, `health`, `relative_health`, `has_effect`/`status_effect` (presence only; amplifier fields are ignored), `nbt`, `constant`, and `and`/`all_of`, `or`/`any_of`, `not` over those. A target that is not a living entity never passes a `target_condition`.
 
 ## `neoorigins:distance`
 
@@ -1125,6 +1145,12 @@ Case-insensitive match against the damage source's message ID (e.g. `"lava"`, `"
 |---|---|---|---|---|
 | `name` | string | yes | — | Damage message ID; always-false when blank |
 
+---
+
+# More entity conditions
+
+Like the entity conditions above, these evaluate against the entity itself and need no dispatch context.
+
 ## `neoorigins:night`
 
 True while the level's in-game time is past 13000 ticks (nightfall) and before the day reset. Logical inverse of `neoorigins:daytime`.
@@ -1210,7 +1236,7 @@ True when the column directly above the player contains a non-air block within `
 
 ## `neoorigins:near_block`
 
-**Aliases:** `origins:block_in_radius`, `apace:block_in_radius`
+**Alias:** `neoorigins:block_in_radius`
 
 Counts the matching blocks within `radius` of the player and compares that count against `compare_to`. Accepts any combination of single IDs, ID lists, single tags, and tag lists; a block matches if it appears in ANY of the provided blocks/tags (logical OR). The defaults `>=` 1 give the plain "is one nearby" reading.
 
@@ -1252,7 +1278,7 @@ True when at least one entity of the given type (or entity tag) is within `dista
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `entity_type` | resource location or `#tag` | yes | — | Entity type id (e.g. `"minecraft:creeper"`) or entity tag with `#` prefix (e.g. `"#minecraft:undead"`). |
+| `entity_type` | resource location or `#tag` | yes | — | Entity type id (e.g. `"minecraft:creeper"`) or entity tag with `#` prefix (e.g. `"#minecraft:undead"`). Missing, or an unknown id, fails closed. |
 | `distance` | double (1–64) | no | `8.0` | Radius in blocks. |
 
 **Example: buff when near wolves**
@@ -1315,6 +1341,7 @@ True when a villager is within `distance` blocks. Not an Apoli verb (it comes fr
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `distance` | double (1–64) | no | `16.0` | Radius in blocks. |
+| `radius` | double (1–64) | no | — | Apoli spelling of `distance`; read only when `distance` is absent. |
 | `comparison` | comparison | no | `>=` | Operator applied to the villager count. |
 | `compare_to` | double | no | `1` | Count threshold. |
 

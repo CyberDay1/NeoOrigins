@@ -22,6 +22,15 @@ public final class ClientOriginClaims {
         claims = incoming == null ? Collections.emptyMap() : new HashMap<>(incoming);
     }
 
+    /** A sync from the server: store it, then let an open picker redraw its locks. */
+    public static void applySync(Map<ResourceLocation, Map<ResourceLocation, String>> incoming) {
+        set(incoming);
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc != null && mc.screen instanceof com.cyberday1.neoorigins.screen.PickerScreen picker) {
+            picker.onClaimsChanged();
+        }
+    }
+
     public static void clear() {
         claims = Collections.emptyMap();
     }

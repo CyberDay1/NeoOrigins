@@ -6,7 +6,7 @@ to the per-topic detail doc.
 
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
-- [Power types](#power-types): 122 types + 29 retired
+- [Power types](#power-types): 122 registered types plus the `multiple` container, and 29 retired ids
 - [Condition verbs](#condition-verbs): 108 conditions
 - [Action verbs](#action-verbs): 95 actions
 - [Event keys](#event-keys): 51 events
@@ -60,7 +60,7 @@ ids plus a few cross-mod entries. See [MIGRATION.md](MIGRATION.md) and the
 | [ACTIONS.md](ACTIONS.md) | Every action verb with fields and semantics. |
 | [EVENTS.md](EVENTS.md) | Every event key the `action_on_event` power can listen on. |
 | [MIGRATION.md](MIGRATION.md) | Legacy type → 2.0 type remap table, lossy translations, DSL gap catalog. |
-| [COOKBOOK.md](COOKBOOK.md) | Recipe-oriented tutorial: 10 common patterns. |
+| [COOKBOOK.md](COOKBOOK.md) | Recipe-oriented tutorial: a five-minute starter origin, then worked recipes for common patterns. |
 | [PACK_FORMAT.md](PACK_FORMAT.md) | Directory layout, file-name conventions, JSON boilerplate. |
 | [CONTENT_CONFIG.md](CONTENT_CONFIG.md) | Server `content.toml` toggles: global vision / resource-bar switches and per-origin / per-class enable flags. |
 | [CLIENT_CONFIG.md](CLIENT_CONFIG.md) | Per-client `client.toml` options: UI theme, HUD layout, hotkey pool size. |
@@ -112,7 +112,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`creative_flight`](POWER_TYPES.md#neooriginscreative_flight) | True hover flight as a toggle. Keeps collision and gravity when not flying. |
 | [`elytra_boost`](POWER_TYPES.md#neooriginselytra_boost) | Add forward thrust while elytra-flying. |
 | [`elytra_flight`](POWER_TYPES.md#neooriginselytra_flight) | Elytra-style fall-flight with no elytra equipped. Can draw wings while gliding. |
-| [`enhanced_vision`](POWER_TYPES.md#neooriginsenhanced_vision) | Permanent brightness floor. Replaces legacy `night_vision`. |
+| [`enhanced_vision`](POWER_TYPES.md#neooriginsenhanced_vision) | Permanent brightness boost applied client-side (no potion effect or HUD icon), switched with the player's "Toggle Night Vision" key. The retired `night_vision` id remaps to `persistent_effect`, not to this. |
 | [`flight`](POWER_TYPES.md#neooriginsflight) | Creative-style flight. |
 | [`modify_flight_speed`](POWER_TYPES.md#neooriginsmodify_flight_speed) | Scale creative and hover flight speed, but not elytra gliding. In-mod replacement for Pehkui. |
 | [`natural_glide`](POWER_TYPES.md#neooriginsnatural_glide) | Glide by pressing jump while falling, with no elytra equipped. |
@@ -205,6 +205,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`prevent_item_damage`](POWER_TYPES.md#neooriginsprevent_item_damage) | Matching items never lose durability, on every durability path. |
 | [`item_magnetism`](POWER_TYPES.md#neooriginsitem_magnetism) | Pull item entities to the player. |
 | [`hide_hud_bar`](POWER_TYPES.md#neooriginshide_hud_bar) | Hide the food or air bar. |
+| [`less_item_use_slowdown`](POWER_TYPES.md#neooriginsless_item_use_slowdown) | Speed modifier while using an item (`item_type`: `any` / `bow` / `shield` / id substring). Still registered; hidden from the creator's type picker. For new packs, `attribute_modifier` + the `neoorigins:using_item` condition covers the `any` case. |
 
 ### Healing, hunger, survival
 
@@ -276,14 +277,17 @@ Hooks into another mod. Each is an inert marker when that mod is absent. See
 
 ### Deprecated & retired
 
-Retired concrete types that still load, remapped onto a live type. Existing packs
-keep working unchanged; prefer the replacement in new ones. See
+Retired ids: no longer registered as types, but still load because
+`LegacyPowerTypeAliases` remaps them (with their fields) onto a live type and
+logs a one-time `[2.0-legacy]` warning. Existing packs keep working; prefer the
+replacement in new ones. See
 [MIGRATION.md](MIGRATION.md) for the full remap table.
 
 | Type | Replaced by |
 |---|---|
 | [`action_on_hit_taken`](POWER_TYPES.md#neooriginsaction_on_hit_taken) | `action_on_event` |
 | [`action_on_kill`](POWER_TYPES.md#neooriginsaction_on_kill) | `action_on_event` |
+| [`action_over_time`](POWER_TYPES.md#neooriginsaction_over_time) | `condition_passive` |
 | [`active_aoe_effect`](POWER_TYPES.md#neooriginsactive_aoe_effect) | `active_ability` |
 | [`active_launch`](POWER_TYPES.md#neooriginsactive_launch) | `active_ability` |
 | [`better_bone_meal`](POWER_TYPES.md#neooriginsbetter_bone_meal) | `action_on_event` |
@@ -300,7 +304,6 @@ keep working unchanged; prefer the replacement in new ones. See
 | [`healing_mist`](POWER_TYPES.md#neooriginshealing_mist) | `active_ability` |
 | [`hunger_drain_modifier`](POWER_TYPES.md#neooriginshunger_drain_modifier) | `action_on_event` |
 | [`knockback_modifier`](POWER_TYPES.md#neooriginsknockback_modifier) | `action_on_event` |
-| [`less_item_use_slowdown`](POWER_TYPES.md#neooriginsless_item_use_slowdown) | `attribute_modifier` + `neoorigins:using_item` condition |
 | [`longer_potions`](POWER_TYPES.md#neooriginslonger_potions) | `action_on_event` |
 | [`more_animal_loot`](POWER_TYPES.md#neooriginsmore_animal_loot) | `action_on_event` |
 | [`natural_regen_modifier`](POWER_TYPES.md#neooriginsnatural_regen_modifier) | `action_on_event` |
@@ -316,158 +319,175 @@ keep working unchanged; prefer the replacement in new ones. See
 
 ## Condition verbs
 
-Used in `condition` fields. All use the `neoorigins:` namespace (the `apace:`
-namespace is also accepted; they're aliases). Jumps go to
-[CONDITIONS.md](CONDITIONS.md).
+Used in `condition` fields. A bare verb name defaults to `neoorigins:`; any other
+namespace (`origins:`, `apace:`, `apoli:`, `apugli:`, ...) is rewritten to
+`neoorigins:` with a one-time `[2.0-legacy]` warning. An unknown verb fails
+closed. Each entry jumps to [CONDITIONS.md](CONDITIONS.md).
+
+Alias spellings (dispatch to the same verb, not counted above): `riding` → `passenger`, `fire` → `on_fire`, `food` → `food_level`, `name` → `damage_name`, `replaceable` → `replacable`, `resource_level` → `resource`, `covered_by_block` → `cover`, `block_in_radius` → `near_block`, `all_of` → `and`, `any_of` → `or`.
 
 ### Boolean combinators
-`neoorigins:and` • `neoorigins:or` • `neoorigins:not` • `neoorigins:constant` •
-`neoorigins:always_active`
+[`neoorigins:and`](CONDITIONS.md#neooriginsand-alias-neooriginsall_of) • [`neoorigins:or`](CONDITIONS.md#neooriginsor-alias-neooriginsany_of) • [`neoorigins:not`](CONDITIONS.md#neooriginsnot) • [`neoorigins:constant`](CONDITIONS.md#neooriginsconstant) •
+[`neoorigins:always_active`](CONDITIONS.md#neooriginsalways_active)
 
 ### Environment
-`neoorigins:biome` • `neoorigins:dimension` • `neoorigins:in_tag` • `neoorigins:submerged_in` •
-`neoorigins:submerged_in_water` • `neoorigins:in_water` • `neoorigins:in_block` •
-`neoorigins:on_block` • `neoorigins:block` • `neoorigins:block_collision` •
-`neoorigins:on_ground` • `neoorigins:on_fire` • `neoorigins:in_rain` • `neoorigins:temperature` •
-`neoorigins:weather` • `neoorigins:brightness` • `neoorigins:light_level` •
-`neoorigins:exposed_to_sky` • `neoorigins:exposed_to_sun` • `neoorigins:daytime` •
-`neoorigins:time_of_day` • `neoorigins:moon_phase` • `neoorigins:height` •
-`neoorigins:fluid_height` • `neoorigins:distance` • `neoorigins:near_entity` •
-`neoorigins:nearby_entities` • `neoorigins:near_villager` •
-`neoorigins:near_block` • `neoorigins:in_block_anywhere` •
-`neoorigins:distance_from_coordinates` • `neoorigins:cover` •
-`neoorigins:hardness` • `neoorigins:replacable` • `neoorigins:night` •
-`neoorigins:thundering`
+[`neoorigins:biome`](CONDITIONS.md#neooriginsbiome) • [`neoorigins:dimension`](CONDITIONS.md#neooriginsdimension) • [`neoorigins:in_tag`](CONDITIONS.md#neooriginsin_tag) • [`neoorigins:submerged_in`](CONDITIONS.md#neooriginssubmerged_in) •
+[`neoorigins:submerged_in_water`](CONDITIONS.md#neooriginssubmerged_in_water) • [`neoorigins:in_water`](CONDITIONS.md#neooriginsin_water) • [`neoorigins:in_block`](CONDITIONS.md#neooriginsin_block) •
+[`neoorigins:on_block`](CONDITIONS.md#neooriginson_block) • [`neoorigins:block`](CONDITIONS.md#neooriginsblock) • [`neoorigins:block_collision`](CONDITIONS.md#neooriginsblock_collision) •
+[`neoorigins:on_ground`](CONDITIONS.md#neooriginson_ground) • [`neoorigins:on_fire`](CONDITIONS.md#neooriginson_fire-alias-neooriginsfire) • [`neoorigins:in_rain`](CONDITIONS.md#neooriginsin_rain) • [`neoorigins:temperature`](CONDITIONS.md#neooriginstemperature) •
+[`neoorigins:weather`](CONDITIONS.md#neooriginsweather) • [`neoorigins:brightness`](CONDITIONS.md#neooriginsbrightness) • [`neoorigins:light_level`](CONDITIONS.md#neooriginslight_level) •
+[`neoorigins:exposed_to_sky`](CONDITIONS.md#neooriginsexposed_to_sky) • [`neoorigins:exposed_to_sun`](CONDITIONS.md#neooriginsexposed_to_sun) • [`neoorigins:daytime`](CONDITIONS.md#neooriginsdaytime) •
+[`neoorigins:time_of_day`](CONDITIONS.md#neooriginstime_of_day) • [`neoorigins:moon_phase`](CONDITIONS.md#neooriginsmoon_phase) • [`neoorigins:height`](CONDITIONS.md#neooriginsheight) •
+[`neoorigins:fluid_height`](CONDITIONS.md#neooriginsfluid_height) • [`neoorigins:distance`](CONDITIONS.md#neooriginsdistance) • [`neoorigins:near_entity`](CONDITIONS.md#neooriginsnear_entity) •
+[`neoorigins:nearby_entities`](CONDITIONS.md#neooriginsnearby_entities) • [`neoorigins:near_villager`](CONDITIONS.md#neooriginsnear_villager) •
+[`neoorigins:near_block`](CONDITIONS.md#neooriginsnear_block) • [`neoorigins:in_block_anywhere`](CONDITIONS.md#neooriginsin_block_anywhere) •
+[`neoorigins:distance_from_coordinates`](CONDITIONS.md#neooriginsdistance_from_coordinates) • [`neoorigins:cover`](CONDITIONS.md#neooriginscover-alias-neooriginscovered_by_block) •
+[`neoorigins:hardness`](CONDITIONS.md#neooriginshardness) • [`neoorigins:replacable`](CONDITIONS.md#neooriginsreplacable-alias-neooriginsreplaceable) • [`neoorigins:night`](CONDITIONS.md#neooriginsnight) •
+[`neoorigins:thundering`](CONDITIONS.md#neooriginsthundering)
 
 ### Player state
-`neoorigins:health` • `neoorigins:relative_health` • `neoorigins:food_level` •
-`neoorigins:armor_value` • `neoorigins:xp_level` • `neoorigins:xp_points` •
-`neoorigins:fall_distance` • `neoorigins:fall_flying` • `neoorigins:sneaking` •
-`neoorigins:sprinting` • `neoorigins:swimming` • `neoorigins:invisible` •
-`neoorigins:creative_flying` • `neoorigins:moving` • `neoorigins:passenger` •
-`neoorigins:using_item` • `neoorigins:equipped_item` • `neoorigins:enchantment` •
-`neoorigins:resource` • `neoorigins:living` • `neoorigins:exists` • `neoorigins:ticking` •
-`neoorigins:advancement` • `neoorigins:air` • `neoorigins:body_temperature` •
-`neoorigins:climbing` • `neoorigins:climbing_gate` •
-`neoorigins:collided_horizontally` • `neoorigins:creative_mode` •
-`neoorigins:has_effect` • `neoorigins:status_effect` • `neoorigins:inventory` •
-`neoorigins:saturation_level` • `neoorigins:using_effective_tool` •
-`neoorigins:xp_levels`
+[`neoorigins:health`](CONDITIONS.md#neooriginshealth) • [`neoorigins:relative_health`](CONDITIONS.md#neooriginsrelative_health) • [`neoorigins:food_level`](CONDITIONS.md#neooriginsfood_level-alias-neooriginsfood) •
+[`neoorigins:armor_value`](CONDITIONS.md#neooriginsarmor_value) • [`neoorigins:xp_level`](CONDITIONS.md#neooriginsxp_level) • [`neoorigins:xp_points`](CONDITIONS.md#neooriginsxp_points) •
+[`neoorigins:fall_distance`](CONDITIONS.md#neooriginsfall_distance) • [`neoorigins:fall_flying`](CONDITIONS.md#neooriginsfall_flying) • [`neoorigins:sneaking`](CONDITIONS.md#neooriginssneaking) •
+[`neoorigins:sprinting`](CONDITIONS.md#neooriginssprinting) • [`neoorigins:swimming`](CONDITIONS.md#neooriginsswimming) • [`neoorigins:invisible`](CONDITIONS.md#neooriginsinvisible) •
+[`neoorigins:creative_flying`](CONDITIONS.md#neooriginscreative_flying) • [`neoorigins:moving`](CONDITIONS.md#neooriginsmoving) • [`neoorigins:passenger`](CONDITIONS.md#neooriginspassenger-alias-neooriginsriding) •
+[`neoorigins:using_item`](CONDITIONS.md#neooriginsusing_item) • [`neoorigins:equipped_item`](CONDITIONS.md#neooriginsequipped_item) • [`neoorigins:enchantment`](CONDITIONS.md#neooriginsenchantment) •
+[`neoorigins:resource`](CONDITIONS.md#neooriginsresource) • [`neoorigins:living`](CONDITIONS.md#neooriginsliving) • [`neoorigins:exists`](CONDITIONS.md#neooriginsexists) • [`neoorigins:ticking`](CONDITIONS.md#neooriginsticking) •
+[`neoorigins:advancement`](CONDITIONS.md#neooriginsadvancement) • [`neoorigins:air`](CONDITIONS.md#neooriginsair) • [`neoorigins:body_temperature`](CONDITIONS.md#neooriginsbody_temperature) •
+[`neoorigins:climbing`](CONDITIONS.md#neooriginsclimbing) • [`neoorigins:climbing_gate`](CONDITIONS.md#neooriginsclimbing_gate) •
+[`neoorigins:collided_horizontally`](CONDITIONS.md#neooriginscollided_horizontally) • [`neoorigins:creative_mode`](CONDITIONS.md#neooriginscreative_mode) •
+[`neoorigins:has_effect`](CONDITIONS.md#neooriginshas_effect) • [`neoorigins:status_effect`](CONDITIONS.md#neooriginsstatus_effect) • [`neoorigins:inventory`](CONDITIONS.md#neooriginsinventory) •
+[`neoorigins:saturation_level`](CONDITIONS.md#neooriginssaturation_level) • [`neoorigins:using_effective_tool`](CONDITIONS.md#neooriginsusing_effective_tool) •
+[`neoorigins:xp_levels`](CONDITIONS.md#neooriginsxp_levels)
 
 ### Food context
-`neoorigins:food_item_id` • `neoorigins:food_item_in_tag` •
-`neoorigins:food_item_in_config_list`
+[`neoorigins:food_item_id`](CONDITIONS.md#neooriginsfood_item_id) • [`neoorigins:food_item_in_tag`](CONDITIONS.md#neooriginsfood_item_in_tag) •
+[`neoorigins:food_item_in_config_list`](CONDITIONS.md#neooriginsfood_item_in_config_list)
 
 ### Entity & damage
-`neoorigins:entity_type` • `neoorigins:target_type` • `neoorigins:target_group` •
-`neoorigins:can_see` • `neoorigins:damage_type` • `neoorigins:damage_tag` •
-`neoorigins:damage_name` • `neoorigins:from_fire` • `neoorigins:from_projectile` •
-`neoorigins:from_explosion` • `neoorigins:actor_condition` •
-`neoorigins:hit_dealt_amount` • `neoorigins:hit_taken_amount` •
-`neoorigins:out_of_combat`
+[`neoorigins:entity_type`](CONDITIONS.md#neooriginsentity_type) • [`neoorigins:target_type`](CONDITIONS.md#neooriginstarget_type) • [`neoorigins:target_group`](CONDITIONS.md#neooriginstarget_group) •
+[`neoorigins:can_see`](CONDITIONS.md#neooriginscan_see) • [`neoorigins:damage_type`](CONDITIONS.md#neooriginsdamage_type) • [`neoorigins:damage_tag`](CONDITIONS.md#neooriginsdamage_tag) •
+[`neoorigins:damage_name`](CONDITIONS.md#neooriginsdamage_name-alias-neooriginsname) • [`neoorigins:from_fire`](CONDITIONS.md#neooriginsfrom_fire) • [`neoorigins:from_projectile`](CONDITIONS.md#neooriginsfrom_projectile) •
+[`neoorigins:from_explosion`](CONDITIONS.md#neooriginsfrom_explosion) • [`neoorigins:actor_condition`](CONDITIONS.md#neooriginsactor_condition) •
+[`neoorigins:hit_dealt_amount`](CONDITIONS.md#neooriginshit_dealt_amount) • [`neoorigins:hit_taken_amount`](CONDITIONS.md#neooriginshit_taken_amount) •
+[`neoorigins:out_of_combat`](CONDITIONS.md#neooriginsout_of_combat)
 
 ### Power introspection
-`neoorigins:power_active` • `neoorigins:power_type` • `neoorigins:in_set` •
-`neoorigins:power` • `neoorigins:origin` • `neoorigins:cooldown` •
-`neoorigins:no_minions_alive`
+[`neoorigins:power_active`](CONDITIONS.md#neooriginspower_active) • [`neoorigins:power_type`](CONDITIONS.md#neooriginspower_type) • [`neoorigins:in_set`](CONDITIONS.md#neooriginsin_set) •
+[`neoorigins:power`](CONDITIONS.md#neooriginspower) • [`neoorigins:origin`](CONDITIONS.md#neooriginsorigin) • [`neoorigins:cooldown`](CONDITIONS.md#neooriginscooldown) •
+[`neoorigins:no_minions_alive`](CONDITIONS.md#neooriginsno_minions_alive)
 
 ### Advanced
-`neoorigins:nbt` • `neoorigins:scoreboard` • `neoorigins:statistic` •
-`neoorigins:command` • `neoorigins:predicate` •
-`neoorigins:amount` • `neoorigins:equal` • `neoorigins:config_flag`
+[`neoorigins:nbt`](CONDITIONS.md#neooriginsnbt) • [`neoorigins:scoreboard`](CONDITIONS.md#neooriginsscoreboard) • [`neoorigins:statistic`](CONDITIONS.md#neooriginsstatistic) •
+[`neoorigins:command`](CONDITIONS.md#neooriginscommand) • [`neoorigins:predicate`](CONDITIONS.md#neooriginspredicate) •
+[`neoorigins:amount`](CONDITIONS.md#neooriginsamount) • [`neoorigins:equal`](CONDITIONS.md#neooriginsequal) • [`neoorigins:config_flag`](CONDITIONS.md#neooriginsconfig_flag)
 
 ---
 
 ## Action verbs
 
-Used in `entity_action` fields. All use the `neoorigins:` namespace (the
-`apace:` namespace is also accepted). Jumps go to [ACTIONS.md](ACTIONS.md).
+Used in `entity_action` fields. Namespace handling is the same as for
+conditions (bare name → `neoorigins:`; other namespaces rewritten with a
+one-time warning). Each entry jumps to [ACTIONS.md](ACTIONS.md).
+
+Two caveats. In a **bientity** action slot, pair behaviour (actor/target
+wrappers, `and`, `chance`, `invert`, `damage`, `mount`, `if_else`) only exists
+for the literal `origins:` / `apoli:` / `apace:` spellings; any other type,
+including a `neoorigins:` one, is parsed as a plain entity action and runs on
+the **actor**, with the target published as context. And the entity-action
+`neoorigins:invert` is registered but is a **no-op** (it parses to
+`EntityAction.noop()`); only the bientity `origins:invert` swaps actor and target.
+
+Alias spellings (dispatch to the same verb, not counted above): `all_of` → `and`, `bonemeal` → `grow`, `modify_resource` → `change_resource`, `fire_projectile` → `spawn_projectile`, `command` → `execute_command`, `spawn_sword_rain` → `spawn_projectile_rain`.
 
 ### Combinators & control
-`neoorigins:and` • `neoorigins:chance` • `neoorigins:delay` • `neoorigins:if_else` •
-`neoorigins:if_else_list` • `neoorigins:nothing` • `neoorigins:choice` •
-`neoorigins:invert` • `neoorigins:cancel_event`
+[`neoorigins:and`](ACTIONS.md#neooriginsand-alias-neooriginsall_of) • [`neoorigins:chance`](ACTIONS.md#neooriginschance) • [`neoorigins:delay`](ACTIONS.md#neooriginsdelay) • [`neoorigins:if_else`](ACTIONS.md#neooriginsif_else) •
+[`neoorigins:if_else_list`](ACTIONS.md#neooriginsif_else_list) • [`neoorigins:nothing`](ACTIONS.md#neooriginsnothing) • [`neoorigins:choice`](ACTIONS.md#neooriginschoice) •
+[`neoorigins:invert`](ACTIONS.md#invert) (no-op; see above) • [`neoorigins:cancel_event`](ACTIONS.md#neooriginscancel_event)
 
 ### Wrappers & targeting
-`neoorigins:actor_action` • `neoorigins:target_action` • `neoorigins:riding_action` •
-`neoorigins:passenger_action` • `neoorigins:equipped_item_action` •
-`neoorigins:block_action_at` • `neoorigins:block_target_action` •
-`neoorigins:selector_action` • `neoorigins:raycast` • `neoorigins:offset`
+[`neoorigins:actor_action`](ACTIONS.md#actor_action) • [`neoorigins:target_action`](ACTIONS.md#target_action) • [`neoorigins:riding_action`](ACTIONS.md#riding_action) •
+[`neoorigins:passenger_action`](ACTIONS.md#passenger_action) • [`neoorigins:equipped_item_action`](ACTIONS.md#neooriginsequipped_item_action) •
+[`neoorigins:block_action_at`](ACTIONS.md#neooriginsblock_action_at) • [`neoorigins:block_target_action`](ACTIONS.md#neooriginsblock_target_action) •
+[`neoorigins:selector_action`](ACTIONS.md#selector_action) • [`neoorigins:raycast`](ACTIONS.md#neooriginsraycast) • [`neoorigins:offset`](ACTIONS.md#neooriginsoffset)
 
 ### Damage & healing
-`neoorigins:damage` • `neoorigins:heal` • `neoorigins:feed` • `neoorigins:exhaust` •
-`neoorigins:change_resource` • `neoorigins:damage_attacker` •
-`neoorigins:ignite_attacker` • `neoorigins:effect_on_attacker`
+[`neoorigins:damage`](ACTIONS.md#neooriginsdamage) • [`neoorigins:heal`](ACTIONS.md#neooriginsheal) • [`neoorigins:feed`](ACTIONS.md#neooriginsfeed) • [`neoorigins:exhaust`](ACTIONS.md#neooriginsexhaust) •
+[`neoorigins:change_resource`](ACTIONS.md#neooriginschange_resource) • [`neoorigins:damage_attacker`](ACTIONS.md#neooriginsdamage_attacker) •
+[`neoorigins:ignite_attacker`](ACTIONS.md#neooriginsignite_attacker) • [`neoorigins:effect_on_attacker`](ACTIONS.md#neooriginseffect_on_attacker)
 
 ### Effects
-`neoorigins:apply_effect` • `neoorigins:clear_effect` •
-`neoorigins:spawn_effect_cloud` • `neoorigins:spawn_lingering_area` •
-`neoorigins:modify_temperature`
+[`neoorigins:apply_effect`](ACTIONS.md#neooriginsapply_effect) • [`neoorigins:clear_effect`](ACTIONS.md#neooriginsclear_effect) •
+[`neoorigins:spawn_effect_cloud`](ACTIONS.md#neooriginsspawn_effect_cloud) • [`neoorigins:spawn_lingering_area`](ACTIONS.md#neooriginsspawn_lingering_area) •
+[`neoorigins:modify_temperature`](ACTIONS.md#neooriginsmodify_temperature)
 
 ### Movement & position
-`neoorigins:add_velocity` • `neoorigins:launch` • `neoorigins:set_fall_distance` •
-`neoorigins:dismount` • `neoorigins:throw_target` • `neoorigins:dash` •
-`neoorigins:mount` • `neoorigins:random_teleport` • `neoorigins:swap_positions` •
-`neoorigins:swap_with_entity` • `neoorigins:teleport_target_to_self` •
-`neoorigins:teleport_to_marker` • `neoorigins:teleport_to_target`
+[`neoorigins:add_velocity`](ACTIONS.md#neooriginsadd_velocity) • [`neoorigins:launch`](ACTIONS.md#neooriginslaunch) • [`neoorigins:set_fall_distance`](ACTIONS.md#neooriginsset_fall_distance) •
+[`neoorigins:dismount`](ACTIONS.md#neooriginsdismount) • [`neoorigins:throw_target`](ACTIONS.md#neooriginsthrow_target) • [`neoorigins:dash`](ACTIONS.md#neooriginsdash) •
+[`neoorigins:mount`](ACTIONS.md#neooriginsmount) • [`neoorigins:random_teleport`](ACTIONS.md#neooriginsrandom_teleport) • [`neoorigins:swap_positions`](ACTIONS.md#neooriginsswap_positions) •
+[`neoorigins:swap_with_entity`](ACTIONS.md#neooriginsswap_with_entity) • [`neoorigins:teleport_target_to_self`](ACTIONS.md#neooriginsteleport_target_to_self) •
+[`neoorigins:teleport_to_marker`](ACTIONS.md#neooriginsteleport_to_marker) • [`neoorigins:teleport_to_target`](ACTIONS.md#neooriginsteleport_to_target)
 
 ### Items & inventory
-`neoorigins:give` • `neoorigins:modify_food` • `neoorigins:spawn_entity` •
-`neoorigins:spawn_projectile` • `neoorigins:drop_inventory` •
-`neoorigins:drop_items` • `neoorigins:force_drop` • `neoorigins:steal_item` •
-`neoorigins:modify_inventory` • `neoorigins:dye` • `neoorigins:shear` •
-`neoorigins:add_xp` • `neoorigins:crafting_table`
+[`neoorigins:give`](ACTIONS.md#neooriginsgive) • [`neoorigins:modify_food`](ACTIONS.md#neooriginsmodify_food) • [`neoorigins:spawn_entity`](ACTIONS.md#neooriginsspawn_entity) •
+[`neoorigins:spawn_projectile`](ACTIONS.md#neooriginsspawn_projectile) • [`neoorigins:drop_inventory`](ACTIONS.md#neooriginsdrop_inventory) •
+[`neoorigins:drop_items`](ACTIONS.md#neooriginsdrop_items) • [`neoorigins:force_drop`](ACTIONS.md#neooriginsforce_drop) • [`neoorigins:steal_item`](ACTIONS.md#neooriginssteal_item) •
+[`neoorigins:modify_inventory`](ACTIONS.md#neooriginsmodify_inventory) • [`neoorigins:dye`](ACTIONS.md#neooriginsdye) • [`neoorigins:shear`](ACTIONS.md#neooriginsshear) •
+[`neoorigins:add_xp`](ACTIONS.md#neooriginsadd_xp) • [`neoorigins:crafting_table`](ACTIONS.md#neooriginscrafting_table)
 
 ### World & environment
-`neoorigins:set_block` • `neoorigins:set_on_fire` • `neoorigins:extinguish` •
-`neoorigins:explode` • `neoorigins:gain_air` • `neoorigins:area_of_effect` •
-`neoorigins:grow` • `neoorigins:till` • `neoorigins:path` • `neoorigins:strip` •
-`neoorigins:transform_block` • `neoorigins:spawn_black_hole` •
-`neoorigins:spawn_tornado` • `neoorigins:spawn_projectile_rain` •
-`neoorigins:spawn_telegraph` • `neoorigins:spawn_particles`
+[`neoorigins:set_block`](ACTIONS.md#neooriginsset_block) • [`neoorigins:set_on_fire`](ACTIONS.md#neooriginsset_on_fire) • [`neoorigins:extinguish`](ACTIONS.md#neooriginsextinguish) •
+[`neoorigins:explode`](ACTIONS.md#neooriginsexplode) • [`neoorigins:gain_air`](ACTIONS.md#neooriginsgain_air) • [`neoorigins:area_of_effect`](ACTIONS.md#neooriginsarea_of_effect) •
+[`neoorigins:grow`](ACTIONS.md#neooriginsgrow-alias-neooriginsbonemeal) • [`neoorigins:till`](ACTIONS.md#neooriginstill) • [`neoorigins:path`](ACTIONS.md#neooriginspath) • [`neoorigins:strip`](ACTIONS.md#neooriginsstrip) •
+[`neoorigins:transform_block`](ACTIONS.md#neooriginstransform_block) • [`neoorigins:spawn_black_hole`](ACTIONS.md#neooriginsspawn_black_hole) •
+[`neoorigins:spawn_tornado`](ACTIONS.md#neooriginsspawn_tornado) • [`neoorigins:spawn_projectile_rain`](ACTIONS.md#neooriginsspawn_projectile_rain) •
+[`neoorigins:spawn_telegraph`](ACTIONS.md#neooriginsspawn_telegraph) • [`neoorigins:spawn_particles`](ACTIONS.md#neooriginsspawn_particles)
 
 ### Power control
-`neoorigins:grant_power` • `neoorigins:revoke_power` • `neoorigins:trigger_cooldown` •
-`neoorigins:activate_power` • `neoorigins:toggle` • `neoorigins:set_resource` •
-`neoorigins:open_layer_picker`
+[`neoorigins:grant_power`](ACTIONS.md#neooriginsgrant_power) • [`neoorigins:revoke_power`](ACTIONS.md#neooriginsrevoke_power) • [`neoorigins:trigger_cooldown`](ACTIONS.md#neooriginstrigger_cooldown) •
+[`neoorigins:activate_power`](ACTIONS.md#neooriginsactivate_power) • [`neoorigins:toggle`](ACTIONS.md#neooriginstoggle) • [`neoorigins:set_resource`](ACTIONS.md#neooriginsset_resource) •
+[`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker)
 
 ### Entities & sets
-`neoorigins:tame_target` • `neoorigins:chain_to_nearest` •
-`neoorigins:pull_entities` • `neoorigins:add_to_set` •
-`neoorigins:remove_from_set` • `neoorigins:morph_entity_event` •
-`neoorigins:trigger_morph_animation`
+[`neoorigins:tame_target`](ACTIONS.md#neooriginstame_target) • [`neoorigins:chain_to_nearest`](ACTIONS.md#neooriginschain_to_nearest) •
+[`neoorigins:pull_entities`](ACTIONS.md#neooriginspull_entities) • [`neoorigins:add_to_set`](ACTIONS.md#neooriginsadd_to_set) •
+[`neoorigins:remove_from_set`](ACTIONS.md#neooriginsremove_from_set) • [`neoorigins:morph_entity_event`](ACTIONS.md#neooriginsmorph_entity_event) •
+[`neoorigins:trigger_morph_animation`](ACTIONS.md#neooriginstrigger_morph_animation)
 
 ### Integration
-`neoorigins:execute_command` • `neoorigins:play_sound` • `neoorigins:swing_hand` •
-`neoorigins:emit_game_event` • `neoorigins:kubejs_callback` •
-`neoorigins:cast_spell` • `neoorigins:cast_iron_spell`
+[`neoorigins:execute_command`](ACTIONS.md#neooriginsexecute_command) • [`neoorigins:play_sound`](ACTIONS.md#neooriginsplay_sound) • [`neoorigins:swing_hand`](ACTIONS.md#neooriginsswing_hand) •
+[`neoorigins:emit_game_event`](ACTIONS.md#neooriginsemit_game_event) • [`neoorigins:kubejs_callback`](ACTIONS.md#neooriginskubejs_callback) •
+[`neoorigins:cast_spell`](ACTIONS.md#neooriginscast_spell) • [`neoorigins:cast_iron_spell`](ACTIONS.md#neooriginscast_iron_spell)
 
 ---
 
 ## Event keys
 
-Used in `action_on_event`'s `event` field. Case-insensitive.
+Used in `action_on_event`'s `event` field. Case-insensitive. The compat
+spelling `item_use_start` also resolves (to `ITEM_USE`); see
+[EVENTS.md](EVENTS.md#compat-spellings). Each entry jumps to its section in
+[EVENTS.md](EVENTS.md).
 
 ### Core lifecycle & combat
-`ATTACK` • `HIT_TAKEN` • `HIT_DEALT` • `KILL` • `DEATH` • `BLOCK_BREAK` •
-`BLOCK_PLACE` • `ITEM_USE` • `RESPAWN` • `TICK` • `DIMENSION_CHANGE` •
-`JUMP` • `CLIMB` • `PROJECTILE_HIT` • `EFFECT_APPLIED`
+[`ATTACK`](EVENTS.md#attack) • [`HIT_TAKEN`](EVENTS.md#hit_taken) • [`HIT_DEALT`](EVENTS.md#hit_dealt) • [`KILL`](EVENTS.md#kill) • [`DEATH`](EVENTS.md#death) • [`BLOCK_BREAK`](EVENTS.md#block_break) •
+[`BLOCK_PLACE`](EVENTS.md#block_place) • [`ITEM_USE`](EVENTS.md#item_use) • [`RESPAWN`](EVENTS.md#respawn) • [`TICK`](EVENTS.md#tick) • [`DIMENSION_CHANGE`](EVENTS.md#dimension_change) •
+[`JUMP`](EVENTS.md#jump) • [`CLIMB`](EVENTS.md#climb) • [`PROJECTILE_HIT`](EVENTS.md#projectile_hit) • [`EFFECT_APPLIED`](EVENTS.md#effect_applied)
 
 ### Interactions
-`BONEMEAL` • `FOOD_EATEN` • `FOOD_FINISHED` • `BLOCK_USE` • `ENTITY_USE` •
-`ITEM_PICKUP` • `ITEM_USE_FINISH` • `VILLAGER_INTERACT` • `TRADE_COMPLETED` •
-`BREED` • `TAME` • `CRAFT_ITEM` • `SMELT_ITEM` • `ENCHANT_ITEM` •
-`ANVIL_REPAIR` • `ADVANCEMENT_EARNED`
+[`BONEMEAL`](EVENTS.md#bonemeal) • [`FOOD_EATEN`](EVENTS.md#food_eaten) • [`FOOD_FINISHED`](EVENTS.md#food_finished) • [`BLOCK_USE`](EVENTS.md#block_use) • [`ENTITY_USE`](EVENTS.md#entity_use) •
+[`ITEM_PICKUP`](EVENTS.md#item_pickup) • [`ITEM_USE_FINISH`](EVENTS.md#item_use_finish) • [`VILLAGER_INTERACT`](EVENTS.md#villager_interact) • [`TRADE_COMPLETED`](EVENTS.md#trade_completed) •
+[`BREED`](EVENTS.md#breed) • [`TAME`](EVENTS.md#tame) • [`CRAFT_ITEM`](EVENTS.md#craft_item) • [`SMELT_ITEM`](EVENTS.md#smelt_item) • [`ENCHANT_ITEM`](EVENTS.md#enchant_item) •
+[`ANVIL_REPAIR`](EVENTS.md#anvil_repair) • [`ADVANCEMENT_EARNED`](EVENTS.md#advancement_earned)
 
 ### Origin & power lifecycle
-`GAINED` • `LOST` • `CHOSEN` • `WAKE_UP` • `LAND` • `POWER_ACTIVATED`
+[`GAINED`](EVENTS.md#gained) • [`LOST`](EVENTS.md#lost) • [`CHOSEN`](EVENTS.md#chosen) • [`WAKE_UP`](EVENTS.md#wake_up) • [`LAND`](EVENTS.md#land) • [`POWER_ACTIVATED`](EVENTS.md#power_activated)
 
 ### Modifiers (return a float, chain in registration order)
-`MOD_EXHAUSTION` • `MOD_NATURAL_REGEN` • `MOD_ENCHANT_LEVEL` •
-`MOD_HARVEST_DROPS` • `MOD_TELEPORT_RANGE` • `MOD_KNOCKBACK` •
-`MOD_POTION_DURATION` • `MOD_ANVIL_COST` • `MOD_CRAFTED_FOOD_SATURATION` •
-`MOD_BONEMEAL_EXTRA` • `MOD_FALL_DAMAGE` • `MOD_TRADE_PRICE` •
-`MOD_CRAFT_AMOUNT` • `MOD_FOOD_NUTRITION`
+[`MOD_EXHAUSTION`](EVENTS.md#mod_exhaustion) • [`MOD_NATURAL_REGEN`](EVENTS.md#mod_natural_regen) • [`MOD_ENCHANT_LEVEL`](EVENTS.md#mod_enchant_level) •
+[`MOD_HARVEST_DROPS`](EVENTS.md#mod_harvest_drops) • [`MOD_TELEPORT_RANGE`](EVENTS.md#mod_teleport_range) • [`MOD_KNOCKBACK`](EVENTS.md#mod_knockback) •
+[`MOD_POTION_DURATION`](EVENTS.md#mod_potion_duration) • [`MOD_ANVIL_COST`](EVENTS.md#mod_anvil_cost) • [`MOD_CRAFTED_FOOD_SATURATION`](EVENTS.md#mod_crafted_food_saturation) •
+[`MOD_BONEMEAL_EXTRA`](EVENTS.md#mod_bonemeal_extra) • [`MOD_FALL_DAMAGE`](EVENTS.md#mod_fall_damage) • [`MOD_TRADE_PRICE`](EVENTS.md#mod_trade_price) •
+[`MOD_CRAFT_AMOUNT`](EVENTS.md#mod_craft_amount) • [`MOD_FOOD_NUTRITION`](EVENTS.md#mod_food_nutrition)
 
 See [EVENTS.md](EVENTS.md) for each event's context record.
 
@@ -690,16 +710,18 @@ another power:
 ### How the pool works
 
 - At reload, the server collects every distinct `key` value from all loaded
-  powers and broadcasts the sorted list to each client. Pool size is capped
-  by `NeoOriginsConfig.HOTKEY_POOL_SIZE`.
+  powers and broadcasts the sorted list to each client. Pool size is the
+  client's `[hotkeys] pool_size` (default 32, range 1-256;
+  `NeoOriginsClientConfig.HOTKEY_POOL_SIZE`). Slots 1-64 ship a "Hotkey N"
+  label; higher slots work but show the raw translation key.
 - Each declared key is assigned an anonymous `Hotkey 01` … `Hotkey N` slot in
   stable order; a player who relogs sees the same key in the same slot as
   long as the pack hasn't changed.
 - The player rebinds each slot to a physical key in vanilla controls. Press
   routes via `ActivatePowerByKeyPayload` back to the server, which fires the
   bound power's entity action under the original cooldown / condition gates.
-- If another mod (keybindjs etc.) has already claimed the same key, the
-  pool slot detects it and stands down to avoid double-binding.
+- If keybindjs is loaded and already registers a mapping with the same
+  translation key, that mapping is used and no pool slot is spent on it.
 
 ### Display labels
 
@@ -749,12 +771,12 @@ NeoOrigins accepts legacy prefixes for cross-mod pack compat.
 | `origins:*` | Upstream Apoli / vanilla Origins. | Translator in `OriginsCompatPowerLoader` maps to `neoorigins:*` or a DSL recipe. |
 | `apace:*` | Apace mod variant. | Same translator as `origins:*`. |
 | `apoli:*` | Upstream Apoli mod. | Canonicalized to `origins:*` and fed through the same translator; `LegacyPowerTypeAliases` covers only the odd cross-mod id (e.g. `apoli:edible_item`). |
-| `apugli:*` | Apugli mod. | `LegacyPowerTypeAliases` remaps; Tier-1 aliases only (edible_item, action_on_jump, action_on_target_death). |
+| `apugli:*` | Apugli mod. | Canonicalized to `origins:*` like `apoli:*` and fed through the same translator. `LegacyPowerTypeAliases` also covers `apugli:edible_item`, `apugli:action_on_jump` and `apugli:action_on_target_death`. |
 
-Running on a mixed pack: if two prefixes point at the same conceptual
-power and the fields differ, the alias remap picks the intersection of
-supported fields. Extra fields from the legacy type are dropped with a
-one-time `[2.0-legacy]` log warning.
+A remapped type logs one `[2.0-legacy]` warning per old type id per boot,
+naming the replacement. The remap rewrites only the fields it knows about;
+the replacement type's parser then reads the result, so a field neither
+the remap nor the new type reads has no effect.
 
 ---
 
@@ -768,6 +790,9 @@ datapack validator at:
 - `schema/origin_layer.schema.json`: for files under `data/*/origins/origin_layers/`
 - `schema/mob_origin.schema.json`: for files under `data/*/origins/mob_origins/`
 - `schema/morph.schema.json`: for files under `data/*/neoorigins/morphs/`
+- `schema/condition.schema.json`, `schema/action.schema.json`,
+  `schema/block_condition.schema.json`, `schema/item_condition.schema.json`,
+  `schema/item_action.schema.json`: the nested condition / action objects
 
 Schemas are derived from the Java Config records and are authoritative
 against what the loader accepts. If the schema disagrees with a prose
@@ -804,7 +829,7 @@ When docs drift, these are the code files that won:
 
 - Power registrations: `src/main/java/com/cyberday1/neoorigins/power/registry/PowerTypes.java`
 - Power Config records: `src/main/java/com/cyberday1/neoorigins/power/builtin/*.java`
-- Condition verbs: `src/main/java/com/cyberday1/neoorigins/compat/condition/ConditionParser.java`
-- Action verbs: `src/main/java/com/cyberday1/neoorigins/compat/action/ActionParser.java`
+- Condition verbs: `src/main/java/com/cyberday1/neoorigins/compat/condition/BuiltinConditions.java` (registered descriptors; `ConditionParser.java` dispatches to them)
+- Action verbs: `src/main/java/com/cyberday1/neoorigins/compat/action/BuiltinActions.java` (registered descriptors; `ActionParser.java` dispatches to them)
 - Event keys: `src/main/java/com/cyberday1/neoorigins/service/EventPowerIndex.java`
 - Legacy aliases: `src/main/java/com/cyberday1/neoorigins/power/registry/LegacyPowerTypeAliases.java`

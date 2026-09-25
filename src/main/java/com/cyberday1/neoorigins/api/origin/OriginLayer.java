@@ -17,7 +17,8 @@ public record OriginLayer(
     boolean allowRandom,
     Optional<ResourceLocation> defaultOrigin,
     boolean autoChoose,
-    boolean hidden
+    boolean hidden,
+    List<ResourceLocation> excludeRandom
 ) {
     public static final Codec<OriginLayer> CODEC = RecordCodecBuilder.create(inst -> inst.group(
         ResourceLocation.CODEC.fieldOf("id").forGetter(OriginLayer::id),
@@ -28,8 +29,14 @@ public record OriginLayer(
         Codec.BOOL.optionalFieldOf("allow_random", false).forGetter(OriginLayer::allowRandom),
         ResourceLocation.CODEC.optionalFieldOf("default_origin").forGetter(OriginLayer::defaultOrigin),
         Codec.BOOL.optionalFieldOf("auto_choose", false).forGetter(OriginLayer::autoChoose),
-        Codec.BOOL.optionalFieldOf("hidden", false).forGetter(OriginLayer::hidden)
+        Codec.BOOL.optionalFieldOf("hidden", false).forGetter(OriginLayer::hidden),
+        ResourceLocation.CODEC.listOf().optionalFieldOf("exclude_random", List.of()).forGetter(OriginLayer::excludeRandom)
     ).apply(inst, OriginLayer::new));
+
+    /** False for an origin the layer lists under {@code exclude_random}: pickable, but never rolled. */
+    public boolean isRandomCandidate(ResourceLocation origin) {
+        return !excludeRandom.contains(origin);
+    }
 
     public List<ResourceLocation> getAvailableOriginIds() {
         return origins.stream().map(ConditionedOrigin::origin).toList();

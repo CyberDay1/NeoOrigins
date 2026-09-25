@@ -21,7 +21,9 @@ Types under `com.cyberday1.neoorigins.api.**` follow semver:
 
 Types under `service/`, `event/`, `power/builtin/`, `compat/`, `mixin/`,
 `network/` are **internal**. They can change between patch releases. Don't
-import them from your mod.
+import them from your mod. A few samples below still name internal classes
+(`SummonMinionPower` and `TameMobPower` from `power/builtin/`, `GeckoLibCompat`
+from `compat/`); treat those references as internal too.
 
 If an integration you need isn't available through `api/`, open an issue.
 We'll promote the internal method to API rather than ask you to import a
@@ -41,16 +43,20 @@ repositories {
 dependencies {
     // Compile against a stable minor release; runtime will use whatever
     // version of NeoOrigins the user has installed ≥ the declared version.
+    // Replace <VERSION> with the latest release tag (e.g. v2.2.27).
     // For 26.1.x:
-    compileOnly "maven.modrinth:neo-origins:v2.0.25+26.1"
+    compileOnly "maven.modrinth:neo-origins:<VERSION>+26.1"
+    // For 26.2:
+    // compileOnly "maven.modrinth:neo-origins:<VERSION>+26.2"
     // For 1.21.1:
-    // compileOnly "maven.modrinth:neo-origins:v2.0.25+1.21.1"
+    // compileOnly "maven.modrinth:neo-origins:<VERSION>+1.21.1"
 }
 ```
 
 > **Version format:** Modrinth Maven uses the exact version string from the
 > [releases page](https://modrinth.com/mod/neo-origins/versions).
-> The format is `v{version}+{mc_version}` (e.g. `v2.0.25+26.1`).
+> The format is `v{version}+{mc_version}`, where `{mc_version}` is `1.21.1`,
+> `26.1` or `26.2` (e.g. `v2.2.27+1.21.1`).
 
 `neoforge.mods.toml`:
 
@@ -76,8 +82,8 @@ The preferred way to call into NeoOrigins.
 ```java
 import com.cyberday1.neoorigins.api.NeoOriginsAPI;
 
-// Does this player have the Aquatic origin's Water Breathing power?
-if (NeoOriginsAPI.hasCapability(player, "water_breathing")) { ... }
+// Does any active power on this player emit the "enhanced_vision" capability tag?
+if (NeoOriginsAPI.hasCapability(player, "enhanced_vision")) { ... }
 
 // Exempt our own damage code from hitting tracked minions of their owner:
 if (NeoOriginsAPI.isMinionOf(targetEntity, sourcePlayer)) return;
@@ -96,13 +102,13 @@ Full method list:
 | `powers(player)` | All active power holders. |
 | `has(player, PowerClass, filter)` | True if player has at least one matching power. |
 | `forEachOfType(player, PowerClass, visitor)` | Iterate configs of the given type. |
-| `hasCapability(player, tag)` | True if the capability tag is emitted (shared vocabulary with client-side effect layers). |
+| `hasCapability(player, tag)` | True if the capability tag is emitted (shared vocabulary with client-side effect layers). Tags are emitted by specific power types, e.g. `enhanced_vision`, `wall_climb`, `walk_on_water`; there is no `water_breathing` tag. |
 | `summonerOf(entity)` | Reverse-lookup a summoned minion's owner. |
 | `isMinionOf(entity, summoner)` | Cheap check: is this entity summoner's minion? |
-| `isAnyMinion(entity)` | Cheap check: is this entity anyone's tracked minion? |
+| `isAnyMinion(entity)` | Is this entity anyone's tracked minion? Falls back to a scan of tracked minions when the entity carries no minion marker. |
 
-All methods are server-thread safe. Client-side use is read-only; mutating
-power state from the client is undefined.
+Call these on the logical server: the player-facing methods take a
+`ServerPlayer` and read server-side state.
 
 ---
 
@@ -115,22 +121,26 @@ Listen on the NeoForge event bus:
 public class YourOriginListener {
     @SubscribeEvent
     public static void onOriginChanged(OriginChangedEvent event) {
-        ServerPlayer player = (ServerPlayer) event.getEntity();
-        Identifier newOrigin = event.getNewOrigin();
+        ServerPlayer player = event.getEntity();
+        ResourceLocation newOrigin = event.getNewOrigin();
         // React to the player picking a new origin.
     }
 }
 ```
 
-| Event | When it fires |
-|---|---|
-| `OriginChangedEvent` | Player's origin changes. Cancellable: cancelling prevents the set. |
-| `OriginsLoadedEvent` | All origin JSONs finished parsing (datapack reload). |
-| `PowerGrantedEvent` | A power was just granted to a player. |
-| `PowerRevokedEvent` | A power was just revoked. |
+All four are posted on `NeoForge.EVENT_BUS`.
 
-All events carry the `ServerPlayer` via `getEntity()` plus event-specific
-identifiers. See the Javadoc on each event class.
+| Event | When it fires | Data |
+|---|---|---|
+| `OriginChangedEvent` | A player picks an origin in the selection screen (the server's handler for the pick packet). Not posted for `/neoorigins set`, reset, advancement upgrades, or automatic/random assignment. Cancellable: cancelling prevents the set. | `getEntity()` (`ServerPlayer`), `getLayer()`, `getOldOrigin()` (nullable), `getNewOrigin()`, `setNewOrigin(id)` |
+| `OriginsLoadedEvent` | After the origin JSONs are applied, on every datapack load, including the first one at server start. Layers are reloaded after it, so layer data is not yet current when it fires. | None: it extends `Event` and has no getters. |
+| `PowerGrantedEvent` | A power was granted through an origin change or a global power. | `getEntity()` (`ServerPlayer`), `getPowerId()` |
+| `PowerRevokedEvent` | A power was revoked through an origin change or a global power. | `getEntity()` (`ServerPlayer`), `getPowerId()` |
+
+`PowerGrantedEvent` / `PowerRevokedEvent` are not posted on every path that
+runs a power's `onGranted` / `onRevoked`: an evolution-tier change and a
+full tear-down (origin reset, profile re-apply, random-origin-on-death) call
+the hooks without posting the events.
 
 ---
 
@@ -161,9 +171,14 @@ Register during `RegisterEvent` for `PowerType` at your mod's
 initialisation:
 
 ```java
+// The power-type registry id is neoorigins:power_type. NeoOriginsAPI exposes no
+// constant for it, so build the key yourself.
+private static final ResourceKey<Registry<PowerType<?>>> POWER_TYPES =
+    ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath("neoorigins", "power_type"));
+
 @SubscribeEvent
 public static void onRegister(RegisterEvent event) {
-    event.register(NeoOriginsAPI.POWER_TYPE_REGISTRY_KEY,
+    event.register(POWER_TYPES,
         helper -> helper.register(
             ResourceLocation.fromNamespaceAndPath("mymod", "my_boost"),
             new MyBoostPower()));
@@ -178,16 +193,22 @@ Pack authors can now use `"type": "mymod:my_boost"` in their power JSONs.
 |---|---|
 | `onGranted(player, config)` | Power was just added to the player's active set. |
 | `onRevoked(player, config)` | Power was just removed. |
-| `onTick(player, config)` | Every server tick while granted. Keep this cheap. |
+| `onTick(player, config)` | Every server tick while granted and the power's condition passes. Keep this cheap. |
 | `onLogin(player, config)` | Player logged in with this power. Defaults to calling `onGranted`. |
 | `onRespawn(player, config)` | Player respawned with this power. Defaults to calling `onGranted`. |
-| `onHit(player, amount)` | Player took damage. Reaction hook. |
+| `onActivated(player, config)` | The power was activated: its skill hotkey was pressed, or an `activate_power` action targeted it. |
+| `onHit(player, config, amount)` | Player took damage. Reaction hook. Skipped while the power's condition fails. |
+| `onKill(player, config, killed)` | Player killed a `LivingEntity`. Skipped while the power's condition fails. |
+
+`PowerType` also has overridable queries: `isActivePower()` /
+`isActivePower(config)`, `occupiesHotkeySlot(config)`, `capabilities(config)` /
+`capabilities(player, config)`, and the mob-origin hooks `appliesToMobs(config)`,
+`applyToMob(...)` and `removeFromMob(...)`.
 
 > Idempotency note: `onLogin` and `onRespawn` default to invoking
 > `onGranted`. If your implementation registers a listener or adds an
 > attribute modifier in `onGranted`, make sure it's safe to run multiple
-> times. Use modifier UUIDs and removal-before-add to avoid stacking.
-> See `feedback_powertype_onGranted_idempotent` for the canonical pattern.
+> times. Give modifiers a fixed id and remove before adding to avoid stacking.
 
 ---
 
@@ -198,17 +219,15 @@ Read-only data types representing loaded origin JSON.
 | Type | Purpose |
 |---|---|
 | `Origin` | One origin record (name, description, impact, icon, powers). |
-| `OriginLayer` | One picker layer (list of origin IDs, name, order). |
+| `OriginLayer` | One picker layer (a `List<ConditionedOrigin>`, name, order). `getAvailableOriginIds(...)` resolves the ids. |
 | `Impact` | Enum: `NONE`, `LOW`, `MEDIUM`, `HIGH`. |
 | `OriginUpgrade` | Upgrade condition (vanilla advancement) that migrates one origin to another. |
 | `ConditionedOrigin` | Wraps an origin with a predicate determining availability. |
 
-Typical read:
-
-```java
-Origin current = NeoOriginsAPI.currentOrigin(player, "neoorigins:origin");
-if (current != null && current.impact() == Impact.HIGH) { ... }
-```
+`NeoOriginsAPI` has no "current origin" lookup: its methods are the seven
+listed above. A player's chosen origin per layer lives in internal state
+(`PlayerOriginData`), so reading it today means importing internal classes.
+Open an issue if you need it promoted to the API.
 
 ---
 
@@ -239,11 +258,14 @@ NeoOriginsAPI.forEachOfType(player, TameMobPower.class, cfg -> {
 
 ### "I want to block a player with a specific origin from entering a region."
 
-Listen for `OriginChangedEvent` or poll:
+Listen for `OriginChangedEvent` (it only covers picks made in the selection
+screen, see [Events](#events-apievent)):
 ```java
-Origin o = NeoOriginsAPI.currentOrigin(player, myLayerId);
-if (o != null && o.id().equals(Identifier.parse("mypack:forbidden"))) {
-    // kick / teleport / deny
+@SubscribeEvent
+public static void onOriginChanged(OriginChangedEvent event) {
+    if (event.getNewOrigin().equals(ResourceLocation.parse("mypack:forbidden"))) {
+        // kick / teleport / deny, or event.setCanceled(true) to refuse the pick
+    }
 }
 ```
 
@@ -300,7 +322,8 @@ Pack authors reference your entity by its registered ID from any
 
 The `on_hit_action` still fires independently of your subclass's
 `onImpact`: the DSL callback and the entity-class callback complement
-each other.
+each other. The action runs with the **shooter** as its actor, so the
+`heal` above heals the player who fired, not the entity that was hit.
 
 ### GeckoLib soft-dep
 
@@ -310,17 +333,18 @@ ships {@code com.cyberday1.neoorigins.compat.GeckoLibCompat#isLoaded()}
 for the presence probe. Gate any renderer that touches GeckoLib classes
 on that call and provide a {@link
 net.minecraft.client.renderer.entity.ThrownItemRenderer}-based fallback
-for the no-GeckoLib case. Full animated-projectile support is planned
-for 2.1.
+for the no-GeckoLib case. NeoOrigins itself ships no GeckoLib projectile
+renderer; its only GeckoLib use is the `trigger_morph_animation` action.
 
 ---
 
 ## VFX entities (`api/content/vfx/`)
 
 Non-moving visual-effect entities: lingering clouds, black holes,
-tornados, ground markers. NeoOrigins ships three reference subclasses
-(`LingeringAreaEntity`, `BlackHoleVfxEntity`, `TornadoVfxEntity`) and a
-base class + renderer stack for custom VFX.
+tornados, ground markers. NeoOrigins ships five reference subclasses
+(`LingeringAreaEntity`, `BlackHoleVfxEntity`, `TornadoVfxEntity`,
+`ProjectileRainVfxEntity`, `TelegraphVfxEntity`) and a base class + renderer
+stack for custom VFX.
 
 ### Base class: `AbstractVfxEntity`
 
@@ -350,12 +374,13 @@ public class MyAuraEntity extends AbstractVfxEntity {
 Public API the base provides for free:
 - `getRange()` / `setRange(float)`: synched to client
 - `getEffectType()` / `setEffectType(String)`: synched color key
-- `getLifetime()` / `getMaxLifetime()` / `setMaxLifetime(int)`
+- `getLifetime()` / `getMaxLifetime()` / `setMaxLifetime(int)` / `getLifetimeProgress()`
 - `getCasterUuid()` / `setCaster(UUID)` / `resolveCaster()`
 - `emitParticles(ParticleOptions, count, xSpread, ySpread, zSpread)`
 
-The base handles `tick()`, lifetime countdown, expiry, and the
-`hurt()`/`hurtServer()` disable so your VFX can't be killed by damage.
+The base handles `tick()`, lifetime countdown, expiry, and overrides `hurt()`
+so your VFX can't be killed by damage. On this 1.21.1 build the base does not
+save its caster, lifetime or range with the world.
 
 ### Procedural quad renderer: `ProceduralQuadRenderer<T, S>`
 
@@ -365,6 +390,10 @@ For projectile-style VFX (orbs, crossed billboards, pulsing glows), extend
 ```java
 public class MyOrbRenderer extends ProceduralQuadRenderer<MyOrbEntity, MyOrbRenderState> {
     public MyOrbRenderer(EntityRendererProvider.Context ctx) { super(ctx); }
+
+    // 1.21.1 only: the base extends EntityRenderer<T>, whose abstract
+    // getTextureLocation(T) the base does not implement.
+    @Override public ResourceLocation getTextureLocation(MyOrbEntity entity) { return MY_TEXTURE; }
 
     @Override protected MyOrbRenderState createRenderState() { return new MyOrbRenderState(); }
 
@@ -381,8 +410,13 @@ public class MyOrbRenderer extends ProceduralQuadRenderer<MyOrbEntity, MyOrbRend
 }
 ```
 
-The same subclass compiles unchanged on 1.21.1 and 26.1; only the base
-class's render-flow internals differ. See
+`AbstractVfxRenderState.extract(entity, state)` takes an `AbstractVfxEntity`,
+so `MyOrbEntity` must extend it; a projectile-based orb fills the state
+fields itself. The subclass does **not** compile unchanged across lines: on
+26.x the base extends `EntityRenderer<T, S>`, so drop `getTextureLocation`,
+make `createRenderState` / `extractRenderState` `public` (and call
+`super.extractRenderState(...)` first), and import `RenderType` from
+`net.minecraft.client.renderer.rendertype`. See
 [CUSTOM_PROJECTILES.md](CUSTOM_PROJECTILES.md) for the three-tier
 extension guide.
 

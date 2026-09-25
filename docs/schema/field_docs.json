@@ -20,6 +20,7 @@
     "condition": "Object-entry form: layer condition gating the entry's visibility — origins:/neoorigins:origin ({layer, origin, inverted}) or and/or over sub-conditions. Tests the player's choices in OTHER layers, not a DSL entity condition.",
     "default_origin": "Origin ID auto-assigned when the layer is resolved without a player choice (optional).",
     "enabled": "If false, the layer is loaded but skipped by the picker (default true).",
+    "exclude_random": "Origin IDs a random roll never lands on (Random button and server-side random assignment); still pickable directly. Additive layer files add to the list.",
     "hidden": "If true, the layer is resolved but never shown as a picker tab (default false).",
     "origin": "Object-entry form: the origin ID this entry offers (required when the entry is an object).",
     "origins": "Ordered list of origin entries (required, min 1). Each entry is a plain origin ID string, or an object {origin, condition} whose layer condition gates visibility based on choices made in other layers. First entry is the default selection.",

@@ -18,8 +18,8 @@ active power.
 
 **A class gets one keybind slot.** The class layer does not use the six skill
 slots that the origin layer does. Instead, the **first** active power in a
-class's `powers` list is bound to the dedicated **Class Skill** key, shown as
-`C` in the HUD when the key is unbound. Every later active power in the same
+class's `powers` list is bound to the dedicated **Class Skill** key (default
+`H`), shown as `C` in the HUD when the key is unbound. Every later active power in the same
 class is silently left unbound, so if you want two of them, only the first
 one will ever fire.
 
@@ -62,10 +62,11 @@ fold with `"standalone": true` if you deliberately want a separate screen.)
 
 ## Alternative: overriding the built-in layer
 
-You *can* place a file at the exact built-in path
-`data/neoorigins/origins/origin_layers/class.json`, but this **replaces the
-list entirely**: you must re-list every built-in class you want to keep,
-and re-sync on every mod update. Prefer the additive method above unless you
+A file at the exact built-in path
+`data/neoorigins/origins/origin_layers/class.json` is merged with the built-in
+one like any other same-id layer file (its `origins` are appended). To
+**replace the list entirely**, add `"replace": true`; you must then re-list
+every built-in class you want to keep, and re-sync on every mod update. Prefer the additive method above unless you
 specifically want to remove built-in classes (the `[classes]` config toggles
 are usually the better tool for that).
 
@@ -90,7 +91,8 @@ Conventions used by the built-ins:
 ```
 
 - `icon`: item shown in the class picker.
-- `impact: "none"`: classes don't carry an origin "impact" rating; always `none`.
+- `impact`: the built-in classes use `"none"`, except Fisher, Mason and
+  Paladin, which use `"medium"`.
 - `order`: position in the class screen (built-ins occupy 1–20; use 21+ to
   append after them).
 - `powers`: passive, condition-gated or attribute powers, plus at most one
@@ -134,8 +136,8 @@ you don't want a resource/language pack — handy for self-contained datapacks.
   no-effect default) so starting equipment and pending grants still resolve.
 - **Disabling built-ins:** the `[classes]` section in
   `config/neoorigins/content.toml` toggles each built-in class. Disabled
-  classes are removed after data load (still assignable via
-  `/neoorigins set`).
+  classes stay registered (so `/neoorigins set` can still assign them) but
+  are hidden from the selection screen.
 - **No classes at all:** if *every* class is disabled, the class selection
   screen is skipped entirely and only the origin layer is shown.
 - **Skip initial selection:** the `[skip_initial_selection]` section in
@@ -143,9 +145,9 @@ you don't want a resource/language pack — handy for self-contained datapacks.
   When set to `true`, new players spawn with **no** origin and the selection
   screen never opens on first join; they play as an origin-less player until
   granted one later (for example via an Orb of Origin or `/neoorigins set`).
-  Unlike auto-human mode this assigns nothing, and unlike disabling every
-  class it does not leave the player stuck invulnerable. It takes priority
-  over auto-human and random-assignment modes.
+  Unlike auto-human mode this assigns nothing; the player's selection is
+  marked complete, so the join check doesn't re-prompt on every relog. It
+  takes priority over auto-human and random-assignment modes.
 
 ## The Orb of Origin
 
@@ -155,9 +157,11 @@ the player's **class (and any other layer) is kept**: changing class is the
 Orb of Class's job. Any sub-layer whose conditions no longer pass under the
 new origin is cleared automatically. Like the Orb of Class the commit is
 deferred, so closing the picker without choosing is a free cancel (the orb is
-refunded and the previous origin restored). Cost is `levels_per_use` in the
-`[orb_of_origins]` section of `config/neoorigins/gameplay.toml` (default `5`),
-which can ramp with prior uses when scaling is enabled.
+refunded and the previous origin restored). Cost comes from the
+`[orb_of_origins]` section of `config/neoorigins/gameplay.toml`: with
+`scale_cost = true` (the default) it is `levels_per_use` (default `5`) times
+the player's previous orb uses, so the first use is free; with
+`scale_cost = false` every use costs `levels_per_use`.
 
 ## The Orb of Class
 

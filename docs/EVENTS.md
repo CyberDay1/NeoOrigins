@@ -6,8 +6,8 @@ event fires, the power's `entity_action` (for action-style events) or
 
 Source of truth for the key list:
 [`EventPowerIndex.Event`](../src/main/java/com/cyberday1/neoorigins/service/EventPowerIndex.java).
-Keys wired in the 2.2.0 wave that don't have a full section yet are
-summarised in the **Re-wired in 2.2.0** table at the bottom.
+Every key in the enum has a live `EventPowerIndex.dispatch(...)` call site and
+a section below.
 
 ## Event shape
 
@@ -15,27 +15,49 @@ summarised in the **Re-wired in 2.2.0** table at the bottom.
 {
   "type": "neoorigins:action_on_event",
   "event": "<KEY>",
-  "condition": { ... },          // optional — entity-side gate
-  "block_condition": { ... },    // optional — block-side gate (block events only)
+  "condition": { ... },          // optional: entity-side gate (object, or array = all must pass)
   "entity_action": { ... },      // for action-style events
-  "modifier": { ... }            // for MOD_* events; chains with other registered modifiers
+  "modifier": { ... },           // for MOD_* events (object or array); chains with other registered modifiers
+  "block_condition": { ... },    // optional: block-side gate (block events only)
+  "item_condition": { ... },     // optional: item gate (item-carrying events only)
+  "hands": ["main_hand"],        // optional: hand gate (interaction events only); `hand` also accepted
+  "cooldown_ticks": 0,           // optional: re-fire cooldown for the action, in ticks
+  "effect": "...",               // effect_applied only (see that section)
+  "effect_tag": "...",           // effect_applied only
+  "immunity_ticks": 0,           // effect_applied only
+  "power": "..."                 // power_activated only (see that section)
 }
 ```
 
-`event` is the lowercase enum name (e.g. `"kill"`, `"mod_exhaustion"`).
+`event` is the enum name, matched case-insensitively (e.g. `"kill"`,
+`"mod_exhaustion"`). If it is not an enum name, the
+[compat spelling table](#compat-spellings) is tried; an event that matches
+neither is a load error and the whole power is dropped.
+
 `condition` is an `EntityCondition` evaluated against the player before the
-action / modifier runs. Use it for `origin:power_active`, item-in-hand,
+action / modifier runs. Use it for `neoorigins:power_active`, item-in-hand,
 fluid-in-eyes, and similar gates. `entity_action` and `modifier` may both be
 set on one power; the dispatcher only calls whichever matches the site's call
 shape.
 
-`block_condition` is an optional gate that only applies when the event is
-block-shaped (`block_break`, `block_place`, `block_use`). The dispatch
-`BlockPos` is extracted from the event context and the predicate is evaluated
-before the action runs. Supports `block` / `id` / `tag` fields, e.g.
-`{ "type": "neoorigins:block", "id": "minecraft:stone" }`. On non-block events
-the field is silently ignored. Use this instead of (or in addition to)
-`condition` when you want to filter by what was broken/placed/used:
+**Action-path gates.** The `entity_action` runs only when every configured
+gate passes, checked in this order: the `effect` / `effect_tag` filter
+(`effect_applied`), the `power` filter (`power_activated`), `condition`,
+`hands`, `item_condition`, `block_condition`, then `cooldown_ticks`. The
+**modifier path consults only `condition`**; `block_condition`,
+`item_condition`, `hands` and `cooldown_ticks` have no effect on `modifier`.
+
+`block_condition` reads the block position out of the event context. That
+works for `block_break` and `block_place` (the NeoForge `BlockEvent`) and for
+`block_use` and `bonemeal` (`BlockInteractContext`). On any other event there
+is no position to read and the gate **fails closed**: the action never runs.
+The value is a block condition compiled by the same block-condition compiler
+Apoli-format packs use (`and` / `or` combinators, `offset`, `block_state`,
+`height`, `adjacent`, and a leaf matching a `block` / `id` / `tag` field),
+e.g. `{ "type": "neoorigins:block", "id": "minecraft:stone" }`. An
+unsupported leaf matches everything and logs a warning. Use this instead of
+(or in addition to) `condition` when you want to filter by what was
+broken/placed/used:
 
 ```json
 {
@@ -48,6 +70,23 @@ the field is silently ignored. Use this instead of (or in addition to)
   }
 }
 ```
+
+`item_condition` is an item condition (the same parser `equipped_item` uses)
+tested against the stack the event carries: the `FoodContext` stack on
+`item_use`, `food_eaten`, `item_use_finish` and `food_finished`, the item
+entity's remaining stack on `item_pickup` (empty after a full pickup; see that
+section), and the stack in the interacting hand on `block_use`,
+`entity_use` and `villager_interact`. On an event with no item (or an empty
+stack) the gate fails closed.
+
+`hands` (or `hand`) takes `"main_hand"` / `"off_hand"` (also `"mainhand"` /
+`"offhand"`), as a single string or an array. Only the `block_use`,
+`entity_use` and `villager_interact` contexts carry a hand; on every other
+event the gate fails closed. Unknown values are skipped with a warning.
+
+`cooldown_ticks` (default `0`, off) suppresses the action for that many ticks
+after it runs. The timer is per power and per player, stored in the player's
+origin data and counted down by the power's tick.
 
 The event's context is published to `ActionContextHolder` for the duration of
 the dispatch so context-aware action verbs (`neoorigins:damage_attacker`,
@@ -101,7 +140,9 @@ rage meter, spawn a visual shockwave.
 Fires when the player takes damage (post-cancel, before final apply).
 
 **Context:** `HitTakenContext(amount, source, event)`. The amount is the
-vanilla-adjusted damage, the `DamageSource` is the original source, and
+incoming damage after NeoOrigins' own `modify_damage` (incoming) scaling;
+armour, enchantment and resistance reductions are applied later by vanilla.
+The `DamageSource` is the original source, and
 `event` is the cancellable `LivingIncomingDamageEvent` that makes
 `neoorigins:cancel_event` work (null at dispatch sites without cancel
 semantics). Action verbs like `neoorigins:damage_attacker` read `amount`
@@ -119,16 +160,19 @@ hurt-noises, panic-mode buffs.
 
 Fires on the attacker when the player deals damage to a living entity: the
 attacker-side mirror of `hit_taken`. Unlike `attack` (which fires *pre-damage*),
-this fires after damage modifiers are applied, so it sees the actual amount
-landed.
+this fires from a LOW-priority `LivingIncomingDamageEvent` listener, so the
+amount already includes NeoOrigins' own damage modifiers (which run at HIGH
+priority). Armour and resistance on the target are applied later by vanilla.
+Not dispatched if another listener cancelled the damage.
 
-**Context:** `HitDealtContext(amount, target, source)`. `amount` is the final
-post-modifier damage dealt, `target` is the `LivingEntity` that was hit, and
-`source` is the `DamageSource`. The `neoorigins:hit_dealt_amount` condition gates
-on the most recent damage the player dealt.
+**Context:** `HitDealtContext(amount, target, source)`. `amount` is the
+incoming damage as seen at LOW priority, `target` is the `LivingEntity` that
+was hit, and `source` is the `DamageSource`. The
+`neoorigins:hit_dealt_amount` condition gates on the most recent damage the
+player dealt.
 
-**Dispatch site:** `CombatPowerEvents` attacker-side `HIT_DEALT` dispatch (fed by
-the HIGH-priority `onLivingDamage` hook, attacker branch).
+**Dispatch site:** `CombatPowerEvents.onPlayerDealDamage` (LOW-priority
+`LivingIncomingDamageEvent`, attacker = `ServerPlayer`).
 
 **Typical use:** lifesteal / blood-tithe healing scaled to damage dealt, combo
 counters, on-hit resource gain, big-hit screen shake.
@@ -220,8 +264,10 @@ only if not cancelled.
 
 **Typical use:** rev-up animations, charging sounds, start cooldowns; or,
 with `cancel_event`, blocking an item outright (e.g. preventing firework
-use). For block-aimed instant items, only the item's use is denied; the
-block's own interaction (opening a chest, flipping a lever) still works.
+use). On the block-aimed path (an instant-use item used while looking at a
+block), `cancel_event` cancels the whole `RightClickBlock`, so the block's own
+interaction (opening a chest, flipping a lever) is blocked too. The
+`prevent_item_use` power is narrower there: it denies only the item's use.
 
 **Note:** instant-use coverage is broader than a held-use start. An
 `item_use` handler with no `item_condition` now also fires on snowballs,
@@ -256,8 +302,8 @@ Fires once per server tick for every online player.
 
 **Dispatch site:** `PlayerLifecycleEvents.onPlayerTick` (`PlayerTickEvent.Pre`).
 
-**Typical use:** anything periodic. Prefer the cheaper
-`neoorigins:toggle` / `neoorigins:active_self` patterns where possible.
+**Typical use:** anything that must react every tick. For periodic work,
+`neoorigins:condition_passive` with an `interval` (default 20 ticks) is cheaper.
 `tick` runs 20 times a second for every player.
 
 ---
@@ -273,6 +319,22 @@ Fires when the player changes dimension.
 
 **Typical use:** dimension-gated buffs, portal-sickness effects, re-equip
 starter gear on Nether entry.
+
+---
+
+## `climb`
+
+Fires once per server tick **while** the player is on a climbable block
+(ladder, vine, scaffolding, ...).
+
+**Context:** none. Query `player` state inside the action for finer detail.
+
+**Dispatch site:** `PlayerLifecycleEvents.onPlayerTick` (gated on
+`player.onClimbable()`, fired right after the generic `tick`).
+
+**Typical use:** spider-class climb-speed buffs, wall-cling stamina drain,
+fall-immunity-while-climbing. Like `tick`, this runs every tick the gate is
+met. Keep the action cheap and gate hard with `condition` or `cooldown_ticks`.
 
 ---
 
@@ -305,6 +367,65 @@ debuff application.
 
 ---
 
+## `craft_item`
+
+Fires when the player takes a crafted item out of a crafting grid (table or
+inventory).
+
+**Context:** `CraftContext(stack)`, the crafted result `ItemStack`.
+
+**Dispatch site:** `CraftingPowerEvents.onItemCrafted`
+(`PlayerEvent.ItemCraftedEvent`).
+
+**Typical use:** artisan-class craft XP, recipe-discovery rewards,
+craft-and-enchant.
+
+---
+
+## `smelt_item`
+
+Fires when the player removes a smelted item from a furnace / smoker / blast
+furnace output.
+
+**Context:** `CraftContext(stack)`, the smelted result `ItemStack`.
+
+**Dispatch site:** `CraftingPowerEvents.onItemSmelted`
+(`PlayerEvent.ItemSmeltedEvent`).
+
+**Typical use:** smelting XP bonus, auto-quench effects, cook-class progress.
+
+---
+
+## `enchant_item`
+
+Fires when the player applies enchantments at an enchanting table (post-apply).
+
+**Context:** `CraftContext(stack)`, the freshly-enchanted `ItemStack`.
+
+**Dispatch site:** `CraftingPowerEvents.onItemEnchanted`
+(`PlayerEnchantItemEvent`).
+
+**Typical use:** arcane-class enchant rituals, lapis refund, bonus-curse
+application. Distinct from `mod_enchant_level`, which changes the *offered*
+level before the player commits.
+
+---
+
+## `anvil_repair`
+
+Fires when the player takes the repaired / combined output from an anvil.
+
+**Context:** `CraftContext(stack)`, the finished `ItemStack`
+(`AnvilRepairEvent.getOutput()`).
+
+**Dispatch site:** `CraftingPowerEvents.onAnvilRepair` (`AnvilRepairEvent`).
+
+**Typical use:** smith-class repair XP, durability bonus on repair,
+free-naming perks. Distinct from `mod_anvil_cost`, which scales the level
+cost shown before the player takes the output.
+
+---
+
 ## `food_eaten`
 
 Fires at item-use start for any stack carrying a vanilla `FOOD` data
@@ -324,15 +445,56 @@ bonus-effect-on-eat.
 
 ## `food_finished`
 
-Fires when the player **finishes eating** a food item (post-eat). **Not cancellable**: the food has already been consumed. This is distinct from `food_eaten` which fires at eat-start and can cancel the eat.
+Fires when the player **finishes eating** a food item (post-eat). **Not
+cancellable**: the food has already been consumed. This is distinct from
+`food_eaten`, which fires at eat-start and can cancel the eat.
 
-Also synthetically fired by `EdibleItemPower` after a successful bite, so custom edible items trigger the same post-eat hooks.
+Also fired by `InteractionPowerEvents.onEdibleUseFinish` after a successful
+bite of an item made edible by the `edible_item` power, so custom edible
+items trigger the same post-eat hooks.
 
-**Context:** `FoodContext(stack, event)`, the consumed food `ItemStack`. Context-aware conditions like `neoorigins:food_item_in_tag` and `neoorigins:food_item_id` read the stack.
+**Context:** `FoodContext(stack)`, the consumed food `ItemStack` (no event is
+attached). Context-aware conditions like `neoorigins:food_item_in_tag` and
+`neoorigins:food_item_id` read the stack.
 
-**Dispatch site:** `InteractionPowerEvents.onItemUseFinish` (`LivingEntityUseItemEvent.Finish`, only dispatched when the stack has a FOOD component).
+**Dispatch sites:** `InteractionPowerEvents.onItemUseFinish`
+(`LivingEntityUseItemEvent.Finish`, only when the stack has a FOOD component)
+and `InteractionPowerEvents.onEdibleUseFinish` (`edible_item` consumes).
 
-**Typical use:** post-eat nutrition bonuses, food-specific buffs, bonus saturation for certain food types.
+**Typical use:** post-eat nutrition bonuses, food-specific buffs, bonus
+saturation for certain food types.
+
+---
+
+## `advancement_earned`
+
+Fires when the player earns an advancement.
+
+**Context:** `AdvancementContext(id)`, the advancement's `ResourceLocation`.
+
+**Dispatch site:** `PlayerLifecycleEvents.onAdvancementEarn`
+(`AdvancementEvent.AdvancementEarnEvent`). It fires for every earned
+advancement, recipe-unlock advancements included, so gate with `condition`
+if you only care about specific ones.
+
+**Typical use:** milestone rewards, achievement-gated power unlocks,
+progression-tied buffs.
+
+---
+
+## `trade_completed`
+
+Fires when the player completes a trade with a villager or wandering trader.
+Not cancellable (the trade has already happened); to veto trading, use
+`villager_interact` + `cancel_event`.
+
+**Context:** `TradeContext(offer)`, the `MerchantOffer` that was traded.
+
+**Dispatch site:** `InteractionPowerEvents.onTradeCompleted`
+(`TradeWithVillagerEvent`).
+
+**Typical use:** merchant-class trade XP, haggle-streak counters,
+trade-completion sound / particle.
 
 ---
 
@@ -369,13 +531,22 @@ Fires when a power has just been revoked from the player.
 Fires when the player picks an origin from the selection screen
 (`ChooseOriginPayload`).
 
-**Context:** the newly-chosen origin's `ResourceLocation`.
+**Context:** the chosen origin's `ResourceLocation`.
 
-**Dispatch site:** `NeoOriginsNetwork.ChooseOriginPayload` handler.
+**Dispatch site:** `NeoOriginsNetwork.handleChooseOrigin`. Timing depends on
+whether the player had already filled every layer:
+
+- **First walkthrough:** the per-pick dispatch is deferred. Once the last
+  layer is filled, `chosen` fires once per layer, in layer order, with that
+  layer's origin as context.
+- **Re-picks** (every layer already filled, e.g. Orb of Origin or an admin
+  re-selection): fires immediately for the picked origin.
+
+Assigning an origin by command or random assignment does not go through this
+handler and does not fire `chosen`.
 
 **Typical use:** first-choice welcome flow, origin-lock gates, server-wide
-announcement. Fires on every pick. Gate on `hadAllOrigins` if you only
-want the first time.
+announcement.
 
 ---
 
@@ -413,8 +584,9 @@ streak reset.
 
 ## `block_use`
 
-Fires when the player right-clicks a block (general: runs for every
-`RightClickBlock` event, including cancelled ones from other mods' gates).
+Fires when the player right-clicks a block (every `RightClickBlock` event
+that reaches the listener; the listener does not receive events another
+handler already cancelled).
 **Cancellable** via `neoorigins:cancel_event` (vetoes the interaction).
 
 **Context:** `BlockInteractContext(pos, state, event)`, carries the
@@ -522,7 +694,11 @@ instead of grow (`cancel_event` + replacement action).
 
 Fires when the player picks up an item entity off the ground.
 
-**Context:** the `ItemStack` that was picked up.
+**Context:** the item entity's **remaining** stack after the pickup
+(`getItemEntity().getItem()`, a live reference), not a copy of what was
+picked up. When the player picks up the whole stack this is empty, so an
+`item_condition` fails closed and item-reading verbs see nothing; only a
+partial pickup (inventory full) leaves a non-empty remainder.
 
 **Dispatch site:** `InteractionPowerEvents.onItemPickup`
 (`ItemEntityPickupEvent.Post`).
@@ -592,8 +768,9 @@ another ability, build combo systems (resource gain on each activation).
 
 ## `effect_applied`
 
-Fires when a `MobEffect` is about to be added to the player, after vanilla
-`EffectImmunityPower` / `EntityGroupPower` immunity rules but before the
+Fires when a `MobEffect` is about to be added to the player, after NeoOrigins'
+`EffectImmunityPower` / `EntityGroupPower` immunity checks and any open
+`immunity_ticks` grace window but before the
 effect lands. Cancelling with `neoorigins:cancel_event` denies the
 application (calls `setResult(DO_NOT_APPLY)` on the underlying
 `MobEffectEvent.Applicable`).
@@ -651,14 +828,58 @@ power covers both.
 
 ## `mod_natural_regen`
 
-Scales the amount the player heals from natural food-based regeneration.
+Scales **every** heal the player receives. The dispatch listens to NeoForge's
+`LivingHealEvent`, which fires for natural food regeneration and also for any
+other heal (Regeneration and Instant Health effects, `heal` actions, and so
+on). The event name notwithstanding, there is no source filter; gate with
+`condition` if you need one.
 
 **Context:** `null`. Base value is `event.getAmount()` from `LivingHealEvent`.
+A non-finite result is clamped to `Float.MAX_VALUE`.
 
 **Dispatch site:** `WorldPowerEvents.onLivingHeal`.
 
 **Typical use:** fast/slow regen class modifiers, regen-on-sunlight, low-
 HP healing buff.
+
+---
+
+## `mod_trade_price`
+
+Per-player adjustment of a merchant offer's cost-A count. The chained result is
+treated as the new absolute count (clamped to `[1, maxStackSize]`) and folded
+into vanilla's `specialPriceDiff` channel (the same knob Hero of the Village
+and villager reputation use), so it stacks on top of natural discounts.
+
+**Context:** `TradeContext(offer)`, the `MerchantOffer`. Base value is the
+currently-displayed cost-A count.
+
+**Dispatch site:** `AbstractVillagerTradePriceMixin` (TAIL of
+`AbstractVillager.setTradingPlayer`, applied when the trade screen opens). The
+mixin's HEAD inject resets the prior contribution first, so the delta never
+compounds across repeated opens of the same trader.
+
+**Typical use:** charisma-class cheaper trades, cursed-class price hikes,
+faction-discount perks.
+
+---
+
+## `mod_craft_amount`
+
+Scales the count of the assembled crafting-grid result. The chained result is
+treated as the new count (clamped to `[1, maxStackSize]`) and written to the
+result slot in place.
+
+**Context:** the result `ItemStack`. Base value is the recipe's natural output
+count.
+
+**Dispatch site:** `CraftingMenuOriginContextMixin` (RETURN of the static
+`CraftingMenu.slotChangedCraftingGrid`, which covers both the 3×3 table and the
+2×2 inventory grid). Server-side only: it returns early unless the player is a
+`ServerPlayer`.
+
+**Typical use:** artisan-class double-output, efficient-crafting perks,
+resource-multiplier classes.
 
 ---
 
@@ -692,16 +913,19 @@ mid-air combat anti-knockback.
 
 ## `mod_potion_duration`
 
-Multiplies the duration of status effects newly added to the player.
-Re-entry guarded so the replacement `addEffect` doesn't recurse.
+Multiplies the duration of status effects newly added to the player. The new
+duration is `(int)(duration * value)`, written into the incoming effect
+instance with `MobEffectInstance.update`, which only ever **strengthens** an
+effect. A result below `1.0` therefore has no effect: this event can lengthen
+effects but cannot shorten them.
 
 **Context:** the `MobEffectInstance` being added (readable for
 effect-specific gating from conditions). Base value is `1.0f`.
 
-**Dispatch site:** `CombatPowerEvents.onMobEffectAdded`.
+**Dispatch site:** `CombatPowerEvents.onMobEffectAdded` (`MobEffectEvent.Added`).
 
-**Typical use:** longer potions, shorter debuffs, witch-class effect
-amplifier scaling (use with care: this scales duration, not amplifier).
+**Typical use:** longer potions, longer buffs for a potion-brewer class. It
+scales duration, not amplifier.
 
 ---
 
@@ -759,8 +983,10 @@ level as a float.
 ## `mod_crafted_food_saturation`
 
 **Additive** saturation bonus applied to any food item freshly crafted or
-smelted by the player. Base value is `0f`; final bonus is added to the
-item's existing `saturation` field. Values `≤ 0` are ignored.
+smelted by the player. Base value is `0f`. When the chained result is `> 0`,
+the item's `FOOD` component is rebuilt with `saturation + result` **and**
+`nutrition + 1` (a fixed +1 hunger point comes with any bonus). Results
+`≤ 0` leave the item untouched.
 
 **Context:** the resulting `ItemStack`.
 
@@ -832,6 +1058,26 @@ and mod teleports are not routed through this event.
 
 ---
 
+## `mod_fall_damage`
+
+Scales the fall-damage multiplier when the player lands. Chains on the event's
+current multiplier so it stacks with Feather Falling and similar effects. A
+non-finite result zeroes fall damage, and the final value is clamped to
+`≥ 0`.
+
+**Context:** the `LivingFallEvent`. Base value is `event.getDamageMultiplier()`.
+
+**Dispatch site:** `MovementPowerEvents.onLivingFall` (runs after the `land`
+dispatch and the `prevent_action: FALL_DAMAGE` gate). Only the
+`LivingFallEvent` path dispatches this; the creative-safe `land` detector does
+not.
+
+**Typical use:** acrobat-class reduced fall damage, heavy-class increased
+impact, partial fall mitigation that stacks with vanilla effects. For full
+fall immunity, prefer `prevent_action: FALL_DAMAGE`.
+
+---
+
 ## `mod_xp_gain`: **not an event**
 
 > Earlier revisions of this page listed `mod_xp_gain` here. There is no such
@@ -858,32 +1104,13 @@ with each entry's magnitude under either `value` or `amount`, and the usual
 
 ---
 
-# Re-wired in 2.2.0
+# Removed keys
 
-An earlier draft of the enum included keys that were parseable in JSON but
-had no runtime dispatch site; they were removed rather than left as silent
-no-ops. The 2.2.0 wave wired them back up. `breed`, `tame`,
-`villager_interact` and `bonemeal` have full sections above; the rest in
-brief:
-
-| Event | Context | Dispatch site | Notes |
-|---|---|---|---|
-| `climb` | none (the player is the subject) | `PlayerLifecycleEvents` player tick | Fires once per tick while the player is on a climbable block (ladder/vine/scaffolding). No NeoForge event exists for this, so it rides the tick. Gate frequency with a cooldown or condition. |
-| `craft_item` | `CraftContext(stack)` | `CraftingPowerEvents.onItemCrafted` | Item taken from a crafting result. |
-| `smelt_item` | `CraftContext(stack)` | `CraftingPowerEvents.onItemSmelted` | Item taken from furnace / smoker output. |
-| `enchant_item` | `CraftContext(stack)` | `CraftingPowerEvents.onItemEnchanted` | Enchantment applied at a table (post-apply). Distinct from `mod_enchant_level`, which modifies the offered level. |
-| `anvil_repair` | `CraftContext(output)` | `CraftingPowerEvents.onAnvilRepair` | Repaired/combined output taken from an anvil. Distinct from `mod_anvil_cost`, which previews the cost. |
-| `advancement_earned` | `AdvancementContext(id)` | `PlayerLifecycleEvents.onAdvancementEarn` | Any advancement, including recipe unlocks. Filter with a condition. |
-| `trade_completed` | `TradeContext(offer)` | `InteractionPowerEvents.onTradeCompleted` | Villager trade finished. Post-hoc, not cancellable (veto trading with `villager_interact` + `cancel_event` instead). |
-| `mod_trade_price` | modifier | `AbstractVillagerTradePriceMixin` | Villager trade cost multiplier. |
-| `mod_anvil_cost` | modifier | `AnvilMenuCostMixin` | Anvil level-cost modifier, applied after vanilla computes the cost. |
-| `mod_craft_amount` | modifier | `CraftingMenuOriginContextMixin` | Crafting output count multiplier. |
-| `mod_fall_damage` | modifier | `MovementPowerEvents` (`LivingFallEvent`) | Chains on the event's damage multiplier, so it stacks with Feather Falling etc. For outright immunity use `prevent_action: FALL_DAMAGE`. |
-| `mod_food_nutrition` | modifier + `FoodContext` | `CompatEventPowers.onFoodEaten` | Nutrition of food actually eaten. Chains after the legacy `origins:modify_food` power. |
-
-There is no `mod_break_speed` event: the name was removed from the enum, so
-authoring it is a load error like any other unknown event. Use the
-`break_speed_modifier` power (attribute-backed) instead.
+`mod_break_speed` is not an event key; authoring it is a load error like any
+other unknown event. Use the `break_speed_modifier` power instead, which is
+applied through `PlayerEvent.BreakSpeed` on both the client and the server
+(`BreakSpeedModifierEvents`). For `mod_xp_gain`, see the
+[section above](#mod_xp_gain-not-an-event).
 
 ---
 

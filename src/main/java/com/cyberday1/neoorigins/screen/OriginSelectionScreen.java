@@ -129,8 +129,23 @@ public class OriginSelectionScreen extends Screen implements PickerScreen {
     private void selectOrigin(ResourceLocation id) {
         presenter.select(id);
         originButtons.forEach(b -> b.setSelected(b.getOrigin().id().equals(id)));
-        if (confirmButton != null) confirmButton.active = true;
+        updateConfirm();
         updateDetail();
+    }
+
+    /** Confirm is live only for a pick the server would take; a claimed one says so. */
+    private void updateConfirm() {
+        if (confirmButton == null) return;
+        String owner = presenter.claimedBy(presenter.selectedOriginId());
+        confirmButton.active = presenter.canConfirm();
+        confirmButton.setMessage(Component.translatable(
+            owner == null ? "gui.neoorigins.button.confirm" : "gui.neoorigins.picker.claimed"));
+        confirmButton.setTooltip(OriginButton.claimTooltip(owner));
+    }
+
+    @Override
+    public void onClaimsChanged() {
+        if (!presenter.isDone()) refreshWidgets();
     }
 
     private void confirmSelection() {
@@ -190,6 +205,7 @@ public class OriginSelectionScreen extends Screen implements PickerScreen {
                     var btn = new OriginButton(panelX + PANEL_INSET, btnY, leftW - 2 * PANEL_INSET, LIST_BTN_H, origin,
                         b -> selectOrigin(rowId));
                     btn.setSelected(rowId.equals(presenter.selectedOriginId()));
+                    btn.setClaimedBy(presenter.claimedBy(rowId));
                     originButtons.add(btn);
                     addRenderableWidget(btn);
                 }
@@ -216,7 +232,7 @@ public class OriginSelectionScreen extends Screen implements PickerScreen {
 
         confirmButton = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.confirm"), b -> confirmSelection())
             .bounds(cx + 12, cy, 80, 28).build();
-        confirmButton.active = presenter.selectedOriginId() != null;
+        updateConfirm();
         addRenderableWidget(confirmButton);
     }
 

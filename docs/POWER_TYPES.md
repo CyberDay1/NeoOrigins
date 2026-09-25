@@ -9,12 +9,12 @@ All powers share six optional top-level fields:
 | `hidden` | bool (default `false`) | When `true`, this power is excluded from the origin info panel. The mechanical effect still applies; only the display row is suppressed. Useful for purely-internal flag/glue powers (e.g. `neoorigins:toggle`, on-hit setters wired under a `multiple`). |
 | `required_mods` | list of mod ids (default `[]`) | Load gate: the power only loads when every listed mod is present. Use it for content that targets an optional mod (e.g. the built-in Dragon Survival dragon forms carry `"required_mods": ["dragonsurvival"]`). Origins accept the same field; see [PACK_FORMAT.md](PACK_FORMAT.md). |
 | `power_condition` | entity condition object | Runtime gate: the condition is re-evaluated against the power's holder every time the power would act, and the power only operates when the gate is satisfied. Works on every power type. See [CONDITIONS.md](CONDITIONS.md) for the condition format. |
-| `power_condition_mode` | `"ALLOW"` or `"DENY"` (default `"DENY"`) | How `power_condition` gates: `ALLOW` = the power is active **while the condition is true**; `DENY` = the power is disabled while the condition is true. |
+| `power_condition_mode` | `"ALLOW"` or `"DENY"` (default `"DENY"`) | How `power_condition` gates: `ALLOW` = the power is active **while the condition is true**; `DENY` = the power is disabled while the condition is true. Case-insensitive. |
 
 **`condition` as an alias.** On power types that don't have their own `condition` config field, a top-level `condition` is accepted as an alias for `power_condition` with mode `ALLOW` (so the power is active while the condition holds, the intuitive reading). Notes:
 
 <!-- shared-fields: condition -->
-- These types claim `condition` for their own config and are excluded from the alias: `model_color`, `attribute_modifier`, `action_on_event`, `modify_damage`, `active_ability`, `active_dash`, `persistent_effect`, `condition_passive`, `effect_over_time`, `creative_flight`, `restrict_items`, `prevent_death`, `conditional`. On those, write `power_condition` for the whole-power gate.
+- These types claim `condition` for their own config and are excluded from the alias: `model_color`, `attribute_modifier`, `action_on_event`, `modify_damage`, `active_ability`, `active_dash`, `persistent_effect`, `condition_passive`, `effect_over_time`, `creative_flight`, `restrict_items`, `prevent_death`, `conditional`, `particle`. On those, write `power_condition` for the whole-power gate.
 - An explicit `power_condition_mode` is honored even when the gate comes in via the alias.
 - If both `power_condition` and an aliased `condition` are present, `power_condition` wins and a warning is logged.
 - Prefer `power_condition` in new packs; the alias exists so the common Apoli-style spelling doesn't get silently dropped.
@@ -42,6 +42,8 @@ If neither `name` nor `description` is present, NeoOrigins falls back to the lan
 **A toggle no key can reach comes back on at login.** Toggle state is saved with the player, so a toggle switched off stays off across a relog, which is only safe while some key can switch it back. Outside the class layer the six skill keys go to the player's first six active powers; the class layer has the single Class Skill key, held by its first active power (see [CLASSES.md](CLASSES.md)); and a power with its own `key` binds to that instead (see [API.md](API.md#named-keybinds)). A toggleable power left over after those slots is still granted, but the player has no way to flip it, so at every login NeoOrigins clears its off state and it runs as switched on. That includes a toggle authored with `default_off`, and an `effect_over_time` in `"activation": "active"`, which would otherwise start off. The one exception is a player under the Suppression effect, which switches toggles off on purpose, so the reset waits for a login without it.
 
 Icon slots are labeled with the bound key's short name in the top-right corner; hovering an icon while a screen is open (chat, the HUD editor) shows the power's name and description. The `hud_ability_display` client config picks what the cluster shows besides live cooldowns: `COOLDOWNS_AND_TOGGLES` (default since 2.2.9: cooldown slots only while recharging, plus icon-bearing toggles) or `ALL_ACTIVE_ABILITIES` (every icon-bearing keybind ability keeps a persistent slot, full-bright while idle, sweep while recharging).
+
+**`resource_cost` is not a shared field.** Only `active_ability` (plus the retired types that load as it: `active_launch`, `active_aoe_effect`, `healing_mist`, `repulse`), `effect_over_time` and `tame_mob` read `resource_cost` / `resource_cost_amount`. Every other type, including `active_teleport`, `active_phase`, `active_place_block`, `ground_slam`, `tidal_wave`, `shadow_orb` and `summon_minion`, ignores both keys silently: the power loads and costs nothing from the resource.
 
 The cooldown cluster itself is draggable in the in-game HUD editor (same screen as resource bars); its position persists in `config/neoorigins/hud.json`.
 
@@ -115,8 +117,8 @@ Adds or multiplies a player attribute while the origin is active. Optionally gat
 |---|---|---|---|---|
 | `attribute` | Identifier | yes | — | Attribute to modify, e.g. `minecraft:generic.movement_speed` |
 | `amount` | double | yes | — | Amount to add or multiply |
-| `operation` | string | no | `add_value` | `add_value`, `add_multiplied_base`, or `add_multiplied_total` |
-| `condition` | string | no | — | Environment gate: `in_water`, `on_land`, or `in_lava`. Tick-driven apply/remove. See the note below on what `on_land` counts. |
+| `operation` | string | no | `add_value` | `add_value`, `add_multiplied_base`, or `add_multiplied_total` (exact lowercase). Any other string, including Apoli's `addition` / `multiply_base`, is treated as `add_value` without a warning. |
+| `condition` | string or EntityCondition | no | — | Environment gate: `in_water`, `on_land`, or `in_lava`, or any entity condition object. Tick-driven apply/remove. An unknown string logs a warning and the modifier stays on unconditionally. See the note below on what `on_land` counts. |
 | `equipment_condition` | object | no | — | Equipment gate (see below). Tick-driven apply/remove. |
 | `location_condition` | object | no | — | Location gate: dimension / biome / structure (see below). Tick-driven apply/remove. |
 
@@ -129,7 +131,7 @@ Adds or multiplies a player attribute while the origin is active. Optionally gat
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `slot` | string | yes | One of `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, `body` |
+| `slot` | string | no | One of `mainhand`, `offhand`, `head`, `chest`, `legs`, `feet`, `body`. Defaults to `mainhand`. |
 | `item` | Identifier | no | Exact item ID to match (e.g. `minecraft:iron_helmet`) |
 | `tag` | Identifier | no | Item tag to match (e.g. `minecraft:helmets`) |
 
@@ -142,10 +144,11 @@ If both `item` and `tag` are given, either match satisfies the condition (OR). I
 | `dimension` | Identifier | no | Match only in this dimension, e.g. `minecraft:the_end` |
 | `biome` | Identifier | no | Match only in this specific biome, e.g. `minecraft:plains` |
 | `biome_tag` | Identifier | no | Match only in biomes with this tag, e.g. `minecraft:is_forest` |
+| `biomes` | list of Identifier | no | Match only in any of these biomes |
 | `structure` | Identifier | no | Match only inside this structure, e.g. `minecraft:end_city` |
 | `structure_tag` | Identifier | no | Match only inside structures with this tag, e.g. `minecraft:on_ocean_monument_maps` |
 
-All fields are optional and combine with AND. So `{ "dimension": "minecraft:the_end", "structure": "minecraft:end_city" }` is "only when standing inside an End City in The End." Structure membership is evaluated server-side via `ServerLevel.structureManager()`.
+All fields are optional. `dimension`, `structure` and `structure_tag` combine with AND; the biome fields (`biome`, `biome_tag`, `biomes`) are OR'd with each other, so any one biome match satisfies the biome part. So `{ "dimension": "minecraft:the_end", "structure": "minecraft:end_city" }` is "only when standing inside an End City in The End." Structure membership is evaluated server-side via `ServerLevel.structureManager()`.
 
 **Stacking across layers.** Each `attribute_modifier` power owns its own modifier id, so two powers touching the same attribute add up rather than replacing one another: an origin granting +6 max health and a class granting +4 leave the player at +10. Changing one layer re-grants only that layer and leaves every other layer's modifiers in place, so re-picking a class no longer costs the player their origin's health, armor or reach. Modifiers left behind by a power that no longer exists (JSON deleted or renamed) are swept at that same moment, so stale bonuses cannot accumulate either.
 
@@ -329,13 +332,13 @@ Prevents a specific harmful action or event from affecting the player.
 | `fall_damage` | All fall damage |
 | `drown` | Drowning damage |
 | `freeze` | Freeze damage from powder snow |
-| `sprint_food` | Sprinting no longer drains extra hunger |
+| `sprint_food` | While sprinting, all hunger exhaustion is zeroed (not just the sprint cost) |
 | `armor_equip` | Prevents wearing armor in any slot whose corresponding `head` / `chest` / `legs` / `feet` boolean is `true`. Items are ejected back to the inventory (or dropped if full). |
 | `chestplate_equip` | Legacy alias of `armor_equip` with `chest: true`. Kept for back-compat with packs that pre-date `armor_equip`. |
-| `eye_damage` | Prevents projectile hits to the eye |
-| `water_damage` | Prevents water/rain contact damage |
+| `eye_damage` | Accepted, but currently has no effect: nothing reads it |
+| `water_damage` | Accepted, but currently has no effect: nothing reads it |
 | `swim` | Prevents swimming (velocity-sinks the player in water) |
-| `sleep` | Prevents sleeping (bed use returns a "no sleep" message). Sleepless origins should pair this with `modify_player_spawn` if they still want bed interactions to set respawn. |
+| `sleep` | Prevents sleeping (bed use returns a "no sleep" message). Clicking a vanilla bed still sets the respawn point before the sleep is refused. |
 | `elytra` | Prevents elytra flight (player is stopped from gliding each tick) |
 
 **Example: fire immunity**
@@ -368,7 +371,7 @@ Modifies the player's movement speed while submerged in lava. Uses the `NumericM
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `operation` | string | no | `"addition"` | `"addition"`, `"multiply_base"`, or `"multiply_total"` |
+| `operation` | string | no | `"addition"` | `"addition"`, `"multiply_base"`, or `"multiply_total"`. The two multiply operations are identical here: the result is `(base + additions) × (1 + Σ multiply values)`. Any other string is treated as `"addition"`. |
 | `value` | double | yes | — | Amount to add or multiply. Vanilla lava-swim factor is `0.02`; an addition of `0.04` (3× vanilla) feels like swimming in water. |
 
 **Example: water-swim-pace lava swimming**
@@ -382,6 +385,8 @@ Modifies the player's movement speed while submerged in lava. Uses the `NumericM
 }
 ```
 
+The modifier applies once, as written. Up to 2.2.27 it was added again on every respawn and every login, so a `multiply_base` of `0.5` became 2x after one death and kept growing until `/reload` or a restart. If you lowered a value to compensate, put it back.
+
 ---
 
 ## `neoorigins:modify_flight_speed`
@@ -392,7 +397,7 @@ It does **not** affect elytra / fall-flying gliding, which is physics-driven and
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `operation` | string | no | `"multiply_base"` | `"addition"`, `"multiply_base"`, or `"multiply_total"` |
+| `operation` | string | no | `"multiply_base"` | `"addition"`, `"multiply_base"`, or `"multiply_total"`. The two multiply operations are identical here; any other string is treated as `"addition"`. |
 | `value` | double | yes | — | Amount applied to the `0.05` base. `multiply_base 1.0` doubles flight speed, `-0.5` halves it, `-0.25` ≈ Pehkui flight scale `0.75`. |
 
 Multiple holders of this power stack the Apoli way (additions sum, then the multiplier deltas sum), exactly like `modify_lava_speed`.
@@ -542,7 +547,7 @@ As with `neoorigins:natural_glide`, the flight runs with an empty chest slot, so
 
 True creative-style hover flight, as a **toggle**. Unlike `neoorigins:flight` and `natural_glide`, which are both elytra/fall-flying mechanics, this grants real `mayfly` hover: the player keeps solid block collision, normal visibility and gravity when not flying. Double-tap jump to take off, then jump to rise and sneak to descend, exactly like creative mode. Intended for "ride the sword" / levitating-cultivator fantasies.
 
-The flight abilities are re-pushed to the client every tick to survive sync races. When the power is removed or toggled off, survival defaults are restored, but never for a creative or spectator player, so toggling off can't lock them out of their own game mode.
+While the power is on and its condition holds, `mayfly` is re-asserted every tick and pushed to the client whenever it had been cleared. When the power is removed or toggled off, survival defaults are restored, but never for a creative or spectator player, so toggling off can't lock them out of their own game mode.
 
 Beyond `name` and `description`:
 
@@ -657,7 +662,7 @@ sand and honey blocks (the reduced walk-speed factor).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_tag` | string | no | _(all slowdown blocks)_ | Restrict immunity to blocks in this tag |
+| `block_tag` | string | no | _(all slowdown blocks)_ | Restrict immunity to blocks in this tag. Write the tag id without `#`; a `#`-prefixed value matches nothing. |
 
 With `block_tag` omitted the immunity is unconditional and predicted
 client-side, so there's no rubberbanding when entering a web. Restricting
@@ -694,7 +699,7 @@ No additional fields beyond `name` and `description`.
 
 ## `neoorigins:elytra_boost`
 
-Allows the player to activate elytra gliding without wearing an elytra. Pressing jump while falling initiates flight.
+Active (keybind) power: while the player is already gliding, pressing the key gives a firework-like boost in the look direction. It never starts a glide; pair it with `natural_glide`, `elytra_flight` or a real elytra.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -708,7 +713,7 @@ Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_co
 {
   "type": "neoorigins:elytra_boost",
   "name": "Elytra Boost",
-  "description": "Can glide without equipping an elytra."
+  "description": "Surge forward mid-glide."
 }
 ```
 
@@ -716,7 +721,7 @@ Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_co
 
 ## `neoorigins:scare_entities`
 
-Causes listed entity types to flee from the player on sight.
+Causes listed entity types to flee from the player. Every 5 ticks, matching mobs within a fixed 8-block box flee; no line of sight is needed. Matching mobs also cannot target the player unless the player hits them first. With `entity_types` empty nothing is scared.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -764,7 +769,7 @@ Legacy no-op: it dispatches nothing. The type still loads and its fields still p
 
 ## `neoorigins:conditional`
 
-Wraps another power so it only applies when a movement condition is met. The inner power must be a separately defined power that is also listed in the origin's power list.
+Currently only one combination does anything: `condition: "climbing"` with an `inner_power` whose path contains `no_fall` cancels fall damage while the player is on a climbable block. The inner power itself is not gated: it runs unconditionally, and every other condition/inner-power combination has no effect. The inner power must be a separately defined power that is also listed in the origin's power list.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -782,13 +787,13 @@ Wraps another power so it only applies when a movement condition is met. The inn
 }
 ```
 
-> The `inner_power` must also be listed in the origin's `powers` array for it to be registered. The conditional wrapper activates or suppresses its effect based on the condition.
+> The `inner_power` must also be listed in the origin's `powers` array for it to be registered.
 
 ---
 
 ## `neoorigins:phantom_form`
 
-Applies a ghostly state to the player: permanent invisibility and/or removal of gravity.
+A toggle (on by default, switched with the skill key). While on, the player can fly, passes through blocks and takes no fall damage, whatever the fields say. `invisibility` adds a hidden Invisibility effect; `no_gravity` also turns gravity off.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -802,7 +807,7 @@ Applies a ghostly state to the player: permanent invisibility and/or removal of 
   "invisibility": true,
   "no_gravity": false,
   "name": "Phantom Form",
-  "description": "Becomes invisible but still subject to gravity."
+  "description": "Drift through walls unseen."
 }
 ```
 
@@ -814,7 +819,7 @@ Makes the player invisible. Unlike a plain invisibility status effect, this powe
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `render_armor` | bool | no | `true` | When `true`, worn armor stays visible (vanilla behaviour). When `false`, worn armor is also hidden client-side for true invisibility. |
+| `render_armor` | bool | no | `true` | When `true`, worn armor stays visible (vanilla behaviour). When `false`, worn armor and held items are also hidden client-side for true invisibility. That hiding applies whenever the player is invisible from any source, even while this power's condition is false. |
 
 **Example:**
 ```json
@@ -1154,7 +1159,7 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `modifier` / `modifiers` | object / array | no | — | Apoli modifier(s): `operation` (`addition`, `multiply_base`, `multiply_total`) + `value`. Not schema-required, but supply one: with neither key the loader logs `missing modifier/modifiers` and drops the power entirely. There is no `condition` gate on this type |
+| `modifier` / `modifiers` | object / array | no | — | Apoli modifier(s): `operation` (`addition`, `multiply_base`, `multiply_total`; the two multiply operations are identical, and any other string is treated as `addition`) + `value`. Not schema-required, but supply one: with neither key the loader logs `missing modifier/modifiers` and drops the power entirely. There is no `condition` gate on this type |
 
 **Example: gain 50% more XP**
 ```json
@@ -1165,6 +1170,8 @@ Takes an Apoli **modifier** (singular `modifier` object or plural `modifiers` ar
   "description": "Gains experience faster."
 }
 ```
+
+The modifier applies once, as written. Up to 2.2.27 it was added again on every respawn and every login, so the `+50%` above became `+100%` after one death and kept growing until `/reload` or a restart. If you lowered a value to compensate, put it back.
 
 ---
 
@@ -1320,6 +1327,8 @@ Arming: the [`neoorigins:trigger_cooldown`](ACTIONS.md#neooriginstrigger_cooldow
 | `hidden` | bool | no | `false` | Hide the HUD bar |
 | `hud_render` | object | no | — | Same shape as the `neoorigins:resource` HUD block: `sprite_location`, `bar_index` / `icon_index` (default 0 when the block is present), `should_render` (false → hidden), `condition` (entity condition gating bar visibility) |
 
+The duration and bar settings are shared by every holder of the power, and losing the power only clears that player's own timer. Up to 2.2.27, one player losing it also stripped the registered duration from everyone else until the next `/reload` or restart.
+
 **Example: a 10-second ability timer, read back as a resource**
 ```json
 {
@@ -1464,7 +1473,7 @@ Restricts which foods the player can eat. Supports `blacklist` (cannot eat items
 
 ## `neoorigins:item_magnetism`
 
-Items on the ground within a radius are pulled toward the player automatically.
+Items on the ground within a radius are pulled toward the player automatically. A toggle, on by default.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -1488,14 +1497,14 @@ Multiplies the player's mining speed when breaking blocks in the specified tag. 
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_tag` | Identifier | no | _(all blocks)_ | Block tag to restrict the modifier to, e.g. `minecraft:stone` |
+| `block_tag` | Identifier | no | _(all blocks)_ | Block tag to restrict the modifier to, e.g. `#minecraft:base_stone_overworld`. A bare id is tried as a tag first, then as a single block; a leading `#` forces a tag. |
 | `multiplier` | float | no | `2.0` | Speed multiplier (`2.0` = double speed) |
 
 **Example: 2× speed on stone and deepslate**
 ```json
 {
   "type": "neoorigins:break_speed_modifier",
-  "block_tag": "minecraft:stone",
+  "block_tag": "#minecraft:base_stone_overworld",
   "multiplier": 2.0,
   "name": "Stone Affinity",
   "description": "Mines stone and deepslate twice as fast."
@@ -1532,7 +1541,7 @@ Negates incoming projectile damage (arrows, tridents, fireballs, etc.). Which pr
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `projectile_types` | list of strings | no | `["arrow"]` | Projectiles blocked: `arrow`, `fireball`, `trident`, `all`, or an entity id. |
+| `projectile_types` | list of strings | no | `["arrow"]` | Projectiles blocked: `arrow` (every arrow-type projectile, which includes thrown tridents), `fireball`, `trident`, `all`, or an entity id. |
 | `chance` | double (0.0–1.0) | no | `1.0` | Probability an incoming matching projectile is negated. |
 | `teleport` | bool | no | `false` | When true a successful dodge triggers a short random teleport. |
 | `teleport_range` | int | no | `16` | Max teleport distance in blocks on a dodge, when `teleport` is enabled. |
@@ -1541,6 +1550,7 @@ Negates incoming projectile damage (arrows, tridents, fireballs, etc.). Which pr
 ```json
 {
   "type": "neoorigins:projectile_immunity",
+  "projectile_types": ["all"],
   "name": "Arrow Deflection",
   "description": "Immune to all projectile damage."
 }
@@ -1613,7 +1623,7 @@ Triggers an action each time the player deals damage to any living entity: mobs,
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `action` | string | no | `restore_health` | One of `restore_health`, `restore_hunger`, `grant_effect` (self), `target_effect` (victim) |
+| `action` | string | no | `restore_health` (`none` when `entity_action` or `bientity_action` is set) | One of `restore_health`, `restore_hunger`, `grant_effect` (self), `target_effect` (victim), or `none` / `nothing` |
 | `amount` | float | no | `2.0` | Health or hunger amount (for the restore actions) |
 | `effect` | Identifier | no | — | Effect to apply for `grant_effect` / `target_effect` |
 | `duration` | int | no | `100` | Effect duration in ticks |
@@ -1886,7 +1896,7 @@ The inverse of `mobs_ignore_player`: listed mob types proactively hunt a player 
 |---|---|---|---|---|
 | `entity_types` | list of Identifier or `#tag` | no | `[]` | Entity types that hunt the player. Accepts raw ids (`"minecraft:wolf"`) and tag references (`"#minecraft:wolves"`). When empty, every mob hunts the player. |
 | `entity_blacklist` | string[] | no | `[]` | Entity ids and tag refs this power never affects: they never hunt the player even when `entity_types` matches (including the empty match-all case). Checked on top of the built-in exclusions below. |
-| `range` | double | no | `16.0` | How far (in blocks) a matching mob can be and still start hunting the player. |
+| `range` | double | no | `16.0` | How far (in blocks) a matching mob can be and still start hunting the player. The targeting goal's own search is fixed at 16 blocks, so values above 16 have no extra effect. |
 
 Boss-tier mobs (the Warden, Ender Dragon and Wither) never hunt the player, regardless of `entity_types`. Server operators can extend that exclusion via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)).
 
@@ -1912,7 +1922,7 @@ Suppresses mob spawns within a radius of the player. Toggleable: the player can 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `radius` | int | no | `24` | Radius in blocks within which spawns are suppressed. Note: vanilla already blocks `MONSTER`-category natural spawns within 24 blocks of any player (`NaturalSpawner`); use a value above 24 to extend the safe zone meaningfully. |
-| `categories` | list of string | no | `["monster"]` | Spawn categories to suppress: `monster`, `creature`, `ambient`, `water_creature`, or `all` |
+| `categories` | list of string | no | `["monster"]` | Spawn categories to suppress: `monster`, `creature`, `ambient`, `water_creature`, or `all`. On this version only `monster` spawns are ever suppressed: the spawn hook skips every other category before the list is read. |
 
 **Example: suppress hostile spawns in a 36-block radius**
 ```json
@@ -1998,7 +2008,7 @@ Active ability that teleports the player to the block they are looking at, up to
 |---|---|---|---|---|
 | `range` | float | no | `32.0` | Maximum teleport range in blocks |
 | `cooldown_ticks` | int | no | `60` | Cooldown in ticks after each use |
-| `mode` | string | no | `"target"` | `"target"` teleports to the looked-at spot; `"random"` picks a nearby safe spot within `range` instead |
+| `mode` | string | no | `"target"` | `"target"` teleports to the looked-at spot; `"random"` makes up to 16 tries at a spot within ±`range` horizontally and ±`range`/8 vertically, accepting the first with two free blocks for the player. It does not check for a floor, so it can land the player in the air. |
 | `hunger_cost` | int | no | `0` | Food points removed per use |
 
 **Example:**
@@ -2027,7 +2037,7 @@ Active ability that launches the player in their look direction. With the option
 | `damage` | float | no | `0` | Flat damage dealt to entities along the dash path. The damage sweep runs when either this or `weapon_damage_scale` is above `0` |
 | `set_velocity` | bool | no | `false` | When true the dash replaces the player's velocity outright; when false it is added to whatever they already had |
 | `damage_radius` | float | no | `2.0` | Radius of the capsule swept along the dash path |
-| `weapon_damage_scale` | float | no | `0` | Adds a fraction of the held weapon's attack damage on top of `damage` (e.g. `1.0` = full weapon damage) |
+| `weapon_damage_scale` | float | no | `0` | Adds this fraction of the player's attack-damage attribute (the base 1 plus the held weapon and any other bonuses) on top of `damage` (e.g. `1.0` = the whole attribute value) |
 | `condition` | condition | no | always true | EntityCondition gating the dash. While it fails the keypress does nothing and no cooldown is spent |
 
 **Example:**
@@ -2171,7 +2181,7 @@ Active ability that teleports the player to their bed or respawn point. Falls ba
 
 ## `neoorigins:active_swap`
 
-Active ability that swaps positions with the entity the player is looking at.
+Active ability that swaps positions with the entity the player is looking at: the nearest living entity on the look ray (hitboxes padded by 0.3). There is no line-of-sight check, so it targets through walls.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2193,7 +2203,7 @@ Active ability that swaps positions with the entity the player is looking at.
 
 ## `neoorigins:active_fireball`
 
-Active ability that shoots a small fireball in the player's look direction. The fireball explodes on impact and ignites the area.
+Active ability that shoots a spread of 3 to 4 small (blaze-style) fireballs in the player's look direction. Each one sets what it hits on fire; they do not explode.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2207,7 +2217,7 @@ Active ability that shoots a small fireball in the player's look direction. The 
   "speed": 1.5,
   "cooldown_ticks": 80,
   "name": "Ember Shot",
-  "description": "Spits a fireball in your look direction."
+  "description": "Spits a spray of fireballs in your look direction."
 }
 ```
 
@@ -2280,7 +2290,7 @@ Also accepts the three shared cooldown HUD fields (`cooldown_icon`, `cooldown_co
 
 ## `neoorigins:active_phase`
 
-Active ability that phases the player through a solid wall in their look direction. Scans forward for an air gap on the far side of a wall and teleports there. An optional hunger cost is deducted per use.
+Active ability that phases the player through a solid wall in their look direction. Scans forward in 0.5-block steps from half eye height for a spot with a passable block, clear space above and a solid floor below, and teleports there. If none is found within `max_depth` nothing happens and no cooldown is spent. An optional hunger cost is deducted per use.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2304,7 +2314,7 @@ Active ability that phases the player through a solid wall in their look directi
 
 ## `neoorigins:active_bolt`
 
-Active ability that shoots a dragon-fire bolt (purple ender-breath projectile) in the player's look direction. On impact, creates an area of dragon's breath that deals damage over time.
+Active ability that shoots a wind charge in the player's look direction. On impact it makes the vanilla wind burst, knocking back nearby entities.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2317,8 +2327,8 @@ Active ability that shoots a dragon-fire bolt (purple ender-breath projectile) i
   "type": "neoorigins:active_bolt",
   "speed": 1.2,
   "cooldown_ticks": 80,
-  "name": "Void Bolt",
-  "description": "Fires a bolt of corrosive dragon's breath."
+  "name": "Gale Bolt",
+  "description": "Fires a wind charge that blasts nearby creatures back."
 }
 ```
 
@@ -2397,6 +2407,8 @@ One `grant_id` covers the whole bundle. Two consequences worth planning around:
 
 A stack with a blank `item` is skipped with a warning rather than failing the power, so an unfilled row left behind in the in-game editor is tolerated.
 
+`/reload` does not grant anything by itself: players who are already online receive a new or retried bundle on their next login, respawn or origin pick.
+
 ---
 
 ## `neoorigins:active_place_block`
@@ -2426,7 +2438,7 @@ Active ability that places a specific block at the surface the player is looking
 
 ## `neoorigins:crop_harvest_bonus`
 
-Passively grants extra item drops when the player harvests a fully-grown crop or breaks a log. The bonus drops are identical copies of the block's normal drops.
+Passively grants extra item drops when the player harvests a fully-grown crop or breaks a log. The bonus drops are identical copies of the block's normal drops. Crops means `CropBlock` at max age (wheat, carrots, potatoes, beetroot and the like; not nether wart, cocoa, berries, melons or pumpkins). Logs means naturally grown logs, not stripped or player-placed ones.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2446,14 +2458,14 @@ Passively grants extra item drops when the player harvests a fully-grown crop or
 
 ## `neoorigins:shadow_orb`
 
-Active ability that places a persistent shadow orb at the player's position. Each orb applies Darkness to all nearby entities at a set interval. The player can maintain up to `max_orbs` orbs at once; placing a new one when at the cap removes the oldest. Orbs are cleared when the origin is revoked.
+Active ability that places a persistent shadow orb at the player's position. Each orb applies Darkness and Blindness to nearby entities at a set interval, skipping the caster and their team allies. Orbs only pulse while their owner is in the same dimension, and placing an orb in a new dimension clears the old ones. The player can maintain up to `max_orbs` orbs at once; placing a new one when at the cap removes the oldest. Orbs are cleared when the origin is revoked.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `max_orbs` | int | no | `4` | Maximum number of simultaneous orbs |
 | `radius` | float | no | `28.0` | Effect radius per orb in blocks |
 | `cooldown_ticks` | int | no | `100` | Cooldown between placements |
-| `tick_interval` | int | no | `20` | Ticks between Darkness pulses per orb |
+| `tick_interval` | int | no | `20` | Ticks between pulses per orb |
 | `hunger_cost` | int | no | `0` | Food points removed per placement |
 
 **Example:**
@@ -2477,17 +2489,21 @@ Generic condition-gated, toggleable status-effect stack. Part of the 2.0 consoli
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effects` | list of EffectSpec | no | `[]` | Mob effects to apply. See below. May also be a single inline EffectSpec on the top-level object. Not schema-required, but an empty list applies nothing. |
+| `effects` | list of EffectSpec | no | `[]` | Mob effects to apply. See below. May also be a single inline EffectSpec on the top-level object, which is read only when `effects` is absent or not an array. Not schema-required, but an empty list applies nothing. |
 | `condition` | EntityCondition | no | always-true | DSL condition: effects only apply while it is true. Effects are cleared when it becomes false. |
 | `toggleable` | bool | no | `true` | When true, this is an active-keybind power: pressing the key toggles effects on/off. When false, effects are always applied while condition is true. |
 | `default_off` | bool | no | `false` | Toggleable powers only: when true, the power starts disabled, so effects stay off until the player first toggles it on. |
+| `effect` | Identifier | no | — | Root-level single-effect shorthand, equivalent to a one-entry `effects` list. Read only when `effects` is absent. Alias `id`. |
 | `amplifier` | int | no | — | Effect level for the root-level single-effect shorthand. With an `effects` array present it instead overrides the **first** effect's amplifier — winning even over one that entry sets itself — which is how a server admin retunes strength without editing the array. Later specs are unchanged, and unlike its three neighbours below it does not cascade. |
+| `ambient` | bool | no | `true` | Root default, cascaded onto every `EffectSpec` that omits it. |
+| `show_particles` | bool | no | `false` | Root default, cascaded onto every `EffectSpec` that omits it. |
+| `show_icon` | bool | no | `true` | Root default, cascaded onto every `EffectSpec` that omits it. |
 
 **`EffectSpec` object:**
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `effect` | Identifier | yes | — | Effect ID, e.g. `minecraft:strength` (alias `id` also accepted) |
+| `effect` | Identifier | yes | — | Effect ID, e.g. `minecraft:strength` (alias `id` also accepted). A spec with a missing or unknown id is dropped without a log. |
 | `amplifier` | int | no | `0` | Effect level |
 | `ambient` | bool | no | `true` | Ambient particles (low visibility) |
 | `show_particles` | bool | no | `false` | Whether to show particles |
@@ -2696,11 +2712,11 @@ The 2.0 generic event hook: fires an action and/or applies a float modifier when
 | `event` | string | yes | — | Event name (case-insensitive). See [EVENTS.md](EVENTS.md) for the full list. |
 | `condition` | EntityCondition | no | always-true | DSL gate: the event only fires when this is true |
 | `entity_action` | EntityAction | no | noop | Side-effect run when the event fires |
-| `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events) |
-| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`). Supports `block`/`id`, `in_tag`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the positional `offset` wrapper (see below). Ignored on other events. |
+| `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events). Each entry is `{ "operation": ..., "value": ... }`; a list applies in order. `value` defaults to `0` (`amount` is not read). Operations (case-sensitive): `addition`, `add_base`, `add_base_early`, `add_total`, `add_total_early` add `value`; `multiplication`, `multiply_base_multiplicative`, `multiply_total_multiplicative` multiply by `value`; `multiply_base_additive`, `multiply_total_additive` multiply by `1 + value`; `set` / `set_total` replace with `value`; `min_total` caps at `value`; `max_total` floors at `value`. Any other operation, including `multiply_base` and `multiply_total`, is logged as `defaulted to identity` and leaves the payload unchanged. |
+| `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Supports `block`/`id`, `in_tag`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the positional `offset` wrapper (see below). On any other event a set `block_condition` never matches, so `entity_action` does not run there. The `modifier` path does not check it. |
 | `hands` | string or list | no | — | Hand gate for interaction events (`block_use`, `entity_use`, `villager_interact`): only fire for the listed hands, `"main_hand"` and/or `"off_hand"`. Use `["main_hand"]` to stop a power double-firing (vanilla dispatches the right-click once per hand). Fails closed when the event carries no hand info; ignored on other events. |
 | `hand` | string or list | no | — | Singular alias for `hands`, read only when `hands` is absent (Apoli's `action_on_block_use` spelling). |
-| `item_condition` | ItemCondition | no | — | Item gate for item-carrying events (`item_use`, `item_use_finish`, `block_use`, `entity_use`): only fire when the stack the event carries matches. That is the used stack for the first two and the stack in the interacting hand for the last two, which is what Apoli's `item_condition` on `action_on_block_use` / `action_on_entity_use` translates to. Takes the same Apoli item-condition shapes as `equipped_item` (`id`/`tag`/`nbt`/`enchantment`, with `and`/`or`/`not`). Fails closed when set but the event carries no item; ignored on events that never carry one. |
+| `item_condition` | ItemCondition | no | — | Item gate for item-carrying events (`item_use`, `item_use_finish`, `food_eaten`, `food_finished`, `item_pickup`, `block_use`, `entity_use`, `villager_interact`): only fire when the stack the event carries matches. That is the used, eaten or picked-up stack for the first five and the stack in the interacting hand for the rest, which is what Apoli's `item_condition` on `action_on_block_use` / `action_on_entity_use` translates to. Takes the same Apoli item-condition shapes as `equipped_item` (`id`/`tag`/`nbt`/`enchantment`, with `and`/`or`/`not`). Fails closed when set but the event carries no item, including on events that never carry one; the `modifier` path does not check it. |
 | `effect` | id | no | — | `effect_applied` only: pre-dispatch filter on this exact effect id. |
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `power` | id or list | no | — | `power_activated` only: pre-dispatch filter on the activated power's id (single id or array). Omit to fire on any activation. |
@@ -2737,8 +2753,8 @@ Any node also honours `"inverted": true`, which negates just that node.
 **Event categories (see [EVENTS.md](EVENTS.md) for the full list):**
 
 - Lifecycle: `gained`, `lost`, `chosen`, `power_activated`, `respawn`, `death`, `dimension_change`, `advancement_earned`
-- Combat: `attack`, `hit_taken`, `kill`, `projectile_hit`, `mod_knockback`, `mod_fall_damage`
-- Food: `food_eaten`, `food_finished`, `mod_exhaustion`, `mod_natural_regen`, `mod_crafted_food_saturation`
+- Combat: `attack`, `hit_taken`, `hit_dealt`, `kill`, `projectile_hit`, `mod_knockback`, `mod_fall_damage`
+- Food: `food_eaten`, `food_finished`, `mod_exhaustion`, `mod_natural_regen`, `mod_food_nutrition`, `mod_crafted_food_saturation`
 - Mining / crafting: `block_break`, `block_place`, `craft_item`, `smelt_item`, `enchant_item`, `anvil_repair`, `mod_craft_amount`, `mod_enchant_level`, `mod_harvest_drops`, `mod_anvil_cost`
 - Economy / villagers: `trade_completed`, `villager_interact`, `mod_trade_price`
 - Interaction / movement: `item_use`, `item_use_finish`, `item_pickup`, `block_use`, `entity_use`, `breed`, `tame`, `bonemeal`, `mod_bonemeal_extra`, `wake_up`, `land`, `jump`, `climb`, `tick`, `mod_teleport_range`, `mod_potion_duration`
@@ -2776,7 +2792,7 @@ For action-style events set `entity_action`; for modifier-style events set `modi
   "type": "neoorigins:action_on_event",
   "event": "mod_natural_regen",
   "modifier": {
-    "operation": "multiply_base",
+    "operation": "multiplication",
     "value": 1.3
   }
 }
@@ -2836,7 +2852,7 @@ Filters combine with OR: a damage source is cancelled if it matches any entry in
 
 ## `neoorigins:size_scaling`
 
-Scales the player's visual and collision size via the `minecraft:generic.scale` attribute. Optionally also scales block/entity interaction reach. Mirrors the scale to Pehkui when the mod is present so cross-mod queries see a consistent value.
+Scales the player's visual and collision size via the `minecraft:generic.scale` attribute. Optionally also scales block/entity interaction reach. The scale is not mirrored into Pehkui. Applied when the power is granted, so a top-level `condition` does not gate it.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -2856,7 +2872,7 @@ Scales the player's visual and collision size via the `minecraft:generic.scale` 
 }
 ```
 
-The scale attribute uses `ADD_VALUE` against a base of `1.0` (so delta = `scale - 1.0`); proportional reach (`modify_reach`) uses `ADD_MULTIPLIED_BASE` so reach tracks visual size, while `reach_bonus` uses a flat `ADD_VALUE` on both ranges. Missing attributes (older MC or NeoForge versions) log a single warning and the power silently skips that attribute.
+The scale attribute uses `ADD_VALUE` against a base of `1.0` (so delta = `scale - 1.0`); proportional reach (`modify_reach`) uses `ADD_MULTIPLIED_BASE` so reach tracks visual size, while `reach_bonus` uses a flat `ADD_VALUE` on both ranges. Missing attributes (older MC or NeoForge versions) are skipped silently, without a warning.
 
 For the bundled size origins, `scale`, `modify_reach` and `reach_bonus` are all exposed per-origin in `config/neoorigins/power_overrides.toml`, so server owners can retune a shrunk origin's reach without a datapack; small origins (`inchling_size`, `tiny_size`) ship with `modify_reach: false` and a positive `reach_bonus` so they stay playable out of the box.
 
@@ -2960,7 +2976,7 @@ system entirely. See [`neoorigins:night_vision`](#neooriginsnight_vision).
 
 ## `neoorigins:edible_item`
 
-Makes arbitrary items consumable on right-click. A matching item is instantly consumed: the configured nutrition/saturation is applied, one is removed from the stack, and an `action_on_event.ITEM_USE_FINISH` dispatch fires with the stack as context. Bypasses vanilla FoodProperties so pack authors can declare "Merling eats raw fish" or "Phantom eats rotten flesh for full food" without replacing the item's data components.
+Makes arbitrary non-food items edible. A matching item plays the normal 32-tick eating animation; when it finishes, the configured nutrition/saturation is applied, one is removed from the stack, and an `action_on_event.ITEM_USE_FINISH` dispatch fires with the stack as context. Items that are already food keep their vanilla values: the configured `nutrition`, `saturation` and `consume_sound` are ignored for anything that has a food component (raw fish, rotten flesh).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3004,16 +3020,16 @@ Leave `saturation` off unless you mean to change it. Saturation is restored as `
 }
 ```
 
-**Example: Merling eats raw fish at full food**
+**Example: a sea origin grazes on kelp and seagrass**
 ```json
 {
   "type": "neoorigins:edible_item",
-  "tags": ["minecraft:fishes"],
-  "nutrition": 4,
-  "saturation": 0.4,
+  "items": ["minecraft:kelp", "minecraft:seagrass"],
+  "nutrition": 2,
+  "saturation": 0.3,
   "always_edible": true,
-  "name": "Pescivore",
-  "description": "Can eat raw fish at any time."
+  "name": "Grazer",
+  "description": "Can eat kelp and seagrass at any time."
 }
 ```
 
@@ -3198,7 +3214,7 @@ A kept trinket is re-equipped into its original slot on respawn. Those mods rebu
 
 ## `neoorigins:modify_player_spawn`
 
-Overrides the player's respawn location to a power-configured target. Unlike the origin's `spawn_location` (first-join and bed-less respawn only), this power fires on every respawn. Optionally also overrides the bed/respawn-anchor spawn point.
+Overrides the player's respawn location to a power-configured target. Unlike the origin's `spawn_location` (first-join and bed-less respawn only), this power fires on every respawn except the one after leaving the End. The teleport lands a tick or more after the respawn. Optionally also overrides the bed/respawn-anchor spawn point.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3318,7 +3334,7 @@ Legacy active types (`active_teleport`, `active_dash`, etc.) remain registered d
 
 ## `neoorigins:ground_slam`
 
-Active AoE slam: damages and knocks back every entity within radius.
+Active AoE slam: damages and knocks back every living entity in a box of `radius` around the player, including allies and pets. If nothing is in range, no cooldown is spent.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3456,7 +3472,7 @@ If `head` is unset, the minion gets an iron helmet by default (sun protection fo
 
 ## `neoorigins:tame_mob`
 
-Active power that tames a hostile mob the player is looking at. The mob's AI is rewritten to follow the player and target whatever recently hurt the owner. Tamed mobs are tracked via MinionTracker.
+Active power that tames a hostile mob the player is looking at. The mob's AI is rewritten to follow the player, target whatever recently hurt the owner, and join the owner's own attacks. Tamed mobs are tracked via MinionTracker.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3481,7 +3497,7 @@ Set `targeting: "area"` to tame every eligible mob inside `range` in one activat
 
 Cost is charged **once per mob tamed**, not once per activation. When `resource_cost`/`resource_cost_amount` are set and resource bars are enabled, each tame spends that much of the named resource; otherwise it spends `hunger_cost` food points (or, when a resource is configured but resource bars are globally disabled, `resource_cost_amount` food points). Taming is greedy: it tames mobs one at a time until either the slots run out or the player can no longer afford one more, then stops. If candidates existed but none could be afforded, it shows "Not enough power to tame!" and consumes no cooldown.
 
-Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Boss-tier mobs (the Warden, Ender Dragon and Wither) are always rejected, as is anything that fails the `canUsePortal` boss check; `entity_blacklist` lets a pack extend that exclusion to arbitrary mobs, and server operators can do the same for all taming and scare powers at once via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)). A blocked tame shows the "That creature cannot be tamed!" actionbar message.
+Target must be a non-player `Mob`. With the default `hostile_only: true`, only mobs implementing `Enemy` qualify (villagers, animals, and passive mobs won't tame); set `hostile_only: false` to drop that restriction. Boss-tier mobs (the Warden, Ender Dragon and Wither) are always rejected, as is anything that fails the `canUsePortal` boss check; `entity_blacklist` lets a pack extend that exclusion to arbitrary mobs, and server operators can do the same for all taming and scare powers at once via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)). A blocked tame shows the "That creature cannot be tamed!" actionbar message ("Cannot tame boss mobs!" for a boss).
 
 ### Persistence
 
@@ -3563,7 +3579,7 @@ Passively regenerates health on all tamed mobs (via `tame_mob`) on an interval. 
 |---|---|---|---|---|
 | `heal_amount` | float | no | `1.0` | HP restored per interval |
 | `interval_ticks` | int | no | `120` | Ticks between heal pulses |
-| `combat_cooldown_ticks` | int | no | `100` | Minimum ticks since last damage before a mob heals |
+| `combat_cooldown_ticks` | int | no | `100` | Minimum ticks since the mob was last hurt by another mob before it heals. Other damage (fire, falls, players) does not pause healing. |
 
 **Example:**
 ```json
@@ -3616,8 +3632,8 @@ Active keybind power that raycasts for the living entity in front of the player 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `range` | double | no | `5.0` | Max distance in blocks to raycast for the entity to mount. |
-| `cooldown_ticks` | int | no | `100` | Ticks before the mount ability can be reused (100 = 5s). |
-| `hunger_cost` | int | no | `0` | Hunger consumed each time an entity is mounted. |
+| `cooldown_ticks` | int | no | `100` | Ticks before the key works again (100 = 5s). Dismounting also starts it, and while it runs the key cannot dismount either. |
+| `hunger_cost` | int | no | `0` | Hunger consumed per key press that does something: mounting, dismounting, or sending a player-mount request. |
 | `allow_players` | bool | no | `true` | Whether this power can mount other players (subject to consent). |
 | `allow_mobs` | bool | no | `true` | Whether this power can mount mobs. |
 | `block_bosses` | bool | no | `true` | Prevent mounting boss mobs like the Ender Dragon or Wither. |
@@ -3640,7 +3656,7 @@ Active keybind power that raycasts for the living entity in front of the player 
 
 ## `neoorigins:exhaustion_filter`
 
-Filters out specific vanilla exhaustion sources so they don't drain the player's hunger. Handled via `PlayerTickEvent.Pre`.
+Meant to filter out specific vanilla exhaustion sources. It currently has no effect: the power loads, but nothing reads it. Imported `origins-classes:no_sprint_exhaustion` / `no_mining_exhaustion` translate onto this type, so they do nothing either. For sprint hunger use `prevent_action` with `sprint_food`, or `action_on_event` with `mod_exhaustion`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3660,7 +3676,7 @@ Filters out specific vanilla exhaustion sources so they don't drain the player's
 
 ## `neoorigins:twin_breeding`
 
-On vanilla breeding, spawns a second baby with the configured probability.
+On vanilla breeding, spawns a second baby with the configured probability. Only the player credited with the breeding triggers it.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3731,7 +3747,7 @@ Stops items from losing durability while the holder has the power. Unlike handin
 
 ## `neoorigins:attract_mobs`
 
-Pulls nearby mobs toward the holder each tick, as though the player were holding the mob's favourite food. Drawn mobs simply path to the player: they are not tamed and do not turn hostile. With no `entity_types` filter only animals (the vanilla follows-food set) are pulled; supplying ids/tags widens or replaces that to any matching mob.
+Pulls nearby mobs toward the holder each tick, as though the player were holding the mob's favourite food. Drawn mobs simply path to the player: they are not tamed and do not turn hostile. With no `entity_types` filter only animals (the vanilla follows-food set) are pulled; supplying ids/tags widens or replaces that to any matching pathfinding mob. Bosses and the `tame_scare_entity_blacklist` config list are always excluded. Mobs re-path every 10 ticks.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3754,7 +3770,7 @@ Pulls nearby mobs toward the holder each tick, as though the player were holding
 
 ## `neoorigins:no_projectile_divergence`
 
-Removes projectile divergence (perfect accuracy) for projectiles shot by the player. Handled via `EntityJoinLevelEvent`.
+Removes projectile divergence (perfect accuracy) for projectiles shot by the player. Every projectile the player owns is re-aimed along the look direction at its original speed when it spawns, so multishot volleys collapse into one line and projectiles fired by other powers are redirected too. Handled via `EntityJoinLevelEvent`.
 
 No fields beyond `name` / `description`.
 
@@ -3775,7 +3791,7 @@ Equipment the player crafts or upgrades at a smithing table receives bonus attri
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `bonus_mining_speed` | double | no | `0.25` | Mining speed multiplier for tools (+25%) |
+| `bonus_mining_speed` | double | no | `0.25` | `ADD_MULTIPLIED_BASE` modifier on `mining_efficiency`. That attribute's base is 0, so this only scales the bonus an Efficiency enchantment adds. |
 | `bonus_attack_damage` | double | no | `0.20` | Attack damage multiplier for weapons (+20%) |
 | `bonus_armor_toughness` | double | no | `1.0` | Flat armor toughness bonus for armor pieces |
 | `durability_multiplier` | double | no | `0.10` | Max durability increase for all damageable items (+10%) |
@@ -3807,7 +3823,7 @@ Ids that no loaded mod registers simply never match, so listing a menu from a mo
 }
 ```
 
-Bonuses are applied at craft/smelt time via attribute modifiers stored on the item. Items already carrying the quality modifier are not double-buffed.
+Bonuses are applied when the item is taken from a crafting or smithing result (or an `intercept_menus` result slot) via attribute modifiers stored on the item; smelting does not apply them. Items already carrying the quality modifier are not double-buffed.
 
 Smithing-table upgrades are part of the buffed surface: when a quality item is upgraded (e.g. diamond → netherite), the attribute snapshot is rebuilt from the upgraded item's own base stats and the durability bonus is recomputed against the upgraded item's base durability, so the bonus scales with the new material instead of carrying the old item's stale values.
 
@@ -3815,7 +3831,7 @@ Smithing-table upgrades are part of the buffed surface: when a quality item is u
 
 ## `neoorigins:more_smoker_xp`
 
-Grants bonus nutrition and saturation to food cooked in a smoker or furnace by the player. Applied at smelt-finish time.
+When the player takes cooked food out of a furnace or smoker, they gain `round(multiplier)` extra nutrition and `multiplier × 0.25` extra saturation. It fires on taking the result, so output pulled by a hopper gives nothing. No XP is granted, despite the name.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3847,7 +3863,7 @@ Periodically resets villager trade uses for every villager within a radius of th
 
 ## `neoorigins:rare_wandering_loot`
 
-Adds rare items to the wandering-trader pool. This is a **global effect** hooked via `WandererTradesEvent` at mod init; the power's presence on any player enables it worldwide.
+When a holder right-clicks a wandering trader, that trader gains extra offers (master-tier villager trades and, by chance, a rare treasure trade). This happens once per trader and player; the added offers are then visible to anyone who trades with that trader.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3867,7 +3883,7 @@ Adds rare items to the wandering-trader pool. This is a **global effect** hooked
 
 ## `neoorigins:sneaky`
 
-Reduces mob detection range: hostile mobs only target the player when significantly closer than normal. Handled via `LivingChangeTargetEvent`.
+Reduces mob detection range: any mob only targets the player when closer than its follow range times `detection_multiplier` (the lowest one wins if several powers apply). A mob that is already chasing keeps chasing. Handled via `LivingChangeTargetEvent`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3907,7 +3923,7 @@ Suppresses the game-event vibrations the player emits, so sculk sensors, calibra
 
 ## `neoorigins:stealth`
 
-After sneaking continuously for a threshold number of ticks, the player gains Invisibility, renewed every tick for as long as they keep sneaking. The effect is two seconds long and is not removed when they stand up, so it runs out within two seconds of sneaking stopping. Toggleable off via keybind.
+After sneaking continuously for a threshold number of ticks, the player gains Invisibility, renewed every tick for as long as they keep sneaking. The effect is two seconds long and is not removed when they stand up, so it runs out within two seconds of sneaking stopping. While the holder has Invisibility from any source, mobs cannot pick them as a target. Toggleable off via keybind.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -3927,11 +3943,11 @@ After sneaking continuously for a threshold number of ticks, the player gains In
 
 ## `neoorigins:tree_felling`
 
-When the player breaks a log, BFS/DFS upward to break all connected logs. Skipped while sneaking so pack authors can still harvest single logs. Handled via `BlockEvent.BreakEvent`.
+When the player breaks a log, all connected logs above it are broken too (the search never goes downward). Skipped while sneaking so pack authors can still harvest single logs. Handled via `BlockEvent.BreakEvent`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `max_blocks` | int | no | `64` | Maximum connected logs to break per activation |
+| `max_blocks` | int | no | `64` | Maximum connected logs to break per activation, not counting the log you chopped. Values below 64 have no effect: the limit is never lower than 64. |
 
 **Example:**
 ```json
@@ -3972,8 +3988,8 @@ Grants bonus items when crafting a specific output (e.g., more planks per log). 
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `output_item` | Identifier | no | `minecraft:oak_planks` | Item to watch for |
-| `bonus_count` | int | no | `4` | Maximum extra copies granted per craft |
+| `output_item` | Identifier or `#tag` | no | `minecraft:oak_planks` | Item or item tag to watch for; the bonus copies whatever was crafted |
+| `bonus_count` | int | no | `4` | Extra copies granted on every craft: exactly this many, with no roll or cap. Copies that do not fit are lost. |
 
 **Example: quadruple planks from logs**
 ```json
@@ -3992,7 +4008,7 @@ The bonus fires once per craft event: shift-clicking triggers one event per outp
 
 ## `neoorigins:tamed_animal_boost`
 
-Boosts stats (max health, movement speed) on every tamed animal owned by the player within a radius. Applies transient attribute modifiers with fixed IDs; modifiers are removed when the power is revoked.
+Boosts stats (max health, movement speed) on every tamed animal owned by the player within a radius. Every 60 ticks it adds permanent attribute modifiers with fixed ids (saved on the animal) and heals the animal to full the first time. Revoking the power only strips animals inside the radius at that moment.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4090,7 +4106,7 @@ Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag
 
 ## `neoorigins:hide_hud_bar`
 
-Hides a HUD bar while the power is active. Emits `hide_hunger_bar` or `hide_air_bar` capability tags: `GuiHudBarsMixin` reads them to cancel the matching render call. Governed server-side by the `hide_hud_bars` common config (default true); if disabled, the power registers but the HUD still renders.
+Hides a HUD bar while the power is active. Emits `hide_hunger_bar` or `hide_air_bar` capability tags: `GuiHudBarsMixin` reads them to cancel the matching render call. Governed by the `hide_hud_bars` client config (`[hud]` in `config/neoorigins/client.toml`, default true), so each player decides; if they disable it, the power still applies but their HUD still renders the bar.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4157,7 +4173,7 @@ Sparkle-aesthetic vanilla particle picks: `minecraft:end_rod` (cleanest white tw
 
 ## `neoorigins:ender_gaze_immunity`
 
-Endermen do not aggro when the player looks at them. Emits the `ender_gaze_immunity` capability tag: an Enderman targeting mixin reads it to skip the usual line-of-sight check.
+Endermen do not aggro when the player looks at them. Emits the `ender_gaze` capability tag: `EnderManLookMixin` reads it and makes the Enderman's is-looking-at-me check return false.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4228,7 +4244,7 @@ Preconditions match vanilla: not on ground, not already fall-flying, not in wate
 | `true` or `"flying"` | Drawn only while fall-flying. |
 | `"always"` | Drawn whenever the power is active, folded against the back when not gliding. |
 
-`"always"` is gated by the power's own top-level `condition` like everything else, so it means "whenever the power is active", not literally always. Any other string is rejected at load with the legal values named. A real equipped elytra still wins in every case: vanilla draws that one and this power stays out of the way.
+`"always"` is gated by the power's own top-level `condition` like everything else, so it means "whenever the power is active", not literally always. The string spellings are case-sensitive. Any other value (`"Always"`, `"sometimes"`, the string `"true"`) logs a `Failed to parse power config` error naming the legal values, and the field falls back to the type's default (`false` here and on `flight`, `true` on `elytra_flight`); the power itself still loads. A real equipped elytra still wins in every case: vanilla draws that one and this power stays out of the way.
 
 Contrast with `neoorigins:flight`: both are pitch-based elytra gliding, but `flight` is a toggle launched by a mid-air jump, while `natural_glide` is always available and starts from a fall. For creative-mode hover, see `neoorigins:creative_flight`.
 
@@ -4304,7 +4320,7 @@ Emits a capability tag of the form `bare_hand_tool:<tool_id>` (e.g. `bare_hand_t
 }
 ```
 
-An origin can stack multiple instances to emulate several tool types simultaneously (e.g. a miner + lumberjack hybrid with both a pickaxe and an axe instance). When the player's hand is empty the event handler iterates all active `bare_hand_tool` capabilities and picks the first that can correctly harvest the target; different tool types don't conflict.
+Only the first active instance applies, so stacking several (e.g. a pickaxe and an axe) does not combine them: the second tool is never consulted.
 
 Only fires when the main hand is empty. Holding any item delegates to vanilla behaviour normally.
 
@@ -4336,7 +4352,7 @@ Deliberately generic: any origin can emulate an enchantment-like buff by pairing
 }
 ```
 
-Stacking isn't additive: only the first matching power fires per break. Author variants as separate powers with different effect gates rather than expecting them to compound.
+The held tool is ignored, and the bonus multiplies whatever drops the block produced, so it stacks with a real Fortune enchantment and also applies to an ore block mined with Silk Touch. Stacking isn't additive: only the first matching power fires per break. Author variants as separate powers with different effect gates rather than expecting them to compound.
 
 ---
 
@@ -4362,7 +4378,7 @@ Percentage chance to completely dodge incoming damage. When triggered, the damag
 
 ## `neoorigins:thorns_on_hit`
 
-Passive thorns: when the player takes melee damage, the attacker takes damage back. Optionally sets the attacker on fire. Applied via `CombatPowerEvents`.
+Passive thorns: when the player takes damage from a living attacker (including the owner of a projectile), the attacker takes damage back. Optionally sets the attacker on fire. Applied via `CombatPowerEvents`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4384,7 +4400,7 @@ Passive thorns: when the player takes melee damage, the attacker takes damage ba
 
 ## `neoorigins:light_level_effect`
 
-Applies a status effect when the player is at or below a certain light level. Removes the effect when they move to brighter light.
+Applies a status effect when the player is at or below a certain light level. Removes the effect when they move to brighter light, including the same effect from any other source (a potion, a beacon).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4410,7 +4426,7 @@ Applies a status effect when the player is at or below a certain light level. Re
 
 ## `neoorigins:low_hp_threshold`
 
-Applies one or more status effects when the player's HP drops below a percentage threshold. Effects are removed when HP rises above the threshold.
+Applies one or more status effects when the player's HP drops below a percentage threshold. Effects are removed when HP rises above the threshold, including the same effects from any other source (a potion, a beacon).
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4577,7 +4593,7 @@ Renders a full-screen texture overlay on the player's HUD. Client-side only: the
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `texture` | resource location | yes | — | Overlay texture (e.g. `"minecraft:textures/misc/pumpkinblur.png"`). |
-| `strength` | float | no | `1.0` | Opacity (0.0 = invisible, 1.0 = fully opaque). |
+| `strength` | float | no | `1.0` | Opacity (0.0 = invisible, 1.0 = fully opaque). Only the first active overlay is drawn. |
 
 Origins compat: translates `origins:overlay`.
 
@@ -4916,7 +4932,7 @@ Origins compat: `origins:lava_vision` maps `s` to `start` and `v` to `end`. Both
 
 ## `neoorigins:shader`
 
-Applies a post-processing shader to the player's view via `GameRenderer.loadEffect()`. Origins-style full paths (e.g. `minecraft:shaders/post/desaturate.json`) are automatically normalised to the MC resource location format.
+Meant to apply a post-processing shader to the player's view. It currently has no visible effect: the power loads, but the shortened shader id it builds fails to load in `PostChain`, so nothing is drawn. Origins-style full paths (e.g. `minecraft:shaders/post/desaturate.json`) are normalised the same way.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4980,8 +4996,8 @@ A named, persistent, HUD-visible resource bar. Values are stored per-player and 
 | `regen_rate` | int | no | `0` | Amount regenerated per interval (0 = no regen) |
 | `regen_interval` | int | no | `20` | Ticks between regen ticks |
 | `regen_condition` | EntityCondition | no | always-true | Condition for when regeneration occurs |
-| `min_action` | EntityAction | no | noop | Action triggered each tick while resource is at minimum |
-| `max_action` | EntityAction | no | noop | Action triggered each tick while resource is at maximum |
+| `min_action` | EntityAction | no | noop | Action run once each time the value drops to `min` (not every tick while it stays there) |
+| `max_action` | EntityAction | no | noop | Action run once each time the value rises to `max` (not every tick while it stays there) |
 | `hud_render` | object | no | — | HUD display settings (see below) |
 | `hidden` | bool | no | `false` | Whether to hide the bar from the HUD |
 | `backing` | string | no | `""` | Optional external pool that backs the bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported (see below); when set, `min`/`max` are ignored and the bar auto-scales to Iron's live max mana. Empty = internally stored. |
@@ -5013,6 +5029,8 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 ```
 
 > `min`/`max` are omitted above on purpose: a mana-backed bar auto-scales to Iron's live max mana.
+
+**Multiplayer and `/reload`.** Each player's bar and value are their own. When one player loses the power (an origin change, a revoke), only that player's bar goes; every other holder keeps theirs, and a mana-backed bar is sent only to players who hold the power. After `/reload`, online players get their bars back straight away with their stored values intact, instead of waiting for a relog. Up to 2.2.27 neither held: one player's revoke took the bar off every other holder's HUD, a mana-backed bar was sent to every player, and a reload dropped bars until the holder relogged.
 
 **`hud_render` object:**
 
@@ -5081,7 +5099,7 @@ The counter is stored per-player and saved across login sessions. Its storage ke
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `start` | int | no | `0` | Value seeded when the power is granted. Also the value reads fall back to before the first write. |
+| `start` | int | no | `0` | Value seeded when the power is granted. Also the value reads fall back to before the first write. `start_value` is accepted as an alias. Clamped into `min`/`max` when those are set. |
 | `min` | int | no | unbounded | Lower clamp applied to additive (`change_resource`) writes. Omit for an unbounded counter. |
 | `max` | int | no | unbounded | Upper clamp applied to additive (`change_resource`) writes. Omit for an unbounded counter. |
 
@@ -5114,8 +5132,8 @@ Custom resource bar (0.0–1.0 float) that drains passively over time, faster in
 | `water_bottle_refill` | float | no | `0.5` | Moisture restored by drinking one water bottle; `0` leaves the bar unchanged |
 | `regen_threshold` | float | no | `0.75` | Moisture level above which Regeneration I is applied |
 | `armor_penalty_threshold` | float | no | `0.10` | Below this, -4 armor is applied |
-| `dot_threshold` | float | no | `0.0` | Below this, damage-over-time triggers |
-| `dot_damage` | float | no | `1.0` | Damage per interval when below dot_threshold |
+| `dot_threshold` | float | no | `0.0` | At or below this, damage-over-time triggers |
+| `dot_damage` | float | no | `1.0` | Damage per interval when at or below dot_threshold |
 | `dot_interval` | int | no | `40` | Ticks between damage ticks |
 
 A cauldron is checked as a block rather than as a fluid, so the player has to be standing in it. A water bottle refills on the swallow, not on the click, and where a player holds more than one moisture power the most generous `water_bottle_refill` among them is the one that applies. Both affordances match what `breath_out_of_fluid` already gives aquatic origins.
@@ -5152,7 +5170,7 @@ Death prevention mechanic for slime-themed origins. When the player would die wi
 }
 ```
 
-> Requires a companion `slime_moisture` power to provide the moisture value. Without it, the death save never triggers (moisture defaults to 1.0 and never changes).
+> Pair it with a companion `slime_moisture` power. Without one, moisture reads as 1.0 and never changes, so the save fires on **every** death. The save costs no moisture and has no cooldown.
 
 ---
 
@@ -5256,7 +5274,7 @@ neoorigins_loot_pool_grant:<loot_table_id>
 
 routes through the same `LootPoolGrantPower#fireLootPoolGrant` pipeline on completion: the completing player receives the rolled stacks, with dedup keyed on `ftbq:<quest_id>:<table_id>`. Authors get vanilla loot-table reuse for both origin powers and quest rewards without any hard FTBQ dependency.
 
-This is a soft-compat layer: it is **not** an FTBQ `RewardType` registration (which would require Provider-API hooks that vary across FTBQ minor versions). The tag-marker path is the supported integration; a `RewardType` upgrade is reserved for v2.2 once that API stabilises.
+On this version NeoOrigins also registers an FTBQ reward type, `neoorigins:loot_pool` ("Grant loot pool" in the reward editor), with a single `loot_table` field. Claiming it rolls that table through the same pipeline, with dedup keyed on `ftbq_reward:<reward_id>:<table_id>`. Both routes are soft-compat: without FTB Quests neither loads.
 
 ---
 
@@ -5275,7 +5293,7 @@ Each entry in `drops` takes exactly one target form plus an item:
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_type` | resource-loc | one of | — | A single exact mob type, e.g. `minecraft:zombie`. |
-| `entity_tag` | resource-loc | one of | — | An entity-type tag, e.g. `minecraft:skeletons`: matches every type in the tag. |
+| `entity_tag` | resource-loc | one of | — | An entity-type tag, e.g. `minecraft:skeletons`: matches every type in the tag. Write it without a leading `#`; with one the entry is skipped with a warning. |
 | `entity_types` | array | one of | — | An explicit list of exact mob types. |
 | `item` | resource-loc | yes | — | The item to drop. An unknown id skips the entry. |
 | `chance` | float | no | `1.0` | Probability in `[0,1]` that this entry drops on a matching kill. |

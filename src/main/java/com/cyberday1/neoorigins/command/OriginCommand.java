@@ -391,6 +391,7 @@ public class OriginCommand {
                 claims.releaseIfOwner(layerId, oldOrigin, player.getUUID());
             }
             claims.claim(layerId, originId, player.getUUID());
+            NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
         }
         ActiveOriginService.applyOriginPowers(player, layerId, oldOrigin, originId);
         NeoOriginsNetwork.syncToPlayer(player);
@@ -422,6 +423,7 @@ public class OriginCommand {
         releasing.forEach((l, o) -> {
             if (o != null && AdminConfig.isUniqueLayer(l)) claims.releaseIfOwner(l, o, player.getUUID());
         });
+        NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
         // revokeAllPowers cleared the global-power ledger; re-grant any matching
         // global power sets so a reset doesn't strip apoli:global powers.
         com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(player);
@@ -480,6 +482,7 @@ public class OriginCommand {
         ResourceLocation originId = ResourceLocationArgument.getId(ctx, "origin");
         boolean released = OriginClaimsData.get(ctx.getSource().getServer()).release(layerId, originId);
         if (released) {
+            NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
             ctx.getSource().sendSuccess(() -> Component.literal(
                 "Unlocked origin " + originId + " in layer " + layerId + " — it can be claimed again."), true);
             return 1;
