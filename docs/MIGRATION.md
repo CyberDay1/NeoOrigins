@@ -10,9 +10,9 @@ Reference for pack authors updating JSON from pre-2.0 types to the 2.0 generic /
 
 ## What changed
 
-Pre-2.0 NeoOrigins had **88 hardcoded PowerType classes**, one per behaviour. 2.0 collapses these into **~25 generic types** that compose via DSL (condition + action + event).
+Pre-2.0 NeoOrigins had **88 hardcoded PowerType classes**, one per behaviour. 2.0 collapses many of these into **generic types** that compose via DSL (condition + action + event). The collapse is partial: the alias table covers 35 legacy `neoorigins:` type IDs, and `PowerTypes.java` still registers 120 power types, including the legacy types that have no DSL equivalent yet.
 
-For **existing packs**: nothing to change. Legacy type IDs still work via the alias table. On first load of a legacy type, the log prints a one-time `[2.0-legacy] power type '<old>' is deprecated, remap to '<new>'` warning so you know where to migrate when you next touch the pack.
+For **existing packs**: nothing to change. Legacy type IDs still work, either via the alias table or, for the six legacy types that are still registered (see [the deprecation log line](#the-deprecation-log-line)), through their own class. On first load of an aliased legacy type, the log prints a one-time `[2.0-legacy] power type '<old>' is deprecated, remap to '<new>' (first seen on power '<id>')` warning so you know where to migrate when you next touch the pack.
 
 For **new / updated packs**: author against the 2.0 generic types directly. They're more expressive, cheaper to maintain, and won't be deprecated in 3.0.
 
@@ -30,7 +30,7 @@ Every aliased legacy type emits exactly one warning per boot:
 
 Grep your logs for `[2.0-legacy]` to get the migration punch list. **Deprecated types will be removed no earlier than NeoOrigins 4.0**. You have time.
 
-Aliases fire only once the legacy Java class is physically deleted. While the legacy class still exists in the registry (see the `// <type> retired in 2.0` comments in `PowerTypes.java`), the alias is dormant and the legacy behaviour keeps running. This lets us stage the collapse without breaking in-flight packs.
+An alias fires only when its legacy type ID is no longer a registered power type: `LegacyPowerTypeAliases.apply` returns the ID unchanged when `PowerTypes.get(typeId)` finds a registration. The `// <type> retired in 2.0` comments in `PowerTypes.java` mark the types that were removed. Six alias sources are still registered, so their alias is dormant: `water_breathing`, `less_item_use_slowdown`, `active_dash`, `active_swap`, `active_fireball` and `active_bolt`. For these the legacy class parses the JSON exactly as written, with no remap and no `[2.0-legacy]` line. Their "After" examples below show what the alias will rewrite to once the class is removed. This lets us stage the collapse without breaking in-flight packs.
 
 ---
 
@@ -124,6 +124,11 @@ Both modes now use the same outer shape, an `action_on_event` listening
 on `food_eaten`, dispatching an `if_else` whose condition checks the food
 being eaten. Cancelling the event blocks the bite.
 
+`item_tag` may be a single string or an array (`allowed_tags` is read as
+an alternative name for it). The remap prefixes every entry with `#`, so
+each entry is looked up as an item tag; with more than one entry the
+per-entry `food_item_in_tag` conditions are combined with `neoorigins:or`.
+
 **Blacklist:** *"these foods are forbidden"*
 
 ```json
@@ -144,10 +149,9 @@ becomes
     "type": "neoorigins:if_else",
     "condition": {
       "type": "neoorigins:food_item_in_tag",
-      "tag": "minecraft:fishes"
+      "tag": "#minecraft:fishes"
     },
-    "if_action":   { "type": "neoorigins:cancel_event" },
-    "else_action": { "type": "neoorigins:nothing" }
+    "if_action": { "type": "neoorigins:cancel_event" }
   }
 }
 ```
@@ -173,35 +177,35 @@ becomes
   "entity_action": {
     "type": "neoorigins:if_else",
     "condition": {
-      "type": "neoorigins:food_item_in_tag",
-      "tag": "yourpack:edible_for_me"
+      "type": "neoorigins:not",
+      "condition": {
+        "type": "neoorigins:food_item_in_tag",
+        "tag": "#yourpack:edible_for_me"
+      }
     },
-    "if_action":   { "type": "neoorigins:nothing" },
-    "else_action": { "type": "neoorigins:cancel_event" }
+    "if_action": { "type": "neoorigins:cancel_event" }
   }
 }
 ```
 
-Reads: *"if the food is in `yourpack:edible_for_me`, allow; otherwise cancel."*
+Reads: *"if the food is not in `yourpack:edible_for_me`, cancel; otherwise allow."*
 
 Notice the only thing that changed between blacklist and whitelist is the
-**branch placement**: `cancel_event` moved from `if_action` to
-`else_action`. You can also keep the same branch placement and instead
-**wrap the condition in `neoorigins:not`** (same outcome, different
-phrasing):
+condition: the whitelist **wraps it in `neoorigins:not`**, and
+`cancel_event` stays in `if_action`. No `else_action` is written; when the
+condition is false nothing runs and the bite goes ahead. Hand-written
+powers can get the same result the other way round, by keeping the plain
+condition and moving `cancel_event` to `else_action`:
 
 ```json
 "entity_action": {
   "type": "neoorigins:if_else",
   "condition": {
-    "type": "neoorigins:not",
-    "condition": {
-      "type": "neoorigins:food_item_in_tag",
-      "tag": "yourpack:edible_for_me"
-    }
+    "type": "neoorigins:food_item_in_tag",
+    "tag": "#yourpack:edible_for_me"
   },
-  "if_action":   { "type": "neoorigins:cancel_event" },
-  "else_action": { "type": "neoorigins:nothing" }
+  "if_action":   { "type": "neoorigins:nothing" },
+  "else_action": { "type": "neoorigins:cancel_event" }
 }
 ```
 
@@ -405,6 +409,7 @@ After:
 ```json
 {
   "type": "neoorigins:persistent_effect",
+  "toggleable": false,
   "effects": [
     {
       "effect": "minecraft:night_vision",
@@ -419,9 +424,11 @@ After:
 
 ### `neoorigins:glow`
 
-Same shape as `night_vision` but with `"effect": "minecraft:glowing"` and `"show_icon": true`.
+Same effect shape as `night_vision` but with `"effect": "minecraft:glowing"` and `"show_icon": true`. Unlike `night_vision`, the remap does not write `"toggleable": false`, so the power keeps `persistent_effect`'s default of `true`.
 
 ### `neoorigins:water_breathing`
+
+Dormant: `water_breathing` is still a registered type, so this alias does not fire today.
 
 Before:
 ```json
@@ -526,6 +533,7 @@ After:
   "interval": 20
 }
 ```
+Instead of `biome_tag`, the legacy JSON may give a `biomes` array of biome IDs. The remap then writes one `{ "type": "neoorigins:biome", "biome": "<id>" }` condition per entry, combined with `neoorigins:or` when there is more than one.
 
 ### `neoorigins:damage_in_daylight`
 
@@ -545,8 +553,7 @@ After (composed with `neoorigins:and` + `neoorigins:not`):
     "type": "neoorigins:and",
     "conditions": [
       { "type": "neoorigins:exposed_to_sun" },
-      { "type": "neoorigins:not", "condition": { "type": "neoorigins:in_water" } },
-      { "type": "neoorigins:not", "condition": { "type": "neoorigins:on_fire" } }
+      { "type": "neoorigins:not", "condition": { "type": "neoorigins:in_water" } }
     ]
   },
   "entity_action": {
@@ -557,9 +564,15 @@ After (composed with `neoorigins:and` + `neoorigins:not`):
   "interval": 20
 }
 ```
-When `"ignite": true`, `entity_action` becomes `{ "type": "neoorigins:set_on_fire", "ticks": 40 }` instead.
+When `"ignite": true`, a `{ "type": "neoorigins:set_on_fire", "ticks": <fire_ticks> }` action is added (`fire_ticks` defaults to 40). If `damage_per_second` is also above 0, both actions run, wrapped in `{ "type": "neoorigins:and", "actions": [ ... ] }`. With `damage_per_second` at 0 or below only the ignite action is written, and with neither, `entity_action` is `neoorigins:nothing`. The condition does not check `on_fire`, so the damage keeps applying while the player burns.
 
 ### `neoorigins:damage_in_water`
+
+> `multiplier` is a scale factor applied on top of `damage_per_second`, not
+> a synonym: the damage each interval is `damage_per_second × multiplier`,
+> each defaulting to `1.0` when absent. When that product is 0 or below,
+> the remap writes a `neoorigins:nothing` action instead of
+> `neoorigins:damage`, so the player is never hurt for 0.
 
 Before:
 ```json
@@ -583,12 +596,12 @@ After (rain included via `neoorigins:or`):
   "entity_action": {
     "type": "neoorigins:damage",
     "amount": 1.0,
-    "source": { "name": "magic" }
+    "source": { "name": "drown" }
   },
   "interval": 20
 }
 ```
-With `"include_rain": false`, the `condition` is just `{ "type": "neoorigins:in_water" }`.
+`include_rain` defaults to `true`. With `"include_rain": false`, the `condition` is just `{ "type": "neoorigins:in_water" }`.
 
 ### `neoorigins:burn_at_health_threshold`
 
@@ -641,6 +654,8 @@ Consolidated attribute modifier with optional condition / equipment_condition / 
 
 ### `neoorigins:less_item_use_slowdown`
 
+Dormant: `less_item_use_slowdown` is still a registered type, so this alias does not fire today.
+
 Before:
 ```json
 {
@@ -659,11 +674,11 @@ After:
   "condition": { "type": "neoorigins:using_item" }
 }
 ```
-**Lossy:** the legacy `item_type` filter (`"bow"` / `"shield"`) is dropped. The alias applies to any item-use. A `_migration_note` field is written into the JSON at load time warning the pack author. If you need the filter, stay on the legacy class until a future DSL verb lands.
+**Lossy:** the legacy `item_type` filter (`"bow"` / `"shield"`) is dropped. The alias applies to any item-use. When `item_type` is present and not `"any"`, a `_migration_note` field is written into the rewritten JSON; nothing reads or logs it. If you need the filter, stay on the legacy class until a future DSL verb lands.
 
 ## → `neoorigins:active_ability`
 
-Active-ability DSL collapses eight legacy active types onto `entity_action`.
+Active-ability DSL collapses eight legacy active types onto `entity_action`. Four of them (`active_dash`, `active_swap`, `active_fireball`, `active_bolt`) are still registered types, so their aliases are dormant and the legacy classes keep running.
 
 ### `neoorigins:active_launch`
 
@@ -685,7 +700,7 @@ Before:
 ```json
 { "type": "neoorigins:active_dash", "strength": 1.2 }
 ```
-After (lossy, as horizontal impulse approximates look-direction dash):
+After (dormant alias):
 ```json
 {
   "type": "neoorigins:active_ability",
@@ -696,6 +711,7 @@ After (lossy, as horizontal impulse approximates look-direction dash):
   }
 }
 ```
+This rewrite does not reproduce the dash: `neoorigins:pull_entities` pushes other living entities and never moves the caster, and a radius of 0 only reaches entities overlapping the caster's hitbox. For a look-direction dash in new JSON, use `neoorigins:dash` or `neoorigins:add_velocity` with `"space": "local"`.
 
 ### `neoorigins:repulse`
 
@@ -735,6 +751,7 @@ After:
   "entity_action": {
     "type": "neoorigins:area_of_effect",
     "radius": 8.0,
+    "include_source": false,
     "entity_action": {
       "type": "neoorigins:apply_effect",
       "effect": "minecraft:weakness",
@@ -744,6 +761,7 @@ After:
   }
 }
 ```
+The caster is excluded unless the legacy JSON sets `"include_source": true`. `duration_ticks` is read as an alternative to `duration`.
 
 ### `neoorigins:active_swap`
 
@@ -751,7 +769,7 @@ Before:
 ```json
 { "type": "neoorigins:active_swap", "range": 20.0 }
 ```
-After (swaps with NEAREST entity in radius, as legacy used a look-direction raycast):
+After (dormant alias; swaps with NEAREST entity in radius, as legacy used a look-direction raycast):
 ```json
 {
   "type": "neoorigins:active_ability",
@@ -765,7 +783,7 @@ Before:
 ```json
 { "type": "neoorigins:active_fireball", "speed": 1.5 }
 ```
-After (lossy, as legacy fired 3–4 fireballs with spread; alias fires one):
+After (dormant alias; lossy, as legacy fired 3–4 fireballs with spread; alias fires one):
 ```json
 {
   "type": "neoorigins:active_ability",
@@ -773,7 +791,8 @@ After (lossy, as legacy fired 3–4 fireballs with spread; alias fires one):
     "type": "neoorigins:spawn_projectile",
     "entity_type": "minecraft:small_fireball",
     "speed": 1.5
-  }
+  },
+  "_migration_note": "active_fireball alias shoots a single fireball — legacy fired 3-4 with spread"
 }
 ```
 
@@ -783,7 +802,7 @@ Before:
 ```json
 { "type": "neoorigins:active_bolt", "speed": 1.2 }
 ```
-After:
+After (dormant alias):
 ```json
 {
   "type": "neoorigins:active_ability",
@@ -823,11 +842,11 @@ After:
 
 # Cross-mod compat aliases
 
-Foreign-namespace equivalents for packs extracted from Apugli (abandoned at 2.11.0+1.20.4) and legacy Apoli. These bypass the `neoorigins:` / `apace:` translator because `isOriginsFormat` doesn't match their prefixes.
+Foreign-namespace equivalents for packs extracted from Apugli (abandoned at 2.11.0+1.20.4) and legacy Apoli. The loader first rewrites `apoli:` and `apugli:` power types to `origins:` (`OriginsFormatDetector.canonicalizePowerType`), so these reach the `origins:` / `apace:` translator. When the translator has no case for the rewritten ID, `PowerDataManager.resolvePowerType` restores the authored ID and hands it to the alias table below.
 
 ### `apugli:edible_item` / `apoli:edible_item` → `neoorigins:edible_item`
 
-The remap hoists singular `item` → `items[]`, singular `tag` → `tags[]`, and flattens `food_component.{nutrition, saturation_modifier, always_edible}` up to the root.
+After canonicalization these match the translator's `origins:edible_item` case, which produces the same shape as the alias entries registered for them. The rewrite hoists singular `item` → `items[]`, singular `tag` → `tags[]`, and flattens `food_component.{nutrition, saturation_modifier, always_edible}` up to the root (`food_component.saturation` is accepted when `saturation_modifier` is absent).
 
 Before:
 ```json
@@ -872,9 +891,12 @@ These legacy types kept their standalone classes because the DSL can't express t
 - `neoorigins:active_recall`: stateful saved position
 - `neoorigins:active_place_block`: no raycast-and-place verb
 - `neoorigins:shadow_orb`: stateful orb with tick loop
-- `neoorigins:ground_slam`: AoE on mobs; `area_of_effect` is players-only
-- `neoorigins:tidal_wave`: cone shape not modelled in `area_of_effect`
+- `neoorigins:ground_slam`: no alias registered
+- `neoorigins:tidal_wave`: no alias registered
 - `neoorigins:active_phase`: movement state toggle, not an active ability
+
+**Aliased but still registered (dormant aliases, see [the deprecation log line](#the-deprecation-log-line)):**
+- `neoorigins:water_breathing`, `neoorigins:less_item_use_slowdown`, `neoorigins:active_dash`, `neoorigins:active_swap`, `neoorigins:active_fireball`, `neoorigins:active_bolt`
 
 **Non-tick-based condition interceptors:**
 - `neoorigins:mobs_ignore_player`: `LivingChangeTargetEvent` interceptor
@@ -883,14 +905,16 @@ These legacy types kept their standalone classes because the DSL can't express t
 - `neoorigins:breath_in_fluid`: air-supply drain, no DSL verb yet
 
 **Attribute-modifier candidates held back:**
-- `neoorigins:break_speed_modifier`: `PlayerEvent.BreakSpeed` fires client-side only in current NeoForge
-- `neoorigins:underwater_mining_speed`: same BreakSpeed constraint
-- `neoorigins:no_slowdown`: unwired holder pending a slowdown-source DSL
+- `neoorigins:break_speed_modifier`: applied through `PlayerEvent.BreakSpeed` on both sides (`BreakSpeedModifierEvents`) so its `block_tag` filter sees the target block
+- `neoorigins:underwater_mining_speed`: modifies the `submerged_mining_speed` attribute
+- `neoorigins:no_slowdown`: cancels block-induced slowdown (cobweb, sweet berry bush, powder snow, soul sand, honey) through mixins, optionally filtered by `block_tag`
 
 **Persistent-effect candidates held back:**
 - `neoorigins:effect_immunity`: migrates under a different generic in a later phase
 
 See the carve-out comments in `LegacyPowerTypeAliases.registerActiveAbilityAliases`, `registerConditionPassiveAliases`, `registerAttributeModifierAliases`, and `registerPersistentEffectAliases` for the authoritative list. Phase 7+ may add raycast / cone / mob-AoE verbs and shrink this list further.
+
+`neoorigins:gravity_well` was removed in 2.0 with no alias: it is neither registered nor in the alias table, so a power that still uses it logs `Unknown power type` and does not load.
 
 ---
 
@@ -898,8 +922,10 @@ See the carve-out comments in `LegacyPowerTypeAliases.registerActiveAbilityAlias
 
 In 2.0.0 the canonical DSL verb namespace is `neoorigins:`. The legacy
 `origins:` and `apace:` prefixes still parse (every verb your pack uses
-today will keep working), but they emit a one-shot `[2.0-legacy]` warning
-at first use:
+today will keep working). The action and condition parsers rewrite any
+prefix other than `neoorigins:` (including `apoli:` and `apugli:`) to
+`neoorigins:<name>`, and emit a one-shot `[2.0-legacy]` warning per
+distinct verb at first use:
 
 ```
 [2.0-legacy] DSL verb 'origins:damage' is deprecated, use 'neoorigins:damage'
@@ -977,19 +1003,21 @@ These were unchanged.
 # Lossy translations: aliases that drop fields
 
 A handful of aliases simplify the legacy behaviour because no 2.0 DSL verb
-matches the legacy 1:1. They still work, but a pack that actually relied on
-the dropped field will behave differently after the alias kicks in. Keep the
-legacy type declaration (i.e. let the legacy class stay registered) if any
-of these matter for your pack.
+matches the legacy 1:1. All three below are dormant today: the legacy
+classes are still registered, so a pack using these types gets the full
+legacy behaviour. The table is what changes once a class is removed and
+the alias kicks in.
 
 | Legacy type | What's dropped | Workaround / roadmap |
 |---|---|---|
-| `active_dash` | Look-direction projection. The alias lands a horizontal impulse; the legacy class computed the dash vector from the player's look axis. | Needs a `look_direction` vector DSL verb. Targeted for Phase 7. Until then, keep the legacy class or expect roughly horizontal dashes. |
+| `active_dash` | The dash itself. The alias writes a `neoorigins:pull_entities` push with radius 0, which moves other entities, not the caster. | New JSON can dash along the look vector with `neoorigins:dash` or `neoorigins:add_velocity` with `"space": "local"`. |
 | `active_fireball` | Multi-shot spread. Legacy fired 3–4 small fireballs with a random spread cone. The alias shoots one. | No multi-shot DSL verb yet. Legacy class still registered; keep it for shotgun behaviour. |
 | `less_item_use_slowdown` | Item-type filter (`item_type: bow` / `shield` / `any`). Alias applies to any item-use. | No item-type condition verb yet. Packs filtering by tool keep the legacy class. |
 
-Aliases that inject a `_migration_note` field into the rewritten JSON will
-also have this flagged in the runtime log the first time they fire.
+`active_fireball` (always) and `less_item_use_slowdown` (when filtering by
+item type) also write a `_migration_note` field into the rewritten JSON.
+Nothing reads or logs that field; the only runtime log entry is the
+one-time `[2.0-legacy]` line.
 
 ---
 
@@ -1001,16 +1029,18 @@ alias collapses until it lands.
 
 | Missing verb / hook | Blocks | Notes |
 |---|---|---|
-| Look-direction vector | `active_dash` full port, any future `look_impulse` | Needs a `direction_source: look` field on `add_velocity`. |
 | Multi-shot projectile | `active_fireball` shotgun, future `spray` powers | Either loop `spawn_projectile` × N with a spread seed, or a dedicated `spawn_projectile_spread` verb. |
 | Raycast-and-place block | `active_place_block` | Needs a block-placement action with a raycast source. |
-| Cone-shape AoE | `tidal_wave` | Existing `area_of_effect` is radial only; needs an angled/cone variant. |
-| AoE on mobs (not players) | `ground_slam` | `area_of_effect` targets players only by default; needs a mob-target mode. |
 | Item-type condition | `less_item_use_slowdown` filter | Predicate on the item stack the player is currently using. |
-| Slowdown-source condition | `no_slowdown` | Need to tell movement-slowdown from tick-slowdown vs item-use slowdown. |
 | Air-supply modifier action | `breath_in_fluid` | Either a tick-driven attribute or a dedicated air-drain action. |
-| Item-entity pull action | `item_magnetism` | Needs an entity-attraction action with item-entity filter. |
-| Server-authoritative `PlayerEvent.BreakSpeed` | `break_speed_modifier`, `underwater_mining_speed` collapses | BreakSpeed fires client-only in current NeoForge; packs use the attribute fallback in the concrete class. |
+| Item-entity pull action | `item_magnetism` | `pull_entities` only moves living entities; needs an item-entity variant. |
+
+Some verbs the carve-out comments list as missing now exist, but the
+aliases have not been updated to use them: `add_velocity` takes a `space`
+field (`"local"` is relative to the look direction) and `neoorigins:dash`
+pushes along the look vector; `area_of_effect` accepts
+`"shape": { "type": "cone", "angle": <degrees> }` and also reaches mobs for
+verbs that support mob targets (such as `apply_effect`, `damage` and `heal`).
 
 ---
 

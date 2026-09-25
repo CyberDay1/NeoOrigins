@@ -96,7 +96,7 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
      * If source has "replace": true, it replaces target entirely.
      * Otherwise, appends source's origins array into target's.
      */
-    private static void mergeOrigins(JsonObject target, JsonObject source) {
+    static void mergeOrigins(JsonObject target, JsonObject source) {
         if (source.has("replace") && source.get("replace").getAsBoolean()) {
             for (var e : source.entrySet()) {
                 target.add(e.getKey(), e.getValue());
@@ -118,6 +118,20 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
             }
         }
         target.add("origins", targetOrigins);
+        mergeExcludeRandom(target, source);
+    }
+
+    /** Additive files add to the exclusion list too, so an addon can exclude its own origins. */
+    private static void mergeExcludeRandom(JsonObject target, JsonObject source) {
+        if (!source.has("exclude_random") || !source.get("exclude_random").isJsonArray()) return;
+        JsonArray merged = target.has("exclude_random") && target.get("exclude_random").isJsonArray()
+            ? target.getAsJsonArray("exclude_random") : new JsonArray();
+        Set<String> existing = new HashSet<>();
+        for (JsonElement el : merged) existing.add(el.getAsString());
+        for (JsonElement el : source.getAsJsonArray("exclude_random")) {
+            if (el.isJsonPrimitive() && existing.add(el.getAsString())) merged.add(el);
+        }
+        target.add("exclude_random", merged);
     }
 
     /** Returns a stable string key for an origin entry (plain string or object with "origin" field). */

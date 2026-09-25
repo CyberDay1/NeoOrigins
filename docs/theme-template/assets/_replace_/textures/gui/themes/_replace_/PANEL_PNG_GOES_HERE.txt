@@ -9,5 +9,6 @@ Recommended specs:
     texture_width / texture_height / inset_* in ui_themes/my_theme.json.
 
 If you don't ship your own panel.png, the theme still works — it just keeps
-the built-in parchment panel (because panel_background defaults to
-neoorigins:textures/gui/themes/parchment/panel.png if you remove the field).
+the built-in parchment panel, and the client log carries one [theming]
+warning naming the missing file. Delete the panel_background line from
+ui_themes/my_theme.json to silence it.

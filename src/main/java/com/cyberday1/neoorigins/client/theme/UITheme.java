@@ -133,6 +133,14 @@ public final class UITheme {
         this.panelColor = panelColor;
     }
 
+    /** This theme with {@code donor}'s panel texture and the 9-slice geometry that describes it. */
+    public UITheme withPanelOf(UITheme donor) {
+        return new UITheme(donor.panelBackground, overlayColor, nameColor, descriptionColor,
+            powerNameColor, powerDescriptionColor, headerColor, borderColor, mutedColor, accentColor, font,
+            donor.insetLeft, donor.insetTop, donor.insetRight, donor.insetBottom,
+            donor.textureWidth, donor.textureHeight, flat, panelColor);
+    }
+
     public Identifier panelBackground() { return panelBackground; }
     public int overlayColor() { return overlayColor; }
     public int nameColor() { return nameColor; }

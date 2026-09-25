@@ -2943,6 +2943,8 @@ public final class BuiltinActions {
                     .doc("Upward velocity applied to struck foes (default 0.5)."),
                 new FieldSpec("impact_radius", FormFieldSpec.Kind.NUMBER, false).def(2.0)
                     .doc("Horizontal radius of each projectile's hit (default 2.0)."),
+                new FieldSpec("telegraph_ticks", FormFieldSpec.Kind.INTEGER, false).def(14).range(0.0, null)
+                    .doc("Lead-in ticks the ground telegraph shows before the first projectile lands (default 14; 0 = no lead-in)."),
                 new FieldSpec("weapon_damage_scale", FormFieldSpec.Kind.NUMBER, false).def(0.0)
                     .doc("Per-blade bonus = this × the caster's attack-damage attribute (folds in the held weapon), captured at cast time. 0 = flat damage."),
                 new FieldSpec("impact_action", FormFieldSpec.Kind.REF, false).ref("#")

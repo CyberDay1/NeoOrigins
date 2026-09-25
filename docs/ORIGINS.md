@@ -29,14 +29,14 @@ A creature of the deep: armored, swift in water, and able to call guardian allie
 - *Deep Current*: substantial swim-speed bonus
 - *Open Water*: no swim-speed loss off the seafloor
 - *Neutral Buoyancy*: holds depth while fully submerged instead of sinking
-- *Deep Vision*: full visibility submerged
-- *Pressure Spines*: passive damage to attackers in water
-- *Pressure-Hardened Skin*: flat armor bonus
+- *Deep Vision*: permanent night vision
+- *Pressure Spines*: attackers take 30% of the damage they deal back as magic damage
+- *Pressure-Hardened Skin*: +4 max health (2 hearts)
 - *Hydro Adapted*: no mining-speed penalty submerged
 - *Abyssal Trident*: spawn-in equipment
 - *Abyssal Command*: active, calls a guardian ally
 - *Pescivore*: fish-only diet
-- *Raw Adapted*: bonus saturation from fish
+- *Raw Adapted*: extra hunger and saturation from raw cod and salmon
 - *Landwalker*: reduced walk speed on dry ground
 - *Dries Out*: air drains on land in any biome, and suffocates once it empties
 - *Natural Swimmer*: built-in Depth Strider
@@ -60,14 +60,15 @@ A swift aeromancer who hurls wind charges, spins a whirlwind of displacement, an
 **Base powers**
 
 - *Wind Charge*: active, hurls a wind charge
-- *Whirlwind*: active, spinning displacement burst
+- *Whirlwind*: active, hurls an orb that spawns a pulling, damaging tornado where it lands
 - *Updraft*: active, launches self skyward
 - *Cushioned Landing*: no fall damage
-- *Zephyr*: passive wind affinity
+- *Zephyr*: movement-speed bonus
 - *Featherfall*: natural slow fall
 - *Fragile Frame*: reduced max health
 - *Lightweight*: reduced knockback resistance
 - *Mana*: resource gauge for active spells
+- *Zephyr Attunement*: +0.1 cast time reduction, +30 max mana and +15% mana regeneration (only loads when Iron's Spells 'n Spellbooks is installed)
 
 **Evolution**
 
@@ -89,7 +90,7 @@ Nimble spider-folk who scale any wall, fling webs at foes, and strike with fangs
 - *Wall Climbing*: scale vertical surfaces
 - *Web Walker*: unhindered movement in cobwebs
 - *Arthropod*: counts as an arthropod for effects
-- *Spider's Fang*: bonus melee damage
+- *Spider's Fang*: melee hits poison the target (Poison I, 3s)
 - *Web Shot*: active, fires a cobweb projectile
 - *Energy*: resource gauge for active abilities
 
@@ -135,12 +136,12 @@ A mechanical construct that never drowns or starves, but healing potions fizzle,
 
 **Base powers**
 
-- *Iron Frame*: built-in natural armor
+- *Iron Frame*: permanent Resistance I
 - *Sealed Chassis*: immune to drowning
 - *Perpetual Engine*: does not get hungry
 - *No Hunger Bar*: hides hunger UI
 - *No Air Bar*: hides breath UI
-- *Mechanical Body*: potions and food effects fizzle
+- *Mechanical Body*: immune to Regeneration, Instant Health and Poison
 - *Night Optics*: built-in night vision
 - *Heavy Chassis*: reduced movement speed
 - *Rigid Joints*: slower natural regeneration
@@ -151,7 +152,7 @@ A mechanical construct that never drowns or starves, but healing potions fizzle,
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
+| 2 - Ascended | +4 HP, Overclock (Speed I and Haste I below 50% HP) | Evolved HP |
 | 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
 
 ### Avian
@@ -164,11 +165,11 @@ A graceful flier who drifts down slowly, fears no heights, and watches the world
 **Base powers**
 
 - *Featherweight*: no fall damage
-- *Slow Falling*: drifts down gently
-- *Athlete's Diet*: no hunger loss while sprinting
-- *Keen Sight*: extended view distance
+- *Slow Falling*: toggleable slow falling (starts off)
+- *Athlete's Diet*: hunger drains 75% slower
+- *Keen Sight*: sees better in low light
 - *Hollow Bones*: reduced max health
-- *Feather Hop*: small natural jump boost
+- *Feather Hop*: active, small upward hop
 
 **Evolution**
 
@@ -218,18 +219,18 @@ A creature of wind born in the Trial Chambers: fast, airborne, and armed with gu
 
 - *Wind Charge*: active, hurls a wind charge
 - *Wind Dash*: active, short aerial dash
-- *Cushion of Air*: no fall damage
-- *Updraft*: natural jump boost
+- *Cushion of Air*: toggleable slow falling
+- *Updraft*: toggleable Jump Boost II
 - *Tailwind*: increased movement speed
 - *Wisp Frame*: reduced max health
-- *Light Frame*: reduced knockback resistance
+- *Light Frame*: slightly smaller body (90% scale)
 
 **Evolution**
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, Slow Falling | Evolved HP |
+| 2 - Ascended | +4 HP | Evolved HP |
 | 3 - Apex | +6 HP, Jump Boost | Ascended HP |
 
 ### Cave Dragon
@@ -261,9 +262,9 @@ Raised in the deep dark: eats raw stone, chews through ore with bare hands, but 
 
 **Base powers**
 
-- *Dark Adapted*: night vision underground
+- *Dark Adapted*: permanent night vision
 - *Cave Footing*: no fall damage
-- *Miner's Hands*: bonus mining speed
+- *Miner's Hands*: double mining speed
 - *Stone Fists*: mines stone bare-handed
 - *Mining Fortune*: ores drop as if mined with Fortune II, but only while Luck is active
 - *Stone Eater*: can eat raw stone
@@ -351,10 +352,10 @@ A volcanic fire elemental: immune to flame, terrifying to beasts, and healed by 
 **Base powers**
 
 - *Molten Core*: fire immunity
-- *Eruption*: active, fireball attack
-- *Basalt Skin*: built-in natural armor
+- *Eruption*: active, a spread of four small fireballs
+- *Basalt Skin*: permanent Resistance I
 - *Magma Bath*: heals while in lava
-- *Volcanic Strength*: stronger in the Nether
+- *Volcanic Strength*: Strength I in the Nether
 - *Quenched*: damage in water and rain
 - *Ember Glow*: natural night vision
 - *Infernal Aura*: passive mobs flee from you
@@ -366,8 +367,8 @@ A volcanic fire elemental: immune to flame, terrifying to beasts, and healed by 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
-| 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
+| 2 - Ascended | +4 HP, Ember Shield (attackers take 1 damage and burn for 3s) | Evolved HP |
+| 3 - Apex | +6 HP | Ascended HP |
 
 ### Darkness Mage
 
@@ -378,13 +379,14 @@ A shadow-weaving sorcerer who summons orbiting shadow orbs and steps between poo
 
 **Base powers**
 
-- *Shadow Orb*: active, hurls orbiting dark orbs
-- *Shadow Step*: active, dash between dark pools
+- *Shadow Orb*: active, places up to 3 stationary orbs that blind and darken nearby foes
+- *Shadow Step*: active, teleport to the targeted spot up to 24 blocks away
 - *Dark Vision*: natural night vision
-- *Shadow Cloak*: invisibility in low light
+- *Shadow Cloak*: mobs only notice you from much closer
 - *Sunburn*: damage in direct sunlight
-- *Light Sensitivity*: weakened in bright areas
+- *Light Sensitivity*: mines 30% slower
 - *Mana*: resource gauge for active spells
+- *Umbral Attunement*: +12% spell power, +10% casting movement speed and +0.05 cooldown reduction (only loads when Iron's Spells 'n Spellbooks is installed)
 
 **Evolution**
 
@@ -404,16 +406,17 @@ Dragon-blooded and fearsome: immune to fire and terrifying to beasts, but the dr
 **Base powers**
 
 - *Dragonblood*: fire immunity
-- *Molten Stride*: swims in lava
-- *Wing Cushion*: natural slow fall
-- *Dragon Wings*: active, controlled flight
-- *Flame Breath*: active, fireball attack
+- *Molten Stride*: faster movement in lava
+- *Wing Cushion*: no fall damage
+- *Dragon Wings*: toggle; jump in mid-air to take elytra-style flight without an elytra
+- *Flame Breath*: active, a spread of four small fireballs
 - *Apex Presence*: passive mobs flee from you
 - *Imposing Stature*: larger hitbox
 - *Draconic Strength*: bonus melee damage
 - *Quenched Flame*: damage in water and rain
 - *Draconic Appetite*: increased hunger drain
 - *Stamina*: resource gauge for active abilities
+- *Molten Sight*: sees clearly through lava
 
 **Evolution**
 
@@ -433,12 +436,12 @@ A stout underground craftsman: compact, armored, and tireless at the forge, but 
 **Base powers**
 
 - *Compact Frame*: reduced hitbox
-- *Stout Constitution*: bonus max health
+- *Stout Constitution*: permanent Resistance I
 - *Darkvision*: natural night vision
 - *Sturdy Legs*: reduced walk speed
-- *Stonecunning*: faster stone mining
-- *Short Arms*: reduced attack reach
-- *Efficient Metabolism*: slower hunger while mining
+- *Stonecunning*: 25% faster mining
+- *Short Arms*: reduced block reach (-0.5)
+- *Efficient Metabolism*: hunger drains 25% slower
 - *Heirloom Pickaxe*: spawn-in equipment
 
 **Evolution**
@@ -459,12 +462,13 @@ A stalwart geomancer who slams the ground to rupture foes and raises stone walls
 **Base powers**
 
 - *Ground Slam*: active, area shockwave
-- *Stone Wall*: active, raises a stone barrier
-- *Stonecunning*: faster stone mining
-- *Rooted*: strong knockback resistance
-- *Heavy*: reduced movement speed
-- *Earthbound*: fall damage at heights
+- *Stone Wall*: active, places a cobblestone block where you are looking (up to 8 blocks)
+- *Stonecunning*: 50% faster mining
+- *Rooted*: takes half knockback
+- *Heavy*: cannot swim; sinks in water
+- *Earthbound*: takes 50% more fall damage
 - *Mana*: resource gauge for active spells
+- *Stoneward Attunement*: +20% spell resistance, +5% spell power and +20 max mana (only loads when Iron's Spells 'n Spellbooks is installed)
 
 **Evolution**
 
@@ -489,15 +493,15 @@ A pure flight specialist: soars through the skies, untouched by kinetic forces, 
 - *Feather Fall*: no fall damage
 - *Wind Cushion*: no kinetic impact damage
 - *Fragile Frame*: reduced max health
-- *Can't Bear Heavy Armor*: cannot wear iron or heavier
+- *Can't Bear Heavy Armor*: cannot wear iron, gold, diamond or netherite armor
 
 **Evolution**
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, Sky Piercer, +0.1 Speed | Evolved HP |
-| 3 - Apex | +6 HP, Apex Sky Piercer, Fall Immunity | Ascended HP, Ascended Sky Piercer |
+| 2 - Ascended | +4 HP, Sky Piercer | Evolved HP |
+| 3 - Apex | +6 HP, Apex Sky Piercer | Ascended HP, Ascended Sky Piercer |
 
 ### Enderian
 
@@ -510,9 +514,9 @@ Born on the outer islands of the End: teleports at will, dodges projectiles into
 **Base powers**
 
 - *Ender Eyes*: endermen ignore your gaze
-- *Void Step*: dodges projectiles into the void
+- *Void Step*: 50% chance to dodge a projectile and teleport up to 16 blocks away
 - *Hydrophobia*: damage in water and rain
-- *Ender Warp*: active, short-range teleport
+- *Ender Warp*: active, teleport to the targeted spot up to 50 blocks away
 - *Energy*: resource gauge for active abilities
 
 **Evolution**
@@ -520,7 +524,7 @@ Born on the outer islands of the End: teleports at will, dodges projectiles into
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, Pearl Immunity | Evolved HP |
+| 2 - Ascended | +4 HP, Pearl Mastery (no fall damage, which covers ender pearl damage) | Evolved HP |
 | 3 - Apex | +6 HP | Ascended HP, Water Damage |
 
 ### Enderite
@@ -533,12 +537,12 @@ A being born of the End: master of teleportation and phasing, graceful in descen
 **Base powers**
 
 - *Warp Step*: active, short-range teleport
-- *Void Phase*: active, brief intangibility
+- *Void Phase*: active, phase through a wall you are facing
 - *Ender Drift*: natural slow fall
 - *End Sight*: natural night vision
-- *Void Authority*: endermites flee from you
+- *Void Authority*: endermites and silverfish flee from you
 - *Ender Weakness*: damage in water and rain
-- *Light Sensitivity*: weakened in bright daylight
+- *Light Sensitivity*: take 50% more damage in direct sunlight
 - *Void Claws*: bonus melee damage
 - *Energy*: resource gauge for active abilities
 
@@ -555,15 +559,15 @@ A being born of the End: master of teleportation and phasing, graceful in descen
 **Impact:** Medium  
 **Icon:** Salmon
 
-A quick cat-person with keen night vision and a pouncing leap: lands on their feet, slips past wolves and ocelots, but loathes water and burns through energy fast.
+A quick cat-person with keen night vision and a pouncing leap: lands on their feet, goes unnoticed by creepers, but loathes water and burns through energy fast.
 
 **Base powers**
 
-- *Nine Lives*: reduced fall damage
+- *Nine Lives*: no fall damage
 - *Cat Eyes*: natural night vision
 - *Agile*: bonus movement speed
-- *Predator's Calm*: wolves and ocelots ignore you
-- *Pounce*: active, leaping pounce attack
+- *Predator's Calm*: creepers ignore you
+- *Pounce*: active, leaping dash
 - *Hates Water*: damage in water and rain
 - *High Metabolism*: increased hunger drain
 - *Energy*: resource gauge for active abilities
@@ -581,24 +585,25 @@ A quick cat-person with keen night vision and a pouncing leap: lands on their fe
 **Impact:** High  
 **Icon:** Fire Charge
 
-A volatile pyromancer wreathed in flame: hurls fireballs, bursts into an inferno, and burns those who strike you. Fire cannot harm you, but water is your undoing.
+A volatile pyromancer wreathed in flame: hurls fireballs, bursts into an inferno, and scorches those who strike you with reflected damage. Fire cannot harm you, but water is your undoing.
 
 **Base powers**
 
-- *Fireball*: active, hurls a fireball
-- *Inferno Burst*: active, area fire explosion
-- *Flame Cloak*: burns nearby attackers
+- *Fireball*: active, hurls a spread of four small fireballs
+- *Inferno Burst*: active, fire orb that deals instant damage in a 5-block radius on impact
+- *Flame Cloak*: attackers take 30% of the damage they deal back as magic damage
 - *Fire Immunity*: immune to fire damage
 - *Water Weakness*: damage in water and rain
 - *Internal Furnace*: increased hunger drain
 - *Mana*: resource gauge for active spells
+- *Pyromantic Attunement*: +15% spell power, +0.1 cooldown reduction and +20 max mana (only loads when Iron's Spells 'n Spellbooks is installed)
 
 **Evolution**
 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, Fire Resistance | Evolved HP |
+| 2 - Ascended | +4 HP | Evolved HP |
 | 3 - Apex | +6 HP, +2 Attack Damage | Ascended HP |
 
 ### Forest Dragon
@@ -631,11 +636,11 @@ An elemental of ice and cold: freezes enemies, thrives in taigas, but fire and t
 
 **Base powers**
 
-- *Frost Nova*: active, area freeze attack
-- *Cold Blooded*: stronger in cold biomes
-- *Meltdown*: extra damage from fire
-- *Ice Walk*: built-in Frost Walker
-- *Ice Shell*: built-in natural armor
+- *Frost Nova*: active, frost orb that leaves a 6-block field of Slowness IV
+- *Cold Blooded*: Strength I while in taiga biomes
+- *Meltdown*: take double damage while burning
+- *Ice Walk*: active, place an ice block on a targeted surface up to 5 blocks away
+- *Ice Shell*: permanent Resistance I
 - *Heat Sickness*: damage in the Nether
 - *Cold Immunity*: immune to powder-snow freeze
 - *Stamina*: resource gauge for active abilities
@@ -668,7 +673,7 @@ A hard-qigong Iron Body master: an armored, immovable wall that punishes anyone 
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 | *Diamond Body*: harder still to wound | — |
-| 2 | *Reflected Force*: rebound twice the force of every blow | — |
+| 2 | *Reflected Force*: attackers take 8 damage | — |
 | 3 | *Bell Toll*: active toll that slows and weakens nearby foes | — |
 
 ### Golem
@@ -680,10 +685,10 @@ A walking fortress of iron and will: nearly immovable, but slow and vulnerable t
 
 **Base powers**
 
-- *Iron Hide*: built-in natural armor
+- *Iron Hide*: permanent Resistance I
 - *Immovable*: strong knockback resistance
 - *Towering Frame*: larger hitbox
-- *Iron Constitution*: immune to most status effects
+- *Iron Constitution*: immune to Poison, Wither and Hunger
 - *Heavy*: reduced movement speed
 - *Melting Point*: extra damage from fire
 - *Ground Slam*: active, area shockwave
@@ -706,9 +711,9 @@ A stone-skinned monstrosity whose gaze petrifies and whose fists shatter, but th
 
 **Base powers**
 
-- *Petrifying Gaze*: active, slows targets you look at
-- *Stone Fists*: mines stone bare-handed
-- *Granite Hide*: built-in natural armor
+- *Petrifying Gaze*: active, petrifying orb that leaves a 6-block field of Slowness V
+- *Stone Fists*: +4 attack damage
+- *Granite Hide*: permanent Resistance I
 - *Immovable*: strong knockback resistance
 - *Ponderous*: reduced movement speed
 - *Imposing Bulk*: larger hitbox
@@ -734,11 +739,12 @@ A warper of gravitational fields who bends space itself. Pull enemies into a cru
 
 - *Gravity Well*: active, pulls enemies inward
 - *Repulse*: active, blasts foes away
-- *Levitation*: active, self-levitation
+- *Levitation*: toggle, self-levitation
 - *Gravitational Cushion*: no fall damage
-- *Unmoored*: reduced friction
-- *Frail*: reduced max health
+- *Unmoored*: take 75% more knockback
+- *Frail*: deal 25% less damage
 - *Mana*: resource gauge for active spells
+- *Graviturgic Attunement*: +12% spell power and +0.08 cooldown reduction (only loads when Iron's Spells 'n Spellbooks is installed)
 
 **Evolution**
 
@@ -753,13 +759,13 @@ A warper of gravitational fields who bends space itself. Pull enemies into a cru
 **Impact:** High  
 **Icon:** Honeycomb
 
-A bee-like insectoid who flies freely, stings foes with a venomous strike, and coaxes crops to grow. Fragile wings and endless hunger are the price of flight.
+A bee-like insectoid who glides on its wings, stings foes with a venomous strike, and coaxes crops to grow. Fragile wings and endless hunger are the price of flight.
 
 **Base powers**
 
-- *Buzzing Wings*: sustained flight
+- *Buzzing Wings*: built-in elytra gliding
 - *Liftoff*: natural jump boost
-- *Venomous Sting*: active, poison melee strike
+- *Venomous Sting*: active, venom orb dealing 4 damage and Poison II in a 3-block radius
 - *Pollinator*: accelerates nearby crops
 - *Small Frame*: reduced hitbox
 - *Arthropod*: counts as an arthropod for effects
@@ -814,7 +820,7 @@ A quarter-sized humanoid who scales walls with ease and moves with surprising sp
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, +0.15 Speed | Evolved HP |
-| 3 - Apex | +6 HP, Slow Falling (Dodge) | Ascended HP |
+| 3 - Apex | +6 HP, 15% Dodge Chance | Ascended HP |
 
 ### Iron Monk
 
@@ -851,7 +857,7 @@ A colossal deep-sea predator born in the open ocean: devastating underwater with
 
 **Base powers**
 
-- *Tentacle Lash*: active, ranged tentacle strike
+- *Tentacle Lash*: active, orb that slows everything in a 5-block radius (Slowness III)
 - *Ink Shot*: active, blinding ink projectile
 - *Deep Lungs*: never drown
 - *Tidal Rush*: substantial swim-speed bonus
@@ -859,7 +865,7 @@ A colossal deep-sea predator born in the open ocean: devastating underwater with
 - *Neutral Buoyancy*: holds depth while fully submerged instead of sinking
 - *Pescivore*: fish-only diet
 - *Raw Adapted*: bonus saturation from fish
-- *Pressure Plating*: built-in natural armor
+- *Pressure Plating*: permanent Resistance I
 - *Call of the Deep*: active, summons a guardian ally
 - *Beached*: reduced walk speed on dry ground
 - *Surface Agony*: damage in direct sunlight
@@ -918,8 +924,8 @@ A fearless beast handler who bends hostile mobs to their will. Alone they are fr
 
 - *Dominate*: active, tames a hostile mob
 - *Sic 'Em*: active, directs the pack at a target
-- *Pack Bond*: regenerates while pack is near
-- *Lone Weakness*: frail without nearby pack
+- *Pack Bond*: tamed mobs slowly regenerate health while out of combat
+- *Lone Weakness*: deals 25% less damage while no tamed mobs are alive
 - *Feed the Pack*: increased hunger drain
 - *Essence*: resource gauge for active abilities
 
@@ -948,6 +954,8 @@ A master of death who commands undead minions: wither skeletons and archers figh
 - *Withered Body*: reduced max health
 - *Death's Embrace*: slower natural regeneration
 - *Essence*: resource gauge for active abilities
+- *Undying Breath*: does not need to breathe, so never drowns
+- *Deathbound Attunement*: +20% summon damage, +8% spell power and +20 max mana (only loads when Iron's Spells 'n Spellbooks is installed)
 
 **Evolution**
 
@@ -968,13 +976,14 @@ A spectral being: gliding through the night on elytra wings, drawing strength fr
 
 - *Night Eyes*: natural night vision
 - *Spectral Wings*: built-in elytra gliding
-- *Wind Beat*: active, midair speed boost
-- *Moonplate*: bonus armor at night
+- *Wind Beat*: active, speed boost while gliding
+- *Moonplate*: Resistance I at night
 - *Soul Drain*: heal on kill
 - *Weightless*: no fall damage
 - *Sunburn*: damage in direct sunlight
 - *Fragile Form*: reduced max health
 - *Sleepless Dread*: cannot sleep
+- *Spectral Breath*: does not need to breathe, so never drowns
 
 **Evolution**
 
@@ -994,7 +1003,7 @@ A gold-obsessed Nether warrior: powerful at home, feared by kin, but weakened ou
 **Base powers**
 
 - *Nether Fury*: stronger in the Nether
-- *Gold Kinship*: piglins ignore you while wearing gold
+- *Gold Kinship*: piglins and piglin brutes ignore you (no gold required)
 - *Brutal Strikes*: bonus melee damage
 - *Surface Sickness*: weakened in the Overworld
 - *Nether Eyes*: natural night vision
@@ -1006,7 +1015,7 @@ A gold-obsessed Nether warrior: powerful at home, feared by kin, but weakened ou
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
+| 2 - Ascended | +4 HP, Brute Rage (Strength II below 30% HP) | Evolved HP |
 | 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
 
 ### Qi Cultivator
@@ -1019,7 +1028,7 @@ A practitioner of inner arts who channels Qi into ranged palm-strikes and harden
 **Base powers**
 
 - *Qi*: inner energy spent on palm arts, replenished slowly or through meditation
-- *Meditation*: crouch and be still to gather Qi far faster
+- *Meditation*: crouch to gather Qi far faster
 - *Inner Calm*: meditating mends your wounds
 - *Vibrating Palm*: active, hurl a bolt of compressed Qi at range (25 Qi)
 - *Hardened Qi*: active, steel the body with Resistance II for 6 seconds (30 Qi)
@@ -1044,8 +1053,8 @@ An undead wanderer who phases through matter and hurls bolts of withering rot: c
 - *Undead Nature*: counts as undead for effects
 - *No Breath*: never drown
 - *Dead Man's Eyes*: natural night vision
-- *Phase Step*: active, brief intangibility
-- *Void Bolt*: active, withering projectile
+- *Phase Step*: active, teleports you through a wall up to 8 blocks thick
+- *Void Bolt*: active, projectile that bursts for magic damage and Weakness II
 - *Sunlight's Curse*: damage in direct sunlight
 - *Withered Form*: slower natural regeneration
 - *Energy*: resource gauge for active abilities
@@ -1055,26 +1064,26 @@ An undead wanderer who phases through matter and hurls bolts of withering rot: c
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, +2 Armor | Evolved HP |
-| 3 - Apex | +6 HP, +4 Armor, Fire Resistance | Ascended HP, Ascended Armor |
+| 2 - Ascended | +4 HP, Undying Will (Strength II and Resistance I below 25% HP) | Evolved HP |
+| 3 - Apex | +6 HP, +4 Armor, Fire Resistance | Ascended HP, Undying Will |
 
 ### Sculkborn
 
 **Impact:** High  
 **Icon:** Sculk
 
-A being of the deep dark: armored, resistant, and armed with sonic power, but slow, frail in sunlight, and weakened above ground.
+A being of the deep dark: armored, resistant, and armed with sonic power, but slow and burned by sunlight.
 
 **Base powers**
 
 - *Sonic Shriek*: active, ranged sonic blast
-- *Sculk Pulse*: active, darkness aura burst
+- *Sculk Pulse*: active, projectile that leaves a lingering Darkness zone where it lands
 - *Echolocation*: natural night vision
-- *Sculk Carapace*: built-in natural armor
+- *Sculk Carapace*: permanent Resistance I
 - *Deep Rooted*: strong knockback resistance
 - *Surface Agony*: damage in direct sunlight
-- *Sonic Deflection*: immune to projectiles
-- *Vibration Sense*: detects nearby movement
+- *Sonic Deflection*: immune to arrows
+- *Vibration Sense*: nearby creatures within 10 blocks glow
 - *Lumbering*: reduced movement speed
 - *Hollow Form*: reduced max health
 - *Stamina*: resource gauge for active abilities
@@ -1113,14 +1122,14 @@ A dragon of tide and storm, born to the open water. Swift beneath the waves, it 
 **Impact:** High  
 **Icon:** Shulker Shell
 
-Armored like a shulker: shrugs off blows, retreats into a shell when cornered, and launches foes skyward with a levitation burst. Slow, but unshakeable.
+Armored like a shulker: shrugs off blows, blinks away when cornered, and launches foes skyward with a levitation burst. Slow, but unshakeable.
 
 **Base powers**
 
-- *Shell*: built-in natural armor
+- *Shell*: permanent Resistance I
 - *Shulker Bulk*: reduced movement speed
-- *Bullet Release*: active, levitation projectile
-- *Shell Retreat*: active, defensive shell mode
+- *Bullet Release*: active, levitates everything within 5 blocks
+- *Shell Retreat*: active, teleports you to a random spot within 12 blocks
 - *Grounded*: immune to levitation
 - *Stamina*: resource gauge for active abilities
 
@@ -1138,11 +1147,11 @@ Armored like a shulker: shrugs off blows, retreats into a shell when cornered, a
 **Icon:** Nautilus Shell  
 **Spawn:** Ocean biomes
 
-An aquatic enchantress born in the open ocean: charms creatures with an alluring presence and heals in the tides, but frail, slow, and dries out on land.
+An aquatic enchantress born in the open ocean: charms creatures with an alluring presence, but frail, slow, and dries out on land.
 
 **Base powers**
 
-- *Alluring Presence*: passive mobs are charmed
+- *Alluring Presence*: mobs won't target you unless you attack them first (bosses excepted)
 - *Aquatic Lungs*: never drown
 - *Tidal Grace*: substantial swim-speed bonus
 - *Open Water*: no swim-speed loss off the seafloor
@@ -1174,13 +1183,14 @@ A reanimated bag of bones: fast, light, and deadly with a bow. Fragile frame, sh
 **Base powers**
 
 - *Undead*: counts as undead for effects
-- *Marksmanship*: bonus bow damage and accuracy
+- *Marksmanship*: +50% arrow damage
 - *Bone Light*: bonus movement speed
 - *Lightweight*: natural jump boost
 - *Brittle Frame*: reduced max health
 - *Sun Scorched*: damage in direct sunlight
 - *Boneless Diet*: restricted food list
 - *Bone Appetite*: can eat bone meal
+- *Hollow Lungs*: does not need to breathe, so never drowns
 
 **Evolution**
 
@@ -1221,12 +1231,12 @@ A fungal creature that thrives in darkness and mushroom fields: armed with toxic
 
 **Base powers**
 
-- *Spore Cloud*: active, area poison burst
+- *Spore Cloud*: active, fires a spore orb that leaves a lingering Poison II cloud where it lands
 - *Toxic Resilience*: immune to poison
 - *Mycelial Sight*: natural night vision
 - *Mushroom Symbiosis*: Regeneration II while in a mushroom biome
 - *Fungal Contact*: heals 1 HP a second while standing on or in mushroom blocks or mycelium
-- *Fungal Shell*: built-in natural armor
+- *Fungal Shell*: permanent Resistance I
 - *Sun Withering*: damage in direct sunlight
 - *Rooted Gait*: reduced movement speed
 - *Vitality*: resource gauge for active abilities
@@ -1244,17 +1254,17 @@ A fungal creature that thrives in darkness and mushroom fields: armed with toxic
 **Impact:** Medium  
 **Icon:** Stone
 
-Born of living stone: an unshakeable sentinel who sheds thorns onto attackers, mines rock with bare hands, and sets glowstone torches into the dark. Slow, but unmoving ground never leaves them.
+Born of living stone: an unshakeable sentinel who sheds thorns onto attackers, mines rock at double speed, and sets glowstone into the dark. Slow, but unmoving ground never leaves them.
 
 **Base powers**
 
-- *Stone Skin*: built-in natural armor
+- *Stone Skin*: +6 max health (3 hearts)
 - *Rocky Rebound*: passive thorns damage
 - *Grounded*: strong knockback resistance
-- *Stone Light*: active, places a glowstone torch
+- *Stone Light*: active, places a glowstone block where you aim (up to 5 blocks)
 - *Stone-Footed*: reduced movement speed
-- *Stonecrusher*: mines stone bare-handed
-- *Warding Presence*: mobs do not spawn near you
+- *Stonecrusher*: mines all blocks twice as fast
+- *Warding Presence*: hostile mobs don't spawn naturally within 36 blocks (toggleable)
 - *Stamina*: resource gauge for active abilities
 
 **Evolution**
@@ -1270,18 +1280,18 @@ Born of living stone: an unshakeable sentinel who sheds thorns onto attackers, m
 **Impact:** High  
 **Icon:** Magma Cream
 
-A Nether-native creature that walks on lava and heals in its warmth, but the cold overworld and water are crippling.
+A Nether-native creature that is immune to fire and heals in lava's warmth, but the cold overworld and water are crippling.
 
 **Base powers**
 
 - *Lavaborn*: fire immunity
-- *Nether Speed*: stronger in the Nether
+- *Nether Speed*: Speed II in the Nether
 - *Hydrophobia*: damage in water and rain
 - *Magma Recovery*: heals while in lava
 - *Nether Sight*: natural night vision
 - *Cold-Blooded*: reduced speed in the Overworld
-- *Obsidian Hide*: built-in natural armor
-- *Stampede*: active, charging dash attack
+- *Obsidian Hide*: permanent Resistance I
+- *Stampede*: active, horizontal charging dash
 - *Fungal Diet*: eats nether fungi
 - *Stamina*: resource gauge for active abilities
 
@@ -1291,7 +1301,7 @@ A Nether-native creature that walks on lava and heals in its warmth, but the col
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, +10% Speed | Evolved HP |
-| 3 - Apex | +6 HP, Fire Resistance | Ascended HP |
+| 3 - Apex | +6 HP | Ascended HP |
 
 ### Sword Immortal
 
@@ -1323,15 +1333,15 @@ Flies on their blade, hurls sword-qi at range and blinks through battle: every s
 **Impact:** Low  
 **Icon:** Oak Sapling
 
-A spirit of the old forest: swift among the trees, loved by wildlife, and able to entangle foes with a surge of roots. Healed by rain, but scorched by the Nether.
+A spirit of the old forest: swift among the trees, ignored by mobs, and able to entangle foes with a surge of roots. Healed by water, but scorched by the Nether.
 
 **Base powers**
 
-- *One With Nature*: passive animals are friendly
-- *Rain's Embrace*: heals while in rain or water
+- *One With Nature*: mobs won't target you unless provoked (bosses excepted)
+- *Rain's Embrace*: heals 1 HP a second while in water
 - *Forest Born*: bonus speed in forests
 - *Nature's Blessing*: accelerates nearby crops
-- *Entangle*: active, roots a target in place
+- *Entangle*: active, fires a root orb that leaves a 6-block zone of Slowness VI
 - *Corruption Bane*: damage in the Nether
 - *Vitality*: resource gauge for active abilities
 
@@ -1366,22 +1376,22 @@ Small in stature but quick and nimble: climbs anything, pulls in items, but hits
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
 | 2 - Ascended | +4 HP, +0.1 Speed | Evolved HP |
-| 3 - Apex | +6 HP, Jump Boost (Evasion) | Ascended HP |
+| 3 - Apex | +6 HP, Evasion (20% Dodge Chance) | Ascended HP |
 
 ### Umbral
 
 **Impact:** Medium  
 **Icon:** Coal
 
-A child of shadow: hurls orbs of dark energy, dashes between positions, and deflects arrows. Swift in the dark, burned by sunlight.
+A child of shadow: plants orbs that blind all around them, dashes between positions, and deflects arrows. Burned by sunlight.
 
 **Base powers**
 
 - *Shadow Sight*: natural night vision
-- *Shadow Orb*: active, hurls a dark orb
+- *Shadow Orb*: active, plants a shadow anchor (up to 4) that blinds and darkens non-allied creatures within 28 blocks
 - *Shadow Dash*: active, short shadow dash
 - *Light Aversion*: damage in direct sunlight
-- *Shadow Step*: passive projectile deflection
+- *Shadow Step*: immune to arrows
 - *Shadowrun*: no hunger loss while sprinting
 - *Energy*: resource gauge for active abilities
 
@@ -1390,7 +1400,7 @@ A child of shadow: hurls orbs of dark energy, dashes between positions, and defl
 | Tier | Added | Removed |
 |------|-------|---------|
 | 1 - Evolved | +2 HP | — |
-| 2 - Ascended | +4 HP, Shadow Meld, Night Vision | Evolved HP |
+| 2 - Ascended | +4 HP, Shadow Meld | Evolved HP |
 | 3 - Apex | +6 HP, +15% Speed | Ascended HP |
 
 ### Vampire
@@ -1410,6 +1420,8 @@ An undead predator of the night: swift, strong, and eternally hungry. Sunlight i
 - *Corpse Vitality*: slower natural regeneration
 - *Blood Diet*: only raw flesh sustains you
 - *Running Water*: damage in water and rain
+- *Deathless Breath*: does not need to breathe, so never drowns
+- *Bloodfeast*: raw and rotten flesh nourish you as if freshly cooked
 
 **Evolution**
 
@@ -1428,7 +1440,7 @@ A living embodiment of the green world: tireless, at peace with the wild, but ut
 
 **Base powers**
 
-- *Wild Kin*: passive animals are friendly
+- *Wild Kin*: mobs won't target you unless provoked (bosses excepted)
 - *Root Landing*: no fall damage
 - *Tireless*: no hunger loss while sprinting
 - *Bountiful Harvest*: bonus crop yields
@@ -1452,7 +1464,7 @@ A being touched by the End: phases through blocks, blinks short distances, and w
 
 **Base powers**
 
-- *Phase Walk*: active, brief block intangibility
+- *Phase Walk*: active, teleport through a wall you're facing (up to 10 blocks deep)
 - *Void Step*: active, short-range teleport
 - *Void Sight*: natural night vision
 - *Unseen*: passive mobs ignore you
@@ -1479,9 +1491,9 @@ Born from the deep dark: senses the world through vibrations, unleashes a sonic 
 
 - *Sonic Boom*: active, long-range sonic blast
 - *Echolocation*: vibration-based sight
-- *Tremor Sense*: detects nearby movement
+- *Tremor Sense*: highlights all creatures within 24 blocks (toggleable)
 - *Deep Dark Strength*: bonus melee damage
-- *Ancient Hide*: built-in natural armor
+- *Ancient Hide*: permanent Resistance II
 - *Deep Dark Sight*: natural night vision
 - *Hulking Frame*: larger hitbox
 - *Daylight Agony*: damage in direct sunlight
@@ -1509,10 +1521,11 @@ A fluid caster who wields tides and healing currents. At home in the ocean, but 
 - *Healing Mist*: active, area heal
 - *Aquatic*: never drown
 - *Swift Current*: bonus swim speed
-- *Moisture Regen*: heals while in water or rain
+- *Moisture Regen*: heals 0.5 HP a second while in water
 - *Dehydration*: damage in arid biomes
-- *Fragile*: reduced max health
+- *Fragile*: deal 25% less damage
 - *Mana*: resource gauge for active spells
+- *Tidal Attunement*: +20% mana regeneration, +10% spell power and +0.05 cooldown reduction (only loads when Iron's Spells 'n Spellbooks is installed)
 
 **Evolution**
 
@@ -1531,7 +1544,7 @@ A master of *qinggong*: steps off the air, scales sheer walls, dashes on the win
 
 **Base powers**
 
-- *Featherfall*: drift like a leaf and never take fall damage
+- *Featherfall*: never take fall damage
 - *Air Steps*: mid-air jumps before you next touch the ground
 - *Lofty Leap*: spring from the ground higher than any earthbound fighter
 - *Cloud Steps*: press jump in mid-air to step off the air itself, keeping momentum
@@ -1546,7 +1559,7 @@ A master of *qinggong*: steps off the air, scales sheer walls, dashes on the win
 |------|-------|---------|
 | 1 | *Sky Dancer*: glide freely on the wind | — |
 | 2 | *Riding the Wind*: true flight at will | — |
-| 3 | *Eye of the Storm*: active, a cyclone far greater than the Typhoon | — |
+| 3 | *Eye of the Storm*: active, a cyclone far greater than the Typhoon | *Heaven-Rending Typhoon* |
 
 ### Wraith
 
@@ -1560,6 +1573,7 @@ A tormented spirit that drifts through solid matter. Phases through most blocks 
 - *Spectral Form*: phases through most blocks
 - *Sunlight Sensitivity*: damage in direct sunlight
 - *Unstable Form*: increased hunger drain
+- *Breathless*: does not need to breathe, so never drowns
 
 **Evolution**
 

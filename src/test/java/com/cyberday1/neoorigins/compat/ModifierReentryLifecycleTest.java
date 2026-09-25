@@ -14,6 +14,7 @@ import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerXpEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -69,6 +70,18 @@ class ModifierReentryLifecycleTest {
             "{\"modifier\":{\"operation\":\"multiply_base\",\"value\":0.5}}");
         assertStable("apoli:modify_xp_gain", holder, PlayerLifecycle.player(),
             sp -> NumericModifierRegistry.apply(sp, NumericModifierRegistry.Kind.XP_GAIN, 10.0));
+    }
+
+    /** The registry alone proves nothing: XP gain is applied only by the XpChange handler. */
+    @Test
+    void compatXpGainReachesTheXpEvent() {
+        var holder = compat("compat_xp_event", "origins:modify_xp_gain",
+            "{\"modifier\":{\"operation\":\"multiply_base\",\"value\":0.5}}");
+        ServerPlayer sp = PlayerLifecycle.player();
+        PlayerLifecycle.grant(holder, sp);
+        var event = new PlayerXpEvent.XpChange(sp, 10);
+        CompatEventPowers.onXpChange(event);
+        assertEquals(15, event.getAmount(), "modify_xp_gain did not reach the XP a player gains");
     }
 
     /** Runs the real {@code onFoodEaten} consumer, which chains entries, so duplicates compound. */

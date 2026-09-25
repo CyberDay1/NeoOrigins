@@ -96,10 +96,26 @@ class LegacySpellingSalvageTest {
     @Test
     void routeBTypeSpelledNeoOriginsIsSalvaged() {
         JsonObject body = json("""
-            {"type": "neoorigins:action_over_time", "interval": 20}
+            {"type": "neoorigins:self_action_on_kill",
+             "entity_action": {"type": "origins:heal", "amount": 1}}
             """);
-        assertEquals("origins:action_over_time",
+        assertEquals("origins:self_action_on_kill",
             OriginsFormatDetector.salvageLegacyPowerSpelling(body));
+    }
+
+    /**
+     * The five retired types that ALSO have a compat case of the same name. The
+     * alias table loads each with its documented fields; salvaging first sent them
+     * to a compat reader that ignores those fields.
+     */
+    @Test
+    void aliasedNamesAreLeftForTheAliasTable() {
+        for (String name : new String[] {"action_on_kill", "action_over_time",
+                "food_restriction", "night_vision", "status_effect"}) {
+            JsonObject body = json("{\"type\": \"neoorigins:" + name + "\"}");
+            assertEquals("neoorigins:" + name, OriginsFormatDetector.salvageLegacyPowerSpelling(body),
+                "neoorigins:" + name + " is a legacy alias and must not be salvaged to origins:");
+        }
     }
 
     /** End to end: the rewrite reaches Route A and yields a real native type. */

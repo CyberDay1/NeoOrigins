@@ -6,7 +6,7 @@ nav_order: 6
 
 # NeoOrigins Pack Format Reference
 
-Packs are folders, ZIPs, or JARs dropped into `originpacks/` in the game directory. No `pack.mcmeta` is required, but it is good practice to include one.
+Packs are folders, ZIPs, or JARs dropped into `config/originpacks/`. If that folder does not exist but an `originpacks/` folder exists in the game directory, the game-directory folder is used instead and a deprecation warning is logged. NeoOrigins registers the folder as both a data-pack and a resource-pack source, so a pack's `assets/` (lang files) load from there too. The same `data/` layout also works as an ordinary world datapack in `<world>/datapacks/`, which loads only `data/`. See [pack.mcmeta](#packmcmeta) for when the metadata file is needed and which format numbers to use.
 
 ---
 
@@ -14,7 +14,7 @@ Packs are folders, ZIPs, or JARs dropped into `originpacks/` in the game directo
 
 ```
 your-pack/
-  pack.mcmeta                                       (optional)
+  pack.mcmeta                                       # see pack.mcmeta below
   data/
     <namespace>/
       origins/
@@ -51,6 +51,43 @@ packs: the shorter paths exist for compatibility, not as an alternative style.
 
 ---
 
+## pack.mcmeta
+
+Minecraft 26.2 uses data-pack format `107.1` (major `107`, minor `1`)
+and resource-pack format `88` (the `pack_version` in the 26.2 game jar's
+`version.json`).
+
+```json
+{
+  "pack": {
+    "description": "My NeoOrigins pack",
+    "min_format": 107,
+    "max_format": 107
+  }
+}
+```
+
+- A pack whose supported formats go above data format `81` (or resource format `64`)
+  must declare both `min_format` and `max_format`. Each is a whole number or a
+  `[major, minor]` pair. A whole-number `min_format` means `<major>.0` and a
+  whole-number `max_format` means every minor version of that major, so
+  `107` to `107` covers `107.1`.
+- `pack_format` is optional here; if present it must lie between the two majors.
+  `supported_formats` is rejected once `min_format` is above `81` (data) or `64`
+  (resource).
+- A pack that carries both `data/` and `assets/` and is also installed as a resource
+  pack can declare `"min_format": 88, "max_format": 107` so it is compatible in
+  both roles.
+- A `pack.mcmeta` the game rejects (for example `"pack_format": 107` with no
+  `min_format` / `max_format`) is logged as "Error reading pack metadata" and the pack
+  is listed with unknown compatibility. A 1.21.1 pack that still declares
+  `"pack_format": 48` parses, but is flagged as made for an older version.
+- In `config/originpacks/` the file is optional: a pack without one is loaded with
+  generated metadata that marks it compatible. A pack in `<world>/datapacks/` needs a
+  `pack.mcmeta`, or the game skips it.
+
+---
+
 ## Origin JSON
 
 Path: `data/<namespace>/origins/origins/<id>.json`
@@ -81,7 +118,8 @@ Loaded as: `<namespace>:<id>`
 | `impact` | string | no | `none` | `none`, `low`, `medium`, or `high` |
 | `order` | int | no | `0` | Sort order in the selection screen (lower appears first) |
 | `powers` | list of Identifier | no | `[]` | Powers granted by this origin |
-| `upgrades` | list | no | `[]` | Reserved for future use |
+| `upgrades` | list | no | `[]` | Advancement-driven origin swaps, each `{"advancement": "<id>", "origin": "<id>", "announcement": "<translation key>"}` (`announcement` optional). When the player earns `advancement` while holding this origin, they are switched to `origin` on the same layer and sent `announcement`. An Origins-style entry with `condition` in place of `advancement` is also read: a bare advancement id, or an object with an `advancement` field, is used as the advancement; any other condition makes the upgrade never fire. |
+| `unchoosable` | bool | no | `false` | Hides the origin from the picker. It can still be assigned by command. |
 | `required_mods` | list of mod ids | no | `[]` | Load gate: the origin only loads (and only appears in the picker) when every listed mod is present. Used by the built-in Dragon Survival origins (`"required_mods": ["dragonsurvival"]`). |
 | `spawn_location` | object | no | — | Relocates the player to a matching location on first origin pick and on bedless respawn. See [Spawn Location](#spawn-location). |
 | `tier_powers` | list | no | `[]` | Evolution-tier power overlays (`{tier, add, remove}`). Full reference in [EVOLUTION.md](EVOLUTION.md#datapack-customization) and the [COOKBOOK](COOKBOOK.md#adding-evolution-tiers-to-an-origin). |
@@ -195,7 +233,7 @@ See [POWER_TYPES.md](POWER_TYPES.md) for the full reference.
 
 1. Explicit `name`/`description` field in the power JSON
 2. Lang key derived from the power ID: `power.<namespace>.<path>.name` / `.description`
-3. Fallback: the power ID is shown as-is
+3. Fallback: a title-cased form of the ID path, e.g. `mypack:water_breathing` shows as `Water Breathing`. When the path has `/`, the first segment is dropped and the rest are joined with `: `, so `mypack:combat/slash` shows as `Slash`.
 
 **Recommendation:** Put names and descriptions in your lang file using the derived key convention. This keeps power JSONs clean and allows easy translation.
 
@@ -235,11 +273,12 @@ Layers are the selection groups shown to the player when they first join. Most p
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `order` | int | no | `0` | Layer display order |
-| `name` | string or component | no | — | Layer title |
-| `origins` | list | yes | — | Origins available in this layer (plain IDs, or conditioned entries: see [Sub-Origins](SUB_ORIGINS.md)) |
-| `allow_random` | bool | no | `true` | Show the Random button |
-| `auto_choose` | bool | no | `false` | Automatically pick an origin if only one is available |
-| `hidden` | bool | no | `false` | Hide the layer from the screen (still applies its origin) |
+| `name` | string or component | no | layer ID path | Layer title |
+| `origins` | list | no | `[]` | Origins available in this layer (plain IDs, or conditioned entries — see [Sub-Origins](SUB_ORIGINS.md)) |
+| `allow_random` | bool | no | `false` | Show the Random button |
+| `exclude_random` | list | no | `[]` | Origin IDs the Random roll never lands on, in the picker and in server-side random assignment. Still pickable directly. |
+| `auto_choose` | bool | no | `false` | Accepted for Origins compatibility but currently has no effect: nothing reads it. |
+| `hidden` | bool | no | `false` | Leave the layer out of the picker; it does not count toward completing the pick. An origin set on it another way (e.g. by command) still applies. |
 | `enabled` | bool | no | `true` | Whether the layer is active at all |
 
 ### Adding origins to the built-in layer
@@ -310,7 +349,9 @@ Path: `assets/<namespace>/lang/en_us.json`
 | `power.<namespace>.<power_id>.name` | Power display name |
 | `power.<namespace>.<power_id>.description` | Power description |
 
-For powers in subdirectories (e.g. `powers/combat/slash.json` → ID `mypack:combat/slash`), replace `/` with `.` in the key: `power.mypack.combat/slash.name`.
+For powers in subdirectories (e.g. `powers/combat/slash.json` → ID `mypack:combat/slash`), the key keeps the `/` as-is: `power.mypack.combat/slash.name`.
+
+Only the `power.` keys are looked up automatically. An origin's `name` and `description` are required fields, so the `origins.` keys above are a naming convention: they apply because the origin JSON names them.
 
 ---
 
@@ -341,7 +382,7 @@ Bars automatically **hide when full** and reappear when the resource drops below
 
 ## Origins Mod Compatibility
 
-Packs originally written for the Fabric Origins mod can be dropped into `originpacks/` and will be translated automatically. See the README for which power types translate and which are skipped.
+Packs originally written for the Fabric Origins mod can be dropped into `config/originpacks/` and will be translated automatically. See the README for which power types translate and which are skipped.
 
 The translation pass runs on load and on `/reload`. A full log is written to `logs/neoorigins-compat.log`.
 

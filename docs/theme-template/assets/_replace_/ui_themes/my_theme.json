@@ -12,14 +12,18 @@
     "Colour fields are ARGB hex strings (alpha first, then RGB). '#'-prefixed",
     "and raw-int forms also parse.",
     "",
-    "panel_background, font: resource locations into your own (or any) namespace.",
+    "panel_background: a resource location into your own (or any) namespace.",
     "  panel.png should be 256x256 with a transparent margin / 12 px border",
     "  used by the 9-slice. If your texture is a different size, override",
-    "  texture_width / texture_height / inset_* below."
+    "  texture_width / texture_height / inset_* below. If the file is missing,",
+    "  the theme keeps the parchment panel and logs a [theming] warning.",
+    "",
+    "font: not set here, so the theme keeps NeoOrigins's Newsreader font. To",
+    "  ship your own TTF, follow font/your_font_goes_here.txt, then add",
+    "  \"font\": \"_replace_:my_theme_font\" below."
   ],
 
   "panel_background": "_replace_:textures/gui/themes/_replace_/panel.png",
-  "font":             "_replace_:my_theme_font",
 
   "overlay_color":            "0xCC060610",
   "name_color":               "0xFF2A1810",
