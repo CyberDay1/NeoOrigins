@@ -1,5 +1,7 @@
 package com.cyberday1.neoorigins.screen.creator.model;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -58,6 +60,16 @@ public final class OriginDraft {
     // ── Powers ──────────────────────────────────────────────────────────────
     public final List<PowerDraft> powers = new ArrayList<>();
 
+    // ── Carried from a loaded origin, written back as they were ─────────────
+    /** The name/description JSON a template was loaded from and the text it showed.
+     *  While the text is unedited the source is written back, keeping translation keys. */
+    public JsonElement nameSource, descriptionSource;
+    public String nameShown, descriptionShown;
+    /** Origin keys the creator has no field for: tier_powers, upgrades, spawn_location, … */
+    public JsonObject extras = new JsonObject();
+    /** Powers granted only through tier_powers. Cloned with a template; not in {@code powers}. */
+    public final List<PowerDraft> tierPowers = new ArrayList<>();
+
     public OriginDraft() {}
 
     /** Namespace custom content lands in, kept distinct so it never shadows
@@ -76,25 +88,29 @@ public final class OriginDraft {
      * power in the draft keeps a stable, collision-free id.
      */
     public ResourceLocation mintPowerId(PowerDraft self, String typeId) {
+        // Keep an id once given: other powers may reference it by that id.
+        if (self.powerId != null && CUSTOM_NAMESPACE.equals(self.powerId.getNamespace())
+                && !idTaken(self, self.powerId.getPath())) {
+            return self.powerId;
+        }
         String typeShort;
         try { typeShort = ResourceLocation.parse(typeId).getPath(); }
         catch (RuntimeException e) { typeShort = "power"; }
         String base = sanitize(idPath) + "_" + typeShort;
         String candidate = base;
         int n = 1;
-        boolean clash;
-        do {
-            clash = false;
-            for (PowerDraft o : powers) {
-                if (o == self) continue;
-                if (o.powerId != null && o.powerId.getPath().equals(candidate)) {
-                    clash = true;
-                    break;
-                }
-            }
-            if (clash) candidate = base + "_" + (++n);
-        } while (clash);
+        while (idTaken(self, candidate)) candidate = base + "_" + (++n);
         return ResourceLocation.fromNamespaceAndPath(CUSTOM_NAMESPACE, candidate);
+    }
+
+    /** True when a power other than {@code self}, base or tier, already uses {@code path}. */
+    public boolean idTaken(PowerDraft self, String path) {
+        for (List<PowerDraft> list : List.of(powers, tierPowers)) {
+            for (PowerDraft o : list) {
+                if (o != self && o.powerId != null && o.powerId.getPath().equals(path)) return true;
+            }
+        }
+        return false;
     }
 
     private static String sanitize(String s) {

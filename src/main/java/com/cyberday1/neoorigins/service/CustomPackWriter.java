@@ -49,7 +49,12 @@ public final class CustomPackWriter {
     }
 
     public static WriteResult write(MinecraftServer server, OriginDraft draft) {
-        Path root = packDir(server).normalize();
+        return write(packDir(server), draft);
+    }
+
+    /** {@link #write(MinecraftServer, OriginDraft)} into an explicit pack folder. */
+    static WriteResult write(Path packRoot, OriginDraft draft) {
+        Path root = packRoot.normalize();
         try {
             Files.createDirectories(root);
 
@@ -78,9 +83,11 @@ public final class CustomPackWriter {
             // Powers — type carried in the body. Namespace pinned to our own
             // (never trust a client-supplied powerId namespace); the path is
             // still containment-checked in dataFile().
-            for (OriginDraft.PowerDraft p : draft.powers) {
-                plan.put(dataFile(root, OriginDraft.CUSTOM_NAMESPACE, "origins/powers",
-                    p.powerId.getPath()), CustomPackSerializer.powerJson(p));
+            for (var list : List.of(draft.powers, draft.tierPowers)) {
+                for (OriginDraft.PowerDraft p : list) {
+                    plan.put(dataFile(root, OriginDraft.CUSTOM_NAMESPACE, "origins/powers",
+                        p.powerId.getPath()), CustomPackSerializer.powerJson(p));
+                }
             }
 
             // Layer — additive merge, written under our own namespace so every
@@ -111,7 +118,19 @@ public final class CustomPackWriter {
      */
     public static WriteResult write(MinecraftServer server,
             com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft draft) {
-        Path root = packDir(server).normalize();
+        WriteResult result = write(packDir(server), draft);
+        // Drops carrier files (Phase 5c). Written unconditionally — other
+        // mob origins in the pack may already have drops, and the modifier
+        // is a no-op when no mob has a resolvable origin with drops.
+        if (result.ok()) MobLootModifierGenerator.ensureCarriers(server);
+        return result;
+    }
+
+    /** {@link #write(MinecraftServer, com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft)}
+     *  into an explicit pack folder, without the loot-modifier carriers. */
+    static WriteResult write(Path packRoot,
+            com.cyberday1.neoorigins.screen.mobcreator.model.MobOriginDraft draft) {
+        Path root = packRoot.normalize();
         try {
             Files.createDirectories(root);
             ResourceLocation originId = draft.originId();
@@ -135,10 +154,6 @@ public final class CustomPackWriter {
             }
 
             List<String> written = stageAndCommit(root, plan);
-            // Drops carrier files (Phase 5c). Written unconditionally — other
-            // mob origins in the pack may already have drops, and the modifier
-            // is a no-op when no mob has a resolvable origin with drops.
-            MobLootModifierGenerator.ensureCarriers(server);
             NeoOrigins.LOGGER.info("[creator] wrote custom mob origin '{}' ({} files)",
                 originId, written.size());
             return new WriteResult(true, written, null);

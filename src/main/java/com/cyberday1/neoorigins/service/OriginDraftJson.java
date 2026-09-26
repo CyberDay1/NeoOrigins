@@ -43,6 +43,21 @@ public final class OriginDraftJson {
             powers.add(pj);
         }
         o.add("powers", powers);
+        JsonArray tier = new JsonArray();
+        for (OriginDraft.PowerDraft p : d.tierPowers) {
+            JsonObject pj = new JsonObject();
+            pj.addProperty("powerId", p.powerId.toString());
+            pj.addProperty("typeId", p.typeId);
+            pj.addProperty("rawJson", p.rawJson);
+            tier.add(pj);
+        }
+        o.add("tierPowers", tier);
+        if (d.nameSource != null) { o.add("nameSource", d.nameSource); o.addProperty("nameShown", d.nameShown); }
+        if (d.descriptionSource != null) {
+            o.add("descriptionSource", d.descriptionSource);
+            o.addProperty("descriptionShown", d.descriptionShown);
+        }
+        if (d.extras != null && !d.extras.isEmpty()) o.add("extras", d.extras);
         return GSON.toJson(o);
     }
 
@@ -60,19 +75,29 @@ public final class OriginDraftJson {
             d.order = o.has("order") ? o.get("order").getAsInt() : d.order;
             d.layerId = rl(o, "layerId", d.layerId);
 
-            if (o.has("powers") && o.get("powers").isJsonArray()) {
-                for (var e : o.getAsJsonArray("powers")) {
-                    JsonObject pj = e.getAsJsonObject();
-                    var pd = new OriginDraft.PowerDraft(
-                        ResourceLocation.parse(pj.get("powerId").getAsString()),
-                        pj.has("typeId") ? pj.get("typeId").getAsString() : "");
-                    pd.rawJson = pj.has("rawJson") ? pj.get("rawJson").getAsString() : "{}";
-                    d.powers.add(pd);
-                }
+            readPowers(o, "powers", d.powers);
+            readPowers(o, "tierPowers", d.tierPowers);
+            if (o.has("nameSource")) { d.nameSource = o.get("nameSource"); d.nameShown = str(o, "nameShown", null); }
+            if (o.has("descriptionSource")) {
+                d.descriptionSource = o.get("descriptionSource");
+                d.descriptionShown = str(o, "descriptionShown", null);
             }
+            if (o.has("extras") && o.get("extras").isJsonObject()) d.extras = o.getAsJsonObject("extras");
             return d;
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("malformed OriginDraft JSON: " + e.getMessage(), e);
+        }
+    }
+
+    private static void readPowers(JsonObject o, String key, java.util.List<OriginDraft.PowerDraft> into) {
+        if (!o.has(key) || !o.get(key).isJsonArray()) return;
+        for (var e : o.getAsJsonArray(key)) {
+            JsonObject pj = e.getAsJsonObject();
+            var pd = new OriginDraft.PowerDraft(
+                ResourceLocation.parse(pj.get("powerId").getAsString()),
+                pj.has("typeId") ? pj.get("typeId").getAsString() : "");
+            pd.rawJson = pj.has("rawJson") ? pj.get("rawJson").getAsString() : "{}";
+            into.add(pd);
         }
     }
 

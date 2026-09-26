@@ -25,6 +25,7 @@ import java.util.Map;
  *                    sans the synthetic {@code id} field. Cloned into the draft on load.
  * @param powers      ordered map (powerId → raw power JSON body). Order matches the origin's
  *                    declaration so the loaded draft renders its power list in source order.
+ * @param tierPowers  the same for powers named only in {@code tier_powers}, when their body is known.
  */
 public record OriginTemplate(
         ResourceLocation originId,
@@ -33,11 +34,13 @@ public record OriginTemplate(
         ResourceLocation icon,
         int impact,
         String originBody,
-        LinkedHashMap<ResourceLocation, String> powers) {
+        LinkedHashMap<ResourceLocation, String> powers,
+        LinkedHashMap<ResourceLocation, String> tierPowers) {
 
     public OriginTemplate {
         // Defensive copy so callers can't mutate the picker's view of the data.
         powers = new LinkedHashMap<>(powers);
+        tierPowers = new LinkedHashMap<>(tierPowers);
     }
 
     /** True when this template lives in the {@code neoorigins:class} layer —
