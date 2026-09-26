@@ -125,7 +125,7 @@ export interface SerializedDatapackBundle {
 
 /**
  * Recursively drop "unset" values for the wire JSON: empty string, `null`,
- * `undefined`, empty array, and empty object collapse to `undefined` (the
+ * `undefined`, a list left empty by that, and empty object collapse to `undefined` (the
  * caller omits the key). `0`, `false`, non-empty strings, and populated
  * arrays/objects are kept. Used to keep nested action/condition sub-forms
  * (D4 RefRow / ArrayRefRow) from leaking blank optional fields or unpicked
@@ -134,6 +134,9 @@ export interface SerializedDatapackBundle {
 function pruneForWire(v: unknown): unknown {
 	if (v === '' || v === null || v === undefined) return undefined;
 	if (Array.isArray(v)) {
+		// An authored [] is kept (for some fields it is not the same as absent);
+		// only a list emptied of blank entries is dropped.
+		if (v.length === 0) return [];
 		const out = v.map(pruneForWire).filter((x) => x !== undefined);
 		return out.length > 0 ? out : undefined;
 	}

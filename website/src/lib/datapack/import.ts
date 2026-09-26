@@ -63,7 +63,7 @@ export interface ImportResult {
 // Must mirror `createDraft()` in originDraft.ts.
 function blankDraft(): OriginDraft {
 	return {
-		namespace: 'neoorigins',
+		namespace: 'neoorigins_custom',
 		path: '',
 		layerId: 'neoorigins:origin',
 		name: '',

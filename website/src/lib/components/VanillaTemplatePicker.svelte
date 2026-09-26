@@ -135,7 +135,7 @@
 												<span class="name">{entry.name}</span>
 												<span class="id">{entry.id}</span>
 												{#if entry.tierPowerCount > 0}
-													<span class="badge" title="Has evolution powers the web editor can't edit">
+													<span class="badge" title="Has evolution powers: kept on export, not editable here">
 														evolves
 													</span>
 												{/if}

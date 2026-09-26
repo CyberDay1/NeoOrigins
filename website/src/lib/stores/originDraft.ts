@@ -109,8 +109,11 @@ export interface PowerDraft {
 	fields: Record<string, unknown>;
 }
 
-/** Default namespace for new drafts — mirrors `CUSTOM_NAMESPACE` on the Java side. */
-export const DEFAULT_NAMESPACE = 'neoorigins';
+/**
+ * Default namespace for new drafts — the in-game creator's `CUSTOM_NAMESPACE`.
+ * `neoorigins` would let a new origin or power silently replace a shipped one.
+ */
+export const DEFAULT_NAMESPACE = 'neoorigins_custom';
 
 /** Default layer id for new drafts — a normal origin in the vanilla picker. */
 export const DEFAULT_LAYER_ID = 'neoorigins:origin';

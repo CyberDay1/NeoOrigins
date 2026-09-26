@@ -11,9 +11,10 @@
 //    en_us.json and substitute the resolved strings into the stored body,
 //    so a loaded template shows "Avian" (not the raw key) and exports as a
 //    plain-string override.
-//  - `tier_powers` (the evolution system) is NOT modelled by the web
-//    editor's OriginDraft, so we drop it from the stored body but record
-//    `tierPowerCount` so the loader can warn the user about the loss.
+//  - `tier_powers` (the evolution system) has no editor UI, but it stays in
+//    the stored body and rides through `extras`, so a template exported over
+//    the shipped origin keeps its evolution tiers. `tierPowerCount` feeds the
+//    picker's badge and the loader's note.
 //  - Only the flat `powers` list's bodies are bundled (that's all the
 //    importer's buildDraft resolves); tier-power bodies are intentionally
 //    omitted as dead weight.
@@ -96,11 +97,10 @@ function main() {
 		const tierRefs = new Set<string>();
 		for (const t of raw.tier_powers ?? []) for (const a of t.add ?? []) tierRefs.add(a);
 
-		// Build the stored body: resolve text, drop tier_powers, keep the rest.
+		// Build the stored body: resolve text, keep the rest (tier_powers included).
 		const body: Record<string, unknown> = { ...raw };
 		body.name = resolveText(raw.name, lang, localId);
 		body.description = resolveText(raw.description, lang, '');
-		delete body.tier_powers;
 		if (Array.isArray(body.upgrades) && body.upgrades.length === 0) delete body.upgrades;
 
 		// Bundle the flat powers' bodies.
@@ -148,7 +148,7 @@ function main() {
 		OUT,
 		manifest,
 		`${entries.length} entries (${origins} origins, ${classes} classes), ` +
-			`${withTiers} carry tier_powers (dropped), pack_format ${packFormat}`
+			`${withTiers} carry tier_powers, pack_format ${packFormat}`
 	);
 }
 

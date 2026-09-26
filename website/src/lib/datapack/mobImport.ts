@@ -31,7 +31,7 @@ export interface MobImportResult {
 // (loadable from the tsx test runner).
 function blankDraft(): MobOriginDraft {
 	return {
-		namespace: 'neoorigins',
+		namespace: 'neoorigins_custom',
 		path: '',
 		name: '',
 		description: '',

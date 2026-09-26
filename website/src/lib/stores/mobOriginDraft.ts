@@ -90,7 +90,7 @@ export interface DropRow {
 }
 
 /** Default namespace for new drafts. */
-export const DEFAULT_NAMESPACE = 'neoorigins';
+export const DEFAULT_NAMESPACE = 'neoorigins_custom'; // as the in-game mob creator
 
 /** Valid Minecraft namespace characters. */
 export const NAMESPACE_PATTERN = /^[a-z0-9_.-]+$/;

@@ -8,14 +8,12 @@
 // templated origin keeps its source `neoorigins:` id — saving/exporting writes
 // a direct override of the shipped origin, which is the whole point.
 //
-// The web editor can't model `tier_powers` (evolution), so origins that carry
-// them load with base powers only; `loadTemplate` appends a warning naming the
-// number of evolution powers dropped.
+// `tier_powers` (evolution) has no editor UI; it rides through `extras` and is
+// exported as it was, naming the shipped tier powers, so the tiers survive.
 
-import { strToU8 } from 'fflate';
 import { base } from '$app/paths';
 
-import { buildDraft, ImportError, type ImportResult } from './import';
+import { ImportError } from './import';
 
 /** One selectable template (the picker's view — body/powers omitted). */
 export interface TemplateEntry {
@@ -31,7 +29,7 @@ export interface TemplateEntry {
 	powers: Record<string, string>;
 }
 
-interface TemplateManifest {
+export interface TemplateManifest {
 	generatedFrom: string;
 	namespace: string;
 	packFormat: number;
@@ -55,39 +53,6 @@ export function loadTemplateIndex(): Promise<TemplateManifest> {
 	return cache;
 }
 
-/**
- * Turn a template entry into a draft by reconstructing the datapack file map
- * and running it through the shared importer. Appends a `tier_powers`-dropped
- * warning when the source origin had evolution powers.
- */
-export function loadTemplate(entry: TemplateEntry, manifest: TemplateManifest): ImportResult {
-	const ns = manifest.namespace;
-	const files: Record<string, Uint8Array> = {};
-
-	files['pack.mcmeta'] = strToU8(
-		JSON.stringify({ pack: { pack_format: manifest.packFormat } })
-	);
-	files[`data/${ns}/origins/origins/${entry.localId}.json`] = strToU8(
-		JSON.stringify(entry.originBody)
-	);
-	for (const [pl, body] of Object.entries(entry.powers)) {
-		files[`data/${ns}/origins/powers/${pl}.json`] = strToU8(body);
-	}
-	// Minimal layer-extension listing this origin so buildDraft resolves the
-	// layer id to the correct path ("origin" | "class").
-	files[`data/${ns}/origins/origin_layers/${entry.layerPath}.json`] = strToU8(
-		JSON.stringify({ origins: [entry.id] })
-	);
-
-	const result = buildDraft(files);
-	if (entry.tierPowerCount > 0) {
-		result.warnings.unshift(
-			`"${entry.name}" has ${entry.tierPowerCount} evolution (tier_powers) ` +
-				`power${entry.tierPowerCount === 1 ? '' : 's'} that the web editor can't ` +
-				`represent — only its base powers were loaded.`
-		);
-	}
-	return result;
-}
+export { loadTemplate } from './templateDraft';
 
 export { ImportError };
