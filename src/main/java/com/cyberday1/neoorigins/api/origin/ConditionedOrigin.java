@@ -38,7 +38,8 @@ public record ConditionedOrigin(
             DataResult<String> stringResult = ops.getStringValue(input);
             if (stringResult.isSuccess()) {
                 String s = stringResult.getOrThrow();
-                ResourceLocation rl = ResourceLocation.parse(s);
+                ResourceLocation rl = ResourceLocation.tryParse(s);
+                if (rl == null) return invalidId(s);
                 return DataResult.success(Pair.of(new ConditionedOrigin(rl, Optional.empty()), ops.empty()));
             }
 
@@ -54,7 +55,8 @@ public record ConditionedOrigin(
                 if (!originStr.isSuccess()) {
                     return DataResult.error(() -> "ConditionedOrigin 'origin' is not a string");
                 }
-                ResourceLocation rl = ResourceLocation.parse(originStr.getOrThrow());
+                ResourceLocation rl = ResourceLocation.tryParse(originStr.getOrThrow());
+                if (rl == null) return invalidId(originStr.getOrThrow());
 
                 // Parse condition if present
                 Optional<OriginCondition> cond = Optional.empty();
@@ -87,6 +89,12 @@ public record ConditionedOrigin(
             return DataResult.success(JsonOps.INSTANCE.convertTo(ops, obj));
         }
     };
+
+    // An error, not a throw: the layer's list codec then drops this one entry and
+    // keeps the rest. A throw here used to take the whole layer down with it.
+    private static <T> DataResult<Pair<ConditionedOrigin, T>> invalidId(String s) {
+        return DataResult.error(() -> "invalid origin id \"" + s + "\" (skipped)");
+    }
 
     /**
      * Returns true if this origin is available given the player's current
