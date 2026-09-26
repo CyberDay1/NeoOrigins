@@ -17,6 +17,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.phys.Vec3;
@@ -196,18 +198,26 @@ public record LocationCondition(
     public record SpawnTarget(ServerLevel level, Vec3 pos) {}
 
     /**
-     * Where every spawn search starts: the dimension's world origin. Structure
-     * generation is centered on (0,0,0), so the closest match from there is the
-     * canonical "spawn-area" structure for that dimension. Matches the 1.21.1
-     * branch's {@code getSharedSpawnPos()} intent now that 26.1 removed that
-     * accessor.
-     *
-     * <p>Shared by {@link #locateSpawn} and
-     * {@link com.cyberday1.neoorigins.service.AsyncSpawnLocator} so the sync and
-     * async paths can never drift apart on the search centre.
+     * Search centre for a spawn resolution in {@code target}: the world spawn,
+     * scaled into the target's coordinates the way a portal would. The world spawn
+     * records its own dimension, so it is scaled from there (Overworld to Nether:
+     * /8) and used as-is when it already lies in the target.
+     * Shared with {@link com.cyberday1.neoorigins.service.AsyncSpawnLocator}.
      */
     public static BlockPos spawnSearchOrigin(ServerLevel target) {
-        return BlockPos.ZERO;
+        var server = target.getServer();
+        BlockPos spawn = server.getRespawnData().pos();
+        // Same resolution vanilla respawns through: an unloaded dimension falls back to the Overworld.
+        ServerLevel source = server.findRespawnDimension();
+        if (source == target) return spawn;
+        double scale = DimensionType.getTeleportationScale(source.dimensionType(), target.dimensionType());
+        return scaleSpawn(spawn, scale, target.getMinY(), target.getMaxY(), target.getWorldBorder());
+    }
+
+    /** Pure core of {@link #spawnSearchOrigin}: scale X/Z, clamp Y to the build band and X/Z to the border. */
+    static BlockPos scaleSpawn(BlockPos spawn, double scale, int minY, int maxY, WorldBorder border) {
+        int y = Math.max(minY, Math.min(maxY, spawn.getY()));
+        return border.clampToBounds(spawn.getX() * scale, y, spawn.getZ() * scale);
     }
 
     /**
@@ -291,8 +301,8 @@ public record LocationCondition(
     }
 
     /**
-     * Searches for a position matching this spec, starting from the target
-     * dimension's world origin. Structure match takes precedence over biome
+     * Searches for a position matching this spec, starting from the world
+     * spawn scaled into the target dimension. Structure match takes precedence over biome
      * when both are specified (structure search already constrains location).
      *
      * <p>Returns empty when the spec is empty, when the target dimension is
@@ -328,7 +338,7 @@ public record LocationCondition(
             found = biomeCenter.get();
         } else {
             // Dimension-only spec (no biome/structure filter). Use the
-            // dimension's world origin as the search center. For ceiling
+            // scaled world spawn as the search center. For ceiling
             // dimensions (Nether) that position is often inside solid
             // netherrack, so the wider column search below will spiral
             // outward to find habitable terrain.
