@@ -147,9 +147,8 @@ public final class AsyncSpawnLocator {
             return;
         }
         ServerLevel target = resolved.get();
-        // 26.1 has no ServerLevel#getSharedSpawnPos; this branch searches from
-        // the dimension's world origin instead. Shared with locateSpawn so the
-        // sync and async paths can never disagree about the centre.
+        // Shared with locateSpawn so the sync and async paths can never
+        // disagree about the centre.
         BlockPos searchOrigin = LocationCondition.spawnSearchOrigin(target);
 
         // Structure-driven and dimension-only specs skip the biome search (it

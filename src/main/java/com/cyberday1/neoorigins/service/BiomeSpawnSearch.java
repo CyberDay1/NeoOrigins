@@ -87,14 +87,12 @@ public final class BiomeSpawnSearch {
         // Vanilla feeds the origin Y through Mth.outFromOrigin, which CLAMPS it
         // into [minY, maxY]; BoundedBiomeSpiral instead returns no levels at all
         // when the origin sits outside the band (see verticalLevels). That
-        // difference is invisible on the 1.21.1 branch, whose search centre is
-        // getSharedSpawnPos() (Y ~64), but this branch has no getSharedSpawnPos()
-        // and searches from BlockPos.ZERO — and both the Nether and the End have
-        // getMinY() == 0, so their bands start at Y = 1 and an unclamped Y = 0
-        // origin would make every search in them a zero-sample miss (blazeling,
-        // enderian, cave/forest dragon). Clamp here so the spiral sees exactly
-        // what vanilla would have seen, and BoundedBiomeSpiral stays byte-identical
-        // to lead.
+        // difference is normally invisible, because the search centre is
+        // LocationCondition#spawnSearchOrigin (the world spawn, Y ~64). But the
+        // Nether and the End have getMinY() == 0, so their bands start at Y = 1
+        // and a world spawn at the floor would make every search a zero-sample
+        // miss. Clamp here so the spiral sees exactly what vanilla would have
+        // seen, and BoundedBiomeSpiral stays byte-identical to lead.
         final int originY = Math.max(minY, Math.min(maxY, searchOrigin.getY()));
 
         return Optional.of(new Query(
