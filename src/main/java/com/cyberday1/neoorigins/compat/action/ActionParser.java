@@ -1309,7 +1309,7 @@ public final class ActionParser {
             if (best == null) return;
             var dir = best.position().subtract(origin).normalize();
             player.setDeltaMovement(dir.x * speed, dir.y * speed + 0.1, dir.z * speed);
-            player.hurtMarked = true;
+            player.syncVelocity = true;
         };
     }
 
@@ -1333,7 +1333,7 @@ public final class ActionParser {
                 if (e instanceof net.minecraft.server.level.ServerPlayer sp && !fCond.test(sp)) continue;
                 var dir = origin.subtract(e.position()).normalize();
                 e.push(dir.x * strength, dir.y * strength + 0.1, dir.z * strength);
-                e.hurtMarked = true;
+                e.syncVelocity = true;
             }
         };
     }

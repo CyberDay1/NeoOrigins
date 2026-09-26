@@ -1442,7 +1442,7 @@ public final class ConditionParser {
         // Not the same as "not air": a torch and tall grass are both non-air and
         // both non-blocking, which is exactly the distinction Giant's slam wants.
         if (bare.equals("movement_blocking")) {
-            return (level, pos) -> level.getBlockState(pos).blocksMotion();
+            return (level, pos) -> level.getBlockState(pos).is(net.minecraft.tags.BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP);
         }
         if (bare.equals("and") || bare.equals("all_of") || bare.equals("or") || bare.equals("any_of")) {
             boolean isAnd = bare.equals("and") || bare.equals("all_of");

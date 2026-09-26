@@ -113,7 +113,7 @@ public record LocationCondition(
         if (structure.isPresent()) {
             var structureHolder = level.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(structure.get());
             if (structureHolder.isEmpty()) return false;
-            if (!level.structureManager().getStructureWithPieceAt(pos, structureHolder.get().value()).isValid()) return false;
+            if (!level.structureManager().getStructureWithPieceAt(pos.getX(), pos.getY(), pos.getZ(), structureHolder.get().value()).isValid()) return false;
         }
         if (structureTag.isPresent()) {
             TagKey<Structure> tag = TagKey.create(Registries.STRUCTURE, structureTag.get());

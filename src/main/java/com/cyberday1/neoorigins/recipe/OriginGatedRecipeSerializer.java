@@ -46,7 +46,7 @@ public final class OriginGatedRecipeSerializer {
 
     public static final MapCodec<OriginGatedRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
         OriginGate.CODEC.listOf().fieldOf("gates").forGetter(OriginGatedRecipe::gates),
-        Recipe.CODEC.fieldOf("inner").forGetter(r -> r.inner())
+        Recipe.DIRECT_CODEC.fieldOf("inner").forGetter(r -> r.inner())
     ).apply(inst, (gates, inner) -> {
         if (!(inner instanceof CraftingRecipe craftingRecipe)) {
             throw new IllegalArgumentException(
@@ -56,7 +56,7 @@ public final class OriginGatedRecipeSerializer {
         return new OriginGatedRecipe(gates, craftingRecipe);
     }));
 
-    // Recipe.CODEC operates on Recipe<?> with a wildcard. Recipe.STREAM_CODEC
+    // Recipe.DIRECT_CODEC operates on Recipe<?> with a wildcard. Recipe.STREAM_CODEC
     // is on Recipe<?>; we map the inner via a narrowing cast on decode.
     public static final StreamCodec<RegistryFriendlyByteBuf, OriginGatedRecipe> STREAM_CODEC =
         StreamCodec.composite(

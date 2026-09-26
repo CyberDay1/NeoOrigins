@@ -9,6 +9,7 @@ import com.cyberday1.neoorigins.data.MobOriginDataManager;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
@@ -44,8 +45,8 @@ public final class MobOriginDropsLootModifier extends LootModifier {
             .apply(inst, MobOriginDropsLootModifier::new));
 
     // 26.1 LootModifier carries a `priority` field added in its codecStart's P2.
-    public MobOriginDropsLootModifier(LootItemCondition[] conditions, int priority) {
-        super(conditions, priority);
+    public MobOriginDropsLootModifier(Optional<Holder<LootItemCondition>> condition, int priority) {
+        super(condition, priority);
     }
 
     @Override
@@ -54,7 +55,7 @@ public final class MobOriginDropsLootModifier extends LootModifier {
         // 26.1: LootContext.getParamOrNull → getOptionalParameter; the param key
         // is now ContextKey<T> in net.minecraft.util.context (LootContextParams
         // still hosts the constants, just typed as ContextKey).
-        Entity entity = context.getOptionalParameter(LootContextParams.THIS_ENTITY);
+        Entity entity = context.getOptional(LootContextParams.THIS_ENTITY);
         if (!(entity instanceof LivingEntity living) || entity instanceof Player) return generatedLoot;
 
         MobOriginData data = living.getData(EntityAttachments.mobOriginData());

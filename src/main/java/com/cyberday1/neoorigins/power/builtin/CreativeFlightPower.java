@@ -147,7 +147,7 @@ public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower
         if (player.onGround()) {
             var m = player.getDeltaMovement();
             player.setDeltaMovement(m.x, 0.42, m.z);
-            player.hurtMarked = true;
+            player.syncVelocity = true;
         }
     }
 

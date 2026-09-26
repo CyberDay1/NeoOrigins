@@ -19,8 +19,8 @@
       "originpacks/ folder will pick it up automatically on both sides."
     ],
     "description": "NeoOrigins UI theme",
-    "pack_format": 107,
-    "min_format": 88,
-    "max_format": 107
+    "pack_format": 121,
+    "min_format": 97,
+    "max_format": 121
   }
 }

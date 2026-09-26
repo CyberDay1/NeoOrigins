@@ -30,14 +30,14 @@ public record SyncActivePowersPayload(
         StreamCodec.of(SyncActivePowersPayload::encode, SyncActivePowersPayload::decode);
 
     private static void encode(FriendlyByteBuf buf, SyncActivePowersPayload payload) {
-        buf.writeMap(payload.powers(),
+        NetworkCodecs.writeMap(buf, payload.powers(),
             FriendlyByteBuf::writeIdentifier,
             FriendlyByteBuf::writeBoolean);
         NetworkCodecs.writeStringSet(buf, payload.capabilities());
     }
 
     private static SyncActivePowersPayload decode(FriendlyByteBuf buf) {
-        Map<Identifier, Boolean> powers = buf.readMap(
+        Map<Identifier, Boolean> powers = NetworkCodecs.readMap(buf,
             FriendlyByteBuf::readIdentifier,
             FriendlyByteBuf::readBoolean);
         Set<String> capabilities = NetworkCodecs.readStringSet(buf);

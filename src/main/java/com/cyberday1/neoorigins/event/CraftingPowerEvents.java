@@ -62,11 +62,11 @@ public class CraftingPowerEvents {
                 // dropping the gate here would quietly buff them. The extra
                 // applications below never consulted it and keep not doing so,
                 // leaving the buff's strength unchanged.
-                if (bmb.isBonemealSuccess(sl, sl.getRandom(), pos, state)) {
-                    bmb.performBonemeal(sl, sl.getRandom(), pos, state);
+                if (bmb.isBonemealSuccess(sl, sl.getRandom(), pos, state, event.getSource())) {
+                    bmb.performBonemeal(sl, sl.getRandom(), pos, state, event.getSource());
                 }
-            } else if (bmb.isValidBonemealTarget(sl, pos, state)) {
-                bmb.performBonemeal(sl, sl.getRandom(), pos, state);
+            } else if (bmb.isValidBonemealTarget(sl, pos, state, event.getSource())) {
+                bmb.performBonemeal(sl, sl.getRandom(), pos, state, event.getSource());
             }
         }
 

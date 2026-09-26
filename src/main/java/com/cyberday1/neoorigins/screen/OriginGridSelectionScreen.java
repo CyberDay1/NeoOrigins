@@ -429,7 +429,7 @@ public class OriginGridSelectionScreen extends Screen implements PickerScreen {
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
         // ESC out of the detail read returns to the grid instead of leaving the
         // picker. The close lock in PickerCloseBehaviour still governs the grid.
-        if (detailView && event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+        if (detailView && event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE) {
             detailView = false;
             refreshWidgets();
             return true;
@@ -437,8 +437,8 @@ public class OriginGridSelectionScreen extends Screen implements PickerScreen {
         // Arrows page the grid unless the search box has focus, where they
         // belong to the caret.
         if (!detailView && !(getFocused() instanceof EditBox)) {
-            if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT)  { turnPage(-1); return true; }
-            if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) { turnPage(1);  return true; }
+            if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_LEFT)  { turnPage(-1); return true; }
+            if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_RIGHT) { turnPage(1);  return true; }
         }
         return super.keyPressed(event);
     }

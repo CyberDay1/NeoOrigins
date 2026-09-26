@@ -1,8 +1,12 @@
 package com.cyberday1.neoorigins.network.payload;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamDecoder;
+import net.minecraft.network.codec.StreamEncoder;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -43,5 +47,28 @@ public final class NetworkCodecs {
             set.add(buf.readUtf());
         }
         return set;
+    }
+
+    /** Same bytes as the pre-26.3 {@code FriendlyByteBuf#writeMap}: VarInt size, then key/value pairs. */
+    public static <K, V> void writeMap(FriendlyByteBuf buf, Map<K, V> map,
+                                       StreamEncoder<? super FriendlyByteBuf, K> key,
+                                       StreamEncoder<? super FriendlyByteBuf, V> value) {
+        buf.writeVarInt(map.size());
+        map.forEach((k, v) -> {
+            key.encode(buf, k);
+            value.encode(buf, v);
+        });
+    }
+
+    /** Reads a map written by {@link #writeMap} into a pre-sized {@link HashMap}. */
+    public static <K, V> Map<K, V> readMap(FriendlyByteBuf buf,
+                                           StreamDecoder<? super FriendlyByteBuf, K> key,
+                                           StreamDecoder<? super FriendlyByteBuf, V> value) {
+        int count = buf.readVarInt();
+        Map<K, V> map = HashMap.newHashMap(count);
+        for (int i = 0; i < count; i++) {
+            map.put(key.decode(buf), value.decode(buf));
+        }
+        return map;
     }
 }

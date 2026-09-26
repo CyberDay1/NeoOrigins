@@ -32,7 +32,7 @@ public abstract class EntityRenderDispatcherHideMixin {
 
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private <E extends Entity> void neoorigins$hidePreventedEntities(
-            E entity, Frustum frustum, double camX, double camY, double camZ,
+            E entity, Frustum frustum, double camX, double camY, double camZ, float partialTicks,
             CallbackInfoReturnable<Boolean> cir) {
         if (ClientHiddenEntities.isEmpty()) return;
         if (ClientHiddenEntities.isHidden(entity.getId())) {

@@ -20,14 +20,14 @@ public record SyncOriginsPayload(
         StreamCodec.of(SyncOriginsPayload::encode, SyncOriginsPayload::decode);
 
     private static void encode(FriendlyByteBuf buf, SyncOriginsPayload payload) {
-        buf.writeMap(payload.origins(),
+        NetworkCodecs.writeMap(buf, payload.origins(),
             FriendlyByteBuf::writeIdentifier,
             FriendlyByteBuf::writeIdentifier);
         buf.writeBoolean(payload.hadAllOrigins());
     }
 
     private static SyncOriginsPayload decode(FriendlyByteBuf buf) {
-        Map<Identifier, Identifier> origins = buf.readMap(
+        Map<Identifier, Identifier> origins = NetworkCodecs.readMap(buf,
             FriendlyByteBuf::readIdentifier,
             FriendlyByteBuf::readIdentifier);
         boolean hadAll = buf.readBoolean();

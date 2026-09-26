@@ -130,8 +130,8 @@ public abstract class ProceduralQuadRenderer<T extends Entity, S extends Abstrac
         float cs = state.size > 0 ? state.size : coreScale();
 
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(time * coreYawPerTick()));
-        poseStack.mulPose(Axis.XP.rotationDegrees(time * corePitchPerTick()));
+        poseStack.rotate(Axis.YP.rotationDegrees(time * coreYawPerTick()));
+        poseStack.rotate(Axis.XP.rotationDegrees(time * corePitchPerTick()));
         poseStack.scale(cs, cs, cs);
         drawShape(shape, collector, renderType, poseStack, cr, cg, cb, 255);
         poseStack.popPose();
@@ -144,8 +144,8 @@ public abstract class ProceduralQuadRenderer<T extends Entity, S extends Abstrac
         final int gr = glow[0], gg = glow[1], gb = glow[2];
 
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(time * glowYawPerTick()));
-        poseStack.mulPose(Axis.XP.rotationDegrees(time * glowPitchPerTick()));
+        poseStack.rotate(Axis.YP.rotationDegrees(time * glowYawPerTick()));
+        poseStack.rotate(Axis.XP.rotationDegrees(time * glowPitchPerTick()));
         poseStack.scale(gs, gs, gs);
         drawShape(shape, collector, renderType, poseStack, gr, gg, gb, ga);
         poseStack.popPose();
@@ -190,7 +190,7 @@ public abstract class ProceduralQuadRenderer<T extends Entity, S extends Abstrac
                                     PoseStack poseStack, int r, int g, int b, int a) {
         submitQuad(collector, renderType, poseStack, r, g, b, a);
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(90f));
+        poseStack.rotate(Axis.YP.rotationDegrees(90f));
         submitQuad(collector, renderType, poseStack, r, g, b, a);
         poseStack.popPose();
     }
@@ -202,14 +202,14 @@ public abstract class ProceduralQuadRenderer<T extends Entity, S extends Abstrac
         submitQuad(collector, renderType, poseStack, r, g, b, a);
         for (float deg : new float[]{90f, 180f, 270f}) {
             poseStack.pushPose();
-            poseStack.mulPose(Axis.YP.rotationDegrees(deg));
+            poseStack.rotate(Axis.YP.rotationDegrees(deg));
             submitQuad(collector, renderType, poseStack, r, g, b, a);
             poseStack.popPose();
         }
         // top / bottom
         for (float deg : new float[]{90f, -90f}) {
             poseStack.pushPose();
-            poseStack.mulPose(Axis.XP.rotationDegrees(deg));
+            poseStack.rotate(Axis.XP.rotationDegrees(deg));
             submitQuad(collector, renderType, poseStack, r, g, b, a);
             poseStack.popPose();
         }
@@ -222,7 +222,7 @@ public abstract class ProceduralQuadRenderer<T extends Entity, S extends Abstrac
         for (int i = 0; i < RING_SEGMENTS; i++) {
             float deg = 360f * i / RING_SEGMENTS;
             poseStack.pushPose();
-            poseStack.mulPose(Axis.ZP.rotationDegrees(deg));
+            poseStack.rotate(Axis.ZP.rotationDegrees(deg));
             poseStack.translate(0.55f, 0f, 0f);
             poseStack.scale(0.4f, 0.4f, 0.4f);
             submitQuad(collector, renderType, poseStack, r, g, b, a);
@@ -243,13 +243,13 @@ public abstract class ProceduralQuadRenderer<T extends Entity, S extends Abstrac
         drawCross(collector, renderType, poseStack, r, g, b, a);
         // Horizontal great circle
         poseStack.pushPose();
-        poseStack.mulPose(Axis.XP.rotationDegrees(90f));
+        poseStack.rotate(Axis.XP.rotationDegrees(90f));
         submitQuad(collector, renderType, poseStack, r, g, b, a);
         poseStack.popPose();
         // Two 45° diagonal billboards to fill the silhouette
         for (float deg : new float[]{45f, -45f}) {
             poseStack.pushPose();
-            poseStack.mulPose(Axis.YP.rotationDegrees(deg));
+            poseStack.rotate(Axis.YP.rotationDegrees(deg));
             submitQuad(collector, renderType, poseStack, r, g, b, a);
             poseStack.popPose();
         }

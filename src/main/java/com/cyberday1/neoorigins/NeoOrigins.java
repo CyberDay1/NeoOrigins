@@ -66,31 +66,31 @@ public class NeoOrigins {
         LOGGER.info("NeoOrigins initializing...");
 
         // 2.2.2 config-folder split (config/neoorigins/):
-        //  • COMMON gameplay.toml / admin.toml / power_overrides.toml —
+        //  • LOCAL (COMMON before NeoForge 26.3) gameplay.toml / admin.toml / power_overrides.toml —
         //    server-side tuning/debug values consumed during the boot-time
         //    datapack reload (power overrides, compat ratio, dimension
-        //    restrictions, debug flags). COMMON loads early enough to be read
+        //    restrictions, debug flags). LOCAL loads early enough to be read
         //    at datapack load; it is not synced, which is fine because these
         //    are baked into the synced power/origin data, not read by the
         //    client directly.
-        //  • SERVER neoorigins/content.toml — origin/class enable toggles and
-        //    the resource-bar disable. NeoForge auto-syncs SERVER configs to
+        //  • SYNCED (SERVER before 26.3) neoorigins/content.toml — origin/class
+        //    enable toggles and the resource-bar disable. NeoForge auto-syncs it to
         //    connecting clients, so disabling an origin server-side correctly
         //    hides it on remote clients. These values are only read after a
-        //    world is active, so the SERVER load-timing restriction (not
+        //    world is active, so the SYNCED load-timing restriction (not
         //    loaded during boot-time datapack reload) is moot.
         // Legacy monolithic files are migrated BEFORE the specs register so
         // hand-tuned values (power overrides especially) carry over.
         com.cyberday1.neoorigins.config.ConfigMigrator.migrateBootTime();
-        modContainer.registerConfig(ModConfig.Type.COMMON,
+        modContainer.registerConfig(ModConfig.Type.LOCAL,
             com.cyberday1.neoorigins.config.GameplayConfig.SPEC, "neoorigins/gameplay.toml");
-        modContainer.registerConfig(ModConfig.Type.COMMON,
+        modContainer.registerConfig(ModConfig.Type.LOCAL,
             com.cyberday1.neoorigins.config.AdminConfig.SPEC, "neoorigins/admin.toml");
-        modContainer.registerConfig(ModConfig.Type.COMMON,
+        modContainer.registerConfig(ModConfig.Type.LOCAL,
             com.cyberday1.neoorigins.config.PowerOverridesConfig.SPEC, "neoorigins/power_overrides.toml");
-        modContainer.registerConfig(ModConfig.Type.SERVER,
+        modContainer.registerConfig(ModConfig.Type.SYNCED,
             com.cyberday1.neoorigins.config.ContentTogglesConfig.SPEC, "neoorigins/content.toml");
-        // Per-world serverconfig override migration — must hook the config
+        // Per-world override migration (serverconfig -> syncedconfig) — must hook the config
         // Loading event because the world path isn't known at constructor time.
         modEventBus.addListener(com.cyberday1.neoorigins.config.ConfigMigrator::onModConfigLoading);
 

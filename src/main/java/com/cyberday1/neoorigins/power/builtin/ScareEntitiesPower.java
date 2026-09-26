@@ -102,7 +102,7 @@ public class ScareEntitiesPower extends PowerType<ScareEntitiesPower.Config> {
             Vec3 push = dir.normalize().scale(0.4);
             Vec3 v = mob.getDeltaMovement();
             mob.setDeltaMovement(v.x + push.x, v.y, v.z + push.z);
-            mob.hurtMarked = true;
+            mob.syncVelocity = true;
         }
     }
 }

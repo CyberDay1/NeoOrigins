@@ -4,6 +4,7 @@ import com.cyberday1.neoorigins.power.builtin.KillLootDropsPower;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.core.Holder;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -16,6 +17,7 @@ import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
 import net.neoforged.neoforge.common.loot.LootModifier;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Global loot modifier that layers a KILLER's {@code kill_loot_drops} rules
@@ -41,8 +43,8 @@ public final class KillLootDropsLootModifier extends LootModifier {
             .apply(inst, KillLootDropsLootModifier::new));
 
     // 26.x LootModifier carries a `priority` field added in its codecStart's P2.
-    public KillLootDropsLootModifier(LootItemCondition[] conditions, int priority) {
-        super(conditions, priority);
+    public KillLootDropsLootModifier(Optional<Holder<LootItemCondition>> condition, int priority) {
+        super(condition, priority);
     }
 
     @Override
@@ -59,8 +61,8 @@ public final class KillLootDropsLootModifier extends LootModifier {
         if (rules == null || rules.isEmpty()) return generatedLoot;
 
         // 3. Resolve the dying mob (skip players).
-        // 26.x: LootContext.getParamOrNull → getOptionalParameter.
-        Entity victim = context.getOptionalParameter(LootContextParams.THIS_ENTITY);
+        // 26.3: LootContext.getOptionalParameter → getOptional.
+        Entity victim = context.getOptional(LootContextParams.THIS_ENTITY);
         if (!(victim instanceof LivingEntity living) || victim instanceof Player) return generatedLoot;
 
         // 4. Roll each matching rule independently.
@@ -76,11 +78,11 @@ public final class KillLootDropsLootModifier extends LootModifier {
     }
 
     private static Player resolveKiller(LootContext context) {
-        Player last = context.getOptionalParameter(LootContextParams.LAST_DAMAGE_PLAYER);
+        Player last = context.getOptional(LootContextParams.LAST_DAMAGE_PLAYER);
         if (last != null) return last;
         // ATTACKING_ENTITY is the entity that dealt the killing blow. Use it only
         // when it is itself a Player.
-        Entity attacker = context.getOptionalParameter(LootContextParams.ATTACKING_ENTITY);
+        Entity attacker = context.getOptional(LootContextParams.ATTACKING_ENTITY);
         if (attacker instanceof Player p) return p;
         return null;
     }

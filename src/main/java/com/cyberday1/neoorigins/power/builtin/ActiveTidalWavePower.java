@@ -74,7 +74,7 @@ public class ActiveTidalWavePower extends AbstractActivePower<ActiveTidalWavePow
             // Push in look direction
             Vec3 push = look.scale(config.knockbackStrength());
             target.setDeltaMovement(target.getDeltaMovement().add(push.x, 0.3, push.z));
-            target.hurtMarked = true;
+            target.syncVelocity = true;
             hit++;
         }
 

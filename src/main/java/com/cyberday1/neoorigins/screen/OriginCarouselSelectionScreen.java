@@ -255,8 +255,8 @@ public class OriginCarouselSelectionScreen extends Screen implements PickerScree
         // Arrows page the carousel unless the search box has focus, where they
         // belong to the caret.
         if (!(getFocused() instanceof EditBox)) {
-            if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT)  { browse(-1); return true; }
-            if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) { browse(1);  return true; }
+            if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_LEFT)  { browse(-1); return true; }
+            if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_RIGHT) { browse(1);  return true; }
         }
         return super.keyPressed(event);
     }

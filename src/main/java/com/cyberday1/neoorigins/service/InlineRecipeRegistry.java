@@ -142,7 +142,7 @@ public final class InlineRecipeRegistry {
             if (recipeManager.byKey(key).isPresent()) continue;
             try {
                 JsonObject normalized = normalizeApoliRecipe(e.getValue());
-                var parsed = Recipe.CODEC.parse(ops, normalized);
+                var parsed = Recipe.DIRECT_CODEC.parse(ops, normalized);
                 if (parsed.error().isPresent()) {
                     NeoOrigins.LOGGER.warn("[CompatB] inline recipe {} failed to decode: {}",
                         id, parsed.error().get().message());

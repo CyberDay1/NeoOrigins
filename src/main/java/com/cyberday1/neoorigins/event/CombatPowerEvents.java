@@ -600,7 +600,7 @@ public class CombatPowerEvents {
                     double nx = baseX + (random.nextDouble() - 0.5) * 2 * range;
                     double ny = baseY + (random.nextInt(range) - range / 2);
                     double nz = baseZ + (random.nextDouble() - 0.5) * 2 * range;
-                    if (sp.randomTeleport(nx, ny, nz, true)) {
+                    if (sp.randomTeleport(nx, ny, nz, true, state -> false)) {
                         sp.level().playSound(null, baseX, baseY, baseZ,
                             net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT,
                             net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.0f);

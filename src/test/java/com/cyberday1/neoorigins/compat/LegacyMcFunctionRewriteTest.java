@@ -72,7 +72,7 @@ class LegacyMcFunctionRewriteTest {
     static void bootstrap() {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
-        registries = VanillaRegistries.createLookup();
+        registries = VanillaRegistries.createWorldLookup();
         // 26.x moved item default components out of registration and into a
         // datapack-reload step (ReloadableServerResources binds them via
         // DataComponentInitializers), so after a bare Bootstrap every Item holder

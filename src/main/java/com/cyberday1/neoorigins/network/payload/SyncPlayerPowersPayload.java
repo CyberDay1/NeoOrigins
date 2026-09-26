@@ -62,10 +62,10 @@ public record SyncPlayerPowersPayload(
     private static void encode(FriendlyByteBuf buf, SyncPlayerPowersPayload payload) {
         buf.writeVarInt(payload.entityId());
         buf.writeUUID(payload.playerId());
-        buf.writeMap(payload.origins(),
+        NetworkCodecs.writeMap(buf, payload.origins(),
             FriendlyByteBuf::writeIdentifier,
             FriendlyByteBuf::writeIdentifier);
-        buf.writeMap(payload.powers(),
+        NetworkCodecs.writeMap(buf, payload.powers(),
             FriendlyByteBuf::writeIdentifier,
             FriendlyByteBuf::writeBoolean);
         NetworkCodecs.writeStringSet(buf, payload.capabilities());
@@ -75,10 +75,10 @@ public record SyncPlayerPowersPayload(
     private static SyncPlayerPowersPayload decode(FriendlyByteBuf buf) {
         int id = buf.readVarInt();
         UUID playerId = buf.readUUID();
-        Map<Identifier, Identifier> origins = buf.readMap(
+        Map<Identifier, Identifier> origins = NetworkCodecs.readMap(buf,
             FriendlyByteBuf::readIdentifier,
             FriendlyByteBuf::readIdentifier);
-        Map<Identifier, Boolean> powers = buf.readMap(
+        Map<Identifier, Boolean> powers = NetworkCodecs.readMap(buf,
             FriendlyByteBuf::readIdentifier,
             FriendlyByteBuf::readBoolean);
         Set<String> capabilities = NetworkCodecs.readStringSet(buf);

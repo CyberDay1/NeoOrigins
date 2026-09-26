@@ -6,7 +6,7 @@ import net.minecraft.core.QuartPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
-import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.BiomeResolver;
 
 import java.util.Optional;
 import java.util.Set;
@@ -27,10 +27,8 @@ import java.util.stream.Collectors;
  *   <li>{@link BiomeSource#possibleBiomes()} is memoised behind a
  *       {@code Suppliers.memoize} and returns an immutable set — we copy the
  *       filtered subset anyway.</li>
- *   <li>{@link Climate.Sampler} comes from {@code randomState()} and is what
- *       chunk generation samples from worker threads every tick.</li>
- *   <li>{@link BiomeSource#getNoiseBiome} is a pure function of the sampler and
- *       the coordinates.</li>
+ *   <li>{@link BiomeSource#createUncachedResolver} builds a cache-less sampler
+ *       whose buffer arena allocates per call, so it holds no shared state.</li>
  * </ul>
  * No {@code ServerPlayer}, no level mutation, no chunk access happens here —
  * chunk loading and block reads stay on the server thread in
@@ -46,13 +44,13 @@ public final class BiomeSpawnSearch {
      * Immutable, thread-confinement-free description of one biome search.
      *
      * @param biomeSource   the dimension's biome source (stateless w.r.t. sampling)
-     * @param climate       the dimension's climate sampler
+     * @param resolver      uncached biome resolver for the dimension
      * @param matches       pre-filtered set of acceptable biome holders; identity-compared, exactly as vanilla does
      * @param originX/Y/Z   block-space search centre
      * @param minY/maxY     inclusive vertical band
      */
     public record Query(BiomeSource biomeSource,
-                        Climate.Sampler climate,
+                        BiomeResolver resolver,
                         Set<Holder<Biome>> matches,
                         int originX, int originY, int originZ,
                         int minY, int maxY) {
@@ -97,7 +95,7 @@ public final class BiomeSpawnSearch {
 
         return Optional.of(new Query(
             source,
-            level.getChunkSource().randomState().sampler(),
+            source.createUncachedResolver(level.getChunkSource().randomState()),
             matches,
             searchOrigin.getX(), originY, searchOrigin.getZ(),
             minY, maxY));
@@ -118,8 +116,8 @@ public final class BiomeSpawnSearch {
             BoundedBiomeSpiral.BUDGET_MILLIS,
             System::currentTimeMillis,
             cancelled::get,
-            (x, y, z) -> query.matches().contains(query.biomeSource().getNoiseBiome(
-                QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z), query.climate())));
+            (x, y, z) -> query.matches().contains(query.resolver().getNoiseBiome(
+                QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z))));
     }
 
     /**

@@ -105,7 +105,7 @@ public class ActiveDashPower extends AbstractActivePower<ActiveDashPower.Config>
         } else {
             player.setDeltaMovement(player.getDeltaMovement().add(dash));
         }
-        player.hurtMarked = true;
+        player.syncVelocity = true;
 
         if (config.damage() > 0f || config.weaponDamageScale() > 0f) {
             dealPathDamage(player, config, dash);

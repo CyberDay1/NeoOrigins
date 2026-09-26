@@ -642,7 +642,8 @@ public final class LegacyCommandRewriter {
             props.append(pair, 0, eq).append(":\"").append(pair.substring(eq + 1).trim()).append('"');
         }
         if (props.length() == 0) return "\"" + id + "\"";
-        return "{Name:\"" + id + "\",Properties:{" + props + "}}";
+        // 26.3 renamed the state map keys: Name/Properties became id/properties.
+        return "{id:\"" + id + "\",properties:{" + props + "}}";
     }
 
     /**

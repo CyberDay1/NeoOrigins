@@ -537,7 +537,7 @@ public class OriginCommand {
             return 0;
         }
         if (!sp.getInventory().add(result.stack())) {
-            sp.drop(result.stack(), false);
+            sp.drop(result.stack(), false, net.minecraft.util.Prediction.SERVER_ONLY);
         }
         ctx.getSource().sendSuccess(() -> Component.literal(
             "Gave " + count + " × " + originId + " spawn egg"), false);

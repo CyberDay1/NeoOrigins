@@ -121,7 +121,7 @@ class InBlockFailClosedTest {
 
     private static ServerPlayer standingInBlocking(boolean blocksMotion) {
         ServerPlayer player = standingIn(Blocks.AIR, Fluids.EMPTY);
-        when(player.level().getBlockState(POS).blocksMotion()).thenReturn(blocksMotion);
+        when(player.level().getBlockState(POS).is(net.minecraft.tags.BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP)).thenReturn(blocksMotion);
         return player;
     }
 

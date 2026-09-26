@@ -5,7 +5,9 @@ import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeMap;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -37,7 +39,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(RecipeManager.class)
 public abstract class RecipeManagerReplaceMixin implements RecipeManagerReplaceAccess {
 
-    @Shadow private RecipeMap recipes;
+    @Shadow @Final @Mutable private RecipeMap recipes;
 
     @Shadow public abstract void finalizeRecipeLoading(FeatureFlagSet enabledFlags);
 
@@ -51,7 +53,8 @@ public abstract class RecipeManagerReplaceMixin implements RecipeManagerReplaceA
 
     @Override
     public void neoorigins$replaceRecipes(Iterable<RecipeHolder<?>> newRecipes) {
-        this.recipes = RecipeMap.create(newRecipes);
+        // 26.3: create() takes a registry lookup; createClient is Neo's list factory.
+        this.recipes = RecipeMap.createClient(com.google.common.collect.ImmutableList.copyOf(newRecipes));
         if (this.neoorigins$lastFlags != null) {
             this.finalizeRecipeLoading(this.neoorigins$lastFlags);
         }

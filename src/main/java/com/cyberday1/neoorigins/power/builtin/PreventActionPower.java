@@ -151,7 +151,7 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
             if (clampedY != v.y || player.isSwimming()) {
                 player.setDeltaMovement(v.x, clampedY, v.z);
                 if (player.isSwimming()) player.setSwimming(false);
-                player.hurtMarked = true;
+                player.syncVelocity = true;
             }
         }
     }

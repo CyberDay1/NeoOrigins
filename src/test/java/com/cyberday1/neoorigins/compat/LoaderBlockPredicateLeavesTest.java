@@ -47,7 +47,7 @@ class LoaderBlockPredicateLeavesTest {
     private static ServerPlayer playerAt(Spot spot) {
         BlockState state = mock(BlockState.class);
         when(state.getBlock()).thenReturn(Blocks.STONE);
-        when(state.blocksMotion()).thenReturn(spot.blocksMotion());
+        when(state.is(net.minecraft.tags.BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP)).thenReturn(spot.blocksMotion());
         FluidState fluid = mock(FluidState.class);
         when(fluid.getType()).thenReturn(spot.fluid());
         when(fluid.isEmpty()).thenReturn(spot.fluid() == Fluids.EMPTY);

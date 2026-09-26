@@ -62,7 +62,7 @@ public class BlackHoleVfxEntity extends AbstractVfxEntity {
             double strength = pullStrength * (1.0 - dist / range);
             Vec3 pull = toward.normalize().scale(strength * 0.1);
             target.setDeltaMovement(target.getDeltaMovement().add(pull));
-            target.hurtMarked = true;
+            target.syncVelocity = true;
 
             if (damageTick && dist <= damageRadius
                     && (casterUuid == null || !target.getUUID().equals(casterUuid))) {

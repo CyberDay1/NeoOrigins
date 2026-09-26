@@ -158,7 +158,7 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
             for (int i = 0; i < container.getContainerSize(); i++) {
                 ItemStack stack = container.getItem(i);
                 if (!stack.isEmpty()) {
-                    player.drop(stack, true, false);
+                    com.cyberday1.neoorigins.util.ItemDrops.spawn(player, stack, true, false);
                 }
             }
             container.clearContent();

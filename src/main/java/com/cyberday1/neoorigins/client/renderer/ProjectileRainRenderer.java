@@ -174,10 +174,10 @@ public class ProjectileRainRenderer
             final int alphaFinal = a;
             poseStack.pushPose();
             poseStack.translate(curX, curY, curZ);
-            poseStack.mulPose(Axis.YP.rotationDegrees(bladeYaw));
+            poseStack.rotate(Axis.YP.rotationDegrees(bladeYaw));
             // Baked blade's long axis is +Z; the X rotation points the tip along
             // the slanted descent (90° → straight down when tilt is 0).
-            poseStack.mulPose(Axis.XP.rotationDegrees(bladePitch + quiver));
+            poseStack.rotate(Axis.XP.rotationDegrees(bladePitch + quiver));
             poseStack.scale(BLADE_SCALE, BLADE_SCALE, BLADE_SCALE);
             // Fullbright lightmap keeps the spectral blade luminous; the
             // diffuse render type still shades its 3D form from the normals.

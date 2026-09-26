@@ -57,7 +57,7 @@ public class BlackHoleRenderer extends EntityRenderer<BlackHoleVfxEntity, Abstra
 
         poseStack.pushPose();
         poseStack.scale(scale, scale, scale);
-        poseStack.mulPose(Axis.YP.rotationDegrees(time * SPIN_SPEED));
+        poseStack.rotate(Axis.YP.rotationDegrees(time * SPIN_SPEED));
         collector.submitCustomGeometry(poseStack, RENDER_TYPE, (pose, consumer) ->
             MODEL.render(pose, consumer, 0xF000F0, OverlayTexture.NO_OVERLAY));
         poseStack.popPose();

@@ -295,16 +295,14 @@ public final class MorphRenderHandler {
         pose.translate(i * 0.56F, -0.52F + equip * -0.6F, -0.72F);
         // applyItemArmAttackTransform
         float a1 = Mth.sin(swing * swing * (float) Math.PI);
-        pose.mulPose(Axis.YP.rotationDegrees(i * (45.0F + a1 * -20.0F)));
+        pose.rotate(Axis.YP.rotationDegrees(i * (45.0F + a1 * -20.0F)));
         float a2 = Mth.sin(Mth.sqrt(swing) * (float) Math.PI);
-        pose.mulPose(Axis.ZP.rotationDegrees(i * a2 * -20.0F));
-        pose.mulPose(Axis.XP.rotationDegrees(a2 * -80.0F));
-        pose.mulPose(Axis.YP.rotationDegrees(i * -45.0F));
+        pose.rotate(Axis.ZP.rotationDegrees(i * a2 * -20.0F));
+        pose.rotate(Axis.XP.rotationDegrees(a2 * -80.0F));
+        pose.rotate(Axis.YP.rotationDegrees(i * -45.0F));
 
-        // 26.1: renderItem dropped the leftHand flag — the display context
-        // encodes handedness — and draws through the SubmitNodeCollector.
-        mc.getEntityRenderDispatcher().getItemInHandRenderer().renderItem(
-            player, stack,
+        // 26.3: ItemInHandRenderer is gone; resolve the item state and submit it.
+        submitItem(player, stack,
             right ? ItemDisplayContext.FIRST_PERSON_RIGHT_HAND : ItemDisplayContext.FIRST_PERSON_LEFT_HAND,
             pose, event.getSubmitNodeCollector(), event.getPackedLight());
         pose.popPose();
@@ -370,7 +368,8 @@ public final class MorphRenderHandler {
             livingState.xRot = 0.0F;
             livingState.isBaby = false;
             if (livingState instanceof ArmedEntityRenderState armed) {
-                armed.attackTime = 0.0F;
+                armed.currentSwing = null;
+                armed.swingAnimation = 0.0F;
             }
             if (livingState instanceof HumanoidRenderState humanoid) {
                 humanoid.isCrouching = false;
@@ -396,15 +395,15 @@ public final class MorphRenderHandler {
         PoseStack pose = event.getPoseStack();
         pose.pushPose();
         pose.translate(f * (f2 + 0.64000005F), f3 + -0.6F + equip * -0.6F, f4 + -0.71999997F);
-        pose.mulPose(Axis.YP.rotationDegrees(f * 45.0F));
+        pose.rotate(Axis.YP.rotationDegrees(f * 45.0F));
         float f5 = Mth.sin(swing * swing * (float) Math.PI);
         float f6 = Mth.sin(f1 * (float) Math.PI);
-        pose.mulPose(Axis.YP.rotationDegrees(f * f6 * 70.0F));
-        pose.mulPose(Axis.ZP.rotationDegrees(f * f5 * -20.0F));
+        pose.rotate(Axis.YP.rotationDegrees(f * f6 * 70.0F));
+        pose.rotate(Axis.ZP.rotationDegrees(f * f5 * -20.0F));
         pose.translate(f * -1.0F, 3.6F, 3.5F);
-        pose.mulPose(Axis.ZP.rotationDegrees(f * 120.0F));
-        pose.mulPose(Axis.XP.rotationDegrees(200.0F));
-        pose.mulPose(Axis.YP.rotationDegrees(f * -135.0F));
+        pose.rotate(Axis.ZP.rotationDegrees(f * 120.0F));
+        pose.rotate(Axis.XP.rotationDegrees(200.0F));
+        pose.rotate(Axis.YP.rotationDegrees(f * -135.0F));
         pose.translate(f * 5.6F, 0.0F, 0.0F);
 
         armPart.xRot = 0.0F;
@@ -594,10 +593,9 @@ public final class MorphRenderHandler {
             living.yHeadRot = player.yHeadRot;
             living.yHeadRotO = player.yHeadRotO;
 
-            living.swinging = player.swinging;
-            living.swingTime = player.swingTime;
-            living.attackAnim = player.attackAnim;
-            living.oAttackAnim = player.oAttackAnim;
+            // 26.3: swing fields became a private SwingState; share the player's.
+            ((com.cyberday1.neoorigins.mixin.client.LivingEntitySwingAccessor) living).neoorigins$setSwingState(
+                ((com.cyberday1.neoorigins.mixin.client.LivingEntitySwingAccessor) player).neoorigins$getSwingState());
 
             // Damage and death. hurtTime drives the red damage overlay; the
             // death topple needs deathTime AND a health of zero, because the
@@ -755,14 +753,18 @@ public final class MorphRenderHandler {
         double fx = -Math.sin(rad) * forward;
         double fz = Math.cos(rad) * forward;
         poseStack.translate(fx, 0.55, fz);
-        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        poseStack.rotate(Axis.YP.rotationDegrees(-bodyYaw));
         poseStack.scale(0.6f, 0.6f, 0.6f);
 
-        // 26.1: ItemRenderer.renderStatic is gone; ItemInHandRenderer.renderItem
-        // resolves the stack's model and submits it for any LivingEntity + context.
-        Minecraft.getInstance().getEntityRenderDispatcher().getItemInHandRenderer()
-            .renderItem(player, stack, ItemDisplayContext.FIXED, poseStack, collector, light);
+        submitItem(player, stack, ItemDisplayContext.FIXED, poseStack, collector, light);
         poseStack.popPose();
+    }
+
+    private static void submitItem(Player player, ItemStack stack, ItemDisplayContext context,
+                                   PoseStack pose, SubmitNodeCollector collector, int light) {
+        var state = new net.minecraft.client.renderer.item.ItemStackRenderState();
+        Minecraft.getInstance().getItemModelResolver().updateForLiving(state, stack, context, player);
+        state.submit(pose, collector, light, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0);
     }
 
     private static float lerp(float t, float a, float b) {

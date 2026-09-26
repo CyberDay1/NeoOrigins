@@ -63,7 +63,7 @@ public class TornadoRenderer
 
         poseStack.pushPose();
         poseStack.scale(scaleXZ, scaleY, scaleXZ);
-        poseStack.mulPose(Axis.YP.rotationDegrees(time * SPIN_SPEED * TornadoVfxEntity.SPIN_MULT));
+        poseStack.rotate(Axis.YP.rotationDegrees(time * SPIN_SPEED * TornadoVfxEntity.SPIN_MULT));
         collector.submitCustomGeometry(poseStack, RENDER_TYPE, (pose, consumer) ->
             MODEL.render(pose, consumer, 0xF000F0, OverlayTexture.NO_OVERLAY));
         poseStack.popPose();

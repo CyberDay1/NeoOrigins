@@ -153,7 +153,7 @@ public class CompatEventPowers {
                 if (restricted) {
                     // Force-unequip: move to inventory or drop
                     if (!sp.getInventory().add(equipped.copy())) {
-                        sp.drop(equipped.copy(), false);
+                        sp.drop(equipped.copy(), false, net.minecraft.util.Prediction.SERVER_ONLY);
                     }
                     sp.setItemSlot(slot, ItemStack.EMPTY);
                 }

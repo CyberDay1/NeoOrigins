@@ -53,7 +53,7 @@ public final class TargetActionParser {
             case "neoorigins:nothing"     -> (t, a) -> {};
             case "neoorigins:extinguish"  -> (t, a) -> t.clearFire();
             case "neoorigins:dismount"    -> (t, a) -> t.stopRiding();
-            case "neoorigins:swing_hand"  -> (t, a) -> t.swing(InteractionHand.MAIN_HAND);
+            case "neoorigins:swing_hand"  -> (t, a) -> t.swing(InteractionHand.MAIN_HAND, t.getMainHandItem().getAttackAnimation(), false);
 
             case "neoorigins:heal" -> {
                 float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
@@ -76,7 +76,7 @@ public final class TargetActionParser {
                 yield (t, a) -> {
                     if (set) t.setDeltaMovement(x, y, z);
                     else t.push(x, y, z);
-                    t.hurtMarked = true;
+                    t.syncVelocity = true;
                 };
             }
 
@@ -131,7 +131,7 @@ public final class TargetActionParser {
                     if (stack.isEmpty()) return;
                     t.setItemSlot(slot, net.minecraft.world.item.ItemStack.EMPTY);
                     if (!a.getInventory().add(stack)) {
-                        a.drop(stack, false);
+                        a.drop(stack, false, net.minecraft.util.Prediction.SERVER_ONLY);
                     }
                 };
             }

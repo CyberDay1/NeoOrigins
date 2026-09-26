@@ -701,7 +701,7 @@ public class PlayerLifecycleEvents {
         if (pending == null) return;
         for (var t : pending.entries) {
             if (restoreTrinketSlot(sp, t)) continue;
-            if (!sp.getInventory().add(t.stack())) sp.drop(t.stack(), false);
+            if (!sp.getInventory().add(t.stack())) sp.drop(t.stack(), false, net.minecraft.util.Prediction.SERVER_ONLY);
         }
     }
 
@@ -789,7 +789,7 @@ public class PlayerLifecycleEvents {
         var inv = sp.getInventory();
         for (var kept : stash) {
             if (restoreToOriginalSlot(inv, kept.slot(), kept.stack())) continue;
-            if (!inv.add(kept.stack())) sp.drop(kept.stack(), false);
+            if (!inv.add(kept.stack())) sp.drop(kept.stack(), false, net.minecraft.util.Prediction.SERVER_ONLY);
         }
     }
 }

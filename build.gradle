@@ -1,9 +1,9 @@
 plugins {
     id 'java'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev' version '2.0.148'
 }
 
-version = "${mod_version}+26.2"
+version = "${mod_version}+26.3"
 group = mod_group_id
 
 base {
@@ -76,15 +76,15 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.mockito:mockito-core:5.20.0'
 
-    // JEI – compile-only so the mod works without JEI installed. MC 26.2 line is
-    // JEI 30.x (see deps.jei); the api artifact pulls jei-26.2-common-api, which is
+    // JEI – compile-only so the mod works without JEI installed. MC 26.3 line is
+    // JEI 31.x (see deps.jei); the api artifact pulls jei-26.3-common-api, which is
     // where mezz.jei.api.IModPlugin actually lives.
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${property('deps.jei')}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${property('deps.jei')}"
 
     // REI – client-only soft dep; compat/rei adds the Orb of Origin to REI's entry
     // list. Compile-only, never bundled. The api artifact transitively brings
-    // cloth-config-neoforge 26.2.155 and architectury-neoforge 21.0.2 (per REI's own
+    // cloth-config-neoforge 26.3.159 and architectury-neoforge 22.0.3 (per REI's own
     // pom), so no explicit architectury coordinate is needed here.
     // Expect ~11 "unknown enum constant EnvType.CLIENT" javac warnings from this:
     // REI's API carries Fabric @Environment annotations and net.fabricmc.api.EnvType

@@ -1,8 +1,8 @@
 {
   "pack": {
-    "pack_format": 107,
-    "min_format": 107,
-    "max_format": 107,
+    "pack_format": 121,
+    "min_format": 121,
+    "max_format": 121,
     "description": "NeoOrigins example: class-layer upgrade — Explorer promotes to Scout after exploring 40 biomes."
   }
 }

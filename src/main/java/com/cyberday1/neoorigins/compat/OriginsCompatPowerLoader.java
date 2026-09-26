@@ -1216,7 +1216,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     // fires both while mining/hitting AND while merely holding attack
                     // with nothing under the crosshair (player.swinging only streams
                     // during an actual swing animation).
-                    case "key.attack"  -> CompatPlayerState.isAttackKeyHeld(player) || player.swinging;
+                    case "key.attack"  -> CompatPlayerState.isAttackKeyHeld(player) || player.isSwinging();
                     // Real airborne jump-press signal (client-sent AirJumpPayload),
                     // not the old "airborne and rising" heuristic that fired during
                     // the natural first jump and missed a deliberate re-press while
@@ -2811,7 +2811,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 double nz = fz ? OriginsModifierMath.apply(v.z, mods) : v.z;
                 if (nx != v.x || ny != v.y || nz != v.z) {
                     player.setDeltaMovement(nx, ny, nz);
-                    player.hurtMarked = true; // sync the velocity change to the client
+                    player.syncVelocity = true; // sync the velocity change to the client
                 }
             })
             .build();
@@ -3140,7 +3140,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
         EntityAction launchAction = player -> {
             player.push(0, speed, 0);
-            player.hurtMarked = true;
+            player.syncVelocity = true;
         };
 
         var builder = CompatPower.Config.builder().cooldownTicks(cooldown);

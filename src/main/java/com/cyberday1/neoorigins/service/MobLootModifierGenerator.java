@@ -93,7 +93,6 @@ public final class MobLootModifierGenerator {
     private static JsonObject modifierJson() {
         JsonObject o = new JsonObject();
         o.addProperty("type", NeoOrigins.MOD_ID + ":mob_origin_drops");
-        o.add("conditions", new JsonArray());
         return o;
     }
 

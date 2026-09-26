@@ -938,7 +938,7 @@ public class NeoOriginsNetwork {
                 sendCreatorResult(sp, false, result.error());
                 return;
             }
-            if (!sp.getInventory().add(result.stack())) sp.drop(result.stack(), false);
+            if (!sp.getInventory().add(result.stack())) sp.drop(result.stack(), false, net.minecraft.util.Prediction.SERVER_ONLY);
             sendCreatorResult(sp, true, "Gave " + count + " × " + originId + " spawn egg.");
         });
     }

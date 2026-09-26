@@ -110,6 +110,9 @@ public final class AccessoryInspector {
     private static Method CURIOS_GET_EQUIPPED;
     private static Method CURIOS_GET_CURIOS;
     private static Method CURIO_STACKS_GET_STACKS;
+    private static Method DYN_GET_SLOTS;
+    private static Method DYN_GET_STACK;
+    private static Method DYN_SET_STACK;
     private static boolean CURIOS_REFLECT_FAILED = false;
 
     /** Lazily resolves the Curios reflection handles; false once it has failed. */
@@ -126,6 +129,12 @@ public final class AccessoryInspector {
             Class<?> stacksClass = Class.forName(
                 "top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler");
             CURIO_STACKS_GET_STACKS = stacksClass.getMethod("getStacks");
+            // 26.3: IItemHandlerModifiable is gone; IDynamicStackHandler keeps its own slot methods.
+            Class<?> dynClass = Class.forName(
+                "top.theillusivec4.curios.api.type.inventory.IDynamicStackHandler");
+            DYN_GET_SLOTS = dynClass.getMethod("getSlots");
+            DYN_GET_STACK = dynClass.getMethod("getStackInSlot", int.class);
+            DYN_SET_STACK = dynClass.getMethod("setStackInSlot", int.class, ItemStack.class);
             return true;
         } catch (Exception e) {
             CURIOS_REFLECT_FAILED = true;
@@ -149,15 +158,14 @@ public final class AccessoryInspector {
 
     /** Resolves the writable per-slot stack handler for a Curios slot id, or null. */
     @SuppressWarnings("unchecked")
-    private static net.neoforged.neoforge.items.IItemHandlerModifiable neoorigins$curiosSlotStacks(
+    private static CurioSlots neoorigins$curiosSlotStacks(
             Object handler, String slotId) {
         if (handler == null) return null;
         try {
             Map<String, ?> curios = (Map<String, ?>) CURIOS_GET_CURIOS.invoke(handler);
             for (Map.Entry<String, ?> e : curios.entrySet()) {
                 if (!slotId.equalsIgnoreCase(e.getKey())) continue;
-                return (net.neoforged.neoforge.items.IItemHandlerModifiable)
-                    CURIO_STACKS_GET_STACKS.invoke(e.getValue());
+                return new CurioSlots(CURIO_STACKS_GET_STACKS.invoke(e.getValue()));
             }
         } catch (Exception e) {
             CURIOS_REFLECT_FAILED = true;
@@ -173,8 +181,7 @@ public final class AccessoryInspector {
         try {
             Map<String, ?> curios = (Map<String, ?>) CURIOS_GET_CURIOS.invoke(handler);
             for (Map.Entry<String, ?> e : curios.entrySet()) {
-                var stacks = (net.neoforged.neoforge.items.IItemHandlerModifiable)
-                    CURIO_STACKS_GET_STACKS.invoke(e.getValue());
+                var stacks = new CurioSlots(CURIO_STACKS_GET_STACKS.invoke(e.getValue()));
                 for (int i = 0; i < stacks.getSlots(); i++) {
                     ItemStack stack = stacks.getStackInSlot(i);
                     if (!stack.isEmpty()) out.add(new EquippedEntry(Source.CURIOS, e.getKey(), i, stack));
@@ -211,10 +218,11 @@ public final class AccessoryInspector {
         try {
             if (slotType == null) {
                 // Flat equipped handler — the exact path the umbrella check used.
-                var equipped = (net.neoforged.neoforge.items.IItemHandlerModifiable)
+                // 26.3 Curios returns a transfer ResourceHandler here; reads are copies.
+                var equipped = (net.neoforged.neoforge.transfer.ResourceHandler<net.neoforged.neoforge.transfer.item.ItemResource>)
                     CURIOS_GET_EQUIPPED.invoke(handler);
-                for (int i = 0; i < equipped.getSlots(); i++) {
-                    ItemStack stack = equipped.getStackInSlot(i);
+                for (int i = 0; i < equipped.size(); i++) {
+                    ItemStack stack = equipped.getResource(i).toStack(equipped.getAmountAsInt(i));
                     if (!stack.isEmpty()) out.add(stack);
                 }
                 return out;
@@ -224,8 +232,7 @@ public final class AccessoryInspector {
             Map<String, ?> curios = (Map<String, ?>) CURIOS_GET_CURIOS.invoke(handler);
             for (Map.Entry<String, ?> e : curios.entrySet()) {
                 if (!slotType.equalsIgnoreCase(e.getKey())) continue;
-                var stacks = (net.neoforged.neoforge.items.IItemHandlerModifiable)
-                    CURIO_STACKS_GET_STACKS.invoke(e.getValue());
+                var stacks = new CurioSlots(CURIO_STACKS_GET_STACKS.invoke(e.getValue()));
                 for (int i = 0; i < stacks.getSlots(); i++) {
                     ItemStack stack = stacks.getStackInSlot(i);
                     if (!stack.isEmpty()) out.add(stack);
@@ -239,5 +246,20 @@ public final class AccessoryInspector {
                 e.toString());
         }
         return out;
+    }
+
+    /** Reflective view over a Curios IDynamicStackHandler; live stacks, not copies. */
+    private record CurioSlots(Object handler) {
+        int getSlots() { return (int) call(DYN_GET_SLOTS); }
+        ItemStack getStackInSlot(int i) { return (ItemStack) call(DYN_GET_STACK, i); }
+        void setStackInSlot(int i, ItemStack stack) { call(DYN_SET_STACK, i, stack); }
+
+        private Object call(Method m, Object... args) {
+            try {
+                return m.invoke(handler, args);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 }

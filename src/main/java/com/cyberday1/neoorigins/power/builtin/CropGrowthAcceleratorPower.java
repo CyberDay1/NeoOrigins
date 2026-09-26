@@ -57,7 +57,7 @@ public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorP
                     BlockState state = level.getBlockState(pos);
                     if (isFarmCrop(state)
                             && state.getBlock() instanceof BonemealableBlock bmb
-                            && bmb.isValidBonemealTarget(level, pos, state)) {
+                            && bmb.isValidBonemealTarget(level, pos, state, net.minecraft.world.level.block.BonemealSource.INTERACTION)) {
                         candidates.add(pos.immutable());
                     }
                 }
@@ -74,8 +74,8 @@ public class CropGrowthAcceleratorPower extends PowerType<CropGrowthAcceleratorP
             BlockState state = level.getBlockState(pos);
             if (isFarmCrop(state)
                     && state.getBlock() instanceof BonemealableBlock bmb
-                    && bmb.isValidBonemealTarget(level, pos, state)) {
-                bmb.performBonemeal(level, level.getRandom(), pos, state);
+                    && bmb.isValidBonemealTarget(level, pos, state, net.minecraft.world.level.block.BonemealSource.INTERACTION)) {
+                bmb.performBonemeal(level, level.getRandom(), pos, state, net.minecraft.world.level.block.BonemealSource.INTERACTION);
                 level.levelEvent(2005, pos, 0); // bonemeal particles
             }
             candidates.remove(idx);

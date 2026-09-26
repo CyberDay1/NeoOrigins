@@ -61,7 +61,7 @@ public class ActiveGroundSlamPower extends AbstractActivePower<ActiveGroundSlamP
                 dir.x * config.knockbackStrength(),
                 0.4 * config.knockbackStrength(),
                 dir.z * config.knockbackStrength()));
-            target.hurtMarked = true;
+            target.syncVelocity = true;
         }
 
         // Effects

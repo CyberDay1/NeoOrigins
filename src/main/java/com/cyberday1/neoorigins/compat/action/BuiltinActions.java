@@ -326,7 +326,7 @@ public final class BuiltinActions {
                     Vec3 v = spaceToGlobal(space, x, y, z, player);
                     if (set) player.setDeltaMovement(v.x, v.y, v.z);
                     else player.push(v.x, v.y, v.z);
-                    player.hurtMarked = true;
+                    player.syncVelocity = true;
                 };
             },
             List.of(
@@ -367,7 +367,7 @@ public final class BuiltinActions {
                     } else {
                         player.push(dx, dy, dz);
                     }
-                    player.hurtMarked = true;
+                    player.syncVelocity = true;
                 };
             },
             List.of(
@@ -381,7 +381,7 @@ public final class BuiltinActions {
         // swing_hand — animate the main-hand swing. Lift-and-shift of the inline
         // case arm. No config fields.
         define("swing_hand",
-            (json, ctx) -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND),
+            (json, ctx) -> player -> player.swing(net.minecraft.world.InteractionHand.MAIN_HAND, player.getMainHandItem().getAttackAnimation(), false),
             List.of());
 
         // crafting_table — open a crafting menu at the player's position.
@@ -614,7 +614,7 @@ public final class BuiltinActions {
                 float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.0f;
                 return player -> {
                     player.push(0, speed, 0);
-                    player.hurtMarked = true;
+                    player.syncVelocity = true;
                 };
             },
             List.of(new FieldSpec("speed", FormFieldSpec.Kind.NUMBER, false).def(1.0)
@@ -1147,7 +1147,7 @@ public final class BuiltinActions {
                     double ux = dx / horiz;
                     double uz = dz / horiz;
                     target.push(ux * force, verticalLift, uz * force);
-                    target.hurtMarked = true;
+                    target.syncVelocity = true;
                 };
             },
             List.of(
@@ -1867,7 +1867,7 @@ public final class BuiltinActions {
                         for (int i = 0; i < inv.getContainerSize(); i++) {
                             net.minecraft.world.item.ItemStack s = inv.getItem(i);
                             if (s.isEmpty() || !itemCond.test(s)) continue;
-                            player.drop(s, throwRandomly, retainOwnership);
+                            com.cyberday1.neoorigins.util.ItemDrops.spawn(player, s, throwRandomly, retainOwnership);
                             inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
                             dropped = true;
                         }
@@ -1876,7 +1876,7 @@ public final class BuiltinActions {
                             var acc = player.getSlot(id);
                             net.minecraft.world.item.ItemStack s = acc.get();
                             if (s.isEmpty() || !itemCond.test(s)) continue;
-                            player.drop(s, throwRandomly, retainOwnership);
+                            com.cyberday1.neoorigins.util.ItemDrops.spawn(player, s, throwRandomly, retainOwnership);
                             acc.set(net.minecraft.world.item.ItemStack.EMPTY);
                             dropped = true;
                         }
@@ -2153,7 +2153,7 @@ public final class BuiltinActions {
                     if (stack.isEmpty()) return;
                     target.setItemSlot(slot, net.minecraft.world.item.ItemStack.EMPTY);
                     if (!actor.getInventory().add(stack)) {
-                        actor.drop(stack, false);
+                        actor.drop(stack, false, net.minecraft.util.Prediction.SERVER_ONLY);
                     }
                 };
             },
@@ -3510,7 +3510,7 @@ public final class BuiltinActions {
                 boolean set = json.has("set") && json.get("set").getAsBoolean();
                 if (set) projectile.setDeltaMovement(x, y, z);
                 else projectile.push(x, y, z);
-                projectile.hurtMarked = true;
+                projectile.syncVelocity = true;
             }
             case "neoorigins:execute_command", "neoorigins:command" -> {
                 String cmd = json.has("command") ? json.get("command").getAsString() : "";
@@ -3731,7 +3731,7 @@ public final class BuiltinActions {
                 state.getValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS));
         }
         level.setBlockAndUpdate(pos, out);
-        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.AXE_STRIP,
+        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.AXE_STRIP.value(),
             net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
     }
 
@@ -3758,7 +3758,7 @@ public final class BuiltinActions {
         // Vanilla only tills when there's space above the block.
         if (!level.getBlockState(pos.above()).isAir()) return;
         level.setBlockAndUpdate(pos, out);
-        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.HOE_TILL,
+        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.HOE_TILL.value(),
             net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
     }
 
@@ -3781,7 +3781,7 @@ public final class BuiltinActions {
         }
         if (!level.getBlockState(pos.above()).isAir()) return;
         level.setBlockAndUpdate(pos, net.minecraft.world.level.block.Blocks.DIRT_PATH.defaultBlockState());
-        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.SHOVEL_FLATTEN,
+        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.SHOVEL_FLATTEN.value(),
             net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
     }
 
@@ -3797,9 +3797,9 @@ public final class BuiltinActions {
                           net.minecraft.server.level.ServerPlayer actor) {
         net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
         if (!(state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock bonemealable)) return;
-        if (!bonemealable.isValidBonemealTarget(level, pos, state)) return;
-        if (!bonemealable.isBonemealSuccess(level, level.getRandom(), pos, state)) return;
-        bonemealable.performBonemeal(level, level.getRandom(), pos, state);
+        if (!bonemealable.isValidBonemealTarget(level, pos, state, net.minecraft.world.level.block.BonemealSource.INTERACTION)) return;
+        if (!bonemealable.isBonemealSuccess(level, level.getRandom(), pos, state, net.minecraft.world.level.block.BonemealSource.INTERACTION)) return;
+        bonemealable.performBonemeal(level, level.getRandom(), pos, state, net.minecraft.world.level.block.BonemealSource.INTERACTION);
         level.levelEvent(1505 /* BONEMEAL_USE growth particles */, pos, 15);
     }
 

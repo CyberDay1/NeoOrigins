@@ -84,10 +84,10 @@ public class ThrownSwordRenderer
 
         poseStack.pushPose();
         // Yaw about Y, then pitch about X, point +Z down the velocity vector.
-        poseStack.mulPose(Axis.YP.rotationDegrees(aimYaw));
-        poseStack.mulPose(Axis.XP.rotationDegrees(-aimPitch));
+        poseStack.rotate(Axis.YP.rotationDegrees(aimYaw));
+        poseStack.rotate(Axis.XP.rotationDegrees(-aimPitch));
         // Spin about the blade's long (travel) axis.
-        poseStack.mulPose(Axis.ZP.rotationDegrees(spin));
+        poseStack.rotate(Axis.ZP.rotationDegrees(spin));
         collector.submitCustomGeometry(poseStack, RENDER_TYPE, (pose, consumer) ->
             model.renderTinted(pose, consumer, TINT_R, TINT_G, TINT_B, TINT_A,
                 0xF000F0, OverlayTexture.NO_OVERLAY));

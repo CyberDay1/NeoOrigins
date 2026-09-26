@@ -88,7 +88,7 @@ public class BounceOnLandPower extends PowerType<BounceOnLandPower.Config> {
                 // hurtMarked makes the server send a velocity packet to the
                 // client (the knockback sync path), so the launch is applied
                 // client-side instead of being overridden by client movement.
-                player.hurtMarked = true;
+                player.syncVelocity = true;
                 player.fallDistance = 0.0F;
                 player.setOnGround(false);
             }

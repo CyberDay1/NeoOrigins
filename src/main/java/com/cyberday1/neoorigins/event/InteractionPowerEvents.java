@@ -313,7 +313,7 @@ public class InteractionPowerEvents {
         });
         if (rejected[0]) {
             sp.setItemSlot(slot, ItemStack.EMPTY);
-            if (!sp.getInventory().add(neu)) sp.drop(neu, false);
+            if (!sp.getInventory().add(neu)) sp.drop(neu, false, net.minecraft.util.Prediction.SERVER_ONLY);
         }
     }
 }

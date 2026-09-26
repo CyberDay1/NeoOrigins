@@ -176,7 +176,7 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
             Vec3 spin = tangent.scale(spinStrength * factor * 0.1);
 
             target.setDeltaMovement(target.getDeltaMovement().add(pull).add(lift).add(spin));
-            target.hurtMarked = true;
+            target.syncVelocity = true;
 
             if (intervalTick && dist <= damageRange) {
                 if (impactCallback != null) {
@@ -224,7 +224,7 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
             new net.minecraft.core.BlockPos.MutableBlockPos(xi, startY, zi);
         for (int yy = startY; yy >= minY; yy--) {
             pos.setY(yy);
-            if (level.getBlockState(pos).blocksMotion()) {
+            if (level.getBlockState(pos).is(net.minecraft.tags.BlockTags.BLOCKS_MOTION_IN_HEIGHTMAP)) {
                 return yy + 1.0;
             }
         }

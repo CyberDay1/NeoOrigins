@@ -61,7 +61,8 @@
     "client.AbstractClientPlayerSkinMixin",
     "client.EntityRendererCullingMixin",
     "client.LivingEntityRendererShadowMixin",
-    "client.EntityRenderDispatcherHideMixin"
+    "client.EntityRenderDispatcherHideMixin",
+    "client.LivingEntitySwingAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

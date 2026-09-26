@@ -3,7 +3,7 @@ package com.cyberday1.neoorigins.client;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public class NeoOriginsKeybindings {
 
@@ -29,67 +29,67 @@ public class NeoOriginsKeybindings {
 
     public static final KeyMapping SKILL_1 = new KeyMapping(
         "key.neoorigins.skill_1",
-        GLFW.GLFW_KEY_V,
+        InputConstants.KEY_V,
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping SKILL_2 = new KeyMapping(
         "key.neoorigins.skill_2",
-        GLFW.GLFW_KEY_G,
+        InputConstants.KEY_G,
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping SKILL_3 = new KeyMapping(
         "key.neoorigins.skill_3",
-        GLFW.GLFW_KEY_N,
+        InputConstants.KEY_N,
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping SKILL_4 = new KeyMapping(
         "key.neoorigins.skill_4",
-        GLFW.GLFW_KEY_B,
+        InputConstants.KEY_B,
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping SKILL_5 = new KeyMapping(
         "key.neoorigins.skill_5",
-        GLFW.GLFW_KEY_UNKNOWN,  // unbound by default
+        InputConstants.UNKNOWN.getValue(),  // unbound by default
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping SKILL_6 = new KeyMapping(
         "key.neoorigins.skill_6",
-        GLFW.GLFW_KEY_UNKNOWN,  // unbound by default
+        InputConstants.UNKNOWN.getValue(),  // unbound by default
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping CLASS_SKILL = new KeyMapping(
         "key.neoorigins.class_skill",
-        GLFW.GLFW_KEY_H,
+        InputConstants.KEY_H,
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping VIEW_INFO = new KeyMapping(
         "key.neoorigins.view_info",
-        GLFW.GLFW_KEY_O,
+        InputConstants.KEY_O,
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping EDIT_HUD = new KeyMapping(
         "key.neoorigins.edit_hud",
-        GLFW.GLFW_KEY_UNKNOWN,  // unbound by default
+        InputConstants.UNKNOWN.getValue(),  // unbound by default
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping OPEN_CREATOR = new KeyMapping(
         "key.neoorigins.open_creator",
-        GLFW.GLFW_KEY_UNKNOWN,  // unbound by default — server gates access anyway
+        InputConstants.UNKNOWN.getValue(),  // unbound by default — server gates access anyway
         NEOORIGINS_CATEGORY
     );
 
     public static final KeyMapping OPEN_MOB_CREATOR = new KeyMapping(
         "key.neoorigins.open_mob_creator",
-        GLFW.GLFW_KEY_UNKNOWN,  // unbound by default — server gates access anyway
+        InputConstants.UNKNOWN.getValue(),  // unbound by default — server gates access anyway
         NEOORIGINS_CATEGORY
     );
 
@@ -108,7 +108,7 @@ public class NeoOriginsKeybindings {
      */
     public static final KeyMapping TOGGLE_NIGHT_VISION = new KeyMapping(
         "key.neoorigins.toggle_night_vision",
-        GLFW.GLFW_KEY_K,
+        InputConstants.KEY_K,
         NEOORIGINS_CATEGORY
     );
 
@@ -149,14 +149,14 @@ public class NeoOriginsKeybindings {
     }
 
     /**
-     * Parse the {@code [hotkeys] slot_defaults} config into a GLFW-code array sized
+     * Parse the {@code [hotkeys] slot_defaults} config into a key-code array sized
      * to the pool. Each entry is {@code "N=key.keyboard.X"} (N 1-indexed). Unlisted
-     * or unparseable slots default to {@code GLFW_KEY_UNKNOWN} (unbound). A bad entry
+     * or unparseable slots default to {@code InputConstants.UNKNOWN} (unbound). A bad entry
      * is logged and skipped so one typo can't break the whole pool.
      */
     private static int[] resolveSlotDefaults(int poolSize) {
         int[] out = new int[poolSize];
-        java.util.Arrays.fill(out, GLFW.GLFW_KEY_UNKNOWN);
+        java.util.Arrays.fill(out, InputConstants.UNKNOWN.getValue());
         for (String entry : NeoOriginsClientConfig.hotkeySlotDefaults()) {
             int eq = entry.indexOf('=');
             if (eq <= 0) {

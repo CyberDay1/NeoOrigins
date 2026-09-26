@@ -167,7 +167,7 @@ public final class PowerKeybindRegistry {
         return switch (key) {
             case "key.sneak"   -> player.isShiftKeyDown();
             case "key.use"     -> com.cyberday1.neoorigins.compat.CompatPlayerState.isUseKeyDown(player);
-            case "key.attack"  -> com.cyberday1.neoorigins.compat.CompatPlayerState.isAttackKeyHeld(player) || player.swinging;
+            case "key.attack"  -> com.cyberday1.neoorigins.compat.CompatPlayerState.isAttackKeyHeld(player) || player.isSwinging();
             case "key.sprint"  -> player.isSprinting();
             // Airborne jump-press edge (client AirJumpPayload) — the double-jump gesture.
             case "key.jump"    -> com.cyberday1.neoorigins.compat.CompatPlayerState.isJumpKeyDown(player);

@@ -36,7 +36,7 @@ public class ElytraBoostPower extends AbstractActivePower<ElytraBoostPower.Confi
             look.z * 0.1 + (look.z * 1.5 - motion.z) * 0.5
         );
         player.setDeltaMovement(motion.add(boost.scale(config.strength())));
-        player.hurtMarked = true; // sync velocity to client
+        player.syncVelocity = true; // sync velocity to client
         return true;
     }
 }

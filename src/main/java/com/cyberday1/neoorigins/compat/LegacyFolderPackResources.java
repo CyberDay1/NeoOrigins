@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.compat;
 import com.cyberday1.neoorigins.NeoOrigins;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackMetadataResources;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.metadata.MetadataSectionType;
@@ -108,18 +109,19 @@ public final class LegacyFolderPackResources implements PackResources {
         this.delegate = delegate;
     }
 
-    /** Wrap a {@link Pack.ResourcesSupplier} so both open paths get the shim. */
+    /** Wrap a {@link Pack.ResourcesSupplier} so every opened {@link PackResources} gets the shim. */
     public static Pack.ResourcesSupplier wrap(Pack.ResourcesSupplier inner) {
         if (inner == null) return null;
         return new Pack.ResourcesSupplier() {
             @Override
-            public PackResources openPrimary(PackLocationInfo info) {
-                return new LegacyFolderPackResources(inner.openPrimary(info));
+            public PackMetadataResources openMetadata(PackLocationInfo info) {
+                return inner.openMetadata(info);
             }
 
+            // 26.3: a pack opens as a stream (base + overlays); shim each element.
             @Override
-            public PackResources openFull(PackLocationInfo info, Pack.Metadata metadata) {
-                return new LegacyFolderPackResources(inner.openFull(info, metadata));
+            public java.util.stream.Stream<PackResources> openResources(PackLocationInfo info, Pack.Metadata metadata) {
+                return inner.openResources(info, metadata).map(LegacyFolderPackResources::new);
             }
         };
     }

@@ -314,7 +314,7 @@ public class ProjectileRainVfxEntity extends AbstractVfxEntity {
             target.hurtServer(level, source, bladeDamage);
             if (knockup > 0) {
                 target.setDeltaMovement(target.getDeltaMovement().add(0, knockup, 0));
-                target.hurtMarked = true;
+                target.syncVelocity = true;
             }
         }
     }

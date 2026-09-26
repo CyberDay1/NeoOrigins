@@ -318,8 +318,8 @@ public class OriginInfoScreen extends Screen {
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
         // Left/right arrows page through the origins in the current layer.
-        if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT)  { browse(-1); return true; }
-        if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT) { browse(1);  return true; }
+        if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_LEFT)  { browse(-1); return true; }
+        if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_RIGHT) { browse(1);  return true; }
         return super.keyPressed(event);
     }
 

@@ -1,7 +1,7 @@
 package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.power.capability.PowerCapabilities;
-import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.Enderman;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  *
  * <p>Used by Enderian's Ender Eyes power via EnderGazeImmunityPower.
  */
-@Mixin(EnderMan.class)
+@Mixin(Enderman.class)
 public class EnderManLookMixin {
 
     // 26.1 Mojang renamed isLookingAtMe(Player) → isBeingStaredBy(Player) and
