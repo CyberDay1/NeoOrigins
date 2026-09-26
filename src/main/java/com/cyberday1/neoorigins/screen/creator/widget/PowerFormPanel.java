@@ -41,6 +41,8 @@ public final class PowerFormPanel {
 
     private final ScrollPanel scroll = new ScrollPanel();
     private final List<FieldRow> rows = new ArrayList<>();
+    /** Per row: the stored value and the row's reading of it, taken at build (see FormMerge). */
+    private final List<JsonElement[]> baselines = new ArrayList<>();
     /** Field-row widgets registered input-only, drawn by us inside the scroll
      *  scissor (see {@link #formHost}) so they can't bleed past the viewport. */
     private final List<Renderable> clipped = new ArrayList<>();
@@ -113,6 +115,7 @@ public final class PowerFormPanel {
             return;
         }
         rows.clear();
+        baselines.clear();
         clipped.clear();
         scroll.setViewport(x, y, w, h);
 
@@ -165,8 +168,12 @@ public final class PowerFormPanel {
             // input-only and land in `clipped` — rendered inside the scissor by
             // render(), never auto-drawn unclipped by Screen.super.render().
             row.build(formHost, font, fieldW, 16);
-            row.fromJson(body.get(spec.name()));
+            JsonElement stored = body.get(spec.name());
+            row.fromJson(stored);
+            JsonElement read = row.toJson();
             rows.add(row);
+            baselines.add(new JsonElement[] {
+                stored == null ? null : stored.deepCopy(), read == null ? null : read.deepCopy() });
         }
         int total = 4;
         for (FieldRow row : rows) total += row.height();
@@ -387,6 +394,15 @@ public final class PowerFormPanel {
         // scroll, producing the duplicated/overlapping fields. So: don't re-seed.
     }
 
+    /** Stored value, build-time reading and current value per row; tests only. */
+    List<JsonElement[]> rowStates() {
+        List<JsonElement[]> out = new ArrayList<>();
+        for (int i = 0; i < rows.size(); i++) {
+            out.add(new JsonElement[] { baselines.get(i)[0], baselines.get(i)[1], rows.get(i).toJson() });
+        }
+        return out;
+    }
+
     public void push() {
         if (target == null) return;
         if (rawMode) {
@@ -397,9 +413,14 @@ public final class PowerFormPanel {
         // not model (common name/description/hidden/required_mods, hand-authored
         // extras) survive a form edit. Each modeled row then owns its key —
         // writing its value, or removing the key when the row is unset.
+        // Rows rewrite their key from what they model, so a nested key a sub-form
+        // doesn't know (inverted, a typeless item_condition, an array action)
+        // would be lost; FormMerge writes only what the user changed.
         JsonObject body = parseObject(target.rawJson);
-        for (FieldRow row : rows) {
-            JsonElement v = row.toJson();
+        for (int i = 0; i < rows.size(); i++) {
+            FieldRow row = rows.get(i);
+            JsonElement[] base = baselines.get(i);
+            JsonElement v = FormMerge.merge(base[0], base[1], row.toJson());
             if (v != null) body.add(row.fieldName(), v);
             else body.remove(row.fieldName());
         }
