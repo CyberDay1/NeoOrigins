@@ -85,25 +85,9 @@ public final class VisualEffectsHandler {
 
     @SubscribeEvent
     public static void onRenderPlayerPre(RenderPlayerEvent.Pre event) {
-        // Several model_color powers can be active at once (the Caveborn diet
-        // tints, for example). Blend them by averaging each channel, so the
-        // result doesn't depend on the iteration order of an unordered set.
-        float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
-        int n = 0;
-        for (String cap : ClientActivePowers.activeCapabilities()) {
-            if (!cap.startsWith("model_color:")) continue;
-            String[] parts = cap.substring("model_color:".length()).split(":");
-            if (parts.length < 3) continue;
-            try {
-                r += Float.parseFloat(parts[0]);
-                g += Float.parseFloat(parts[1]);
-                b += Float.parseFloat(parts[2]);
-                a += parts.length >= 4 ? Float.parseFloat(parts[3]) : 1.0f;
-                n++;
-            } catch (NumberFormatException ignored) {}
-        }
-        if (n == 0) return;
-        r /= n; g /= n; b /= n; a /= n;
+        float[] tint = tintFor(event.getEntity().getUUID());
+        if (tint == null) return;
+        float r = tint[0], g = tint[1], b = tint[2], a = tint[3];
 
         // Flush any previously batched geometry before changing the shader
         // color, so prior renders aren't accidentally tinted.
@@ -118,6 +102,34 @@ public final class VisualEffectsHandler {
         }
         RenderSystem.setShaderColor(r, g, b, a);
         modelColorActive = true;
+    }
+
+    /**
+     * The blended {@code {r, g, b, a}} tint for the player being rendered, or null
+     * when they have none. Reads that player's own capabilities from
+     * {@link ClientPlayerPowers}, which the server keeps current for every tracked
+     * player and evicts on stop-tracking and logout.
+     */
+    static float[] tintFor(java.util.UUID playerId) {
+        // Several model_color powers can be active at once (the Caveborn diet
+        // tints, for example). Blend them by averaging each channel, so the
+        // result doesn't depend on the iteration order of an unordered set.
+        float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
+        int n = 0;
+        for (String cap : ClientPlayerPowers.capabilities(playerId)) {
+            if (!cap.startsWith("model_color:")) continue;
+            String[] parts = cap.substring("model_color:".length()).split(":");
+            if (parts.length < 3) continue;
+            try {
+                r += Float.parseFloat(parts[0]);
+                g += Float.parseFloat(parts[1]);
+                b += Float.parseFloat(parts[2]);
+                a += parts.length >= 4 ? Float.parseFloat(parts[3]) : 1.0f;
+                n++;
+            } catch (NumberFormatException ignored) {}
+        }
+        if (n == 0) return null;
+        return new float[] { r / n, g / n, b / n, a / n };
     }
 
     @SubscribeEvent
