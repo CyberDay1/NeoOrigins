@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Writes the 2.1 creator's draft to a real on-disk world datapack at
@@ -62,6 +63,11 @@ public final class CustomPackWriter {
             // filesystem writes yet, so a serialization/containment failure
             // here leaves the pack completely untouched.
             ResourceLocation originId = draft.originId();
+            Map<String, String> moved = claimPowerIds(root, "origins/origins", originId,
+                List.of(draft.powers, draft.tierPowers));
+            if (!moved.isEmpty() && draft.extras != null) {
+                draft.extras = PowerIdRemap.rewrite(draft.extras, moved).getAsJsonObject();
+            }
             java.util.LinkedHashMap<Path, JsonObject> plan = new java.util.LinkedHashMap<>();
 
             // Re-validate pack.mcmeta rather than blindly trusting any
@@ -134,6 +140,7 @@ public final class CustomPackWriter {
         try {
             Files.createDirectories(root);
             ResourceLocation originId = draft.originId();
+            claimPowerIds(root, "origins/mob_origins", originId, List.of(draft.powers));
             java.util.LinkedHashMap<Path, JsonObject> plan = new java.util.LinkedHashMap<>();
 
             Path meta = root.resolve("pack.mcmeta");
@@ -163,6 +170,92 @@ public final class CustomPackWriter {
             return WriteResult.fail(e.getClass().getSimpleName() + ": "
                 + (m != null ? m : "(no detail)"));
         }
+    }
+
+    /**
+     * Player and mob origins, and origins in different namespaces, mint power
+     * ids the same way, so two of them can name the same power file. A power id
+     * another origin file in this pack already lists is moved to a free id, and
+     * every reference to it in the draft follows. Returns old id → new id.
+     */
+    static Map<String, String> claimPowerIds(Path root, String kind, ResourceLocation self,
+            List<List<OriginDraft.PowerDraft>> lists) throws IOException {
+        Map<String, String> ownerOf = powerOwners(root);
+        String me = kind + " " + self;
+        java.util.Set<String> taken = new java.util.HashSet<>(ownerOf.keySet());
+        for (List<OriginDraft.PowerDraft> list : lists) {
+            for (OriginDraft.PowerDraft p : list) {
+                if (p.powerId != null && me.equals(ownerOf.getOrDefault(p.powerId.toString(), me))) {
+                    taken.add(p.powerId.toString());
+                }
+            }
+        }
+        Map<String, String> moved = new java.util.LinkedHashMap<>();
+        for (List<OriginDraft.PowerDraft> list : lists) {
+            for (OriginDraft.PowerDraft p : list) {
+                if (p.powerId == null) continue;
+                String owner = ownerOf.get(p.powerId.toString());
+                if (owner == null || owner.equals(me)) continue;
+                String base = p.powerId.getPath(), path = base;
+                for (int n = 2; taken.contains(OriginDraft.CUSTOM_NAMESPACE + ":" + path)
+                        || Files.exists(dataFile(root, OriginDraft.CUSTOM_NAMESPACE, "origins/powers", path)); n++) {
+                    path = base + "_" + n;
+                }
+                ResourceLocation to = ResourceLocation.fromNamespaceAndPath(OriginDraft.CUSTOM_NAMESPACE, path);
+                taken.add(to.toString());
+                moved.put(p.powerId.toString(), to.toString());
+                NeoOrigins.LOGGER.info("[creator] power id {} belongs to {}; saving {}'s copy as {}",
+                    p.powerId, owner, self, to);
+                p.powerId = to;
+            }
+        }
+        if (!moved.isEmpty()) {
+            for (List<OriginDraft.PowerDraft> list : lists) {
+                for (OriginDraft.PowerDraft p : list) {
+                    try {
+                        p.rawJson = PowerIdRemap.rewrite(JsonParser.parseString(p.rawJson), moved).toString();
+                    } catch (RuntimeException ignored) { /* not JSON: the serializer writes {} */ }
+                }
+            }
+        }
+        return moved;
+    }
+
+    /** Power id → "kind origin-id" for every origin and mob origin file in the pack. */
+    private static Map<String, String> powerOwners(Path root) throws IOException {
+        Map<String, String> out = new java.util.HashMap<>();
+        Path data = root.resolve("data");
+        if (!Files.isDirectory(data)) return out;
+        try (var namespaces = Files.list(data)) {
+            for (Path ns : namespaces.toList()) {
+                for (String kind : List.of("origins/origins", "origins/mob_origins")) {
+                    Path dir = ns.resolve(kind);
+                    if (!Files.isDirectory(dir)) continue;
+                    try (var files = Files.walk(dir)) {
+                        for (Path f : files.filter(x -> x.toString().endsWith(".json")).toList()) {
+                            String rel = dir.relativize(f).toString().replace(java.io.File.separatorChar, '/');
+                            String owner = kind + " " + ns.getFileName() + ":" + rel.substring(0, rel.length() - 5);
+                            JsonObject o;
+                            try { o = readJsonIfPresent(f); }
+                            catch (RuntimeException unreadable) { continue; } // a broken file owns nothing
+                            if (o == null) continue;
+                            java.util.List<com.google.gson.JsonElement> ids = new java.util.ArrayList<>();
+                            if (o.has("powers") && o.get("powers").isJsonArray()) o.getAsJsonArray("powers").forEach(ids::add);
+                            if (o.has("tier_powers") && o.get("tier_powers").isJsonArray()) {
+                                for (var tier : o.getAsJsonArray("tier_powers")) {
+                                    if (tier.isJsonObject() && tier.getAsJsonObject().has("add")
+                                            && tier.getAsJsonObject().get("add").isJsonArray()) {
+                                        tier.getAsJsonObject().getAsJsonArray("add").forEach(ids::add);
+                                    }
+                                }
+                            }
+                            for (var id : ids) if (id.isJsonPrimitive()) out.putIfAbsent(id.getAsString(), owner);
+                        }
+                    }
+                }
+            }
+        }
+        return out;
     }
 
     /**
