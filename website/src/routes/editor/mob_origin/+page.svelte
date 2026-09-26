@@ -14,6 +14,7 @@
 		type MobEditorTab
 	} from '$lib/stores/mobOriginDraft';
 	import { exportMobDatapack, suggestedFilename } from '$lib/datapack/mobExport';
+	import { ExportValidationError } from '$lib/datapack/export';
 	import { importMobDatapack, MobImportError } from '$lib/datapack/mobImport';
 	import MobIdentityTab from '$lib/components/mob/MobIdentityTab.svelte';
 	import MobSpawnRulesTab from '$lib/components/mob/MobSpawnRulesTab.svelte';
@@ -70,8 +71,11 @@
 			a.download = suggestedFilename($draft);
 			a.click();
 			URL.revokeObjectURL(url);
-		} catch {
-			downloadMessage = 'Export failed — see console for details.';
+		} catch (err) {
+			downloadMessage =
+				err instanceof ExportValidationError
+					? `Export blocked: ${err.issues.join(' ')}`
+					: 'Export failed — see console for details.';
 		}
 	}
 

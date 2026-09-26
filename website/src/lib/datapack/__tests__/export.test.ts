@@ -324,6 +324,45 @@ await check('gate — clean draft passes validateDraftIds', () => {
 	assert(issues.length === 0, `expected no issues, got: ${issues.map((i) => i.message).join(' | ')}`);
 });
 
+await check('gate — ids the game cannot parse are refused, not exported', async () => {
+	const bad: Array<[string, (d: OriginDraft) => void]> = [
+		['capital path', (d) => (d.path = 'Wizard')],
+		['trailing space path', (d) => (d.path = 'wizard ')],
+		['unicode path', (d) => (d.path = 'naïve')],
+		['dot segment path', (d) => (d.path = 'a/../b')],
+		['capital namespace', (d) => (d.namespace = 'MyPack')],
+		['spaced power id', (d) => (d.powers[0].id = 'fire breath')],
+		['namespaced power id', (d) => (d.powers[0].id = 'other:speed')],
+		['leading space power id', (d) => (d.powers[0].id = ' speed')],
+		['bad upgrade origin', (d) => (d.upgrades = [{ advancement: 'minecraft:story/root', origin: 'X:Y' }])],
+		['blank upgrade', (d) => (d.upgrades = [{ advancement: '', origin: '' }])]
+	];
+	for (const [label, mutate] of bad) {
+		const d = makeDraft();
+		mutate(d);
+		assert(validateDraftIds(d).length > 0, `${label}: no issue raised`);
+		let threw = false;
+		try {
+			await exportDatapack(d);
+		} catch (e) {
+			threw = e instanceof ExportValidationError;
+		}
+		assert(threw, `${label}: exported anyway`);
+	}
+});
+
+await check('gate — web id rule agrees with ResourceLocation on the shared cases', async () => {
+	const { resourceIdError } = await import('../ids.js');
+	const { readFileSync } = await import('node:fs');
+	const { fileURLToPath } = await import('node:url');
+	const cases = JSON.parse(
+		readFileSync(fileURLToPath(new URL('./id-cases.json', import.meta.url)), 'utf8')
+	).cases as Array<[string, boolean]>;
+	for (const [id, valid] of cases) {
+		assert((resourceIdError(id) === null) === valid, `"${id}": web says ${resourceIdError(id) ?? 'valid'}, game says ${valid}`);
+	}
+});
+
 await check('suggestedFilename — populated id', () => {
 	const name = suggestedFilename(makeDraft());
 	assert(name === 'mypack_wizard_datapack.zip', `got ${name}`);

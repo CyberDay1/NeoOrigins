@@ -23,6 +23,7 @@ import { zipSync, type Zippable } from 'fflate';
 
 import { serializeOrigin } from '$lib/schema/originSerializer';
 import type { OriginDraft } from '$lib/stores/originDraft';
+import { namespaceError, pathError, resourceIdError } from './ids';
 
 /**
  * Default datapack `pack_format` for MC 1.21.1 — the vanilla value is
@@ -78,32 +79,59 @@ export interface DraftIssue {
 export function validateDraftIds(draft: OriginDraft): DraftIssue[] {
 	const issues: DraftIssue[] = [];
 
-	if (!draft.namespace?.trim()) {
+	// Raw values, not trimmed ones: the serializer writes them as typed, and one
+	// bad id in the shared layer file used to drop every origin in that layer.
+	const nsErr = namespaceError(draft.namespace ?? '');
+	if (nsErr) {
 		issues.push({
 			scope: 'origin',
 			field: 'namespace',
-			message: 'Origin namespace is blank — fill it in on the Identity tab before exporting.'
+			message: (draft.namespace ?? '').trim()
+				? `Origin namespace ${nsErr}. Fix it on the Identity tab before exporting.`
+				: 'Origin namespace is blank — fill it in on the Identity tab before exporting.' 
 		});
 	}
-	if (!draft.path?.trim()) {
+	const pathErr = pathError(draft.path ?? '');
+	if (pathErr) {
 		issues.push({
 			scope: 'origin',
 			field: 'path',
-			message:
-				'Origin path (id) is blank — a blank path would export a broken origins/.json file. Fill it in on the Identity tab.'
+			message: (draft.path ?? '').trim()
+				? `Origin path (id) ${pathErr}. Fix it on the Identity tab before exporting.`
+				: 'Origin path (id) is blank — a blank path would export a broken origins/.json file. Fill it in on the Identity tab.'
 		});
 	}
+	const layerErr = resourceIdError(draft.layerId ?? '');
+	if (layerErr) {
+		issues.push({ scope: 'origin', field: 'layerId', message: `Layer id "${draft.layerId}" ${layerErr}.` });
+	}
+	(draft.upgrades ?? []).forEach((u, i) => {
+		for (const key of ['advancement', 'origin'] as const) {
+			const v = u[key] ?? '';
+			const err = v.trim() === '' ? 'is blank' : resourceIdError(v);
+			if (err) {
+				issues.push({
+					scope: 'origin',
+					field: 'upgrades',
+					message: `Upgrade ${i + 1}: ${key} "${u[key] ?? ''}" ${err}. Fix or remove it on the Upgrades tab.`
+				});
+			}
+		}
+	});
 
 	const firstIndexById = new Map<string, number>();
 	draft.powers.forEach((p, i) => {
-		const id = p.id?.trim() ?? '';
+		const id = p.id ?? '';
 		const label = `Power ${i + 1}`;
-		if (!id) {
+		const idErr = pathError(id);
+		if (idErr) {
 			issues.push({
 				scope: 'power',
 				powerIndex: i,
 				field: 'id',
-				message: `${label} has a blank id — it would export as a broken powers/.json file. Give it an id on the Powers tab.`
+				message: id.trim()
+					? `${label} id "${id}" ${idErr}. Fix it on the Powers tab.`
+					: `${label} has a blank id — it would export as a broken powers/.json file. Give it an id on the Powers tab.`
 			});
 			return;
 		}

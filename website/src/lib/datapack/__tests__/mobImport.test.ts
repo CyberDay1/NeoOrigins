@@ -13,6 +13,7 @@
 import { zipSync } from 'fflate';
 
 import { exportMobDatapack } from '../mobExport.js';
+import { ExportValidationError } from '../export.js';
 import { importMobDatapack, MobImportError } from '../mobImport.js';
 import type { MobOriginDraft } from '../../stores/mobOriginDraft.js';
 
@@ -257,6 +258,31 @@ await check('throws MobImportError on non-zip bytes', () => {
 		threw = e instanceof MobImportError;
 	}
 	assert(threw, 'expected MobImportError on garbage bytes');
+});
+
+await check('export refuses ids the game cannot parse, and duplicate power ids', async () => {
+	const bad: Array<(d: MobOriginDraft) => void> = [
+		(d) => (d.path = 'Wraith'),
+		(d) => (d.path = ''),
+		(d) => (d.namespace = 'My Pack'),
+		(d) => (d.powers = [{ id: '', type: 'neoorigins:persistent_effect', fields: {} }]),
+		(d) =>
+			(d.powers = [
+				{ id: 'a', type: 'neoorigins:persistent_effect', fields: {} },
+				{ id: 'a', type: 'neoorigins:persistent_effect', fields: {} }
+			])
+	];
+	for (const [i, mutate] of bad.entries()) {
+		const d = minimalDraft();
+		mutate(d);
+		let threw = false;
+		try {
+			await exportMobDatapack(d);
+		} catch (e) {
+			threw = e instanceof ExportValidationError;
+		}
+		assert(threw, `case ${i} exported anyway`);
+	}
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

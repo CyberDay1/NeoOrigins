@@ -15,6 +15,8 @@ import { zipSync, type Zippable } from 'fflate';
 
 import { serializeMobOrigin } from '$lib/schema/mobOriginSerializer';
 import type { MobOriginDraft } from '$lib/stores/mobOriginDraft';
+import { ExportValidationError } from './export';
+import { namespaceError, pathError } from './ids';
 
 /** Default datapack pack_format for MC 1.21.1 — see datapack/export.ts. */
 const DEFAULT_PACK_FORMAT = 48;
@@ -30,6 +32,23 @@ export function suggestedFilename(draft: MobOriginDraft): string {
 	return `${ns}_${local}_mob_origin_datapack.zip`;
 }
 
+/** Id problems that would make the loader skip this mob origin or one of its powers. */
+export function validateMobDraftIds(draft: MobOriginDraft): string[] {
+	const issues: string[] = [];
+	const nsErr = namespaceError(draft.namespace ?? '');
+	if (nsErr) issues.push(`Namespace ${nsErr}.`);
+	const pathErr = pathError(draft.path ?? '');
+	if (pathErr) issues.push(`Path (id) ${pathErr}.`);
+	const seen = new Set<string>();
+	draft.powers.forEach((p, i) => {
+		const err = pathError(p.id ?? '');
+		if (err) issues.push(`Power ${i + 1} id "${p.id ?? ''}" ${err}.`);
+		else if (seen.has(p.id)) issues.push(`Power ${i + 1} reuses the id "${p.id}" — both would write powers/${p.id}.json.`);
+		seen.add(p.id);
+	});
+	return issues;
+}
+
 /**
  * Build a complete mob-origin datapack `.zip` Blob from the current draft.
  * `packFormat` defaults to 48 (MC 1.21.1); pass 84 for MC 26.1.
@@ -38,6 +57,8 @@ export async function exportMobDatapack(
 	draft: MobOriginDraft,
 	packFormat: number = DEFAULT_PACK_FORMAT
 ): Promise<Blob> {
+	const issues = validateMobDraftIds(draft);
+	if (issues.length > 0) throw new ExportValidationError(issues);
 	const bundle = serializeMobOrigin(draft);
 
 	const description =

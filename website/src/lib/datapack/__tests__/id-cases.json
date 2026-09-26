@@ -1,0 +1,69 @@
+{
+	"_comment": "Full ids and whether ResourceLocation.tryParse accepts them. Read by export.test.ts and IdRulesMatchGameTest.java.",
+	"cases": [
+		[
+			"neoorigins:wizard",
+			true
+		],
+		[
+			"mypack:magic/wizard_2",
+			true
+		],
+		[
+			"my.pack:a-b.c",
+			true
+		],
+		[
+			"wizard",
+			true
+		],
+		[
+			"neoorigins:Wizard",
+			false
+		],
+		[
+			"neoorigins:wizard ",
+			false
+		],
+		[
+			" neoorigins:wizard",
+			false
+		],
+		[
+			"neoorigins:fire breath",
+			false
+		],
+		[
+			"MyPack:wizard",
+			false
+		],
+		[
+			"neoorigins:naïve",
+			false
+		],
+		[
+			"neoorigins:a:b",
+			false
+		],
+		[
+			"neo origins:x",
+			false
+		],
+		[
+			"neoorigins:",
+			true
+		],
+		[
+			"neoorigins:a/../b",
+			true
+		],
+		[
+			":wizard",
+			true
+		],
+		[
+			"neoorigins:wizard\t",
+			false
+		]
+	]
+}
