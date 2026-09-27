@@ -524,6 +524,9 @@ public final class ActionParser {
 
     // ---- Phase 2: New action parsers ----
 
+    /** Block fan-out radius when an area_of_effect gives none (the only known pack uses 2). */
+    static final float BLOCK_SWEEP_DEFAULT_RADIUS = 2.0f;
+
     static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
         // AoE: scan every LivingEntity within radius once and dispatch the inner
         // action per entity. The inner action is parsed two ways:
@@ -677,6 +680,9 @@ public final class ActionParser {
                 : null;
 
         final float  finalRadius       = radius;
+        // The 16 default suits entities; for blocks it meant ~17,000 runs of the block
+        // action per activation (an explode each), reachable without typing a number.
+        final float  blockRadius       = json.has("radius") ? radius : BLOCK_SWEEP_DEFAULT_RADIUS;
         final boolean finalIncludeSelf = includeSelf;
         final String  finalShape       = shape;
         final double  finalConeCos     = coneCos;
@@ -787,8 +793,8 @@ public final class ActionParser {
                 // sane for the entity path but 33^3 block positions per fire is
                 // where we draw the line anyway; Apoli packs use small radii
                 // (Fairy verdant_touch: 2).
-                int br = (int) Math.ceil(Math.min(finalRadius, 16.0f));
-                double br2 = (double) finalRadius * finalRadius;
+                int br = (int) Math.ceil(Math.min(blockRadius, 16.0f));
+                double br2 = (double) blockRadius * blockRadius;
                 boolean sphere = "sphere".equalsIgnoreCase(finalShape);
                 for (net.minecraft.core.BlockPos pos : net.minecraft.core.BlockPos.betweenClosed(
                         center.offset(-br, -br, -br), center.offset(br, br, br))) {
