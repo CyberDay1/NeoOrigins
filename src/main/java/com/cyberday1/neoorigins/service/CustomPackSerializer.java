@@ -35,8 +35,8 @@ public final class CustomPackSerializer {
     /** The origin definition body — no {@code id}, no {@code type}. */
     public static JsonObject originJson(OriginDraft d) {
         JsonObject o = new JsonObject();
-        o.add("name", text(d.name));
-        o.add("description", text(d.description));
+        o.add("name", shown(d.name, d.nameSource, d.nameShown));
+        o.add("description", shown(d.description, d.descriptionSource, d.descriptionShown));
         o.addProperty("icon", d.icon.toString());
         o.addProperty("impact", impactName(d.impact));
         o.addProperty("order", d.order);
@@ -47,7 +47,19 @@ public final class CustomPackSerializer {
         }
         o.add("powers", powers);
         o.add("upgrades", new JsonArray());
+        // Keys the creator has no field for (tier_powers, spawn_location, upgrades, …).
+        if (d.extras != null) {
+            for (var e : d.extras.entrySet()) {
+                if (!o.has(e.getKey()) || "upgrades".equals(e.getKey())) o.add(e.getKey(), e.getValue().deepCopy());
+            }
+        }
         return o;
+    }
+
+    /** The loaded JSON while the text is unedited (keeps a translation key), else literal text. */
+    private static JsonElement shown(String text, JsonElement source, String shownText) {
+        if (source != null && java.util.Objects.equals(text, shownText)) return source.deepCopy();
+        return text(text);
     }
 
     /** A power definition body — {@code rawJson} with {@code type} ensured. */

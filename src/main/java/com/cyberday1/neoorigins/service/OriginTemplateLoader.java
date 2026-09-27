@@ -17,12 +17,16 @@ import net.minecraft.resources.Identifier;
  * <p>Power ids are deliberately rewritten to {@code OriginDraft.CUSTOM_NAMESPACE}
  * — keeping the source namespace would mean the templated draft's edits also
  * overwrite the vanilla power files, which is rarely what you want when
- * tweaking a single origin. The draft's origin body references the new ids
- * via the rewritten power list.
+ * tweaking a single origin. References between the cloned powers, and the
+ * origin's own keys the draft has no field for, are rewritten to the new ids.
  */
 public final class OriginTemplateLoader {
 
     private OriginTemplateLoader() {}
+
+    /** Keys the draft models itself; everything else rides in {@code draft.extras}. */
+    private static final java.util.Set<String> MODELLED =
+        java.util.Set.of("id", "name", "description", "icon", "impact", "order", "powers");
 
     /** Mutates {@code draft} in place — replaces identity, layer, and the
      *  entire power list with the template's contents. Existing draft state
@@ -35,34 +39,64 @@ public final class OriginTemplateLoader {
         draft.icon = template.icon();
         draft.impact = template.impact();
 
-        // Origin body: copy display fields and order through, then rewrite the
-        // power list to the new (custom-namespace) ids. The on-disk writer
-        // composes the origin JSON from the draft fields itself, so we only
-        // need to populate the identity-level pieces here.
+        JsonObject body;
         try {
-            JsonObject body = JsonParser.parseString(template.originBody()).getAsJsonObject();
-            draft.name = readText(body, "name", src.getPath());
-            draft.description = readText(body, "description", "");
-            if (body.has("order") && body.get("order").isJsonPrimitive()) {
-                try { draft.order = body.get("order").getAsInt(); }
-                catch (NumberFormatException ignored) { /* keep default */ }
-            }
+            body = JsonParser.parseString(template.originBody()).getAsJsonObject();
         } catch (RuntimeException e) {
-            draft.name = src.getPath();
-            draft.description = "";
+            body = new JsonObject();
+        }
+        draft.nameSource = body.get("name");
+        draft.name = draft.nameShown = shownText(body, "name", src.getPath());
+        draft.descriptionSource = body.get("description");
+        draft.description = draft.descriptionShown = shownText(body, "description", "");
+        if (body.has("order") && body.get("order").isJsonPrimitive()) {
+            try { draft.order = body.get("order").getAsInt(); }
+            catch (NumberFormatException ignored) { /* keep default */ }
         }
 
-        // Powers: clone every body, mint a custom-namespace id so future
-        // edits stay scoped to the user's pack and don't shadow other
-        // origins that reference the original power id.
+        // Clone every power under a custom-namespace id, so edits never touch a
+        // shipped file other origins may share, then point every reference at
+        // the clones: resource costs, power_active checks and tier_powers.
         draft.powers.clear();
-        for (var e : template.powers().entrySet()) {
-            String typeId = extractType(e.getValue());
-            OriginDraft.PowerDraft pd =
-                new OriginDraft.PowerDraft(null /* set just below */, typeId);
-            pd.powerId = draft.mintPowerId(pd, typeId);
-            pd.rawJson = stripDisplayFields(e.getValue());
-            draft.powers.add(pd);
+        draft.tierPowers.clear();
+        java.util.Map<String, String> renamed = new java.util.HashMap<>();
+        java.util.List<java.util.Map.Entry<OriginDraft.PowerDraft, String>> cloned = new java.util.ArrayList<>();
+        for (var list : java.util.List.of(template.powers(), template.tierPowers())) {
+            boolean tier = list == template.tierPowers();
+            for (var e : list.entrySet()) {
+                OriginDraft.PowerDraft pd = new OriginDraft.PowerDraft(null, extractType(e.getValue()));
+                (tier ? draft.tierPowers : draft.powers).add(pd);
+                pd.powerId = cloneId(draft, pd, e.getKey());
+                renamed.put(e.getKey().toString(), pd.powerId.toString());
+                cloned.add(java.util.Map.entry(pd, e.getValue()));
+            }
+        }
+        for (var c : cloned) c.getKey().rawJson = stripDisplayFields(c.getValue(), renamed);
+
+        JsonObject extras = new JsonObject();
+        for (var e : body.entrySet()) {
+            if (!MODELLED.contains(e.getKey())) extras.add(e.getKey(), PowerIdRemap.rewrite(e.getValue(), renamed));
+        }
+        draft.extras = extras;
+    }
+
+    /** {@code neoorigins_custom:<source path>}, suffixed if another clone already has it. */
+    private static Identifier cloneId(OriginDraft draft, OriginDraft.PowerDraft self, Identifier source) {
+        String base = source.getPath(), path = base;
+        for (int n = 2; draft.idTaken(self, path); n++) path = base + "_" + n;
+        return Identifier.fromNamespaceAndPath(OriginDraft.CUSTOM_NAMESPACE, path);
+    }
+
+    /** The text a name/description shows in game: a translation key resolves through the language. */
+    private static String shownText(JsonObject body, String field, String fallback) {
+        if (!body.has(field)) return fallback;
+        try {
+            return com.cyberday1.neoorigins.api.origin.ComponentCodecHelper.CODEC
+                .parse(com.mojang.serialization.JsonOps.INSTANCE, body.get(field))
+                .result().map(net.minecraft.network.chat.Component::getString)
+                .orElseGet(() -> readText(body, field, fallback));
+        } catch (RuntimeException e) {
+            return readText(body, field, fallback);
         }
     }
 
@@ -91,14 +125,14 @@ public final class OriginTemplateLoader {
     }
 
     /** Strip {@code id} (added by the loader, not part of the source body)
-     *  so the cloned body matches what the Powers tab would save. Display
-     *  fields (name/description) stay — the user usually wants to edit them. */
-    private static String stripDisplayFields(String rawJson) {
+     *  so the cloned body matches what the Powers tab would save, and point its
+     *  references at the cloned ids. Display fields stay. */
+    private static String stripDisplayFields(String rawJson, java.util.Map<String, String> renamed) {
         try {
             JsonObject o = JsonParser.parseString(rawJson).getAsJsonObject();
             o.remove("id");
             o.remove("_power_id");
-            return o.toString();
+            return PowerIdRemap.rewrite(o, renamed).toString();
         } catch (RuntimeException e) {
             return rawJson;
         }

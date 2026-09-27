@@ -29,7 +29,7 @@ public final class LabeledField {
     /** Build the box; register the returned widget with the screen. */
     public EditBox build(Font font, int x, int y, int w, int h) {
         box = new EditBox(font, x, y, w, h, Component.literal(label));
-        box.setMaxLength(256);
+        box.setMaxLength(32767); // shipped descriptions run past 256; a shorter cap truncated them
         if (filter != null) box.setFilter(filter);
         return box;
     }

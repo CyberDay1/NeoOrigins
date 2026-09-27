@@ -50,6 +50,12 @@ public final class CreatorValidator {
         public String message() { return String.join("; ", errors); }
     }
 
+    private static List<OriginDraft.PowerDraft> allPowers(OriginDraft d) {
+        List<OriginDraft.PowerDraft> all = new ArrayList<>(d.powers);
+        all.addAll(d.tierPowers);
+        return all;
+    }
+
     public static Result validate(RegistryAccess registries, OriginDraft draft) {
         List<String> errors = new ArrayList<>();
 
@@ -76,7 +82,7 @@ public final class CreatorValidator {
             return new Result(false, List.of(
                 "target layer path \"" + draft.layerId + "\" is not allowed"));
         }
-        for (OriginDraft.PowerDraft p : draft.powers) {
+        for (OriginDraft.PowerDraft p : allPowers(draft)) {
             if (p.powerId == null
                     || !SAFE_ID_PATH.matcher(p.powerId.getPath()).matches()) {
                 return new Result(false, List.of(
