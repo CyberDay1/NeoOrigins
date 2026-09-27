@@ -306,7 +306,7 @@
           "default": false
         },
         "block_action": {
-          "description": "Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius capped at 16.",
+          "description": "Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius is radius when set (capped at 16), else 2.",
           "$ref": "#"
         },
         "block_condition": {

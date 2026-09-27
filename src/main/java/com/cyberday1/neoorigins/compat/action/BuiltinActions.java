@@ -52,6 +52,19 @@ public final class BuiltinActions {
     private static final ThreadLocal<java.util.Set<Identifier>> ACTIVATE_IN_FLIGHT =
         ThreadLocal.withInitial(java.util.HashSet::new);
 
+    /** explode calls allowed per player per tick. They all go off at the player and hurt
+     *  immunity absorbs most of what the extra ones deal, so more than a few is mostly lag. */
+    static final int EXPLOSIONS_PER_TICK = 4;
+    private static final Map<java.util.UUID, long[]> EXPLOSIONS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    static boolean explosionAllowed(java.util.UUID player, long tick) {
+        long[] slot = EXPLOSIONS.computeIfAbsent(player, k -> new long[] { tick, 0 });
+        synchronized (slot) {
+            if (slot[0] != tick) { slot[0] = tick; slot[1] = 0; }
+            return ++slot[1] <= EXPLOSIONS_PER_TICK;
+        }
+    }
+
     private static void define(String path, ActionType.Factory factory, List<FieldSpec> fields) {
         Identifier id = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         ActionType type = new ActionType(id, factory, fields);
@@ -450,6 +463,7 @@ public final class BuiltinActions {
                 boolean fire = json.has("create_fire") && json.get("create_fire").getAsBoolean();
                 return player -> {
                     if (!(player.level() instanceof net.minecraft.server.level.ServerLevel sl)) return;
+                    if (!explosionAllowed(player.getUUID(), sl.getGameTime())) return;
                     var blockInteraction = destructive
                         ? net.minecraft.world.level.Level.ExplosionInteraction.BLOCK
                         : net.minecraft.world.level.Level.ExplosionInteraction.NONE;
@@ -2798,7 +2812,7 @@ public final class BuiltinActions {
                 new FieldSpec("include_target", FormFieldSpec.Kind.BOOLEAN, false).def(false)
                     .doc("Apoli spelling of include_source."),
                 new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
-                    .doc("Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius capped at 16."),
+                    .doc("Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius is radius when set (capped at 16), else 2."),
                 new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false).ref("block_condition.schema.json")
                     .doc("Optional block filter for the block fan-out — only positions matching it run block_action. Only used with block_action.")));
 
