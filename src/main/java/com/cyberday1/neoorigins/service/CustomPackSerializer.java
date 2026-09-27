@@ -80,7 +80,8 @@ public final class CustomPackSerializer {
             JsonElement v = e.getValue();
             if (v.isJsonArray()) {
                 JsonArray cleaned = pruneArray(v.getAsJsonArray());
-                if (cleaned.isEmpty()) drop.add(e.getKey());
+                // An authored [] stays: for some fields it differs from absent.
+                if (cleaned.isEmpty() && !v.getAsJsonArray().isEmpty()) drop.add(e.getKey());
                 else replace.put(e.getKey(), cleaned);
             } else if (v.isJsonObject()) {
                 pruneBlankArrayEntries(v.getAsJsonObject());
