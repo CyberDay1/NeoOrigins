@@ -65,6 +65,13 @@ public final class OriginTemplates {
                 powerBodies.put(powerId, powerBody != null ? GSON.toJson(powerBody) : "{}");
             }
 
+            LinkedHashMap<Identifier, String> tierBodies = new LinkedHashMap<>();
+            for (Identifier powerId : tierPowerIds(body)) {
+                if (powerBodies.containsKey(powerId)) continue;
+                JsonObject powerBody = PowerDataManager.INSTANCE.getRawPowerJson(powerId);
+                if (powerBody != null) tierBodies.put(powerId, GSON.toJson(powerBody));
+            }
+
             Identifier icon = origin.icon().isEmpty()
                 ? Identifier.withDefaultNamespace("player_head")
                 : BuiltInRegistries.ITEM.getKey(origin.icon().getItem());
@@ -75,10 +82,25 @@ public final class OriginTemplates {
                 icon != null ? icon : Identifier.withDefaultNamespace("player_head"),
                 origin.impact() != null ? origin.impact().ordinal() : 0,
                 GSON.toJson(body),
-                powerBodies));
+                powerBodies, tierBodies));
         }
 
         out.sort((a, b) -> a.originId().toString().compareTo(b.originId().toString()));
+        return out;
+    }
+
+    /** Every power id a {@code tier_powers} entry adds, in order. */
+    static List<Identifier> tierPowerIds(JsonObject originBody) {
+        List<Identifier> out = new ArrayList<>();
+        if (!originBody.has("tier_powers") || !originBody.get("tier_powers").isJsonArray()) return out;
+        for (var tier : originBody.getAsJsonArray("tier_powers")) {
+            if (!tier.isJsonObject() || !tier.getAsJsonObject().has("add")
+                    || !tier.getAsJsonObject().get("add").isJsonArray()) continue;
+            for (var id : tier.getAsJsonObject().getAsJsonArray("add")) {
+                Identifier rl = id.isJsonPrimitive() ? Identifier.tryParse(id.getAsString()) : null;
+                if (rl != null && !out.contains(rl)) out.add(rl);
+            }
+        }
         return out;
     }
 
@@ -106,19 +128,35 @@ public final class OriginTemplates {
             o.addProperty("icon", t.icon().toString());
             o.addProperty("impact", t.impact());
             o.addProperty("originBody", t.originBody());
-            JsonArray powers = new JsonArray();
-            for (var e : t.powers().entrySet()) {
-                JsonObject p = new JsonObject();
-                p.addProperty("id", e.getKey().toString());
-                p.addProperty("body", e.getValue());
-                powers.add(p);
-            }
-            o.add("powers", powers);
+            o.add("powers", bodies(t.powers()));
+            o.add("tierPowers", bodies(t.tierPowers()));
             arr.add(o);
         }
         JsonObject root = new JsonObject();
         root.add("items", arr);
         return GSON.toJson(root);
+    }
+
+    private static JsonArray bodies(Map<Identifier, String> map) {
+        JsonArray arr = new JsonArray();
+        for (var e : map.entrySet()) {
+            JsonObject p = new JsonObject();
+            p.addProperty("id", e.getKey().toString());
+            p.addProperty("body", e.getValue());
+            arr.add(p);
+        }
+        return arr;
+    }
+
+    private static LinkedHashMap<Identifier, String> bodies(JsonObject o, String key) {
+        LinkedHashMap<Identifier, String> out = new LinkedHashMap<>();
+        if (o.has(key) && o.get(key).isJsonArray()) {
+            for (var pe : o.getAsJsonArray(key)) {
+                JsonObject p = pe.getAsJsonObject();
+                out.put(Identifier.parse(p.get("id").getAsString()), p.get("body").getAsString());
+            }
+        }
+        return out;
     }
 
     /** Inverse of {@link #toJson}. Malformed entries are dropped silently —
@@ -139,17 +177,8 @@ public final class OriginTemplates {
                     Identifier icon = Identifier.parse(o.get("icon").getAsString());
                     int impact = o.has("impact") ? o.get("impact").getAsInt() : 0;
                     String originBody = o.get("originBody").getAsString();
-                    LinkedHashMap<Identifier, String> powers = new LinkedHashMap<>();
-                    if (o.has("powers") && o.get("powers").isJsonArray()) {
-                        for (var pe : o.getAsJsonArray("powers")) {
-                            JsonObject p = pe.getAsJsonObject();
-                            powers.put(
-                                Identifier.parse(p.get("id").getAsString()),
-                                p.get("body").getAsString());
-                        }
-                    }
                     out.add(new OriginTemplate(originId, layerId, displayName, icon,
-                        impact, originBody, powers));
+                        impact, originBody, bodies(o, "powers"), bodies(o, "tierPowers")));
                 } catch (RuntimeException ignored) { /* drop one bad entry */ }
             }
             return out;
