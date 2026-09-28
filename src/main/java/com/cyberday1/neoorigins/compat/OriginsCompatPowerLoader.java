@@ -629,18 +629,29 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
      * {@code neoorigins:food_restriction} survives only as a legacy alias, so
      * emit what its remap would have produced: cancel {@code food_eaten} when
      * the food is (vegetarian) / is not (carnivore) in the meat tag. The tag
-     * nests {@code #neoorigins:fish_foods}, so carnivores may eat fish and vegetarians may not.
+     * nests {@code #neoorigins:fish_foods}, so carnivores may eat fish and vegetarians may not,
+     * and the {@code ocean_origins.extra_fish_foods} config list counts the same way, so a
+     * modded fish whitelisted there feeds a carnivore without a datapack edit.
      */
     // hub: neoorigins/diet-tags.md
     private static com.google.gson.JsonObject meatFoodsRestrictionJson(boolean whitelist) {
         com.google.gson.JsonObject inTag = new com.google.gson.JsonObject();
         inTag.addProperty("type", "neoorigins:food_item_in_tag");
         inTag.addProperty("tag", "#neoorigins:meat_foods");
-        com.google.gson.JsonObject match = inTag;
+        com.google.gson.JsonObject inConfigList = new com.google.gson.JsonObject();
+        inConfigList.addProperty("type", "neoorigins:food_item_in_config_list");
+        inConfigList.addProperty("key", "ocean_origins.extra_fish_foods");
+        com.google.gson.JsonArray either = new com.google.gson.JsonArray();
+        either.add(inTag);
+        either.add(inConfigList);
+        com.google.gson.JsonObject isMeat = new com.google.gson.JsonObject();
+        isMeat.addProperty("type", "neoorigins:any_of");
+        isMeat.add("conditions", either);
+        com.google.gson.JsonObject match = isMeat;
         if (whitelist) {
             match = new com.google.gson.JsonObject();
             match.addProperty("type", "neoorigins:not");
-            match.add("condition", inTag);
+            match.add("condition", isMeat);
         }
         com.google.gson.JsonObject cancel = new com.google.gson.JsonObject();
         cancel.addProperty("type", "neoorigins:cancel_event");
