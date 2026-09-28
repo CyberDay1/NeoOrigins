@@ -893,6 +893,8 @@ Creates an explosion centred on the target.
 
 Server-side only.
 
+The explosion is always created at the player, whatever position the surrounding action resolved. At most four are created per player per tick, counted across every action that asks for one; the fifth and later in the same tick are skipped without a message. They all land on the same player, and hurt immunity after the first absorbs most of what the rest would deal, so the extras cost server time without adding effect.
+
 ---
 
 ## `neoorigins:gain_air`
@@ -1168,7 +1170,7 @@ Iterates every living entity within the radius and runs `entity_action` against 
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `radius` | float | no | `16.0` | Radius |
+| `radius` | float | no | `16.0` for entities, `2.0` for the block sweep | Reach of the sweep. A value you write applies to both sweeps; the block sweep caps it at 16 |
 | `shape` | string or object | no | `"sphere"` | `"cube"` skips the distance cull (plain AABB); anything else culls by squared distance. May also be an object: `{ "type": "cone", "angle": 60 }` additionally restricts the sphere to a cone of that full width (degrees) around the caster's look direction |
 | `include_source` | bool | no | see below | Whether the source entity is included |
 | `include_target` | bool | no | see below | Apoli spelling of `include_source`, read only when `include_source` is absent |
@@ -1181,7 +1183,7 @@ Iterates every living entity within the radius and runs `entity_action` against 
 
 **Apoli `bientity_action` form.** Apoli's own `area_of_effect` names its per-target action `bientity_action` and its filter `bientity_condition`, both taking the (actor, target) pair, usually wrapped in `target_action` / `target_condition`. Both spellings are accepted. Two defaults differ between the forms: the caster is included by default with `entity_action` (long-standing behaviour) but **excluded** by default with `bientity_action`, matching Apoli. Otherwise a cone attack damages the player who cast it. A `bientity_condition` that cannot be evaluated against a non-player entity skips the entity fan-out entirely and is reported in the compat summary, since silently dropping an *exclusion* filter would hit bystanders it was written to spare.
 
-**Block fan-out (Apoli `block_action` form).** When `block_action` is set, the action additionally sweeps every **block position** within `radius`, centered on the context block position when one resolves (raycast hit, `block_use`/`bonemeal` event, `block_action_at`) and on the source's feet otherwise. Each position is published as the context block, so nested block verbs (`grow`/`bonemeal`, `transform_block`, `offset`, `execute_command`) self-resolve. `block_condition` gates each position; `shape: "sphere"` culls by distance as for entities. The block sweep radius is capped at 16. Apoli packs use small radii here (e.g. 2).
+**Block fan-out (Apoli `block_action` form).** When `block_action` is set, the action additionally sweeps every **block position** within `radius`, centered on the context block position when one resolves (raycast hit, `block_use`/`bonemeal` event, `block_action_at`) and on the source's feet otherwise. Each position is published as the context block, so nested block verbs (`grow`/`bonemeal`, `transform_block`, `offset`, `execute_command`) self-resolve. `block_condition` gates each position; `shape: "sphere"` culls by distance as for entities. With no `radius` written the block sweep covers 2 blocks (33 positions) rather than borrowing the entity sweep default of 16, which is 17,077 positions per activation. A `radius` you do write applies to both sweeps, and the block sweep caps it at 16. Apoli packs use small radii here (e.g. 2).
 
 **Example: burn nearby mobs but never other players**
 ```json
