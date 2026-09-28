@@ -5,13 +5,16 @@ import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.CompatPower;
 import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
 import com.cyberday1.neoorigins.compat.action.EntityAction;
+import com.cyberday1.neoorigins.compat.irons_spellbooks.IronsSpellsBridge;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.power.builtin.ResourcePower;
 import com.cyberday1.neoorigins.rig.PlayerLifecycle;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.fml.ModList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -28,6 +31,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mockStatic;
 
 /**
@@ -117,6 +123,29 @@ class ResourceBindingsTest {
 
             assertFalse(JS.hasResource(sp, MANA), "an unheld mana-backed bar must be absent");
             assertNull(JS.getResource(sp, MANA), "an unheld mana-backed bar must read null");
+        }
+    }
+
+    /** Two holders, two pools: each read must answer its own player's mana through the real router. */
+    @Test
+    void manaBackedReadsAreDistinctPerPlayer() {
+        MinecraftServer server = mock(MinecraftServer.class, RETURNS_DEEP_STUBS);
+        ServerPlayer a = PlayerLifecycle.realPlayer(server);
+        ServerPlayer b = PlayerLifecycle.realPlayer(server);
+        registerManaBar(0);
+        ModList mods = mock(ModList.class);
+        when(mods.isLoaded("irons_spellbooks")).thenReturn(true);
+        try (MockedStatic<ModList> modList = mockStatic(ModList.class);
+             MockedStatic<IronsSpellsBridge> irons = mockStatic(IronsSpellsBridge.class);
+             MockedStatic<ActiveOriginService> origins = mockStatic(ActiveOriginService.class)) {
+            modList.when(ModList::get).thenReturn(mods);
+            irons.when(() -> IronsSpellsBridge.getMana(a)).thenReturn(10f);
+            irons.when(() -> IronsSpellsBridge.getMana(b)).thenReturn(90f);
+            origins.when(() -> ActiveOriginService.allPowers(any(ServerPlayer.class))).thenReturn(List.of(manaHolder()));
+
+            assertEquals(10, JS.getResource(a, MANA), "A must read A's mana");
+            assertEquals(90, JS.getResource(b, MANA), "B must read B's mana, not A's");
+            assertEquals(10, JS.getResource(a, MANA), "A's read must not be left holding B's value");
         }
     }
 
