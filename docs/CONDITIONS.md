@@ -1052,7 +1052,7 @@ NeoOrigins ships these item tags for its diet-restricted origins, under `data/ne
 
 The fish diet additionally reads a server config allowlist: the `neoorigins:aquatic_fish_diet` power accepts either the `#neoorigins:fish_foods` tag **or** any entry in `ocean_origins.extra_fish_foods` (see `food_item_in_config_list` below), and only enforces the restriction when the `ocean_origins.fish_diet_required` flag is on.
 
-Fish counts as meat: `meat_foods` nests `fish_foods` (as `required: false`, so a broken fish tag cannot take the meat tag down with it). A carnivore may therefore eat any fish, and a vegetarian none. Two consequences for pack authors: a datapack that replaces `fish_foods` changes the carnivore and vegetarian diets too, and the `ocean_origins.*` config options reach the ocean diet only, never `meat_foods`.
+Fish counts as meat: `meat_foods` nests `fish_foods` (as `required: false`, so a broken fish tag cannot take the meat tag down with it). A carnivore may therefore eat any fish, and a vegetarian none. Two consequences for pack authors: a datapack that replaces `fish_foods` changes the carnivore and vegetarian diets too, and the `ocean_origins.extra_fish_foods` list counts as meat too, so a modded fish whitelisted there feeds a carnivore without a datapack edit. The other `ocean_origins.*` options reach the ocean diet only.
 
 ## `neoorigins:food_item_id`
 
