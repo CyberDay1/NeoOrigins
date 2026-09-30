@@ -2,8 +2,11 @@ package com.cyberday1.neoorigins.client;
 
 import com.cyberday1.neoorigins.network.payload.SyncResourcePayload;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,19 +26,32 @@ public class ClientResourceState {
         }
     }
 
-    private static final Map<String, ResourceEntry> resources = new HashMap<>();
+    // Iteration order is the stacking order; value-only updates keep each key's place.
+    private static final Map<String, ResourceEntry> resources = new LinkedHashMap<>();
+
+    /**
+     * The stacking order: resource keys (the power ids) in ascending string
+     * order, so slot 0, nearest the hotbar, holds the lowest id. The payload
+     * map carries no order of its own.
+     */
+    // hub: neoorigins/resource-bar-first-spend.md
+    static List<String> stackingOrder(Collection<String> keys) {
+        List<String> ordered = new ArrayList<>(keys);
+        Collections.sort(ordered);
+        return ordered;
+    }
 
     public static void apply(Map<String, SyncResourcePayload.Entry> incoming) {
         resources.clear();
         // A full sync may bring new sprite_locations (or follow a resource-pack
         // reload) — re-check texture presence next render.
         ResourceHudOverlay.clearSheetCache();
-        for (var e : incoming.entrySet()) {
-            var v = e.getValue();
+        for (String key : stackingOrder(incoming.keySet())) {
+            var v = incoming.get(key);
             ResourceEntry entry = new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),
                 v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.alwaysShow());
-            resources.put(e.getKey(), entry);
-            ResourceBarVisibility.observe(e.getKey(), entry.fraction());
+            resources.put(key, entry);
+            ResourceBarVisibility.observe(key, entry.fraction());
         }
     }
 
