@@ -1,9 +1,15 @@
 package com.cyberday1.neoorigins.command;
 
+import com.cyberday1.neoorigins.api.power.PowerHolder;
+import com.cyberday1.neoorigins.compat.LegacyCommandRewriter;
 import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Security guard for commands run on behalf of datapack powers.
@@ -15,8 +21,15 @@ import java.util.Locale;
  * {@code /op @s}. Every such call site routes through {@link #isBlocked} first
  * and skips execution when the command's effective root is on the
  * {@link com.cyberday1.neoorigins.config.AdminConfig#COMMAND_POWER_BLACKLIST}.
+ * The same sites call {@link #checkParses} so a command that cannot parse is logged.
  */
+// hub: neoorigins/pack-command-parse-warning.md
 public final class CommandPowerGuard {
+
+    /** Commands already seen to parse, so a per-tick condition parses once. */
+    private static final Set<String> KNOWN_GOOD = ConcurrentHashMap.newKeySet();
+    /** Power, site and command of each parse warning already logged. */
+    private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
 
     private CommandPowerGuard() {}
 
@@ -35,6 +48,49 @@ public final class CommandPowerGuard {
             extractRoot(command),
             contextId == null || contextId.isEmpty() ? "" : " [" + contextId + "]",
             command);
+    }
+
+    /**
+     * True when {@code command} parses against {@code source}. When it does not,
+     * logs it once per power and site, because the suppressed-output source every
+     * power uses drops vanilla's own error. Set {@code viaCommandEvent} for sites
+     * that run through {@code Commands#performPrefixedCommand}, whose CommandEvent
+     * can still repair legacy syntax. Never stops the command from being run.
+     */
+    public static boolean checkParses(CommandSourceStack source, String command,
+                                      String contextId, String site, boolean viaCommandEvent) {
+        if (command == null || command.isBlank()) return true;
+        String stripped = command.startsWith("/") ? command.substring(1) : command;
+        if (KNOWN_GOOD.contains(stripped)) return true;
+        String failure = OriginsCompatCommands.parseFailure(source, stripped);
+        if (failure == null) {
+            KNOWN_GOOD.add(stripped);
+            return true;
+        }
+        // Not cached: this text is good only where the CommandEvent rewrite runs.
+        if (viaCommandEvent && LegacyCommandRewriter.needsRewrite(stripped)
+                && OriginsCompatCommands.parsesCleanly(source, LegacyCommandRewriter.rewrite(stripped))) {
+            return true;
+        }
+        warnUnparseable(command, contextId, site, failure);
+        return false;
+    }
+
+    /** Emit a standardized warning, once, for a power's command that does not parse. */
+    public static void warnUnparseable(String command, String contextId, String site, String reason) {
+        ResourceLocation dispatching = PowerHolder.currentDispatchId();
+        String power = dispatching != null ? dispatching.toString() : contextId;
+        String where = power == null || power.isEmpty() ? site : power + " " + site;
+        if (!WARNED.add(where + " | " + command)) return;
+        NeoOrigins.LOGGER.warn(
+            "[command] power command does not parse and will not run [{}]: {} — full command was '{}'",
+            where, reason, command);
+    }
+
+    /** Forget which commands parsed and which were reported; a reload can change both. */
+    public static void clearParseMemory() {
+        KNOWN_GOOD.clear();
+        WARNED.clear();
     }
 
     /**

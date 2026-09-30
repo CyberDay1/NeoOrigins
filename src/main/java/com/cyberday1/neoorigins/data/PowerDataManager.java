@@ -109,6 +109,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
         CompatTranslationLog.open();
         OriginsMultipleExpander.reset();
+        com.cyberday1.neoorigins.command.CommandPowerGuard.clearParseMemory();
 
         // Build a working set, expanding any origins:multiple entries into synthetic sub-power entries
         Map<ResourceLocation, JsonElement> working = new HashMap<>(pObject);

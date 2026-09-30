@@ -2638,6 +2638,8 @@ public final class BuiltinActions {
                             com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, "execute_command");
                             return;
                         }
+                        com.cyberday1.neoorigins.command.CommandPowerGuard.checkParses(
+                            src, finalCmd, ctx, "execute_command", true);
                         player.level().getServer().getCommands().performPrefixedCommand(src, finalCmd);
                     } catch (Exception e) {
                         NeoOrigins.LOGGER.warn("[CompatB] execute_command failed: {}", e.getMessage());
@@ -3527,6 +3529,8 @@ public final class BuiltinActions {
                         if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(finalCmd)) {
                             com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, "execute_command");
                         } else {
+                            com.cyberday1.neoorigins.command.CommandPowerGuard.checkParses(
+                                src, finalCmd, null, "projectile_action execute_command", true);
                             sl.getServer().getCommands().performPrefixedCommand(src, finalCmd);
                         }
                     } catch (Exception ignored) { }

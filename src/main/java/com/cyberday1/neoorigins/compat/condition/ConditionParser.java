@@ -1123,7 +1123,7 @@ public final class ConditionParser {
         };
     }
 
-    static EntityCondition parseCommand(JsonObject json) {
+    static EntityCondition parseCommand(JsonObject json, String contextId) {
         String command = json.has("command") ? json.get("command").getAsString() : "";
         if (command.isBlank()) return EntityCondition.alwaysFalse();
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
@@ -1142,6 +1142,9 @@ public final class ConditionParser {
                 // Permission level 2 matches execute_command action and vanilla's
                 // function-permission-level — required for entity selectors (@e).
                 var src = player.createCommandSourceStack().withSuppressedOutput().withPermission(2);
+                // Runs through the dispatcher directly, so no CommandEvent rewrite applies.
+                com.cyberday1.neoorigins.command.CommandPowerGuard.checkParses(
+                    src, command, contextId, "command condition", false);
                 String cmd = command.startsWith("/") ? command.substring(1) : command;
                 var dispatcher = player.level().getServer().getCommands().getDispatcher();
                 int result = dispatcher.execute(cmd, src);
