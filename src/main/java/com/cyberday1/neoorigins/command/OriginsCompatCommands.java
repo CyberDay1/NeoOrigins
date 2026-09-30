@@ -9,6 +9,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.context.ContextChain;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -641,9 +642,23 @@ public class OriginsCompatCommands {
     /** True when the parse resolved to a complete, executable command. */
     private static boolean parsesCleanly(
             com.mojang.brigadier.ParseResults<net.minecraft.commands.CommandSourceStack> pr) {
-        return pr.getExceptions().isEmpty()
-            && pr.getContext().getCommand() != null
-            && !pr.getReader().canRead();
+        return parseFailure(pr) == null;
+    }
+
+    /**
+     * Why vanilla would refuse to run this parse, or null when it would run it.
+     * Mirrors {@code Commands#finishParsing}: a redirect such as
+     * {@code execute ... run} leaves the top-level context without a command,
+     * so only the flattened chain can say whether anything executes.
+     */
+    private static String parseFailure(
+            com.mojang.brigadier.ParseResults<net.minecraft.commands.CommandSourceStack> pr) {
+        var error = Commands.getParseException(pr);
+        if (error != null) return error.getMessage();
+        if (ContextChain.tryFlatten(pr.getContext().build(pr.getReader().getString())).isEmpty()) {
+            return "incomplete command";
+        }
+        return null;
     }
 
     /**
@@ -661,13 +676,18 @@ public class OriginsCompatCommands {
      * string tested here must be the one that would actually be run.
      */
     public static boolean parsesCleanly(CommandSourceStack source, String command) {
-        if (source.getServer() == null) return false;
+        return parseFailure(source, command) == null;
+    }
+
+    /** {@link #parsesCleanly(CommandSourceStack, String)}'s reason for saying no, or null. */
+    public static String parseFailure(CommandSourceStack source, String command) {
+        if (source.getServer() == null) return "no server to parse against";
         String stripped = command.startsWith("/") ? command.substring(1) : command;
         try {
-            return parsesCleanly(source.getServer().getCommands().getDispatcher()
+            return parseFailure(source.getServer().getCommands().getDispatcher()
                 .parse(stripped, source));
         } catch (Exception e) {
-            return false;
+            return String.valueOf(e.getMessage());
         }
     }
 }
