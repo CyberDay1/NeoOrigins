@@ -673,6 +673,8 @@ Also accepted under the alias `command` (Apoli's verb name, same field shape), s
 
 Runs only on the server side, and a blank `command` does nothing.
 
+A command that does not parse is logged with the id of the power that ran it and the game's own reason for refusing it, once for each combination of power, site and command text. Because output is suppressed, that log line is the only report a syntax error produces: the action itself runs nothing and raises nothing.
+
 ### Position resolution
 
 The command source is positioned at the **player by default**. When the dispatch context carries a block position, the source is repositioned at that **block's centre**, so `~ ~ ~` resolves to it: `block_break` / `block_place` events, `block_use` / `bonemeal` interactions, a `raycast` block hit, and the block published by `block_action_at`, `offset` or the `area_of_effect` block fan-out. This lets pack authors write the standard "drop loot at the block" recipe without manual coord lookup:

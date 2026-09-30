@@ -5043,6 +5043,12 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 | `animated` | string | no | — | Id of an animated bar FX preset, e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar fill renders as an animated texture strip instead of the flat `color`. |
 | `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the animated preset art, so one texture strip can be recolored per power. Ignored when `animated` is unset. |
 
+**Bar order and stacking.** Bars stack upwards from the hotbar in **resource id order**: sorted by the power id that owns the bar, lowest id nearest the hotbar. The order does not depend on the order the powers were granted, so a pack can predict where its bar will sit and describe that to a player. Adding a resource inserts its bar at the position its id sorts to, moving the bars above it up one slot.
+
+Only bars that are drawn take a slot. A bar hidden by `should_render: false`, or by the full-bar hiding described under `always_render`, holds no slot, and neither does one the player has dragged to a saved position in the HUD editor: those draw where they were placed, and the automatic stack closes up behind them.
+
+Up to 2.2.29 neither held: the vertical order followed an internal hash of the resource key, stable for a fixed set of bars but not predictable and not controllable, and a hidden or repositioned bar still reserved its slot, leaving a gap in the stack.
+
 **Animated bar FX presets:**
 
 Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`, looked up by the `animated` id. Because the bar render is entirely client-side, the preset and its texture ship in a resource pack: only the preset id travels in the power JSON; clients without the preset fall back to the flat `color` fill.
