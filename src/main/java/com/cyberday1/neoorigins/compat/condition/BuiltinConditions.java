@@ -491,7 +491,7 @@ public final class BuiltinConditions {
                     comparison(">=", "Comparison operator (default >=)."),
                     compareTo(FormFieldSpec.Kind.INTEGER, 0, "Statistic threshold (default 0).")));
         define("command",
-            (json, ctx) -> ConditionParser.parseCommand(json),
+            (json, ctx) -> ConditionParser.parseCommand(json, ctx),
             List.of(new FieldSpec("command", FormFieldSpec.Kind.STRING, false)
                         .doc("Command to run; compared against its return value (blank → false)."),
                     comparison(">=", "Comparison operator (default >=)."),
