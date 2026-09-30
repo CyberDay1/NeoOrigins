@@ -380,6 +380,11 @@ public final class ActionParser {
                 int steps = (int) Math.floor(distance / finalStep);
                 var server = player.level().getServer();
                 var commands = server.getCommands();
+                // Checked once, not per step: the step position cannot change the parse.
+                com.cyberday1.neoorigins.command.CommandPowerGuard.checkParses(
+                    server.createCommandSourceStack().withSuppressedOutput()
+                        .withEntity(player).withLevel(serverLevel),
+                    commandAlongRay, contextId, "command_along_ray", true);
                 for (int i = 1; i <= steps; i++) {
                     Vec3 stepPos = from.add(look.x * finalStep * i, look.y * finalStep * i, look.z * finalStep * i);
                     var src = server.createCommandSourceStack()
@@ -489,6 +494,8 @@ public final class ActionParser {
             .withPosition(pos)
             .withRotation(player.getRotationVector())
             .withLevel(serverLevel);
+        com.cyberday1.neoorigins.command.CommandPowerGuard.checkParses(
+            src, command, contextId, "command_at_hit", true);
         try {
             server.getCommands().performPrefixedCommand(src, command);
         } catch (Exception e) {
