@@ -149,8 +149,16 @@ public class ResourceHudEditorScreen extends Screen {
         var resources = ClientResourceState.getResources();
         int defaultX = width / 2 - 91;
         int defaultBaseY = height - 49;
-        int idx = 0;
-        for (var entry : resources.entrySet()) {
+        // The editor shows every bar, so all of them count as drawn here.
+        var entries = List.copyOf(resources.entrySet());
+        var bars = new ArrayList<ResourceBarStacking.Bar>(entries.size());
+        for (var entry : entries) {
+            bars.add(new ResourceBarStacking.Bar(entry.getKey(), true,
+                ResourceHudPositions.get(entry.getKey()) != null));
+        }
+        int[] barSlots = ResourceBarStacking.assignSlots(bars);
+        for (int i = 0; i < entries.size(); i++) {
+            var entry = entries.get(i);
             ResourceHudPositions.Pos saved = ResourceHudPositions.get(entry.getKey());
             float xPct, yPct;
             if (saved != null) {
@@ -158,10 +166,9 @@ public class ResourceHudEditorScreen extends Screen {
                 yPct = saved.yPct();
             } else {
                 xPct = (float) defaultX / width;
-                yPct = (float) (defaultBaseY - idx * 16) / height;
+                yPct = (float) (defaultBaseY - barSlots[i] * 16) / height;
             }
             widgets.add(new Widget(entry.getKey(), entry.getValue(), null, xPct, yPct, 1.0f, false));
-            idx++;
         }
 
         var slots = editorSlotsOrMock();
