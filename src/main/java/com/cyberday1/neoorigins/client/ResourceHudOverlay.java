@@ -69,18 +69,26 @@ public class ResourceHudOverlay {
         int defaultBaseX = screenW / 2 - 91;
         int defaultBaseY = screenH - 49;
 
-        int defaultIdx = 0;
-        for (var entry : resources.entrySet()) {
+        // Decide which bars draw before handing out stacked slots, so a hidden
+        // or dragged-out bar leaves no gap behind it.
+        var entries = java.util.List.copyOf(resources.entrySet());
+        var bars = new java.util.ArrayList<ResourceBarStacking.Bar>(entries.size());
+        for (var entry : entries) {
             var res = entry.getValue();
-
             // Hide when full — unless the bar opted into always_render, or the
             // resource has not been spent since the last sync (#105), which would
             // otherwise leave a bar that starts at max invisible from the start.
-            if (!ResourceBarVisibility.shouldDraw(
-                    entry.getKey(), res.alwaysShow(), res.fraction())) {
-                defaultIdx++;
-                continue;
-            }
+            boolean drawn = ResourceBarVisibility.shouldDraw(
+                entry.getKey(), res.alwaysShow(), res.fraction());
+            bars.add(new ResourceBarStacking.Bar(entry.getKey(), drawn,
+                ResourceHudPositions.get(entry.getKey()) != null));
+        }
+        int[] slots = ResourceBarStacking.assignSlots(bars);
+
+        for (int i = 0; i < entries.size(); i++) {
+            if (!bars.get(i).drawn()) continue;
+            var entry = entries.get(i);
+            var res = entry.getValue();
 
             // Look up saved position, fall back to default stacked layout
             ResourceHudPositions.Pos saved = ResourceHudPositions.get(entry.getKey());
@@ -90,7 +98,7 @@ public class ResourceHudOverlay {
                 y = Math.round(saved.yPct() * screenH);
             } else {
                 x = defaultBaseX;
-                y = defaultBaseY - (defaultIdx * BAR_SPACING);
+                y = defaultBaseY - (slots[i] * BAR_SPACING);
             }
 
             BarFxManager.BarFx fx = BarFxManager.get(res.animated());
@@ -142,8 +150,6 @@ public class ResourceHudOverlay {
             int readoutW = mc.font.width(readout);
             int barBottom = (fx != null ? FX_BAR_HEIGHT : FRAME_HEIGHT);
             g.text(mc.font, readout, x + (barW - readoutW) / 2, y + barBottom + 2, LABEL_COLOR, false);
-
-            defaultIdx++;
         }
     }
 
