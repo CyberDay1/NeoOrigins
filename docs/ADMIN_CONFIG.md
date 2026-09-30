@@ -70,6 +70,12 @@ extensions, and the `command` condition). Without a guard, a pack could ship
 command roots that are refused at execution time regardless of the power's
 permission level: a blocked command is refused and logged instead of run.
 
+A command the game cannot parse is also logged, once for each combination of
+power, site and command text, carrying the game's own reason for refusing it.
+Powers run their commands with output suppressed, so up to 2.2.29 a command
+with a syntax error produced no chat message and no log line: the power simply
+appeared to do nothing.
+
 | Behaviour | Detail |
 |---|---|
 | Key | `command_power_blacklist`, a list of command roots. |
