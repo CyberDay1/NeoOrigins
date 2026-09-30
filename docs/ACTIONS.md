@@ -672,14 +672,21 @@ Also accepted under the alias `command` (Apoli's verb name, same field shape), s
 |---|---|---|---|---|
 | `command` | string | yes | — | Command line (no leading slash) |
 
-**Example:**
+**Examples:**
 ```json
 { "type": "neoorigins:execute_command", "command": "effect give @s minecraft:glowing 10 0" }
+```
+
+A text component is itself JSON, so its quotes must be escaped inside the `command` string. `{"Triggered"}` is not a valid component, and a command carrying it does not parse:
+```json
+{ "type": "neoorigins:execute_command", "command": "tellraw @s {\"text\":\"Triggered\"}" }
 ```
 
 Runs only on the server side, and a blank `command` does nothing.
 
 A command that does not parse is logged with the id of the power that ran it and the game's own reason for refusing it, once for each combination of power, site and command text. Because output is suppressed, that log line is the only report a syntax error produces: the action itself runs nothing and raises nothing.
+
+Up to 2.2.29 no such line was written: a command that did not parse was dropped with nothing in the log.
 
 ### Position resolution
 
