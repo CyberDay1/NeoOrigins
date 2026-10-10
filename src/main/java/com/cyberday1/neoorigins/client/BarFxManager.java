@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.client;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.util.HexColor;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -117,11 +118,11 @@ public class BarFxManager extends SimplePreparableReloadListener<Map<Identifier,
                 int tileW = obj.has("tile_width") ? obj.get("tile_width").getAsInt() : 64;
                 int tileH = obj.has("tile_height") ? obj.get("tile_height").getAsInt() : 8;
                 int trackColor = obj.has("track_color")
-                    ? parseArgb(obj.get("track_color").getAsString()) : 0xAA000000;
+                    ? parseArgb("track_color", obj.get("track_color").getAsString()) : 0xAA000000;
                 // Backing under the filled portion; defaults to the track color so a
                 // preset that omits it behaves exactly as before.
                 int levelColor = obj.has("level_color")
-                    ? parseArgb(obj.get("level_color").getAsString()) : trackColor;
+                    ? parseArgb("level_color", obj.get("level_color").getAsString()) : trackColor;
 
                 tileW = Math.max(1, tileW);
                 tileH = Math.max(1, tileH);
@@ -144,10 +145,10 @@ public class BarFxManager extends SimplePreparableReloadListener<Map<Identifier,
         NeoOrigins.LOGGER.info("[bar_fx] Loaded {} animated resource-bar preset(s)", loaded.size());
     }
 
-    /** Parse a hex color string ({@code RRGGBB} or {@code AARRGGBB}, optional leading #). */
-    private static int parseArgb(String s) {
-        if (s.startsWith("#")) s = s.substring(1);
-        if (s.length() == 6) s = "FF" + s;   // assume opaque when no alpha given
-        return (int) Long.parseLong(s, 16);
+    /** Parse a hex color string ({@code RRGGBB} or {@code AARRGGBB}, optional leading #); anything else skips the preset. */
+    static int parseArgb(String field, String s) {
+        Integer c = HexColor.parse(s);
+        if (c == null) throw new IllegalArgumentException(field + " \"" + s + "\" is not a 6- or 8-digit hex colour");
+        return c;
     }
 }
