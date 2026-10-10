@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:resource",
+  "name": {
+    "text": "Bar: Tinted (gradient)"
+  },
+  "description": {
+    "text": "Showcase bar using neoorigins:tinted. Starts at 95 of 100 and refills one point every 5 seconds. Does nothing else."
+  },
+  "min": 0,
+  "max": 100,
+  "start_value": 95,
+  "regen_rate": 1,
+  "regen_interval": 100,
+  "hud_render": {
+    "label": "Tinted (gradient)",
+    "animated": "neoorigins:tinted",
+    "color": "#FF4E50",
+    "tint_end": "#F9D423",
+    "always_render": true
+  }
+}

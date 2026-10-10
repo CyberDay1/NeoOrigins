@@ -1,0 +1,23 @@
+{
+  "name": {
+    "text": "Bar Showcase"
+  },
+  "description": {
+    "text": "A test origin with one resource bar in every built-in style. It changes nothing about how you play. Run /function bar_showcase:reset to put every bar back to its starting value."
+  },
+  "icon": "minecraft:spyglass",
+  "impact": "none",
+  "order": 9999,
+  "powers": [
+    "bar_showcase:01_fire",
+    "bar_showcase:02_water",
+    "bar_showcase:03_wind",
+    "bar_showcase:04_earth",
+    "bar_showcase:05_soul",
+    "bar_showcase:06_void",
+    "bar_showcase:07_sculk",
+    "bar_showcase:08_tinted_color",
+    "bar_showcase:09_tinted_tint",
+    "bar_showcase:10_tinted_gradient"
+  ]
+}

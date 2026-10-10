@@ -1,0 +1,20 @@
+{
+  "type": "neoorigins:resource",
+  "name": {
+    "text": "Bar: Wind"
+  },
+  "description": {
+    "text": "Showcase bar using neoorigins:wind. Starts at 30 of 100 and refills one point every 5 seconds. Does nothing else."
+  },
+  "min": 0,
+  "max": 100,
+  "start_value": 30,
+  "regen_rate": 1,
+  "regen_interval": 100,
+  "hud_render": {
+    "label": "Wind",
+    "animated": "neoorigins:wind",
+    "color": "#CFEFFF",
+    "always_render": true
+  }
+}

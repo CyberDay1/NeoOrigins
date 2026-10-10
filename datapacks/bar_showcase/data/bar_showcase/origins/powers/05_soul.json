@@ -1,0 +1,20 @@
+{
+  "type": "neoorigins:resource",
+  "name": {
+    "text": "Bar: Soul"
+  },
+  "description": {
+    "text": "Showcase bar using neoorigins:soul. Starts at 50 of 100 and refills one point every 5 seconds. Does nothing else."
+  },
+  "min": 0,
+  "max": 100,
+  "start_value": 50,
+  "regen_rate": 1,
+  "regen_interval": 100,
+  "hud_render": {
+    "label": "Soul",
+    "animated": "neoorigins:soul",
+    "color": "#5FE3E3",
+    "always_render": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "type": "neoorigins:resource",
+  "name": {
+    "text": "Bar: Fire"
+  },
+  "description": {
+    "text": "Showcase bar using neoorigins:fire. Starts at 10 of 100 and refills one point every 5 seconds. Does nothing else."
+  },
+  "min": 0,
+  "max": 100,
+  "start_value": 10,
+  "regen_rate": 1,
+  "regen_interval": 100,
+  "hud_render": {
+    "label": "Fire",
+    "animated": "neoorigins:fire",
+    "color": "#FF6A00",
+    "always_render": true
+  }
+}
