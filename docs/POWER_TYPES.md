@@ -5103,12 +5103,12 @@ Here the bar draws in `#30D5C8`. `color` still matters: it is the flat fill show
 ```json
 "hud_render": {
   "label": "Stamina",
-  "color": "#9FE4FF",
+  "color": "#3FA9F5",
   "animated": "neoorigins:tinted",
-  "tint_end": "#E8FAFF"
+  "tint_end": "#BFF0FF"
 }
 ```
-This is the Frostborn bar: `#9FE4FF` at the empty end, `#E8FAFF` at the full end.
+This is the Frostborn bar: `#3FA9F5` at the empty end, `#BFF0FF` at the full end.
 
 **Example: fire bar**
 ```json
