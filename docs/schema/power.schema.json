@@ -6134,7 +6134,7 @@
               "default": "Resource"
             },
             "color": {
-              "description": "Bar color, as #RRGGBB or #AARRGGBB hex, e.g. #55AAFF. With animated set, the fill shown when the style is not loaded.",
+              "description": "Bar color, as #RRGGBB or #AARRGGBB hex, e.g. #55AAFF; any other value falls back to #55AAFF. With animated set, the fill shown when the style is not loaded.",
               "type": "string",
               "default": "#55AAFF"
             },
@@ -6149,7 +6149,7 @@
               "default": ""
             },
             "tint": {
-              "description": "Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color.",
+              "description": "Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored; any other value falls back to #55AAFF) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color.",
               "type": "string",
               "default": ""
             },

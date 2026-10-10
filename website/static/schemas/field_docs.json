@@ -47,7 +47,7 @@
     "command_at_hit": "Optional command run at the precise impact point when the ray hits a block or entity; not run on a miss."
   },
   "neoorigins:resource": {
-    "color": "Hex color (#RRGGBB or #AARRGGBB) for the HUD resource bar fill.",
+    "color": "Hex color (#RRGGBB or #AARRGGBB) for the HUD resource bar fill. Any other value falls back to #55AAFF.",
     "hidden": "If true, the HUD bar is not rendered but the resource still ticks, regens and can be spent (default false). Also forced true by hud_render.should_render=false (Origins compat).",
     "label": "Display name shown on the HUD resource bar (e.g. \"Mana\").",
     "max": "Maximum value the resource can hold (default 100).",
