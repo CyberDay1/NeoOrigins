@@ -1,156 +1,159 @@
-# NeoOrigins: Animated Resource Bar Art Spec
+# NeoOrigins: Resource Bar Art Spec
 
-Spec for artists producing animated "element" fills for NeoOrigins resource bars
-(mana / stamina / rage / custom origin resources). The animation plays inside the
-**fill** portion of a resource bar on the in-game HUD.
-
-> **The shipped styles use a framed layout.** The built-in `neoorigins:fire`, `water`,
-> `wind`, `earth`, `soul`, `void`, `sculk` and `tinted` styles draw a 71 × 8 frame
-> (`textures/gui/bar_fx/empty_bar.png`) with a **69 × 6** fill inside it, one pixel in
-> from each edge. Their scrolling fills are opaque **126 × 6** strips, and `tinted` is a
-> 69 × 6 grey fill multiplied by a color. To match them, author a fill at 6 px tall and
-> set `frame` in the preset; see [POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource).
-> The sizes below describe the older unframed layout, which still works.
+Spec for artists producing fills for NeoOrigins resource bars (mana, stamina, rage
+and custom origin resources). A bar style is a preset JSON plus its textures; the
+preset format and every field are in
+[POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource). This page covers
+the art.
 
 ---
 
-## 1. Where it renders (context)
+## 1. Where it renders
 
-A resource bar is composed of three pieces, drawn at **1 texel = 1 GUI pixel**
-(Minecraft then scales the whole HUD 2×–4× with nearest-neighbor):
+The shipped styles (`neoorigins:fire`, `water`, `wind`, `earth`, `soul`, `void`,
+`sculk` and `tinted`) use the **framed layout**, drawn at **1 texel = 1 GUI pixel**
+(the game then scales the whole HUD by the player's GUI scale, nearest-neighbor):
 
-| Piece            | Size (logical px) | Notes |
-|------------------|-------------------|-------|
-| Frame / backing  | 71 × 5            | Static. Already exists. **The artist does NOT need to make this.** |
-| **Fill**         | **71 × 8**        | **This is what you're animating.** Overhangs the frame up by 2 px. |
-| Icon             | 8 × 8             | Static, sits left of the bar. Out of scope here. |
+| Piece | Size (GUI px) | Notes |
+|---|---|---|
+| Frame | 71 × 8 | `neoorigins:textures/gui/bar_fx/empty_bar.png`, shared by every shipped style. Set by the preset's `frame`, `frame_width` and `frame_height`. |
+| **Fill** | **69 × 6** | **This is what you are drawing.** It sits inside the frame, one pixel in from each edge. |
+| Value ticks | 1 px wide | Drawn by the game over the top of the fill: a faint 1 px tick every 5 points and a brighter 2 px tick every 25. |
 
-The fill is clipped to the current resource level: only the leftmost
-`round(71 × fraction)` pixels are shown. So the **left edge is the "empty" cutoff
-edge** and must read well when partially revealed. Bars auto-hide at 100%.
+The fill is drawn over the frame and cut off at the current level: only the
+leftmost `round(69 × fraction)` pixels show. So the **left edge is the empty end**,
+and the cut edge must read well at any width.
 
-Bars draw over arbitrary world backdrops (sky, caves, grass). **Assume a
-busy/variable background, not a flat color.**
-
----
-
-## 2. Format rules (hard constraints, engine limits)
-
-- **PNG, RGBA, straight (un-premultiplied) alpha.** No GIF/APNG/WebP. Minecraft
-  cannot load them.
-- **Transparent background, not black.** The bar composites with additive-style
-  blending, so any near-black pixels read as "glow over background." Deliver wisps
-  on full transparency; let alpha fall to 0 in the empty gaps. Do **not** leave a
-  black box behind the art.
-- **No anti-aliased outer edges against black.** This creates grey halos in game.
-  Fade with alpha, not with dark pixels.
-- Color space: sRGB.
+A bar hides when full once it has been spent, so the fill is mostly seen partly
+drawn. Bars sit over arbitrary world backdrops, but inside the frame the fill
+covers its own area, so the frame and fill decide how the bar reads.
 
 ---
 
-## 3. Two delivery formats: pick per element (A is preferred)
+## 2. Format rules
 
-### Format A: Seamless scroll strip  *(recommended for fire/water/wind "wisps")*
-A single horizontally-**seamless** strip. The engine scrolls the U coordinate over
-time and samples a 71-px-wide window, so motion = lateral drift baked into the strip
-plus the engine's scroll. Tiny file, infinite loop, no frame budget.
-
-- **Author at native: `128 × 8` px, seamless left↔right.** This is pixel-art. The
-  PNG ships 1:1 with no downsampling, so every pixel you place is a pixel in game
-  (the GUI only scales it by the player's integer GUI scale, nearest-neighbor).
-- The pixel column at x=0 must tile perfectly against x=127.
-- Width is flexible: 128 is the sweet spot, but anything ~96–256 works. The visible
-  window is only 71px and the wisps move, so the loop reads as continuous. Don't go
-  bigger than you need.
-- Bake in gentle drift (rising curl for fire, flow for water). The engine adds
-  the horizontal scroll on top.
-- Keep it **sparse**: discrete wisps/tongues separated by transparency, *not* a
-  solid band. (This was the explicit ask: wisps moving through, not a filled bar.)
-
-### Format B: Vertical frame strip  *(use for tightly art-directed loops, e.g. a heartbeat pulse)*
-A stack of equal frames played at **20 fps** (game tick rate), looping
-frame N → frame 1.
-
-- **Author at native: `71 × 8` per frame** (pixel-art, 1:1, no downsample).
-- **16–24 frames** → sheet `71 × 128` to `71 × 192`. 24 frames ≈ 1.2 s loop.
-- Frame 1 and frame N must loop seamlessly (no pop).
+- **PNG, RGBA, sRGB.** No GIF, APNG or WebP: Minecraft cannot load them.
+- **Draw the fill at its in-game height.** A framed fill is drawn `frame_height − 2`
+  pixels tall (6 for the shipped frame). Set `tile_height` to the texture's real
+  height; a texture of another height is stretched to fit, which breaks the pixel grid.
+- **Make the fill opaque.** All the shipped fills are fully opaque. Blending is
+  ordinary alpha blending, not additive: a transparent pixel shows the frame's dark
+  interior behind it, not a glow.
+- There is **no frame-by-frame animation**. A fill either scrolls sideways or stands
+  still (section 3).
 
 ---
 
-## 4. Alpha / luminance authoring
+## 3. Two kinds of fill
 
-- Brightest cores → alpha 255 (fully opaque, reads as a bright element).
-- Mid glow → partial alpha.
-- Empty gaps → alpha 0.
-- Think of it as **emissive**: the bar should look like it's glowing, because the
-  blend adds the art's light over whatever is behind it.
-- Avoid large fully-opaque flat regions. They hide the "level" readout and look
-  like a solid bar.
+### Scrolling strip (`"mode": "scroll"`, the default)
+
+A horizontal strip that drifts left at the preset's `scroll_speed`, in GUI pixels
+per second (negative drifts right). The scroll follows game time, so it stops while
+the game is paused, and it steps one screen pixel at a time.
+
+- **Shipped size: `126 × 6`.** Width is free; the strip repeats every
+  `loop_width` texels.
+- **Pick one seam convention and set `loop_width` to match:**
+  - The last column repeats the first: set `loop_width` to `tile_width − 1`, so that
+    column is not shown twice. Six shipped strips do this (126 wide, `loop_width` 125).
+  - The strip wraps cleanly across its full width: set `loop_width` to `tile_width`.
+    `sculk` does this (126 wide, `loop_width` 126).
+- Bake any motion you want beyond the sideways drift (rising flame, flowing water)
+  into the strip itself. The game adds only the scroll.
+
+### Static fill (`"mode": "static"`)
+
+Drawn in place, with no scroll, and cut off at the current level. Pixel column
+`c` of the texture lands on column `c` of the fill, so make it as wide as the fill
+(69 for the shipped frame).
+
+`neoorigins:tinted` is the shipped example: `grayscale.png`, 69 × 6.
 
 ---
 
-## 5. Element palettes & motion direction
+## 4. Tintable art
 
-| Element | Palette | Motion / feel |
-|---------|---------|---------------|
-| **Fire**  (first deliverable) | deep red → orange → yellow-white cores | sparse tongues that rise, curl, flicker; hot cores, soft falloff |
-| **Water** | teal/blue, white caustic highlights | slow horizontal flow, gentle ripple/caustic shimmer |
-| **Wind / Air** | pale cyan-white, very transparent | thin fast lateral streaks, mostly empty |
-| **Earth / Nature** | green + amber | slow drifting motes / leaves, or pulsing veins |
-| **Soul** | cyan-white (soul-fire palette) | slow, eerie low-amplitude drift |
-| **End** | purple/magenta + star flecks | shimmer + occasional sparkle travelling along the bar |
-| **Sculk** | dark teal base + bright cyan | a cyan pulse that travels left→right along the bar |
+A power can set `tint` in `hud_render`, and the game multiplies the fill by it,
+channel by channel. A preset with `"tint_from_color": true` also uses the bar's
+`color` when no `tint` is given.
+
+To make a fill that takes any color, draw it in greys: white comes out as the tint
+itself, and darker greys as deeper shades of it, so the shading survives. The
+`tinted` fill is mostly mid-grey, with white and darker greys for its shading.
+
+A static fill can also shade across the bar with `tint_end`: column by column, from
+the tint at the left end to `tint_end` at the right. This applies only to a framed
+fill that does not scroll.
+
+---
+
+## 5. Shipped textures
+
+All under `assets/neoorigins/textures/gui/bar_fx/`:
+
+| Style | File | Size | `loop_width` | `scroll_speed` | Look |
+|---|---|---|---|---|---|
+| `fire` | `fire.png` | 126 × 6 | 125 | 16 | Red and orange flames |
+| `water` | `water.png` | 126 × 6 | 125 | 10 | Deep blue water with bubbles |
+| `wind` | `wind.png` | 126 × 6 | 125 | 24 | White cloud wisps over grey |
+| `earth` | `earth.png` | 126 × 6 | 125 | 6 | Brown earth |
+| `soul` | `soul.png` | 126 × 6 | 125 | 8 | Cyan soul flames |
+| `void` | `void.png` | 126 × 6 | 125 | 10 | Purple veins |
+| `sculk` | `sculk.png` | 126 × 6 | 126 | 12 | Dark teal sculk with cyan sparks |
+| `tinted` | `grayscale.png` | 69 × 6 | static | static | Grey, colored by `tint` or `color` |
 
 ---
 
 ## 6. Style
 
-**Pixel-art, authored at native resolution** (`128 × 8` scroll tile / `71 × 8` per
-frame). The PNG ships 1:1 (no downsampling), so place pixels deliberately; what you
-draw is exactly what shows in game (only integer GUI-scale upscaling applies). Bias
-brightness/alpha a little hot, since these read tiny on the HUD.
+**Pixel art, authored at native resolution.** The PNG ships 1:1 with no
+downsampling, so place pixels deliberately: what you draw is exactly what shows in
+game, apart from integer GUI-scale upscaling. Bias brightness a little hot, since
+the bar reads tiny on the HUD.
 
 ---
 
-## 7. Optional "tintable" variant
+## 7. Deliverables checklist
 
-The engine supports an optional `tint` hex applied as a **multiply** over the fill.
-If you also deliver a **grayscale/white-hot** version of an element, one piece of art
-can be recolored per-origin via tint (e.g. one generic "flame" tinted blue for soul,
-purple for end). Hero full-color versions still preferred for the headline elements.
-
----
-
-## 8. Deliverables checklist
-
-- [ ] Layered source (PSD / Procreate / Krita) per element.
-- [ ] Final PNG(s) per §3 (Format A: one seamless strip; Format B: one sheet).
-- [ ] RGBA, transparent bg, sRGB, per §2.
-- [ ] File names use the lowercase element id: `fire.png`, `water.png`, `wind.png`,
-      `earth.png`, `soul.png`, `end.png`, `sculk.png`.
-- [ ] (Optional) grayscale tintable variant: `<element>_mask.png`.
-- [ ] QA: preview each over a **dark** and a **bright** backdrop. Wisps must read on
-      both, with no grey/black halo and no solid-band look.
+- [ ] Layered source (PSD, Procreate or Krita) per fill.
+- [ ] Final PNG per fill, RGBA, sRGB, opaque, at the in-game height (section 2).
+- [ ] For a scrolling strip: which seam convention it uses, so `loop_width` can be set.
+- [ ] File names: the lowercase style id (`fire.png`, `water.png`, …).
+- [ ] QA: preview each fill inside the frame at several fill levels, and check the
+      cut edge and the scroll seam.
 
 ---
 
-## 9. Quick reference
+## 8. Quick reference
 
 ```
-Fill area (animated):     71 × 8 px  (overhangs frame top by 2px)
-Visible width:            left  round(71 × fill%)  pixels only
-Scroll strip:             128 × 8, seamless L↔R, pixel-art 1:1 (no downsample)
-Frame strip:              71 × 8 per frame, 16–24 frames @20fps, stacked vertically
-Format:                   PNG RGBA, straight alpha, sRGB, transparent bg
-Blend:                    additive/emissive — author as glow, no black box
-Style:                    pixel-art, native res, ships 1:1
+Frame:            71 × 8 (empty_bar.png)
+Fill:             69 × 6, one pixel in from each frame edge
+Visible width:    leftmost round(69 × fill%) pixels
+Scroll strip:     126 × 6 shipped; loops every loop_width texels
+Static fill:      69 × 6; column c of the texture = column c of the fill
+Speed:            scroll_speed GUI px/s, follows game time
+Blend:            normal alpha; ship opaque fills
+Tint:             multiply; author tintable fills in greys
+Style:            pixel art, native res, ships 1:1
 ```
+
+### The unframed box
+
+A preset with no `frame` draws the layout from before 2.2.30: a 60 × 10 box with a
+1 px border, the preset's `track_color` under the empty part and `level_color` under
+the filled part, and the texture scaled to 10 px tall, keeping its aspect ratio,
+tiled across the filled part. The box scrolls the whole scaled texture, so
+`loop_width`, `tint_from_color` and `tint_end` do not apply to it; `tint` does. The
+backing colors are drawn first, so art for the box can leave gaps for them to show
+through.
 
 ---
 
-## 10. Apoli-compat `sprite_location` sheets (static restyled bars)
+## 9. Apoli-compat `sprite_location` sheets (static restyled bars)
 
-Separate from the animated fills above: Apoli-style resource powers can declare
+Separate from the bar styles above: Apoli-style resource powers can declare
 `hud_render.sprite_location` to swap the whole **static** bar sheet for a custom
 one. NeoOrigins honors that override. This section is the spec for authoring
 such a sheet.
@@ -160,13 +163,14 @@ such a sheet.
 `sprite_location` is a full resource path used **verbatim**: e.g.
 `"sprite_location": "mypack:textures/gui/my_bars.png"` loads
 `assets/mypack/textures/gui/my_bars.png` from your resource pack / datapack
-assets. An empty or malformed id falls back to the vendored default sheet
+assets. An empty or malformed id, or one naming a texture no loaded pack has,
+falls back to the vendored default sheet
 (`neoorigins:textures/gui/resource_bar.png`). Community Apoli restyle sheets use
 the same coordinates and drop in unchanged.
 
 ### Required sheet dimensions
 
-**256 × 256 PNG.** The renderer samples UVs against a 256 × 256 texture. Any
+**256 × 256 PNG.** The renderer samples UVs against a 256 × 256 texture: any
 other canvas size misaligns every element. Only the top-left region is used;
 leave the rest transparent.
 
@@ -189,5 +193,4 @@ leave the rest transparent.
 The frame strip renders at the bar position; the fill renders clipped to the
 leftmost `round(71 × fill%)` pixels and overhangs the frame **upward by 2 px**
 (exactly as Apoli draws it); the icon renders 10 px left of the bar, top-aligned
-with the fill. Same authoring rules as the rest of this doc: pixel-art at native
-resolution, RGBA, transparent background, no black-halo edges.
+with the fill. Pixel art at native resolution, RGBA, transparent background.
