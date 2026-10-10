@@ -5039,7 +5039,7 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `label` | string | no | `"Resource"` | Display label on the HUD bar |
-| `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format |
+| `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format. Any other value, such as `#FFF`, falls back to `#55AAFF` |
 | `should_render` | bool | no | `true` | Origins compat: when false, hides the bar |
 | `always_render` | bool | no | `false` | Keep the bar on-screen even when full. By default the HUD hides a full bar (the Apoli convention), but only after the resource has been spent once: a bar that starts at max stays visible until its value first drops, so a new player can see it is there. The client forgets that first spend on each join, respawn and origin change, so the bar shows again at those points until it is next spent. Set this to keep the bar visible all the time. |
 | `animated` | string | no | — | Id of a bar style (an FX preset), e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar draws in that style instead of the flat `color` fill. See **Bar styles** below for the built-in ones. |
@@ -5072,7 +5072,7 @@ The scrolling styles drift left at a fixed speed per style, in pixels per second
 **Coloring a bar with `neoorigins:tinted`.** The `tinted` fill is grey, so it takes on whatever color you multiply it by:
 
 - **The field:** `tint` in `hud_render`. If `tint` is not set, the bar uses its `color` instead, so a bar that already has a `color` only needs `"animated": "neoorigins:tinted"` added.
-- **The format:** a hex string, `#RRGGBB` or `#AARRGGBB`; the `#` is optional. The alpha byte is ignored, since the fill is always drawn opaque. The one exception is `#00000000`, which reads as no tint at all. A value that is not valid hex falls back to `#55AAFF`.
+- **The format:** a hex string, `#RRGGBB` or `#AARRGGBB`; the `#` is optional. The alpha byte is ignored, since the fill is always drawn opaque. The one exception is `#00000000`, which reads as no tint at all. Any other value, such as the shorthand `#FFF`, falls back to `#55AAFF`, and the same goes for `color` and `tint_end`.
 - **How it multiplies:** each channel of the grey fill is multiplied by the same channel of the color. The fill's lightest pixels are white, so they come out as the color itself; its mid and dark greys come out as darker shades of it, which keeps the fill's shading. A bright, saturated color gives the clearest bar. Black gives a black bar.
 
 - **A gradient:** add `tint_end` and the fill shades from `tint` (or `color`) at the left end of the bar to `tint_end` at the right. The gradient spans the whole bar rather than the filled part, so each point of the bar keeps its color as the value rises and falls. This only applies to a style that does not scroll.
@@ -5147,6 +5147,8 @@ This is the Frostborn bar: `#3FA9F5` at the empty end, `#BFF0FF` at the full end
 | `tint_from_color` | bool | `false` | When the power sets no `tint`, multiply the fill by its `color`. `neoorigins:tinted` sets this. |
 | `track_color` | hex color | `#AA000000` | Without a `frame`: ARGB backing drawn under the empty remainder of the bar. |
 | `level_color` | hex color | `track_color` | Without a `frame`: ARGB backing under the filled portion; pick a brighter tone so the current level reads through transparent gaps in the texture. |
+
+`track_color` and `level_color` take `#RRGGBB` or `#AARRGGBB`; a preset with any other value is skipped, with a warning in the log.
 
 A preset without a `frame` draws the older 60 × 10 box with a backing color, and scales its texture to the box height. That box scrolls the whole scaled texture, so `loop_width` does not apply to it, and neither do `tint_from_color` and `tint_end`; `tint` still does.
 

@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.power.builtin;
 
+import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
@@ -10,6 +11,7 @@ import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.util.HexColor;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -116,15 +118,15 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                     if (hud.has("label")) label = hud.get("label").getAsString();
                     if (hud.has("color")) {
                         String cs = hud.get("color").getAsString();
-                        color = parseColor(cs);
+                        color = parseColor(powerId, "color", cs);
                     }
                     // Animated FX preset id (client resolves it against bar_fx/ presets);
                     // optional tint multiplies the preset art so one strip can be recoloured.
                     if (hud.has("animated")) animated = hud.get("animated").getAsString();
-                    if (hud.has("tint")) tint = parseColor(hud.get("tint").getAsString());
+                    if (hud.has("tint")) tint = parseColor(powerId, "tint", hud.get("tint").getAsString());
                     // Optional gradient end: the static fill runs from tint at the left edge
                     // of the track to tint_end at the right.
-                    if (hud.has("tint_end")) tintEnd = parseColor(hud.get("tint_end").getAsString());
+                    if (hud.has("tint_end")) tintEnd = parseColor(powerId, "tint_end", hud.get("tint_end").getAsString());
                     // Origins compat: should_render=false hides the bar
                     if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
                         hidden = true;
@@ -147,14 +149,13 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
             }
         };
 
-        private static int parseColor(String s) {
-            try {
-                if (s.startsWith("#")) s = s.substring(1);
-                if (s.length() == 6) s = "FF" + s; // add alpha
-                return (int) Long.parseLong(s, 16);
-            } catch (NumberFormatException e) {
-                return 0xFF55AAFF;
-            }
+        /** RRGGBB or AARRGGBB; anything else logs a warning and falls back to #55AAFF. */
+        private static int parseColor(String powerId, String field, String s) {
+            Integer c = HexColor.parse(s);
+            if (c != null) return c;
+            NeoOrigins.LOGGER.warn("[resource] {}: hud_render.{} \"{}\" is not a 6- or 8-digit hex colour, using #55AAFF",
+                powerId, field, s);
+            return 0xFF55AAFF;
         }
     }
 

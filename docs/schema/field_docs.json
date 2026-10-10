@@ -17,7 +17,7 @@
     "spread": "[x,y,z] random spread radius in blocks (default [0.25,0.5,0.25])."
   },
   "neoorigins:resource": {
-    "color": "Hex color (#RRGGBB or #AARRGGBB) for the HUD resource bar fill.",
+    "color": "Hex color (#RRGGBB or #AARRGGBB) for the HUD resource bar fill. Any other value falls back to #55AAFF.",
     "label": "Display name shown on the HUD resource bar (e.g. \"Mana\").",
     "max": "Maximum value the resource can hold (default 100).",
     "max_action": "EntityAction run once when the resource rises to its max.",
