@@ -69,6 +69,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         boolean hidden,
         String animated,
         int tint,
+        int tintEnd,
         boolean alwaysShow,
         String type,
         String backing
@@ -109,6 +110,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 int color = 0xFF55AAFF;
                 String animated = "";
                 int tint = 0;
+                int tintEnd = 0;
                 boolean hidden = obj.has("hidden") && obj.get("hidden").getAsBoolean();
                 boolean alwaysShow = false;
                 if (obj.has("hud_render") && obj.get("hud_render").isJsonObject()) {
@@ -122,6 +124,9 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                     // optional tint multiplies the preset art so one strip can be recoloured.
                     if (hud.has("animated")) animated = hud.get("animated").getAsString();
                     if (hud.has("tint")) tint = parseColor(hud.get("tint").getAsString());
+                    // Optional gradient end: the static fill runs from tint at the left edge
+                    // of the track to tint_end at the right.
+                    if (hud.has("tint_end")) tintEnd = parseColor(hud.get("tint_end").getAsString());
                     // Origins compat: should_render=false hides the bar
                     if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
                         hidden = true;
@@ -134,7 +139,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
                 return DataResult.success(Pair.of(new Config(
                     powerId, min, max, startValue, regenRate, regenInterval,
-                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, alwaysShow, t, backing
+                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, tintEnd, alwaysShow, t, backing
                 ), ops.empty()));
             }
 
@@ -220,7 +225,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         CompatAttachments.registerResourceBacking(key, config.backing());
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
-                config.hidden(), config.animated(), config.tint(), config.alwaysShow()));
+                config.hidden(), config.animated(), config.tint(), config.tintEnd(), config.alwaysShow()));
     }
 
     /**

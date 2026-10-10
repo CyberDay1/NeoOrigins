@@ -44,8 +44,8 @@ public class ResourceHudOverlay {
     private static final int BORDER_COLOR = 0xFF333333;
     private static final int LABEL_COLOR = 0xFFCCCCCC;
     // Value scale ticks on animated bars: a major tick every 25 units, a minor every 5.
-    private static final int TICK_MAJOR_STEP = 25;
-    private static final int TICK_MINOR_STEP = 5;
+    private static final int TICK_MAJOR_STEP = ResourceBarTicks.MAJOR_STEP;
+    private static final int TICK_MINOR_STEP = ResourceBarTicks.MINOR_STEP;
     private static final int TICK_MAJOR_COLOR = 0xE6FFFFFF;  // bright — clear quarter markers
     private static final int TICK_MINOR_COLOR = 0x4DFFFFFF;   // faint — subtle fifths, recedes
 
@@ -116,7 +116,8 @@ public class ResourceHudOverlay {
             int fillW = Math.round(barW * frac);
 
             if (framed) {
-                renderFramedBar(g, fx, x, y, frac, res.tint(), res.color(), fxTicks, guiScale);
+                renderFramedBar(g, fx, x, y, frac, res.tint(), res.tintEnd(), res.color(),
+                    res.min(), res.max(), fxTicks, guiScale);
             } else if (fx != null) {
                 // Animated FX preset takes precedence over both the Apoli sprite
                 // and the native color fill.
@@ -213,10 +214,7 @@ public class ResourceHudOverlay {
 
         // Value scale ticks anchored to the TOP edge: minor every TICK_MINOR_STEP
         // units (very short notch), major every TICK_MAJOR_STEP units (a bit taller).
-        int majorTickH = Math.max(1, Math.round(h * 0.3f));   // 3 @ h=10 (the old minor height)
-        int minorTickH = Math.max(1, Math.round(h * 0.15f));  // 2 @ h=10 (~half the major)
-        drawTicks(g, x, top, min, max, TICK_MINOR_STEP, minorTickH, TICK_MINOR_COLOR);
-        drawTicks(g, x, top, min, max, TICK_MAJOR_STEP, majorTickH, TICK_MAJOR_COLOR);
+        drawTicks(g, x, top, FX_BAR_WIDTH, h, min, max);
     }
 
     /**
@@ -225,10 +223,13 @@ public class ResourceHudOverlay {
      * A {@code static} fill is drawn as it is; a {@code scroll} fill is the strip
      * looping every {@code loopW} texels, seen through the fill window. The fill is
      * multiplied by {@code tint}, or by the bar's {@code color} when the preset sets
-     * {@code tint_from_color} and the power gives no tint.
+     * {@code tint_from_color} and the power gives no tint. A static fill with a
+     * {@code tintEnd} shades column by column from that colour to {@code tintEnd}
+     * across the whole window. Value ticks go over the fill, inside the frame.
      */
     private static void renderFramedBar(GuiGraphics g, BarFxManager.BarFx fx, int x, int y,
-                                        float frac, int tint, int color, double ticks, double guiScale) {
+                                        float frac, int tint, int tintEnd, int color,
+                                        int min, int max, double ticks, double guiScale) {
         int fw = fx.frameW(), fh = fx.frameH();
         int winX = x + 1, winY = y + 1, winW = fw - 2, winH = fh - 2;
 
@@ -242,7 +243,15 @@ public class ResourceHudOverlay {
             if (mul != 0) {
                 g.setColor(((mul >> 16) & 0xFF) / 255f, ((mul >> 8) & 0xFF) / 255f, (mul & 0xFF) / 255f, 1f);
             }
-            if (!fx.scrolls()) {
+            if (!fx.scrolls() && tintEnd != 0) {
+                int start = mul != 0 ? mul : 0xFFFFFF;
+                for (int c = 0; c < fillW; c++) {
+                    int rgb = ResourceBarGradient.at(start, tintEnd, c, winW);
+                    g.setColor(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
+                    g.blit(fx.texture(), winX + c, winY, 1, winH, (float) c, 0.0f,
+                        1, fx.tileH(), fx.tileW(), fx.tileH());
+                }
+            } else if (!fx.scrolls()) {
                 g.blit(fx.texture(), winX, winY, fillW, winH, 0.0f, 0.0f,
                     fillW, fx.tileH(), fx.tileW(), fx.tileH());
             } else {
@@ -263,24 +272,26 @@ public class ResourceHudOverlay {
             }
             g.setColor(1f, 1f, 1f, 1f);
         }
+        drawTicks(g, winX, winY, winW, winH, min, max);
         RenderSystem.disableBlend();
     }
 
     /**
-     * Draws interior value-scale ticks: a 1px vertical line every {@code step} value
-     * units, {@code tickH} tall, anchored to the TOP of the bar. Endpoints
-     * (min/max) are skipped — they coincide with the border. Skips the whole series
-     * when the ticks would be denser than ~2px apart (unreadable at this bar width).
+     * Draws the value-scale ticks over a {@code width}x{@code barH} track, anchored to
+     * its TOP: a faint short tick every {@link #TICK_MINOR_STEP} units and a bright,
+     * taller one every {@link #TICK_MAJOR_STEP}. Positions come from
+     * {@link ResourceBarTicks#positions}, which drops a series that would be too dense.
      */
-    private static void drawTicks(GuiGraphics g, int x, int top,
-                                  int min, int max, int step, int tickH, int color) {
-        int range = max - min;
-        if (range <= 0 || step <= 0) return;
-        float pxPerUnit = (float) FX_BAR_WIDTH / range;
-        if (pxPerUnit * step < 2.0f) return; // too dense to read
-        for (int v = step; v < range; v += step) {
-            int tx = x + Math.round(v * pxPerUnit);
-            g.fill(tx, top, tx + 1, top + tickH, color);
+    private static void drawTicks(GuiGraphics g, int x, int top, int width, int barH, int min, int max) {
+        drawTickSeries(g, x, top, ResourceBarTicks.positions(min, max, TICK_MINOR_STEP, width),
+            ResourceBarTicks.height(barH, false), TICK_MINOR_COLOR);
+        drawTickSeries(g, x, top, ResourceBarTicks.positions(min, max, TICK_MAJOR_STEP, width),
+            ResourceBarTicks.height(barH, true), TICK_MAJOR_COLOR);
+    }
+
+    private static void drawTickSeries(GuiGraphics g, int x, int top, int[] offsets, int tickH, int color) {
+        for (int off : offsets) {
+            g.fill(x + off, top, x + off + 1, top + tickH, color);
         }
     }
 

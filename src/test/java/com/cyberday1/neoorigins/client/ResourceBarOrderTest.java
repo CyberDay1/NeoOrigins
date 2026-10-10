@@ -24,7 +24,7 @@ class ResourceBarOrderTest {
         "zpack:mana", "apack:rage", "mpack:stamina", "neoorigins:qi_resource", "bpack:heat", "origins:charge");
 
     private static SyncResourcePayload.Entry entry(int value) {
-        return new SyncResourcePayload.Entry(value, 0, 100, "bar", 0xFFFFFFFF, -1, -1, "", "", 0, false);
+        return new SyncResourcePayload.Entry(value, 0, 100, "bar", 0xFFFFFFFF, -1, -1, "", "", 0, 0, false);
     }
 
     private static Map<String, SyncResourcePayload.Entry> payload(List<String> keys) {

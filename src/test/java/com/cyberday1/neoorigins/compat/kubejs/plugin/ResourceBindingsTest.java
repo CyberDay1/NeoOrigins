@@ -168,7 +168,7 @@ class ResourceBindingsTest {
         EntityCondition always = p -> true;
         EntityAction none = p -> {};
         var config = new ResourcePower.Config(MANA, 0, 100, 0, 0, 20, always, none, none,
-            "Mana", 0xFF55AAFF, false, null, 0, false, "neoorigins:resource", CompatAttachments.BACKING_IRONS_MANA);
+            "Mana", 0xFF55AAFF, false, null, 0, 0, false, "neoorigins:resource", CompatAttachments.BACKING_IRONS_MANA);
         return new PowerHolder<>(ResourceLocation.parse(MANA), new ResourcePower(), config,
             Component.empty(), Component.empty());
     }
