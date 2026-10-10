@@ -7,8 +7,8 @@
   "regen_interval": 20,
   "hud_render": {
     "label": "Stamina",
-    "color": "#9FE4FF",
+    "color": "#3FA9F5",
     "animated": "neoorigins:tinted",
-    "tint_end": "#E8FAFF"
+    "tint_end": "#BFF0FF"
   }
 }
