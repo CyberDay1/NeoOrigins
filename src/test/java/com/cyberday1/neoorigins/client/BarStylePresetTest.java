@@ -71,6 +71,10 @@ class BarStylePresetTest {
             }
         }
         assertEquals(new TreeSet<>(STYLES), found);
+        // The creator's style picker offers this list; it must name exactly what ships.
+        Set<String> offered = new TreeSet<>();
+        for (String id : BarFxManager.BUILTIN_STYLES) offered.add(id.substring("neoorigins:".length()));
+        assertEquals(found, offered, "BarFxManager.BUILTIN_STYLES");
     }
 
     @Test
