@@ -18,7 +18,7 @@ public class ClientResourceState {
 
     public record ResourceEntry(int value, int min, int max, String label, int color,
                                 int barIndex, int iconIndex, String spriteLocation,
-                                String animated, int tint, boolean alwaysShow) {
+                                String animated, int tint, int tintEnd, boolean alwaysShow) {
         public float fraction() {
             int range = max - min;
             if (range <= 0) return 1.0f;
@@ -49,7 +49,7 @@ public class ClientResourceState {
         for (String key : stackingOrder(incoming.keySet())) {
             var v = incoming.get(key);
             ResourceEntry entry = new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),
-                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.alwaysShow());
+                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.tintEnd(), v.alwaysShow());
             resources.put(key, entry);
             ResourceBarVisibility.observe(key, entry.fraction());
         }
@@ -80,7 +80,7 @@ public class ClientResourceState {
             Integer dynMax = maxes.get(e.getKey());
             int max = dynMax != null ? dynMax : old.max();
             ResourceEntry entry = new ResourceEntry(e.getValue(), old.min(), max, old.label(),
-                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint(), old.alwaysShow());
+                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint(), old.tintEnd(), old.alwaysShow());
             resources.put(e.getKey(), entry);
             ResourceBarVisibility.observe(e.getKey(), entry.fraction());
         }

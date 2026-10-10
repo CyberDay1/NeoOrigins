@@ -5044,6 +5044,7 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 | `always_render` | bool | no | `false` | Keep the bar on-screen even when full. By default the HUD hides a full bar (the Apoli convention), but only after the resource has been spent once: a bar that starts at max stays visible until its value first drops, so a new player can see it is there. The client forgets that first spend on each join, respawn and origin change, so the bar shows again at those points until it is next spent. Set this to keep the bar visible all the time. |
 | `animated` | string | no | — | Id of a bar style (an FX preset), e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar draws in that style instead of the flat `color` fill. See **Bar styles** below for the built-in ones. |
 | `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the style's art, so one texture can be recolored per power. Ignored when `animated` is unset. On `neoorigins:tinted`, `color` is used when `tint` is not set. |
+| `tint_end` | string | no | — | Second hex color for a static style such as `neoorigins:tinted`: the fill shades from `tint` (or `color`) at the left end of the bar to `tint_end` at the right. When unset, the bar is one flat tint. |
 
 **Bar order and stacking.** Bars stack upwards from the hotbar in **resource id order**: sorted by the power id that owns the bar, lowest id nearest the hotbar. The order does not depend on the order the powers were granted, so a pack can predict where its bar will sit and describe that to a player. Adding a resource inserts its bar at the position its id sorts to, moving the bars above it up one slot.
 
@@ -5053,7 +5054,7 @@ Up to 2.2.29 neither held: the vertical order followed an internal hash of the r
 
 **Bar styles:**
 
-NeoOrigins ships eight bar styles. Each one draws a grey frame with the fill inside it, cut off at the current level. Set one with `animated` in `hud_render`:
+NeoOrigins ships eight bar styles. Each one draws a grey frame with the fill inside it, cut off at the current level, and value ticks over the fill: a short, faint tick every 5 points and a taller, brighter one every 25. A set of ticks that would sit closer than 2 pixels apart is left out. Set one with `animated` in `hud_render`:
 
 | Style | Fill |
 |---|---|
@@ -5073,6 +5074,8 @@ The scrolling styles drift left at a fixed speed per style, set by the preset's 
 - **The field:** `tint` in `hud_render`. If `tint` is not set, the bar uses its `color` instead, so a bar that already has a `color` only needs `"animated": "neoorigins:tinted"` added.
 - **The format:** a hex string, `#RRGGBB` or `#AARRGGBB`; the `#` is optional. The alpha byte is ignored, since the fill is always drawn opaque. A value that is not valid hex falls back to `#55AAFF`.
 - **How it multiplies:** each channel of the grey fill is multiplied by the same channel of the color. The fill's lightest pixels are white, so they come out as the color itself; its mid and dark greys come out as darker shades of it, which keeps the fill's shading. A bright, saturated color gives the clearest bar. Black gives a black bar.
+
+- **A gradient:** add `tint_end` and the fill shades from `tint` (or `color`) at the left end of the bar to `tint_end` at the right. The gradient spans the whole bar rather than the filled part, so each point of the bar keeps its color as the value rises and falls. This only applies to a style that does not scroll.
 
 `tint` works on the themed styles too, multiplying over their art in the same way, but those are drawn in color already, so it is mainly useful on `tinted`.
 
@@ -5095,6 +5098,17 @@ The scrolling styles drift left at a fixed speed per style, set by the preset's 
 }
 ```
 Here the bar draws in `#30D5C8`. `color` still matters: it is the flat fill shown to a player who does not have the style.
+
+**Example: ice bar, shading from blue to frost white**
+```json
+"hud_render": {
+  "label": "Stamina",
+  "color": "#9FE4FF",
+  "animated": "neoorigins:tinted",
+  "tint_end": "#E8FAFF"
+}
+```
+This is the Frostborn bar: `#9FE4FF` at the empty end, `#E8FAFF` at the full end.
 
 **Example: fire bar**
 ```json
@@ -5134,7 +5148,7 @@ Here the bar draws in `#30D5C8`. `color` still matters: it is the flat fill show
 | `track_color` | hex color | `#AA000000` | Without a `frame`: ARGB backing drawn under the empty remainder of the bar. |
 | `level_color` | hex color | `track_color` | Without a `frame`: ARGB backing under the filled portion; pick a brighter tone so the current level reads through transparent gaps in the texture. |
 
-A preset without a `frame` draws the older 60 × 10 box with a backing color and value ticks, and scales its texture to the box height.
+A preset without a `frame` draws the older 60 × 10 box with a backing color, and scales its texture to the box height.
 
 See [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture-authoring guidance.
 

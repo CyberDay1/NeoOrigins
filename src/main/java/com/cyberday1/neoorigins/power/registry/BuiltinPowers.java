@@ -1937,8 +1937,9 @@ public final class BuiltinPowers {
                 new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."),
                 new FieldSpec("animated", Kind.STRING, false).boundTo("animated").def("").doc("Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill."),
                 new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color."),
+                new FieldSpec("tint_end", Kind.STRING, false).boundTo("tintEnd").def("").doc("Optional second hex color for a static style such as neoorigins:tinted: the fill shades from tint at the left edge of the bar to tint_end at the right. Empty = one flat tint."),
                 new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
-                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.")));
+                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow components.")));
 
         // variable — a named, always-hidden, persistent integer counter. Shares
         // the ResourceState keyspace (keyed by its own power id), so it can be

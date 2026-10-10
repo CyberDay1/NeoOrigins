@@ -6066,7 +6066,7 @@
           "default": ""
         },
         "hud_render": {
-          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.",
+          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow components.",
           "type": "object",
           "properties": {
             "label": {
@@ -6091,6 +6091,11 @@
             },
             "tint": {
               "description": "Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color.",
+              "type": "string",
+              "default": ""
+            },
+            "tint_end": {
+              "description": "Optional second hex color for a static style such as neoorigins:tinted: the fill shades from tint at the left edge of the bar to tint_end at the right. Empty = one flat tint.",
               "type": "string",
               "default": ""
             },
