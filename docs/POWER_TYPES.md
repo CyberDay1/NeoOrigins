@@ -5050,7 +5050,9 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 
 Only bars that are drawn take a slot. A bar hidden by `should_render: false`, or by the full-bar hiding described under `always_render`, holds no slot, and neither does one the player has dragged to a saved position in the HUD editor: those draw where they were placed, and the automatic stack closes up behind them.
 
-Up to 2.2.29 neither held: the vertical order followed an internal hash of the resource key, stable for a fixed set of bars but not predictable and not controllable, and a hidden or repositioned bar still reserved its slot, leaving a gap in the stack.
+Each slot is as tall as what its bar draws: the bar itself, the `label` line above it and the value line below it, with a small gap between one bar's value line and the label of the bar above. A taller style takes a taller slot, so a stack of the built-in framed styles steps 29 pixels and a bar with no `animated` style 26. A bar with an empty `label` (`"label": ""`) draws no name line and its slot shrinks to match, but never below the 16 pixels every bar used before 2.2.30. The value line always draws.
+
+Up to 2.2.29 none of this held. The vertical order followed an internal hash of the resource key, stable for a fixed set of bars but not predictable and not controllable. A hidden or repositioned bar still reserved its slot, leaving a gap in the stack. And every slot was 16 pixels whatever the bar drew, so each bar's value line ran into the label of the bar stacked on top of it.
 
 **Bar styles:**
 
