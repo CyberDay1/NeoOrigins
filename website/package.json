@@ -18,6 +18,7 @@
 		"check:import": "tsx src/lib/datapack/__tests__/import.test.ts",
 		"check:mob": "tsx src/lib/datapack/__tests__/mobImport.test.ts",
 		"check:blocks": "tsx src/lib/blockly/__tests__/blockState.test.ts",
+		"check:barstyles": "tsx src/lib/data/__tests__/barStyles.test.ts",
 		"check:catalogs": "tsx scripts/gen-builtin-powers-catalog.ts --check && tsx scripts/gen-vanilla-templates.ts --check"
 	},
 	"devDependencies": {

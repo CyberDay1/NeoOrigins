@@ -36,8 +36,32 @@ export function suggestionFieldFor(name: string): SuggestionField | null {
 	return NAME_MAP[name.toLowerCase()] ?? null;
 }
 
+/**
+ * The built-in resource bar styles, one per preset under
+ * `src/main/resources/assets/neoorigins/bar_fx/`. Offered on `hud_render.animated`;
+ * a pack's own style id still types fine. `npm run check:barstyles` fails when
+ * this list and the preset folder disagree.
+ */
+export const BAR_STYLES: readonly string[] = [
+	'neoorigins:fire',
+	'neoorigins:water',
+	'neoorigins:wind',
+	'neoorigins:earth',
+	'neoorigins:soul',
+	'neoorigins:void',
+	'neoorigins:sculk',
+	'neoorigins:tinted'
+];
+
+// Trailing JSON keys with a fixed NeoOrigins list rather than a vanilla one.
+const STATIC_MAP: Record<string, readonly string[]> = {
+	animated: BAR_STYLES
+};
+
 /** The suggestion strings for a field name, given loaded vanilla data ([] if none). */
 export function suggestionsFor(name: string, data: VanillaData): string[] {
+	const fixed = STATIC_MAP[name.toLowerCase()];
+	if (fixed) return [...fixed];
 	const key = suggestionFieldFor(name);
 	return key ? data[key] : [];
 }
