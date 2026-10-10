@@ -7,6 +7,7 @@
   "regen_interval": 20,
   "hud_render": {
     "label": "Essence",
-    "color": "#AA55FF"
+    "color": "#AA55FF",
+    "animated": "neoorigins:tinted"
   }
 }

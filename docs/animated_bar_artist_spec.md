@@ -4,6 +4,14 @@ Spec for artists producing animated "element" fills for NeoOrigins resource bars
 (mana / stamina / rage / custom origin resources). The animation plays inside the
 **fill** portion of a resource bar on the in-game HUD.
 
+> **The shipped styles use a framed layout.** The built-in `neoorigins:fire`, `water`,
+> `wind`, `earth`, `soul`, `void`, `sculk` and `tinted` styles draw a 71 × 8 frame
+> (`textures/gui/bar_fx/empty_bar.png`) with a **69 × 6** fill inside it, one pixel in
+> from each edge. Their scrolling fills are opaque **126 × 6** strips, and `tinted` is a
+> 69 × 6 grey fill multiplied by a color. To match them, author a fill at 6 px tall and
+> set `frame` in the preset; see [POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource).
+> The sizes below describe the older unframed layout, which still works.
+
 ---
 
 ## 1. Where it renders (context)

@@ -8,6 +8,7 @@
   "hud_render": {
     "label": "Energy",
     "color": "#AADD33",
+    "animated": "neoorigins:void",
     "always_render": true
   }
 }
