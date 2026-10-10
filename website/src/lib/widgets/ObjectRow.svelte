@@ -12,6 +12,7 @@
 
 	import type { ObjectFieldSpec } from '$lib/schema/FormFieldSpec';
 	import FieldRowAdapter from '$lib/components/power/FieldRowAdapter.svelte';
+	import BarPreview from '$lib/widgets/BarPreview.svelte';
 
 	let {
 		field,
@@ -25,6 +26,11 @@
 	function childValue(name: string): unknown {
 		return value ? value[name] : undefined;
 	}
+
+	// A resource bar's hud_render (the one with style fields) gets a preview swatch.
+	const barPreview = $derived(
+		field.name === 'hud_render' && field.children.some((c) => c.name === 'animated')
+	);
 
 	function updateChild(name: string, v: unknown) {
 		value = { ...(value ?? {}), [name]: v };
@@ -55,6 +61,7 @@
 	{/if}
 
 	{#if !collapsed}
+		{#if barPreview}<BarPreview {value} />{/if}
 		<div class="nested" id={`${id}-body`} role="group" aria-labelledby={id}>
 			{#each field.children as f (f.path)}
 				<FieldRowAdapter
