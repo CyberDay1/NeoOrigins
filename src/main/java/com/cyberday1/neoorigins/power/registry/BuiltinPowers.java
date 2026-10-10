@@ -1960,8 +1960,8 @@ public final class BuiltinPowers {
                 new FieldSpec("label", Kind.STRING, false).boundTo("label").def("Resource").doc("Bar label shown on the HUD."),
                 new FieldSpec("color", Kind.STRING, false).boundTo("color").def("#55AAFF").doc("Bar color (hex, e.g. #55AAFF)."),
                 new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."),
-                new FieldSpec("animated", Kind.STRING, false).boundTo("animated").def("").doc("Animated bar-FX preset id (e.g. neoorigins:fire); empty = static bar."),
-                new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted."),
+                new FieldSpec("animated", Kind.STRING, false).boundTo("animated").def("").doc("Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill."),
+                new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color."),
                 new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
                 .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/alwaysShow components.")));
 

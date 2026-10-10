@@ -7,6 +7,7 @@
   "regen_interval": 20,
   "hud_render": {
     "label": "Mana",
-    "color": "#5588FF"
+    "color": "#5588FF",
+    "animated": "neoorigins:fire"
   }
 }

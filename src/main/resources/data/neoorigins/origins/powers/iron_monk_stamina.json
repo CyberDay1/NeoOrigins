@@ -12,5 +12,5 @@
     "power": "neoorigins:iron_monk_guard",
     "inverted": true
   },
-  "hud_render": { "label": "Stamina", "color": "#88CC44" }
+  "hud_render": { "label": "Stamina", "color": "#88CC44", "animated": "neoorigins:tinted" }
 }

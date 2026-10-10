@@ -7,5 +7,5 @@
   "start_value": 50,
   "regen_rate": 1,
   "regen_interval": 20,
-  "hud_render": { "label": "Qi", "color": "#66E0FF" }
+  "hud_render": { "label": "Qi", "color": "#66E0FF", "animated": "neoorigins:tinted" }
 }

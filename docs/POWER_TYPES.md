@@ -5040,8 +5040,8 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 | `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format |
 | `should_render` | bool | no | `true` | Origins compat: when false, hides the bar |
 | `always_render` | bool | no | `false` | Keep the bar on-screen even when full. By default the HUD hides a full bar (the Apoli convention), but only after the resource has been spent once: a bar that starts at max stays visible until its value first drops, so a new player can see it is there. The client forgets that first spend on each join, respawn and origin change, so the bar shows again at those points until it is next spent. Set this to keep the bar visible all the time. |
-| `animated` | string | no | — | Id of an animated bar FX preset, e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar fill renders as an animated texture strip instead of the flat `color`. |
-| `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the animated preset art, so one texture strip can be recolored per power. Ignored when `animated` is unset. |
+| `animated` | string | no | — | Id of a bar style (an FX preset), e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar draws in that style instead of the flat `color` fill. See **Bar styles** below for the built-in ones. |
+| `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the style's art, so one texture can be recolored per power. Ignored when `animated` is unset. On `neoorigins:tinted`, `color` is used when `tint` is not set. |
 
 **Bar order and stacking.** Bars stack upwards from the hotbar in **resource id order**: sorted by the power id that owns the bar, lowest id nearest the hotbar. The order does not depend on the order the powers were granted, so a pack can predict where its bar will sit and describe that to a player. Adding a resource inserts its bar at the position its id sorts to, moving the bars above it up one slot.
 
@@ -5049,30 +5049,90 @@ Only bars that are drawn take a slot. A bar hidden by `should_render: false`, or
 
 Up to 2.2.29 neither held: the vertical order followed an internal hash of the resource key, stable for a fixed set of bars but not predictable and not controllable, and a hidden or repositioned bar still reserved its slot, leaving a gap in the stack.
 
-**Animated bar FX presets:**
+**Bar styles:**
 
-Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`, looked up by the `animated` id. Because the bar render is entirely client-side, the preset and its texture ship in a resource pack: only the preset id travels in the power JSON; clients without the preset fall back to the flat `color` fill.
+NeoOrigins ships eight bar styles. Each one draws a grey frame with the fill inside it, cut off at the current level. Set one with `animated` in `hud_render`:
+
+| Style | Fill |
+|---|---|
+| `neoorigins:fire` | Red and orange flames, scrolling. |
+| `neoorigins:water` | Deep blue water with bubbles, scrolling slowly. |
+| `neoorigins:wind` | White cloud wisps over grey, scrolling fast. |
+| `neoorigins:earth` | Brown earth, scrolling slowly. |
+| `neoorigins:soul` | Cyan soul flames, scrolling slowly. |
+| `neoorigins:void` | Purple veins, scrolling. |
+| `neoorigins:sculk` | Dark teal sculk with cyan sparks, scrolling. |
+| `neoorigins:tinted` | A plain grey fill that does not move, colored by `tint` or `color`. |
+
+The scrolling styles drift left at a fixed speed per style, set by the preset's `scroll_speed`. The strip moves with game time, so it stops while the game is paused. A player whose resource packs do not have the style sees the flat `color` fill instead.
+
+**Coloring a bar with `neoorigins:tinted`.** The `tinted` fill is grey, so it takes on whatever color you multiply it by:
+
+- **The field:** `tint` in `hud_render`. If `tint` is not set, the bar uses its `color` instead, so a bar that already has a `color` only needs `"animated": "neoorigins:tinted"` added.
+- **The format:** a hex string, `#RRGGBB` or `#AARRGGBB`; the `#` is optional. The alpha byte is ignored, since the fill is always drawn opaque. A value that is not valid hex falls back to `#55AAFF`.
+- **How it multiplies:** each channel of the grey fill is multiplied by the same channel of the color. The fill's lightest pixels are white, so they come out as the color itself; its mid and dark greys come out as darker shades of it, which keeps the fill's shading. A bright, saturated color gives the clearest bar. Black gives a black bar.
+
+`tint` works on the themed styles too, multiplying over their art in the same way, but those are drawn in color already, so it is mainly useful on `tinted`.
+
+**Example: red bar**
+```json
+"hud_render": {
+  "label": "Rage",
+  "color": "#FF3030",
+  "animated": "neoorigins:tinted"
+}
+```
+
+**Example: teal bar, with `tint` set separately from `color`**
+```json
+"hud_render": {
+  "label": "Tide",
+  "color": "#2AA198",
+  "animated": "neoorigins:tinted",
+  "tint": "#30D5C8"
+}
+```
+Here the bar draws in `#30D5C8`. `color` still matters: it is the flat fill shown to a player who does not have the style.
+
+**Example: fire bar**
+```json
+"hud_render": {
+  "label": "Heat",
+  "color": "#FF8800",
+  "animated": "neoorigins:fire"
+}
+```
+
+**Writing your own style.** A style is a resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`, looked up by the `animated` id. Because the bar render is entirely client-side, the preset and its textures ship in a resource pack: only the preset id travels in the power JSON. This is the built-in `fire` preset:
 
 ```json
 {
   "texture": "neoorigins:textures/gui/bar_fx/fire.png",
   "mode": "scroll",
-  "tile_width": 213,
-  "tile_height": 16,
-  "scroll_speed": 24,
-  "track_color": "#AA2B0900",
-  "level_color": "#B3551500"
+  "tile_width": 126,
+  "tile_height": 6,
+  "loop_width": 125,
+  "scroll_speed": 16,
+  "frame": "neoorigins:textures/gui/bar_fx/empty_bar.png",
+  "frame_width": 71,
+  "frame_height": 8
 }
 ```
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `texture` | resource location | required | The strip texture to scroll across the bar. |
-| `mode` | string | `"scroll"` | Animation mode; only `scroll` is supported today. |
-| `tile_width` / `tile_height` | int | `64` / `8` | Source texture dimensions in texels. |
-| `scroll_speed` | float | `24` | On-screen pixels per second the strip drifts left. |
-| `track_color` | hex color | `#AA000000` | ARGB backing drawn under the empty remainder of the bar. |
-| `level_color` | hex color | `track_color` | ARGB backing under the filled portion; pick a brighter tone so the current level reads through transparent gaps in the texture. |
+| `texture` | resource location | required | The fill texture. |
+| `mode` | string | `"scroll"` | `scroll` moves the texture across the bar; `static` draws it in place. |
+| `tile_width` / `tile_height` | int | `64` / `8` | Size of `texture` in pixels. |
+| `loop_width` | int | `tile_width` | How many pixels of the texture one scroll loop covers. Use one less than `tile_width` when the texture's last column repeats its first, so that column is not shown twice at the seam. |
+| `scroll_speed` | float | `24` | Pixels per second the texture drifts left. A negative value drifts right. Ignored when `mode` is `static`. |
+| `frame` | resource location | — | Frame texture drawn behind the fill. When set, the bar is `frame_width` × `frame_height` and the fill sits inside it, one pixel in from each edge: a 71 × 8 frame holds a 69 × 6 fill. |
+| `frame_width` / `frame_height` | int | `71` / `8` | Size of `frame` in pixels. |
+| `tint_from_color` | bool | `false` | When the power sets no `tint`, multiply the fill by its `color`. `neoorigins:tinted` sets this. |
+| `track_color` | hex color | `#AA000000` | Without a `frame`: ARGB backing drawn under the empty remainder of the bar. |
+| `level_color` | hex color | `track_color` | Without a `frame`: ARGB backing under the filled portion; pick a brighter tone so the current level reads through transparent gaps in the texture. |
+
+A preset without a `frame` draws the older 60 × 10 box with a backing color and value ticks, and scales its texture to the box height.
 
 See [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture-authoring guidance.
 

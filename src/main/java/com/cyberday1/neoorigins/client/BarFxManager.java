@@ -32,12 +32,17 @@ import java.util.Map;
  * <pre>{@code
  * {
  *   "texture": "neoorigins:textures/gui/bar_fx/fire.png",
- *   "mode": "scroll",          // only "scroll" supported today
- *   "tile_width": 213,          // source texture dimensions
- *   "tile_height": 16,
- *   "scroll_speed": 24,         // on-screen px/sec the strip drifts
- *   "track_color": "#AA2B0900", // dark backing under the EMPTY remainder (ARGB hex)
- *   "level_color": "#B3551500"  // backing under the FILLED portion (defaults to track_color)
+ *   "mode": "scroll",          // "scroll" (default) or "static"
+ *   "tile_width": 126,          // source texture dimensions
+ *   "tile_height": 6,
+ *   "loop_width": 125,          // texels per scroll loop; defaults to tile_width
+ *   "scroll_speed": 16,         // px/sec the strip drifts left (negative = right)
+ *   "frame": "neoorigins:textures/gui/bar_fx/empty_bar.png", // optional framed layout
+ *   "frame_width": 71,          // frame size; the fill window is the frame inset 1px
+ *   "frame_height": 8,
+ *   "tint_from_color": false,   // tint with hud_render.color when no tint is given
+ *   "track_color": "#AA2B0900", // unframed only: backing under the EMPTY remainder
+ *   "level_color": "#B3551500"  // unframed only: backing under the FILLED portion
  * }
  * }</pre>
  */
@@ -59,8 +64,16 @@ public class BarFxManager extends SimpleJsonResourceReloadListener {
      *                    even in the transparent gaps between wisps
      * @param tileW       source texture width  (texels)
      * @param tileH       source texture height (texels)
+     * @param loopW       texels per scroll loop (a strip whose last column repeats
+     *                    its first loops one texel short of its width)
+     * @param scrolls     false for {@code "mode": "static"}: the fill is drawn unmoving
+     * @param frame       optional frame texture; non-null selects the framed layout
+     * @param frameW      frame width  (texels); the fill window is the frame inset 1px
+     * @param frameH      frame height (texels)
+     * @param tintFromColor when the power sets no {@code tint}, multiply by its {@code color}
      */
-    public record BarFx(ResourceLocation texture, float scrollSpeed, int trackColor, int levelColor, int tileW, int tileH) {}
+    public record BarFx(ResourceLocation texture, float scrollSpeed, int trackColor, int levelColor, int tileW, int tileH,
+                        int loopW, boolean scrolls, ResourceLocation frame, int frameW, int frameH, boolean tintFromColor) {}
 
     private BarFxManager() {
         // NB: pass a fresh Gson directly rather than referencing a static field —
@@ -95,7 +108,19 @@ public class BarFxManager extends SimpleJsonResourceReloadListener {
                 int levelColor = obj.has("level_color")
                     ? parseArgb(obj.get("level_color").getAsString()) : trackColor;
 
-                loaded.put(id.toString(), new BarFx(texture, scrollSpeed, trackColor, levelColor, Math.max(1, tileW), Math.max(1, tileH)));
+                tileW = Math.max(1, tileW);
+                tileH = Math.max(1, tileH);
+                int loopW = obj.has("loop_width") ? obj.get("loop_width").getAsInt() : tileW;
+                loopW = Math.max(1, Math.min(tileW, loopW));
+                String mode = obj.has("mode") ? obj.get("mode").getAsString() : "scroll";
+                boolean scrolls = !"static".equals(mode);
+                ResourceLocation frame = obj.has("frame") ? ResourceLocation.parse(obj.get("frame").getAsString()) : null;
+                int frameW = obj.has("frame_width") ? obj.get("frame_width").getAsInt() : 71;
+                int frameH = obj.has("frame_height") ? obj.get("frame_height").getAsInt() : 8;
+                boolean tintFromColor = obj.has("tint_from_color") && obj.get("tint_from_color").getAsBoolean();
+
+                loaded.put(id.toString(), new BarFx(texture, scrollSpeed, trackColor, levelColor, tileW, tileH,
+                    loopW, scrolls, frame, Math.max(3, frameW), Math.max(3, frameH), tintFromColor));
             } catch (Exception ex) {
                 NeoOrigins.LOGGER.warn("[bar_fx] Skipping malformed FX preset {}: {}", id, ex.getMessage());
             }
