@@ -78,6 +78,13 @@ public final class BuiltinPowers {
     private static final String RESOURCE_LOCATION_PATTERN = "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$";
 
     /**
+     * Schema {@code pattern} for a {@code hud_render} hex colour: 6 or 8 hex digits,
+     * optional {@code #}. Mirrors {@code util.HexColor}, so both editors reject what
+     * the loader would replace with the fallback colour.
+     */
+    private static final String HEX_COLOR_PATTERN = "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$";
+
+    /**
      * Schema {@code pattern} for fluid-selector entries ({@code ignore_fluid}).
      * Widens {@link #RESOURCE_LOCATION_PATTERN} two ways the parser genuinely
      * accepts: a leading {@code #} for a fluid tag, and an omitted namespace
@@ -1933,11 +1940,11 @@ public final class BuiltinPowers {
                 .doc("Optional external pool that backs this bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported: the bar reads the player's Iron's Spells mana pool and all writes ADD a delta to it (additive-only — absolute set_resource / operation:\"set\" are ignored). min and max are ignored: the bar runs from 0 to the player's live max mana, falling back to the declared max only while that cannot be read. Requires Iron's Spells 'n Spellbooks; without it the bar reads empty and writes no-op. Empty = internally stored (default)."),
             new FieldSpec("hud_render", Kind.OBJECT, false).virtualObject(
                 new FieldSpec("label", Kind.STRING, false).boundTo("label").def("Resource").doc("Bar label shown on the HUD."),
-                new FieldSpec("color", Kind.STRING, false).boundTo("color").def("#55AAFF").doc("Bar color, as #RRGGBB or #AARRGGBB hex, e.g. #55AAFF; any other value falls back to #55AAFF. With animated set, the fill shown when the style is not loaded."),
+                new FieldSpec("color", Kind.STRING, false).boundTo("color").pattern(HEX_COLOR_PATTERN).def("#55AAFF").doc("Bar color, as #RRGGBB or #AARRGGBB hex, e.g. #55AAFF; any other value falls back to #55AAFF. With animated set, the fill shown when the style is not loaded."),
                 new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."),
-                new FieldSpec("animated", Kind.STRING, false).boundTo("animated").def("").doc("Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill."),
-                new FieldSpec("tint", Kind.STRING, false).boundTo("tint").def("").doc("Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored; any other value falls back to #55AAFF) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color."),
-                new FieldSpec("tint_end", Kind.STRING, false).boundTo("tintEnd").def("").doc("Optional second hex color for a style that does not scroll, such as neoorigins:tinted: the fill shades from tint (or color, on neoorigins:tinted) at the left edge of the bar to tint_end at the right. Ignored on a scrolling style. Empty = one flat tint."),
+                new FieldSpec("animated", Kind.STRING, false).boundTo("animated").pattern(RESOURCE_LOCATION_PATTERN).def("").doc("Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill."),
+                new FieldSpec("tint", Kind.STRING, false).boundTo("tint").pattern(HEX_COLOR_PATTERN).def("").doc("Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored; any other value falls back to #55AAFF) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color."),
+                new FieldSpec("tint_end", Kind.STRING, false).boundTo("tintEnd").pattern(HEX_COLOR_PATTERN).def("").doc("Optional second hex color for a style that does not scroll, such as neoorigins:tinted: the fill shades from tint (or color, on neoorigins:tinted) at the left edge of the bar to tint_end at the right. Ignored on a scrolling style. Empty = one flat tint."),
                 new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
                 .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow components.")));
 

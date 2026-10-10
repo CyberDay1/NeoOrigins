@@ -67,7 +67,9 @@ public final class CreatorAssets {
         "item",     () -> reg(BuiltInRegistries.ITEM),
         "entity",   () -> reg(BuiltInRegistries.ENTITY_TYPE),
         "attribute",() -> reg(BuiltInRegistries.ATTRIBUTE),
-        "effect",   CreatorAssets::effectIds);
+        "effect",   CreatorAssets::effectIds,
+        // Not a registry: the resource bar styles, built-in plus any a resource pack adds.
+        "bar_style", com.cyberday1.neoorigins.client.BarFxManager::styleIds);
 
     /** Exact JSON field names that map to a registry pick list. */
     private static final Map<String, String> FIELD_TO_KIND = Map.ofEntries(
@@ -78,7 +80,8 @@ public final class CreatorAssets {
         Map.entry("entity_type", "entity"), Map.entry("entity", "entity"),
         Map.entry("attribute", "attribute"),
         Map.entry("effect", "effect"), Map.entry("status_effect", "effect"),
-        Map.entry("mob_effect", "effect"));
+        Map.entry("mob_effect", "effect"),
+        Map.entry("animated", "bar_style"));
 
     /** The registry "kind" a string field picks from, or {@code null}. */
     public static String registryKind(String field) {

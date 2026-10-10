@@ -14,6 +14,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.io.Reader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -82,6 +83,18 @@ public class BarFxManager extends SimplePreparableReloadListener<Map<Identifier,
                         int loopW, boolean scrolls, Identifier frame, int frameW, int frameH, boolean tintFromColor) {}
 
     private BarFxManager() {}
+
+    /** The styles this mod ships under {@code assets/neoorigins/bar_fx/}. */
+    public static final List<String> BUILTIN_STYLES = List.of(
+        "neoorigins:fire", "neoorigins:water", "neoorigins:wind", "neoorigins:earth",
+        "neoorigins:soul", "neoorigins:void", "neoorigins:sculk", "neoorigins:tinted");
+
+    /** Every style id the editor can offer: the built-ins plus any a resource pack loaded, sorted. */
+    public static List<String> styleIds() {
+        java.util.TreeSet<String> ids = new java.util.TreeSet<>(BUILTIN_STYLES);
+        ids.addAll(PRESETS.keySet());
+        return List.copyOf(ids);
+    }
 
     /** @return the preset for {@code id}, or {@code null} if none is loaded. */
     public static BarFx get(String id) {

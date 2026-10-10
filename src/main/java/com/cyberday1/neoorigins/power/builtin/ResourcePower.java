@@ -123,10 +123,10 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                     // Animated FX preset id (client resolves it against bar_fx/ presets);
                     // optional tint multiplies the preset art so one strip can be recoloured.
                     if (hud.has("animated")) animated = hud.get("animated").getAsString();
-                    if (hud.has("tint")) tint = parseColor(powerId, "tint", hud.get("tint").getAsString());
+                    if (hud.has("tint")) tint = parseOptionalColor(powerId, "tint", hud.get("tint").getAsString());
                     // Optional gradient end: the static fill runs from tint at the left edge
                     // of the track to tint_end at the right.
-                    if (hud.has("tint_end")) tintEnd = parseColor(powerId, "tint_end", hud.get("tint_end").getAsString());
+                    if (hud.has("tint_end")) tintEnd = parseOptionalColor(powerId, "tint_end", hud.get("tint_end").getAsString());
                     // Origins compat: should_render=false hides the bar
                     if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
                         hidden = true;
@@ -148,6 +148,11 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 return DataResult.success(prefix);
             }
         };
+
+        /** As {@link #parseColor}, but a blank value means "not set" (0), as the schema documents. */
+        private static int parseOptionalColor(String powerId, String field, String s) {
+            return s.isBlank() ? 0 : parseColor(powerId, field, s);
+        }
 
         /** RRGGBB or AARRGGBB; anything else logs a warning and falls back to #55AAFF. */
         private static int parseColor(String powerId, String field, String s) {
