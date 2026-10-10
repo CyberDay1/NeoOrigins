@@ -39,7 +39,6 @@ public class ResourceHudOverlay {
     private static final int BAR_INDEX_OFFSET = BAR_HEIGHT + 2;   // 10 — vertical stride between fill rows
     private static final int ICON_INDEX_OFFSET = ICON_SIZE + 1;   // 9  — horizontal stride between icons
 
-    private static final int BAR_SPACING = 16;  // vertical gap between stacked bars (default layout)
     private static final int BG_COLOR = 0xAA000000;
     private static final int BORDER_COLOR = 0xFF333333;
     private static final int LABEL_COLOR = 0xFFCCCCCC;
@@ -85,10 +84,9 @@ public class ResourceHudOverlay {
             // otherwise leave a bar that starts at max invisible from the start.
             boolean drawn = ResourceBarVisibility.shouldDraw(
                 entry.getKey(), res.alwaysShow(), res.fraction());
-            bars.add(new ResourceBarStacking.Bar(entry.getKey(), drawn,
-                ResourceHudPositions.get(entry.getKey()) != null));
+            bars.add(stackBar(entry.getKey(), res, drawn));
         }
-        int[] slots = ResourceBarStacking.assignSlots(bars);
+        int[] offsets = ResourceBarStacking.stackOffsets(bars);
 
         for (int i = 0; i < entries.size(); i++) {
             if (!bars.get(i).drawn()) continue;
@@ -103,7 +101,7 @@ public class ResourceHudOverlay {
                 y = Math.round(saved.yPct() * screenH);
             } else {
                 x = defaultBaseX;
-                y = defaultBaseY - (slots[i] * BAR_SPACING);
+                y = defaultBaseY - offsets[i];
             }
 
             BarFxManager.BarFx fx = BarFxManager.get(res.animated());
@@ -149,18 +147,35 @@ public class ResourceHudOverlay {
                 }
             }
 
-            // Label above bar
-            String label = res.label();
-            int labelW = mc.font.width(label);
-            g.drawString(mc.font, label, x + (barW - labelW) / 2, y - 9, LABEL_COLOR, false);
-
-            // Value readout below bar — animated FX bars are taller, so drop the
-            // readout below their box rather than the standard frame height.
+            // Label above bar, value readout below it. The stack measured both
+            // lines (stackBar), so this is where its slot left room for them.
+            var bar = bars.get(i);
+            if (bar.label()) {
+                String label = res.label();
+                int labelW = mc.font.width(label);
+                g.drawString(mc.font, label, x + (barW - labelW) / 2, y - ResourceBarStacking.LINE, LABEL_COLOR, false);
+            }
             String readout = res.value() + "/" + res.max();
             int readoutW = mc.font.width(readout);
-            int barBottom = framed ? fx.frameH() : (fx != null ? FX_BAR_HEIGHT : FRAME_HEIGHT);
-            g.drawString(mc.font, readout, x + (barW - readoutW) / 2, y + barBottom + 2, LABEL_COLOR, false);
+            g.drawString(mc.font, readout, x + (barW - readoutW) / 2, y + bar.box().readoutY(), LABEL_COLOR, false);
         }
+    }
+
+    /**
+     * The stacking entry for one bar: what its box covers and which text lines
+     * it draws. The HUD editor builds its stack from this too, so a bar it
+     * shows at a default position is where the HUD will draw it.
+     */
+    static ResourceBarStacking.Bar stackBar(String key, ClientResourceState.ResourceEntry res, boolean drawn) {
+        BarFxManager.BarFx fx = BarFxManager.get(res.animated());
+        ResourceBarStacking.Box box;
+        if (fx != null && fx.frame() != null) box = ResourceBarStacking.Box.framed(fx.frameH());
+        else if (fx != null) box = ResourceBarStacking.Box.ANIMATED;
+        else if (res.barIndex() >= 0) box = ResourceBarStacking.Box.SPRITE;
+        else box = ResourceBarStacking.Box.PLAIN;
+        boolean label = res.label() != null && !res.label().isEmpty();
+        return new ResourceBarStacking.Bar(key, drawn, ResourceHudPositions.get(key) != null,
+            box, label, true);
     }
 
     /**

@@ -149,14 +149,15 @@ public class ResourceHudEditorScreen extends Screen {
         var resources = ClientResourceState.getResources();
         int defaultX = width / 2 - 91;
         int defaultBaseY = height - 49;
-        // The editor shows every bar, so all of them count as drawn here.
+        // The editor shows every bar, so all of them count as drawn here. Slot
+        // heights come from the HUD's own measure of each bar, so a default
+        // position here is where the HUD draws it.
         var entries = List.copyOf(resources.entrySet());
         var bars = new ArrayList<ResourceBarStacking.Bar>(entries.size());
         for (var entry : entries) {
-            bars.add(new ResourceBarStacking.Bar(entry.getKey(), true,
-                ResourceHudPositions.get(entry.getKey()) != null));
+            bars.add(ResourceHudOverlay.stackBar(entry.getKey(), entry.getValue(), true));
         }
-        int[] barSlots = ResourceBarStacking.assignSlots(bars);
+        int[] offsets = ResourceBarStacking.stackOffsets(bars);
         for (int i = 0; i < entries.size(); i++) {
             var entry = entries.get(i);
             ResourceHudPositions.Pos saved = ResourceHudPositions.get(entry.getKey());
@@ -166,7 +167,7 @@ public class ResourceHudEditorScreen extends Screen {
                 yPct = saved.yPct();
             } else {
                 xPct = (float) defaultX / width;
-                yPct = (float) (defaultBaseY - barSlots[i] * 16) / height;
+                yPct = (float) (defaultBaseY - offsets[i]) / height;
             }
             widgets.add(new Widget(entry.getKey(), entry.getValue(), null, xPct, yPct, 1.0f, false));
         }
