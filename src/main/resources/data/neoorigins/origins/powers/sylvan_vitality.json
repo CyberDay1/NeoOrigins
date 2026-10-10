@@ -7,6 +7,7 @@
   "regen_interval": 20,
   "hud_render": {
     "label": "Vitality",
-    "color": "#44DD66"
+    "color": "#44DD66",
+    "animated": "neoorigins:tinted"
   }
 }

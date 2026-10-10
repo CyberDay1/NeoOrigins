@@ -6085,12 +6085,12 @@
               "default": true
             },
             "animated": {
-              "description": "Animated bar-FX preset id (e.g. neoorigins:fire); empty = static bar.",
+              "description": "Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill.",
               "type": "string",
               "default": ""
             },
             "tint": {
-              "description": "Optional hex tint multiplied over the animated preset art (e.g. #FF8800); empty = untinted.",
+              "description": "Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color.",
               "type": "string",
               "default": ""
             },

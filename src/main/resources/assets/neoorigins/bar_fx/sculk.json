@@ -1,0 +1,11 @@
+{
+  "texture": "neoorigins:textures/gui/bar_fx/sculk.png",
+  "mode": "scroll",
+  "tile_width": 126,
+  "tile_height": 6,
+  "loop_width": 126,
+  "scroll_speed": 12,
+  "frame": "neoorigins:textures/gui/bar_fx/empty_bar.png",
+  "frame_width": 71,
+  "frame_height": 8
+}

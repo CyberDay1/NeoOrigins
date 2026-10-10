@@ -2,7 +2,6 @@ package com.cyberday1.neoorigins.client;
 
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -69,6 +68,12 @@ public class ResourceHudOverlay {
         int defaultBaseX = screenW / 2 - 91;
         int defaultBaseY = screenH - 49;
 
+        // Scroll clock: game ticks plus the partial tick, so the strip moves smoothly
+        // between ticks and stops while the game is paused.
+        double fxTicks = mc.level.getGameTime()
+            + event.getPartialTick().getGameTimeDeltaPartialTick(false);
+        double guiScale = mc.getWindow().getGuiScale();
+
         // Decide which bars draw before handing out stacked slots, so a hidden
         // or dragged-out bar leaves no gap behind it.
         var entries = java.util.List.copyOf(resources.entrySet());
@@ -102,16 +107,20 @@ public class ResourceHudOverlay {
             }
 
             BarFxManager.BarFx fx = BarFxManager.get(res.animated());
-            // Animated bars use a slightly narrower box than native/Apoli bars.
-            int barW = (fx != null) ? FX_BAR_WIDTH : BAR_WIDTH;
+            boolean framed = fx != null && fx.frame() != null;
+            // Unframed animated bars use a slightly narrower box than native/Apoli
+            // bars; framed ones take the width of their frame.
+            int barW = framed ? fx.frameW() : (fx != null) ? FX_BAR_WIDTH : BAR_WIDTH;
 
             float frac = res.fraction();
             int fillW = Math.round(barW * frac);
 
-            if (fx != null) {
+            if (framed) {
+                renderFramedBar(g, fx, x, y, frac, res.tint(), res.color(), fxTicks, guiScale);
+            } else if (fx != null) {
                 // Animated FX preset takes precedence over both the Apoli sprite
                 // and the native color fill.
-                renderAnimatedBar(g, fx, x, y, fillW, res.tint(), res.min(), res.max());
+                renderAnimatedBar(g, fx, x, y, fillW, res.tint(), res.min(), res.max(), fxTicks);
             } else if (res.barIndex() >= 0) {
                 // Faithful Apoli render. Honour a pack-declared sprite_location (community
                 // sheets are restyled bars at the same coordinates); fall back to our
@@ -148,7 +157,7 @@ public class ResourceHudOverlay {
             // readout below their box rather than the standard frame height.
             String readout = res.value() + "/" + res.max();
             int readoutW = mc.font.width(readout);
-            int barBottom = (fx != null ? FX_BAR_HEIGHT : FRAME_HEIGHT);
+            int barBottom = framed ? fx.frameH() : (fx != null ? FX_BAR_HEIGHT : FRAME_HEIGHT);
             g.text(mc.font, readout, x + (barW - readoutW) / 2, y + barBottom + 2, LABEL_COLOR, false);
         }
     }
@@ -167,7 +176,7 @@ public class ResourceHudOverlay {
      * {@code blit(pipeline, ...)} overload instead (same multiply semantics).
      */
     private static void renderAnimatedBar(GuiGraphicsExtractor g, BarFxManager.BarFx fx,
-                                          int x, int y, int fillW, int tint, int min, int max) {
+                                          int x, int y, int fillW, int tint, int min, int max, double ticks) {
         int top = y;
         int h = FX_BAR_HEIGHT;
 
@@ -182,10 +191,9 @@ public class ResourceHudOverlay {
 
             // Scroll the strip at the box height, preserving its aspect ratio.
             int drawW = Math.max(1, Math.round(fx.tileW() * (float) h / fx.tileH()));
-            // Scroll offset advances with wall-clock time, wrapping every drawW px so
-            // the (seamless) strip loops. Time-based, NOT frame-based, so the drift
-            // speed is independent of FPS.
-            int off = Math.round((Util.getMillis() / 1000.0f) * fx.scrollSpeed()) % drawW;
+            // Scroll offset advances with game time, wrapping every drawW px so the
+            // (seamless) strip loops; independent of FPS.
+            int off = fx.scrolls() ? (int) Math.floorMod(Math.round(ticks / 20.0 * fx.scrollSpeed()), (long) drawW) : 0;
 
             // tint==0 means "no tint" — draw the strip art as-is (opaque white).
             int color = (tint == 0) ? 0xFFFFFFFF : (0xFF000000 | (tint & 0xFFFFFF));
@@ -207,6 +215,47 @@ public class ResourceHudOverlay {
         int minorTickH = Math.max(1, Math.round(h * 0.15f));  // 2 @ h=10 (~half the major)
         drawTicks(g, x, top, min, max, TICK_MINOR_STEP, minorTickH, TICK_MINOR_COLOR);
         drawTicks(g, x, top, min, max, TICK_MAJOR_STEP, majorTickH, TICK_MAJOR_COLOR);
+    }
+
+    /**
+     * Renders a framed preset: the preset's frame texture at its own size, then the
+     * fill inside it, inset one pixel on every side and cut off at the current level.
+     * A {@code static} fill is drawn as it is; a {@code scroll} fill is the strip
+     * looping every {@code loopW} texels, seen through the fill window. The fill is
+     * multiplied by {@code tint}, or by the bar's {@code color} when the preset sets
+     * {@code tint_from_color} and the power gives no tint.
+     */
+    private static void renderFramedBar(GuiGraphicsExtractor g, BarFxManager.BarFx fx, int x, int y,
+                                        float frac, int tint, int color, double ticks, double guiScale) {
+        int fw = fx.frameW(), fh = fx.frameH();
+        int winX = x + 1, winY = y + 1, winW = fw - 2, winH = fh - 2;
+
+        g.blit(RenderPipelines.GUI_TEXTURED, fx.frame(), x, y, 0.0f, 0.0f, fw, fh, fw, fh);
+
+        int fillW = Math.round(winW * frac);
+        if (fillW <= 0) return;
+        int mul = tint != 0 ? tint : (fx.tintFromColor() ? color : 0);
+        int argb = (mul == 0) ? 0xFFFFFFFF : (0xFF000000 | (mul & 0xFFFFFF));
+
+        if (!fx.scrolls()) {
+            g.blit(RenderPipelines.GUI_TEXTURED, fx.texture(), winX, winY, 0.0f, 0.0f,
+                fillW, winH, fillW, fx.tileH(), fx.tileW(), fx.tileH(), argb);
+            return;
+        }
+        int loopW = fx.loopW();
+        double off = ResourceBarScroll.offset(ticks, fx.scrollSpeed(), loopW, guiScale);
+        int whole = (int) off;
+        float part = (float) (off - whole);
+
+        g.enableScissor(winX, winY, winX + fillW, winY + winH);
+        g.pose().pushMatrix();
+        g.pose().translate(-part, 0.0f);
+        for (int dx = -whole; dx <= fillW; dx += loopW) {
+            g.blit(RenderPipelines.GUI_TEXTURED, fx.texture(), winX + dx, winY, 0.0f, 0.0f,
+                loopW, winH, loopW, fx.tileH(), fx.tileW(), fx.tileH(), argb);
+        }
+        g.pose().popMatrix();
+        g.disableScissor();
     }
 
     /**

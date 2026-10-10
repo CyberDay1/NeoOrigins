@@ -1,0 +1,11 @@
+{
+  "texture": "neoorigins:textures/gui/bar_fx/water.png",
+  "mode": "scroll",
+  "tile_width": 126,
+  "tile_height": 6,
+  "loop_width": 125,
+  "scroll_speed": 10,
+  "frame": "neoorigins:textures/gui/bar_fx/empty_bar.png",
+  "frame_width": 71,
+  "frame_height": 8
+}

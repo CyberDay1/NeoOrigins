@@ -1,0 +1,10 @@
+{
+  "texture": "neoorigins:textures/gui/bar_fx/grayscale.png",
+  "mode": "static",
+  "tile_width": 69,
+  "tile_height": 6,
+  "frame": "neoorigins:textures/gui/bar_fx/empty_bar.png",
+  "frame_width": 71,
+  "frame_height": 8,
+  "tint_from_color": true
+}
