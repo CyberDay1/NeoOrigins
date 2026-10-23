@@ -14,6 +14,16 @@ is closed. Resolution follows standard NeoForge server-config rules:
 - `<world>/serverconfig/neoorigins/content.toml`: a per-world copy, if present,
   **overrides** the global file for that world.
 
+> **Minecraft 26.3.** NeoForge 26.3 renamed the config types: SERVER is now
+> SYNCED and COMMON is now LOCAL, with the same load and sync behaviour. The
+> per-world copy moved with it, to `<world>/syncedconfig/neoorigins/content.toml`.
+> The first time a world starts on 26.3, NeoOrigins copies its
+> `serverconfig/neoorigins/content.toml` (or the pre-2.2.2
+> `serverconfig/neoorigins-server.toml`) into `syncedconfig/` and applies it
+> that same boot. An existing `syncedconfig/` copy is never overwritten, and
+> the 26.2 `serverconfig/neoorigins/content.toml` stays where it is, so the
+> world still opens on an older build.
+
 These values are read only after a world is active, so they do not participate in
 the boot-time datapack reload.
 

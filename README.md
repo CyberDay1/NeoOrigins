@@ -2,7 +2,7 @@
 
 A modern, ground-up reimplementation of the Origins experience for **NeoForge**.
 
-Supports **MC 1.21.1** (Java 21), **MC 26.1** and **MC 26.2** (both Java 25).
+Supports **MC 1.21.1** (Java 21), **MC 26.1**, **MC 26.2** and **MC 26.3** (Java 25).
 
 📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/). Full reference for all 120 power types, 108 entity conditions, 94 entity actions, and 51 events.
 
@@ -245,7 +245,7 @@ tame_scare_entity_blacklist = []
 
 ## Installation
 
-1. Install [NeoForge](https://neoforged.net) for your Minecraft version (1.21.1, 26.1 or 26.2)
+1. Install [NeoForge](https://neoforged.net) for your Minecraft version (1.21.1, 26.1, 26.2 or 26.3)
 2. Drop `neoorigins-<version>.jar` into your `mods/` folder
 3. Launch. The `config/originpacks/` folder is created automatically
 
@@ -426,7 +426,7 @@ cd NeoOrigins
 # Output: build/libs/neoorigins-<version>.jar
 ```
 
-Requires Java 21 on the `1.21.1` branch, and Java 25 on `master` (MC 26.1) and `26.2`.
+Requires Java 21 on the `1.21.1` branch, and Java 25 on `master` (MC 26.1), `26.2` and `26.3`.
 
 ---
 

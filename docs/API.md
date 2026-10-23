@@ -135,7 +135,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`lava_vision`](POWER_TYPES.md#neooriginslava_vision) | Increase vision distance in lava. |
 | [`modify_lava_speed`](POWER_TYPES.md#neooriginsmodify_lava_speed) | Change movement speed while submerged in lava. |
 | [`overlay`](POWER_TYPES.md#neooriginsoverlay) | Full-screen texture overlay with configurable opacity. |
-| [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. Not drawn on 26.1 or 26.2: the power still loads and syncs, but there is no tint render pass. |
+| [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. Not drawn on 26.1, 26.2 or 26.3: the power still loads and syncs, but there is no tint render pass. |
 | [`entity_model`](POWER_TYPES.md#neooriginsentity_model) | Replace the player's model with another entity's: a morph. Changes hitbox and voice with it. |
 | [`invisibility`](POWER_TYPES.md#neooriginsinvisibility) | Turn the player invisible, optionally hiding worn armour too. |
 | [`prevent_entity_render`](POWER_TYPES.md#neooriginsprevent_entity_render) | Hide matching living entities from this player only; they still act and collide. |
