@@ -250,6 +250,12 @@ public class NeoOriginsNetwork {
         );
 
         registrar.playToClient(
+            com.cyberday1.neoorigins.network.payload.SyncGlowingEntitiesPayload.TYPE,
+            com.cyberday1.neoorigins.network.payload.SyncGlowingEntitiesPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncGlowingEntities
+        );
+
+        registrar.playToClient(
             SyncFoodNutritionPayload.TYPE,
             SyncFoodNutritionPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncFoodNutrition
@@ -1790,6 +1796,14 @@ public class NeoOriginsNetwork {
      * {@code neoorigins:prevent_entity_render}. Full replacement, not a delta —
      * see {@link com.cyberday1.neoorigins.network.payload.SyncHiddenEntitiesPayload}.
      */
+    /** Replace the local glowing-entity set for {@code neoorigins:entity_glow}. */
+    private static void handleSyncGlowingEntities(
+            com.cyberday1.neoorigins.network.payload.SyncGlowingEntitiesPayload payload,
+            IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientGlowingEntities.set(payload.entityIds()));
+    }
+
     private static void handleSyncHiddenEntities(
             com.cyberday1.neoorigins.network.payload.SyncHiddenEntitiesPayload payload,
             IPayloadContext ctx) {

@@ -99,16 +99,24 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
         String type
     ) implements PowerConfiguration {
 
-        public static final Codec<Config> CODEC = new Codec<>() {
+        public static final Codec<Config> CODEC = codecFor("prevent_entity_render", "hide");
+
+        /**
+         * The {@code entity_condition} reader, shared with {@link EntityGlowPower},
+         * which selects entities the same way and only does something else to them.
+         * {@code label} names the power in warnings; {@code verb} says what it does.
+         */
+        static Codec<Config> codecFor(String label, String verb) {
+            return new Codec<>() {
             @Override
             public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
                 JsonElement json = ops.convertTo(JsonOps.INSTANCE, input);
                 if (!json.isJsonObject()) {
-                    return DataResult.error(() -> "prevent_entity_render: not a JSON object");
+                    return DataResult.error(() -> label + ": not a JSON object");
                 }
                 JsonObject obj = json.getAsJsonObject();
                 String t = obj.has("type") ? obj.get("type").getAsString()
-                    : "neoorigins:prevent_entity_render";
+                    : "neoorigins:" + label;
 
                 if (!obj.has("entity_condition") || obj.get("entity_condition").isJsonNull()) {
                     // Apoli: no condition = applies to everything.
@@ -128,18 +136,18 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
                     cond = and;
                 } else if (!cond.isJsonObject()) {
                     NeoOrigins.LOGGER.warn(
-                        "[NeoOrigins] prevent_entity_render ({}): entity_condition is neither an "
-                        + "object nor an array — the power will hide nothing rather than hide "
-                        + "everything", t);
+                        "[NeoOrigins] {} ({}): entity_condition is neither an "
+                        + "object nor an array, so the power will {} nothing rather than {} "
+                        + "everything", label, t, verb, verb);
                     return DataResult.success(Pair.of(
                         new Config(Optional.of(NEVER), t), ops.empty()));
                 }
                 TargetCondition tc = TargetConditionParser.parse(cond.getAsJsonObject(), t);
                 if (tc == null) {
                     NeoOrigins.LOGGER.warn(
-                        "[NeoOrigins] prevent_entity_render ({}): entity_condition uses a verb that "
-                        + "cannot be evaluated against an arbitrary entity — the power will hide "
-                        + "nothing rather than hide everything", t);
+                        "[NeoOrigins] {} ({}): entity_condition uses a verb that "
+                        + "cannot be evaluated against an arbitrary entity, so the power will {} "
+                        + "nothing rather than {} everything", label, t, verb, verb);
                     tc = NEVER;
                 }
                 return DataResult.success(Pair.of(
@@ -151,6 +159,7 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
                 return DataResult.success(prefix);
             }
         };
+        }
     }
 
     @Override public Codec<Config> codec() { return Config.CODEC; }
@@ -159,6 +168,17 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % EVAL_INTERVAL_TICKS != 0) return;
 
+        Set<Integer> hidden = matchingEntityIds(player, config);
+
+        Set<Integer> previous = lastSent.get(player.getUUID());
+        if (hidden.equals(previous)) return;
+        lastSent.put(player.getUUID(), hidden);
+        PacketDistributor.sendToPlayer(player,
+            new SyncHiddenEntitiesPayload(new ArrayList<>(hidden)));
+    }
+
+    /** Ids of the living entities in the holder's view range that pass {@code entity_condition}, capped. */
+    static Set<Integer> matchingEntityIds(ServerPlayer player, Config config) {
         Set<Integer> hidden = new HashSet<>();
         double range = viewRangeBlocks(player);
         AABB box = player.getBoundingBox().inflate(range);
@@ -172,12 +192,7 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
             hidden.add(e.getId());
             if (hidden.size() >= MAX_HIDDEN) break;
         }
-
-        Set<Integer> previous = lastSent.get(player.getUUID());
-        if (hidden.equals(previous)) return;
-        lastSent.put(player.getUUID(), hidden);
-        PacketDistributor.sendToPlayer(player,
-            new SyncHiddenEntitiesPayload(new ArrayList<>(hidden)));
+        return hidden;
     }
 
     /**
