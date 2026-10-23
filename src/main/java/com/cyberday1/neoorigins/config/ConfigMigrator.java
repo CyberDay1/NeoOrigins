@@ -33,7 +33,7 @@ import java.util.Set;
  *       the split is a straight partition of top-level entries).</li>
  *   <li>{@code config/neoorigins-server.toml} → {@code neoorigins/content.toml}
  *       (same spec layout; both the global {@code config/} default and the
- *       per-world {@code serverconfig/} override locations are migrated).</li>
+ *       per-world override are migrated, the latter into {@code syncedconfig/}).</li>
  *   <li>{@code config/neoorigins-client.toml} → {@code neoorigins/client.toml}.</li>
  *   <li>{@code config/neoorigins-hud.json} → {@code neoorigins/hud.json}.</li>
  * </ul>
@@ -45,14 +45,14 @@ import java.util.Set;
  * legacy file is renamed to {@code *.migrated} after processing so the
  * migration never runs twice.
  *
- * <p>Per-world SERVER overrides can't be reached at constructor time (the
- * world path isn't known yet, and NeoForge loads SERVER configs inside
+ * <p>Per-world SYNCED overrides can't be reached at constructor time (the
+ * world path isn't known yet, and NeoForge loads SYNCED configs inside
  * {@code ServerLifecycleHooks.handleServerAboutToStart} BEFORE
  * {@code ServerAboutToStartEvent} posts). {@link #onModConfigLoading} therefore
  * hooks the content spec's {@link ModConfigEvent.Loading}: at that moment
- * {@code ServerLifecycleHooks.getCurrentServer()} is already set, so a legacy
- * {@code <world>/serverconfig/neoorigins-server.toml} is copied to
- * {@code serverconfig/neoorigins/content.toml} (picked up on the next boot)
+ * {@code ServerLifecycleHooks.getCurrentServer()} is already set, so an old
+ * {@code <world>/serverconfig/} override is copied to
+ * {@code syncedconfig/neoorigins/content.toml} (picked up on the next boot)
  * AND its values are pushed into the just-loaded in-memory config so they
  * apply this boot too.
  *
@@ -259,36 +259,50 @@ public final class ConfigMigrator {
     }
 
     /**
-     * Per-world SERVER override migration. Fired on the mod event bus while
-     * NeoForge is loading the content spec at server start; see class javadoc
-     * for why this can't run any earlier.
+     * Per-world synced-config override migration. Fired on the mod event bus
+     * while NeoForge is loading the content spec at server start; see class
+     * javadoc for why this can't run any earlier.
+     *
+     * <p>NeoForge 26.3 renamed the per-world override folder from
+     * {@code serverconfig/} to {@code syncedconfig/} and migrates nothing
+     * itself, so an override left in the old folder would silently stop
+     * applying. The newest source wins: the 26.2-era
+     * {@code serverconfig/neoorigins/content.toml}, else the pre-2.2.2
+     * {@code serverconfig/neoorigins-server.toml}. The 26.2 file is copied,
+     * not moved, so the world still opens on an older build.
      */
     public static void onModConfigLoading(ModConfigEvent.Loading event) {
         if (event.getConfig().getSpec() != ContentTogglesConfig.SPEC) return;
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
 
-        Path dir = server.getWorldPath(new LevelResource("serverconfig"));
-        Path legacy = dir.resolve("neoorigins-server.toml");
-        if (!Files.exists(legacy)) return;
-        Path override = dir.resolve("neoorigins").resolve("content.toml");
+        Path oldDir = server.getWorldPath(new LevelResource("serverconfig"));
+        Path legacy = oldDir.resolve("neoorigins-server.toml");
+        Path oldOverride = oldDir.resolve("neoorigins").resolve("content.toml");
+        Path override = server.getWorldPath(new LevelResource("syncedconfig"))
+            .resolve("neoorigins").resolve("content.toml");
+        boolean hasLegacy = Files.exists(legacy);
+        Path source = Files.exists(oldOverride) ? oldOverride : hasLegacy ? legacy : null;
+        if (source == null) return;
         try {
             if (!Files.exists(override)) {
                 Files.createDirectories(override.getParent());
-                Files.copy(legacy, override);
+                Files.copy(source, override);
                 // This load already resolved to the global config/ file (the
                 // override didn't exist when NeoForge resolved paths), so push
-                // the world's legacy values into the live config for this boot.
-                CommentedConfig parsed = parseToml(legacy);
+                // the world's old values into the live config for this boot.
+                CommentedConfig parsed = parseToml(source);
                 if (parsed != null) {
                     event.getConfig().getLoadedConfig().config().putAll(parsed);
                 }
+                NeoOrigins.LOGGER.info("[config] Migrated world {} -> syncedconfig/neoorigins/content.toml",
+                    oldDir.relativize(source));
             }
-            Files.move(legacy, markMigrated(legacy), StandardCopyOption.REPLACE_EXISTING);
-            NeoOrigins.LOGGER.info(
-                "[config] Migrated world serverconfig neoorigins-server.toml -> serverconfig/neoorigins/content.toml");
+            if (hasLegacy) {
+                Files.move(legacy, markMigrated(legacy), StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
-            NeoOrigins.LOGGER.error("[config] Failed to migrate world serverconfig neoorigins-server.toml", e);
+            NeoOrigins.LOGGER.error("[config] Failed to migrate world override {}", source, e);
         }
     }
 

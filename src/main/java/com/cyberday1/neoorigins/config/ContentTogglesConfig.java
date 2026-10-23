@@ -9,19 +9,20 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Content toggles config (SERVER, {@code neoorigins/content.toml}).
+ * Content toggles config (SYNCED, {@code neoorigins/content.toml}).
  *
  * <p>Gameplay toggles the client must observe: origin/class enable toggles
- * and the global resource-bar disable. This spec MUST stay SERVER type —
- * NeoForge auto-syncs SERVER configs to every connecting client, which is
+ * and the global resource-bar disable. This spec MUST stay SYNCED type
+ * (SERVER before NeoForge 26.3): NeoForge auto-syncs it to every connecting client, which is
  * what fixed the origin-toggle desync (disabling an origin server-side now
  * correctly hides it on remote clients). These values are only read after a
- * world is active, so the SERVER load-timing restriction (not loaded during
+ * world is active, so the SYNCED load-timing restriction (not loaded during
  * the boot-time datapack reload) does not bite.
  *
  * <p>The file loads from {@code config/neoorigins/content.toml} by default;
- * a per-world copy at {@code <world>/serverconfig/neoorigins/content.toml}
- * overrides it (standard NeoForge server-config resolution).
+ * a per-world copy at {@code <world>/syncedconfig/neoorigins/content.toml}
+ * overrides it (standard NeoForge synced-config resolution; the folder was
+ * {@code serverconfig/} before 26.3, see {@link ConfigMigrator}).
  *
  * <p>Part of the 2.2.2 config split — see {@link GameplayConfig},
  * {@link AdminConfig} and {@link PowerOverridesConfig}.
