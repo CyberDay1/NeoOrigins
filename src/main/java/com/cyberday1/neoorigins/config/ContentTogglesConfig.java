@@ -7,6 +7,8 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Content toggles config (SYNCED, {@code neoorigins/content.toml}).
@@ -61,6 +63,16 @@ public final class ContentTogglesConfig {
                      "night-vision toggle above. These are two separate mechanisms.")
             .define("disable_enhanced_vision", false);
 
+    public static final ModConfigSpec.BooleanValue CLASSIC_MODE =
+        BUILDER
+            .comment("Classic mode: offer only the original Origins mod's origins and the original",
+                     "Origins: Classes classes, with their original power sets.",
+                     "When true, every other built-in origin and class is hidden from selection,",
+                     "whatever its toggle below says. A classic origin or class whose toggle is",
+                     "false stays hidden. Datapack and originpack origins are not affected.",
+                     "Players who already hold a hidden origin keep it until they change it.")
+            .define("classic_mode", false);
+
     // ── Disabled Origins ────────────────────────────────────────────────
     // Each built-in origin can be disabled here. Disabled origins are hidden
     // from the origin selection screen but remain registered for commands.
@@ -78,6 +90,30 @@ public final class ContentTogglesConfig {
         "skeleton", "slime", "wraith",
         "asura", "windwalker", "qi_cultivator", "golden_body", "iron_monk", "sword_immortal"
     };
+
+    /** Built-in origins with no toggle of their own (the dragons). Classic mode still hides them. */
+    private static final String[] UNTOGGLED_BUILT_IN_ORIGINS = {
+        "cave_dragon", "forest_dragon", "sea_dragon"
+    };
+
+    /**
+     * The original Origins mod's ten origins, by NeoOrigins path (Blazeborn is
+     * {@code blazeling} here). Each has a classic variant under
+     * {@code data/neoorigins/origins/classic_origins/}.
+     */
+    public static final Set<String> CLASSIC_ORIGINS = Set.of(
+        "human", "merling", "avian", "blazeling", "elytrian", "enderian",
+        "arachnid", "shulk", "phantom", "feline");
+
+    /** The fourteen Origins: Classes classes, by NeoOrigins path. */
+    public static final Set<String> CLASSIC_CLASSES = Set.of(
+        "class_archer", "class_beastmaster", "class_blacksmith", "class_cleric",
+        "class_cook", "class_explorer", "class_farmer", "class_lumberjack",
+        "class_merchant", "class_miner", "class_nitwit", "class_rancher",
+        "class_rogue", "class_warrior");
+
+    /** Classic classes NeoOrigins does not otherwise ship: shown only in classic mode. */
+    public static final Set<String> CLASSIC_ONLY = Set.of("class_farmer", "class_rancher");
 
     public static final Map<String, ModConfigSpec.BooleanValue> ORIGIN_TOGGLES;
 
@@ -142,14 +178,49 @@ public final class ContentTogglesConfig {
     }
 
     /**
+     * Classic mode as currently loaded. False before the SYNCED spec loads (it
+     * does not exist during the boot-time datapack reload), so callers that run
+     * that early see the normal content and are re-run on the config's Loading event.
+     */
+    public static boolean isClassicMode() {
+        return SPEC.isLoaded() && CLASSIC_MODE.get();
+    }
+
+    /** Every built-in origin and class path NeoOrigins ships, classic-only ones included. */
+    public static boolean isBuiltIn(String path) {
+        return ORIGIN_TOGGLES.containsKey(path) || CLASS_TOGGLES.containsKey(path)
+            || CLASSIC_ONLY.contains(path)
+            || java.util.Arrays.asList(UNTOGGLED_BUILT_IN_ORIGINS).contains(path);
+    }
+
+    public static boolean isClassic(String path) {
+        return CLASSIC_ORIGINS.contains(path) || CLASSIC_CLASSES.contains(path);
+    }
+
+    /**
      * Returns true if the given origin/class is disabled via config toggles.
      * Checks both [origins] and [classes] sections.
      */
     public static boolean isOriginDisabled(Identifier originId) {
         if (!NeoOrigins.MOD_ID.equals(originId.getNamespace())) return false;
-        String path = originId.getPath();
-        ModConfigSpec.BooleanValue toggle = ORIGIN_TOGGLES.get(path);
-        if (toggle == null) toggle = CLASS_TOGGLES.get(path);
-        return toggle != null && !toggle.get();
+        return isBuiltInDisabled(originId.getPath(), isClassicMode(), path -> {
+            ModConfigSpec.BooleanValue toggle = ORIGIN_TOGGLES.get(path);
+            if (toggle == null) toggle = CLASS_TOGGLES.get(path);
+            return toggle != null && !toggle.get();
+        });
+    }
+
+    /**
+     * The disable rule for a {@code neoorigins:} path, apart from the config
+     * plumbing so it can be tested. A path's own toggle always wins when it is
+     * off. Classic mode additionally hides every built-in that is not classic;
+     * outside classic mode the classic-only classes are hidden instead.
+     * Non-built-in paths (a datapack adding to our namespace) are never touched.
+     */
+    public static boolean isBuiltInDisabled(String path, boolean classicMode, Predicate<String> toggledOff) {
+        if (toggledOff.test(path)) return true;
+        if (!isBuiltIn(path)) return false;
+        if (classicMode) return !isClassic(path);
+        return CLASSIC_ONLY.contains(path);
     }
 }
