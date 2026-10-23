@@ -1,0 +1,28 @@
+{
+  "type": "neoorigins:persistent_effect",
+  "toggleable": false,
+  "condition": {
+    "type": "neoorigins:block_collision",
+    "offset_x": 0,
+    "offset_y": 1,
+    "offset_z": 0
+  },
+  "effects": [
+    {
+      "effect": "minecraft:weakness",
+      "amplifier": 0,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": true
+    },
+    {
+      "effect": "minecraft:slowness",
+      "amplifier": 0,
+      "ambient": true,
+      "show_particles": false,
+      "show_icon": true
+    }
+  ],
+  "name": "power.neoorigins.classic_elytrian_claustrophobia.name",
+  "description": "power.neoorigins.classic_elytrian_claustrophobia.description"
+}

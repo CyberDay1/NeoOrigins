@@ -1,0 +1,23 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 30,
+  "cooldown_icon": "minecraft:ender_pearl",
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:spawn_projectile",
+        "entity_type": "minecraft:ender_pearl",
+        "speed": 1.5,
+        "divergence": 1.0,
+        "tag": "{NeoForgeData:{\"neoorigins:enderian_pearl\":1b}}"
+      },
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.ender_pearl.throw"
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_enderian_teleportation.name",
+  "description": "power.neoorigins.classic_enderian_teleportation.description"
+}

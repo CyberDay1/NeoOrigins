@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:scare_entities",
+  "entity_types": [
+    "minecraft:creeper"
+  ],
+  "name": "power.neoorigins.classic_feline_catlike_appearance.name",
+  "description": "power.neoorigins.classic_feline_catlike_appearance.description"
+}

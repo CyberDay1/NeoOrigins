@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:enhanced_vision",
+  "exposure": 0.4,
+  "condition": {
+    "type": "neoorigins:not",
+    "condition": {
+      "type": "neoorigins:submerged_in",
+      "fluid": "minecraft:water"
+    }
+  },
+  "name": "power.neoorigins.classic_feline_nocturnal.name",
+  "description": "power.neoorigins.classic_feline_nocturnal.description"
+}

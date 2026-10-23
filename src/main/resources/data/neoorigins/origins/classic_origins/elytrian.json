@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.classic.elytrian.name",
+  "description": "origins.neoorigins.classic.elytrian.description",
+  "icon": "minecraft:elytra",
+  "impact": "low",
+  "order": 5,
+  "powers": [
+    "neoorigins:elytrian_flight",
+    "neoorigins:classic_elytrian_gift_of_the_winds",
+    "neoorigins:classic_elytrian_aerial_combatant",
+    "neoorigins:classic_elytrian_need_for_mobility",
+    "neoorigins:classic_elytrian_claustrophobia",
+    "neoorigins:classic_elytrian_brittle_bones"
+  ],
+  "upgrades": []
+}

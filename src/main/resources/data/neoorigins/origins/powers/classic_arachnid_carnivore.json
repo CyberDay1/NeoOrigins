@@ -1,0 +1,19 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "food_eaten",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:not",
+      "condition": {
+        "type": "neoorigins:food_item_in_tag",
+        "tag": "#neoorigins:meat_foods"
+      }
+    },
+    "if_action": {
+      "type": "neoorigins:cancel_event"
+    }
+  },
+  "name": "power.neoorigins.classic_arachnid_carnivore.name",
+  "description": "power.neoorigins.classic_arachnid_carnivore.description"
+}

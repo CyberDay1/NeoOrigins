@@ -38,7 +38,7 @@ public final class RealDatapack {
     public static synchronized void load() {
         if (loaded) return;
         apply(PowerDataManager.INSTANCE, read(locate("powers")));
-        apply(OriginDataManager.INSTANCE, read(locate("origins")));
+        apply(OriginDataManager.INSTANCE, originsWithClassic());
         loaded = true;
     }
 
@@ -58,7 +58,7 @@ public final class RealDatapack {
      */
     public static synchronized void loadWith(Path packRoot) {
         Map<Identifier, JsonElement> powers = read(locate("powers"));
-        Map<Identifier, JsonElement> origins = read(locate("origins"));
+        Map<Identifier, JsonElement> origins = originsWithClassic();
         try (Stream<Path> namespaces = Files.list(packRoot.resolve("data"))) {
             for (Path ns : namespaces.toList()) {
                 String name = ns.getFileName().toString();
@@ -73,6 +73,19 @@ public final class RealDatapack {
         apply(PowerDataManager.INSTANCE, powers);
         apply(OriginDataManager.INSTANCE, origins);
         loaded = false;
+    }
+
+    /**
+     * The shipped origins plus the classic-mode variants, keyed the way
+     * {@code OriginDataManager.prepare} keys them so {@code apply} files each
+     * variant under the origin it replaces.
+     */
+    private static Map<Identifier, JsonElement> originsWithClassic() {
+        Map<Identifier, JsonElement> origins = read(locate("origins"));
+        read(locate("classic_origins")).forEach((id, el) -> origins.put(
+            Identifier.fromNamespaceAndPath(id.getNamespace(),
+                OriginDataManager.CLASSIC_KEY_PREFIX + id.getPath()), el));
+        return origins;
     }
 
     /** Puts the managers back to the shipped data alone. */

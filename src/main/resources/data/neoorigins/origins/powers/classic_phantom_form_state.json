@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:toggle",
+  "hidden": true,
+  "default": false,
+  "name": "power.neoorigins.classic_phantom_form_state.name",
+  "description": "power.neoorigins.classic_phantom_form_state.description"
+}

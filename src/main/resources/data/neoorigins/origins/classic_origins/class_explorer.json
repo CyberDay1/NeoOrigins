@@ -1,0 +1,14 @@
+{
+  "name": "origins.neoorigins.classic.class_explorer.name",
+  "description": "origins.neoorigins.classic.class_explorer.description",
+  "icon": "minecraft:compass",
+  "impact": "none",
+  "order": 5,
+  "powers": [
+    "neoorigins:class_explorer_kit",
+    "neoorigins:class_explorer_clock",
+    "neoorigins:class_explorer_maps",
+    "neoorigins:classic_explorer_fit"
+  ],
+  "upgrades": []
+}

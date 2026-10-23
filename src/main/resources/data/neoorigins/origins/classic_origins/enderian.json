@@ -1,0 +1,18 @@
+{
+  "name": "origins.neoorigins.classic.enderian.name",
+  "description": "origins.neoorigins.classic.enderian.description",
+  "icon": "minecraft:ender_pearl",
+  "impact": "medium",
+  "order": 6,
+  "powers": [
+    "neoorigins:classic_enderian_teleportation",
+    "neoorigins:classic_water_vulnerability",
+    "neoorigins:classic_enderian_scared_of_gourds",
+    "neoorigins:classic_enderian_gourd_blindness",
+    "neoorigins:classic_enderian_slender_body",
+    "neoorigins:classic_enderian_slender_reach",
+    "neoorigins:classic_enderian_ender_particles",
+    "neoorigins:classic_damage_from_potions"
+  ],
+  "upgrades": []
+}

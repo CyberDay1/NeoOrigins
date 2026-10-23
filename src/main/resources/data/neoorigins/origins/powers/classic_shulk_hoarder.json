@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:extra_inventory",
+  "size": 9,
+  "drop_on_death": false,
+  "name": "power.neoorigins.classic_shulk_hoarder.name",
+  "description": "power.neoorigins.classic_shulk_hoarder.description"
+}

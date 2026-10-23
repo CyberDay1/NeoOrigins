@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:origin_gated_crafting",
+  "gates": [
+    {
+      "type": "neoorigins:has_power",
+      "power": "neoorigins:classic_arachnid_master_of_webs"
+    }
+  ],
+  "inner": {
+    "type": "minecraft:crafting_shapeless",
+    "category": "misc",
+    "ingredients": [
+      "minecraft:string",
+      "minecraft:string"
+    ],
+    "result": {
+      "id": "minecraft:cobweb",
+      "count": 1
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:max_health",
+  "amount": -2.0,
+  "operation": "add_value",
+  "name": "power.neoorigins.classic_feline_nine_lives.name",
+  "description": "power.neoorigins.classic_feline_nine_lives.description"
+}

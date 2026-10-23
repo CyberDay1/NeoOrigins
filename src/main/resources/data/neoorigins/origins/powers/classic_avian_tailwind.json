@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:movement_speed",
+  "amount": 0.2,
+  "operation": "add_multiplied_base",
+  "name": "power.neoorigins.classic_avian_tailwind.name",
+  "description": "power.neoorigins.classic_avian_tailwind.description"
+}

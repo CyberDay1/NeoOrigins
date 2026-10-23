@@ -1,0 +1,26 @@
+{
+  "type": "neoorigins:condition_passive",
+  "hidden": true,
+  "interval": 5,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:power_active",
+        "power": "neoorigins:classic_phantom_form_state"
+      },
+      {
+        "type": "neoorigins:food_level",
+        "comparison": "<=",
+        "compare_to": 6
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:toggle",
+    "power": "neoorigins:classic_phantom_form_state",
+    "value": false
+  },
+  "name": "power.neoorigins.classic_phantom_form_hunger_gate.name",
+  "description": "power.neoorigins.classic_phantom_form_hunger_gate.description"
+}
