@@ -52,8 +52,9 @@ public class ResourceHudEditorScreen extends Screen {
     /**
      * One draggable element. {@code data != null} → resource bar.
      * {@code slot != null} → one split ability slot. Both null → the merged
-     * ability cluster ({@code scale}/{@code vertical} only meaningful there
-     * and on split slots; resource bars ignore them).
+     * ability cluster ({@code vertical} only meaningful there and on split
+     * slots; a resource bar's {@code scale} is its origin-editor bar scale,
+     * shown here but not changed by +/-).
      */
     private record Widget(String id, ClientResourceState.ResourceEntry data,
                           CooldownHudOverlay.RenderSlot slot,
@@ -170,7 +171,8 @@ public class ResourceHudEditorScreen extends Screen {
                 xPct = (float) defaultX / width;
                 yPct = (float) (defaultBaseY - offsets[i]) / height;
             }
-            widgets.add(new Widget(entry.getKey(), entry.getValue(), null, xPct, yPct, 1.0f, false));
+            widgets.add(new Widget(entry.getKey(), entry.getValue(), null, xPct, yPct,
+                bars.get(i).scale(), false));
         }
 
         var slots = editorSlotsOrMock();
@@ -257,7 +259,9 @@ public class ResourceHudEditorScreen extends Screen {
         int bx = Math.round(w.xPct() * width);
         int by = Math.round(w.yPct() * height);
         if (w.data() != null) {
-            return new int[]{bx, by - LABEL_HEIGHT, bx + BAR_WIDTH, by + BAR_HEIGHT + READOUT_HEIGHT};
+            float s = w.scale();
+            return new int[]{bx, by - Math.round(LABEL_HEIGHT * s), bx + Math.round(BAR_WIDTH * s),
+                by + Math.round((BAR_HEIGHT + READOUT_HEIGHT) * s)};
         }
         int count = w.isCluster() ? slots.size() : 1;
         int ext = Math.round(CooldownClusterLayout.clusterExtent(count) * w.scale());
@@ -307,6 +311,15 @@ public class ResourceHudEditorScreen extends Screen {
                 continue;
             }
 
+            // Drawn at the bar's scale about its anchor, as the HUD draws it.
+            boolean scaled = w.scale() != 1.0f;
+            if (scaled) {
+                g.pose().pushMatrix();
+                g.pose().translate(bx, by);
+                g.pose().scale(w.scale(), w.scale());
+                g.pose().translate(-bx, -by);
+            }
+
             // Border + background
             g.fill(bx - 1, by - 1, bx + BAR_WIDTH + 1, by + BAR_HEIGHT + 1, border);
             g.fill(bx, by, bx + BAR_WIDTH, by + BAR_HEIGHT, BG_COLOR);
@@ -327,6 +340,8 @@ public class ResourceHudEditorScreen extends Screen {
             String readout = w.data().value() + "/" + w.data().max();
             int readoutW = mc.font.width(readout);
             g.text(mc.font, readout, bx + (BAR_WIDTH - readoutW) / 2, by + BAR_HEIGHT + 2, LABEL_COLOR, false);
+
+            if (scaled) g.pose().popMatrix();
         }
 
         // Scale readout for the selected ability element, under the buttons.
