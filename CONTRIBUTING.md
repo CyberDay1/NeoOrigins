@@ -2,7 +2,7 @@
 
 ## Build Requirements
 
-- Java 21 for the `1.21.1` branch, Java 25 for `master` (MC 26.1) and `26.2`
+- Java 21 for the `1.21.1` branch, Java 25 for `master` (MC 26.1), `26.2` and `26.3`
 - Gradle (wrapper included: use `./gradlew`)
 - NeoForge, resolved automatically at the version each branch pins as `deps.neoforge` in `gradle.properties`
 

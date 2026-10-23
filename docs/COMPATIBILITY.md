@@ -314,10 +314,10 @@ no change on the server or in DS's own config.
 
 What a quest author can use differs by Minecraft version:
 
-| Feature | 1.21.1 | 26.1 | 26.2 |
-|---|---|---|---|
-| "NeoOrigins: Grant Loot Pool" reward type (`neoorigins:loot_pool`) | Yes | No | No |
-| `neoorigins_loot_pool_grant:<table_id>` quest tag | Yes | Yes | No |
+| Feature | 1.21.1 | 26.1 | 26.2 | 26.3 |
+|---|---|---|---|---|
+| "NeoOrigins: Grant Loot Pool" reward type (`neoorigins:loot_pool`) | Yes | No | No | No |
+| `neoorigins_loot_pool_grant:<table_id>` quest tag | Yes | Yes | No | No |
 
 - **1.21.1** registers the reward type at common setup and listens for quest
   completion through FTB Quests' `ObjectCompletedEvent`. Both are wired only
@@ -326,8 +326,8 @@ What a quest author can use differs by Minecraft version:
   FTB Quests 26.1, so no reward type is registered and the quest editor offers
   no NeoOrigins reward. Completion is read from FTB Quests 26.1's
   `FTBQuestsEvent.QuestProgress` (completed quests only).
-- **26.2** has no working FTB Quests support. The build does not compile
-  against FTB Quests, since none exists for 26.2, and keeps only a
+- **26.2** and **26.3** have no working FTB Quests support. Neither build
+  compiles against FTB Quests, since none exists for either, and each keeps only a
   reflection hook for the older `ObjectCompletedEvent`, which FTB Quests' 26.x
   line no longer has. If FTB Quests is installed the hook finds nothing,
   logs that tag-marker rewards are inert, and no reward type exists.
@@ -343,15 +343,15 @@ Not every integration is compiled into every build. "Yes" means the build
 contains the integration's code; the other mod still has to exist for that
 Minecraft version.
 
-| Integration | 1.21.1 | 26.1 | 26.2 |
-|---|---|---|---|
-| Accessories | Yes | No | No |
-| EMI | Yes | No | No |
-| Sable | Yes | No | No |
-| FTB Quests | Reward type and tag marker | Tag marker only | No (see above) |
-| FTB Ultimine | Yes | Yes | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated |
-| KubeJS | Yes | Yes | No: see [KUBEJS.md](KUBEJS.md#availability) |
-| Everything else on this page | Yes | Yes | Yes |
+| Integration | 1.21.1 | 26.1 | 26.2 | 26.3 |
+|---|---|---|---|---|
+| Accessories | Yes | No | No | No |
+| EMI | Yes | No | No | No |
+| Sable | Yes | No | No | No |
+| FTB Quests | Reward type and tag marker | Tag marker only | No (see above) | No (see above) |
+| FTB Ultimine | Yes | Yes | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated |
+| KubeJS | Yes | Yes | No: see [KUBEJS.md](KUBEJS.md#availability) | No: see [KUBEJS.md](KUBEJS.md#availability) |
+| Everything else on this page | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -359,7 +359,7 @@ Minecraft version.
 
 | Mod | Mod id | What it adds |
 |---|---|---|
-| **KubeJS** | `kubejs` | A scripting plugin exposing NeoOrigins to KubeJS: register custom powers, actions, and conditions, and hook origin lifecycle events from JS. **Not available on the Minecraft 26.2 build:** KubeJS publishes no 26.2 artifact, so the integration is not compiled in there. See [KUBEJS.md](KUBEJS.md#availability). |
+| **KubeJS** | `kubejs` | A scripting plugin exposing NeoOrigins to KubeJS: register custom powers, actions, and conditions, and hook origin lifecycle events from JS. **Not available on the Minecraft 26.2 or 26.3 builds:** KubeJS publishes no artifact for either, so the integration is not compiled in there. See [KUBEJS.md](KUBEJS.md#availability). |
 | **KeybindJS** | `keybindjs` | Client-side: when KeybindJS is loaded, a key mapping registered outside NeoOrigins under an active power's declared `key` name is used for that power instead of one of NeoOrigins' numbered hotkey slots, so the key is not bound twice. |
 
 ---

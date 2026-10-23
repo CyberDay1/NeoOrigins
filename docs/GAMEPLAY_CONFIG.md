@@ -17,6 +17,11 @@ game/server is closed.
 > policy) and `power_overrides.toml` (COMMON: per-power stat overrides).
 > This doc covers `gameplay.toml` only.
 
+> **Minecraft 26.3.** NeoForge 26.3 calls COMMON configs LOCAL. Nothing
+> else changes for `gameplay.toml`: it still has no per-world override. Only
+> `content.toml`'s per-world copy moves, to `<world>/syncedconfig/`; see
+> [CONTENT_CONFIG.md](CONTENT_CONFIG.md).
+
 ## `config_version`
 
 One top-level key sits outside any section:

@@ -10,11 +10,11 @@ Technical reference for working with the NeoOrigins codebase.
 ./gradlew runServer      # Launch a dedicated server (headless)
 ```
 
-Build requires Java 21 on the `1.21.1` branch and Java 25 on `master` and `26.2`. Output JAR goes to `build/libs/`. Deploy to the test instance at `C:\Users\conno\curseforge\minecraft\Instances\26.1 Test Build\mods\`.
+Build requires Java 21 on the `1.21.1` branch and Java 25 on `master`, `26.2` and `26.3`. Output JAR goes to `build/libs/`. Deploy to the test instance at `C:\Users\conno\curseforge\minecraft\Instances\26.1 Test Build\mods\`.
 
 ## Key Technical Facts
 
-- **Stack:** three branches built side by side: `1.21.1` (MC 1.21.1, Java 21), `master` (MC 26.1, Java 25) and `26.2` (MC 26.2, Java 25). Each pins its own NeoForge build as `deps.neoforge` in `gradle.properties`. The API notes below are for the 26.x branches.
+- **Stack:** four branches built side by side: `1.21.1` (MC 1.21.1, Java 21), `master` (MC 26.1, Java 25), `26.2` (MC 26.2, Java 25) and `26.3` (MC 26.3, Java 25). Each pins its own NeoForge build as `deps.neoforge` in `gradle.properties`. The API notes below are for the 26.x branches.
 - **NeoForge API quirks:** Use `MobEffectEvent.Applicable.getEffectInstance()` (not `getEffect()`); use `MobEffectEvent.Applicable.Result.DO_NOT_APPLY` (not `DENY`); `Event.Result` does not exist in this version.
 - **MC 26.1 GUI changes:** `GuiGraphics` → `GuiGraphicsExtractor`; `render()` → `extractRenderState()`; `renderWidget()` → `extractWidgetRenderState()`; `drawString` → `text`; `drawCenteredString` → `centeredText`; `renderOutline` → `outline`; `renderItem` → `item`.
 - **MC 26.1 Level changes:** `level.random` is now protected, so use `level.getRandom()`; `getDayTime()` replaced by `getDefaultClockTime()` (World Clock system).

@@ -20,14 +20,14 @@ JavaScript without touching Java.
 
 KubeJS support is a **soft dependency**. It ships in the NeoOrigins 2.1.2+ builds
 for Minecraft 1.21.1 and, from 2.2.24, in the Minecraft 26.1 build as well. The
-**26.2 build does not bundle it**: the `NeoOrigins` / `NeoOriginsEvents` globals,
+**26.2 and 26.3 builds do not bundle it**: the `NeoOrigins` / `NeoOriginsEvents` globals,
 the `neoorigins:kubejs_callback` action and the `neoorigins:js_custom` /
 `neoorigins:js_active` power types are all absent there, and no amount of KubeJS
 being installed brings them back.
 
 The reason is upstream, not a choice of ours: KubeJS has published no NeoForge
-build for Minecraft 26.2, so the 26.2 build declares no KubeJS dependency and
-carries none of the integration's classes. Re-check KubeJS's release list before
+build for Minecraft 26.2 or 26.3, so those builds declare no KubeJS dependency
+and carry none of the integration's classes. Re-check KubeJS's release list before
 repeating that claim.
 
 On 26.1, KubeJS `8.0.4` itself requires NeoForge `26.1.2.84` or newer, so a pack
@@ -48,11 +48,12 @@ into the pack fixes it. 26.1 is unaffected, because KubeJS 8.0.4 already require
 that Rhino build. `registerActivePower` works on both lines either way: its
 `onUse` is required, and one required method is all the adapter needs.
 
-The 26.2 gap matters because an unregistered `type` is not a soft failure. A
+The 26.2 and 26.3 gap matters because an unregistered `type` is not a soft failure. A
 power file whose `type` the build doesn't know is dropped **whole** at load: no
 error in game, no partial behaviour, the power simply never appears on the
-origin. So a `js_custom` power copied into a 26.2 pack looks like it silently
-vanished. Gate those files behind a pack that doesn't ship on 26.2, or keep the
+origin. So a `js_custom` power copied into a 26.2 or 26.3 pack looks like it
+silently vanished. Gate those files behind a pack that doesn't ship on 26.2 or
+26.3, or keep the
 behaviour in Java there.
 
 When KubeJS is absent the whole subsystem short-circuits on a single cached
@@ -190,7 +191,7 @@ Invoke it from JSON anywhere an entity action is accepted:
 If no callback is registered for the id (KubeJS absent, or the script hasn't run
 yet), the action is silently dropped with a debug log; it never errors.
 
-`neoorigins:kubejs_callback` is unavailable on 26.2. There the action type is
+`neoorigins:kubejs_callback` is unavailable on 26.2 and 26.3. There the action type is
 unknown, so it is skipped at parse time rather than at call time; the surrounding
 power still loads, but that step of the action never runs.
 
@@ -222,7 +223,7 @@ bar is never seeded, so both methods report it as absent.
 
 `player` must be a server-side player, so call these from server scripts.
 Like everything else on this page, the two methods exist only where the KubeJS
-integration ships: the 1.21.1 and 26.1 builds, not 26.2.
+integration ships: the 1.21.1 and 26.1 builds, not 26.2 or 26.3.
 
 ### JS-defined powers
 
@@ -230,8 +231,8 @@ Two power types let a JSON power delegate its whole behavior to a JS handler,
 keyed by `js_id`. This means new power behaviors are authorable from JS without
 any Java registry mutation.
 
-**Not on 26.2.** `neoorigins:js_custom` and `neoorigins:js_active` are not
-registered in the 26.2 build, so a power file using either type is dropped whole
+**Not on 26.2 or 26.3.** `neoorigins:js_custom` and `neoorigins:js_active` are
+not registered in those builds, so a power file using either type is dropped whole
 at load there. See [Availability](#availability).
 
 | Method | Description |
