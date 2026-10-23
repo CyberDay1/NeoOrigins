@@ -3470,8 +3470,8 @@ public final class BuiltinActions {
      * {@link com.cyberday1.neoorigins.compat.LegacyCommandRewriter#rewriteDeadItemTagPaths}
      * for why that one is safe to fire without a gate and the semantic tier is not.
      */
-    private static String rewriteIfBroken(net.minecraft.commands.CommandSourceStack source,
-                                          String command) {
+    static String rewriteIfBroken(net.minecraft.commands.CommandSourceStack source,
+                                  String command) {
         String repaired =
             com.cyberday1.neoorigins.compat.LegacyCommandRewriter.rewriteDeadItemTagPaths(command);
         if (!com.cyberday1.neoorigins.compat.LegacyCommandRewriter.needsRewrite(repaired)) return repaired;
