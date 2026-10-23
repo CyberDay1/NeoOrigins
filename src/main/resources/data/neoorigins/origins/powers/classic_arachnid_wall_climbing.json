@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:wall_climbing",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "neoorigins:classic_arachnid_climbing_toggle"
+  },
+  "name": "power.neoorigins.classic_arachnid_wall_climbing.name",
+  "description": "power.neoorigins.classic_arachnid_wall_climbing.description"
+}

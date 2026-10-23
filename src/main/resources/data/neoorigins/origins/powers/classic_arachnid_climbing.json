@@ -1,0 +1,46 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "cooldown_icon": "minecraft:cobweb",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:power_active",
+      "power": "neoorigins:classic_arachnid_climbing_toggle"
+    },
+    "if_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        {
+          "type": "neoorigins:toggle",
+          "power": "neoorigins:classic_arachnid_climbing_toggle",
+          "value": false
+        },
+        {
+          "type": "neoorigins:play_sound",
+          "sound": "minecraft:block.note_block.pling",
+          "volume": 0.5,
+          "pitch": 0.6
+        }
+      ]
+    },
+    "else_action": {
+      "type": "neoorigins:and",
+      "actions": [
+        {
+          "type": "neoorigins:toggle",
+          "power": "neoorigins:classic_arachnid_climbing_toggle",
+          "value": true
+        },
+        {
+          "type": "neoorigins:play_sound",
+          "sound": "minecraft:block.note_block.pling",
+          "volume": 0.5,
+          "pitch": 1.5
+        }
+      ]
+    }
+  },
+  "name": "power.neoorigins.classic_arachnid_climbing.name",
+  "description": "power.neoorigins.classic_arachnid_climbing.description"
+}
