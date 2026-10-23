@@ -1801,7 +1801,7 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.network.payload.SyncGlowingEntitiesPayload payload,
             IPayloadContext ctx) {
         ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientGlowingEntities.set(payload.entityIds()));
+            com.cyberday1.neoorigins.client.ClientGlowingEntities.set(payload.colorsById()));
     }
 
     private static void handleSyncHiddenEntities(

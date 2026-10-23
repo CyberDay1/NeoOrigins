@@ -122,8 +122,11 @@ class ClassicPowerTypesTest {
         assertNotNull(TargetConditionParser.parse(cond, "test"));
         var config = decode(new EntityGlowPower().codec(),
             "{ \"type\": \"neoorigins:entity_glow\", \"entity_condition\": " + cond + " }");
-        assertTrue(config.entityCondition().isPresent());
+        assertTrue(config.selection().entityCondition().isPresent());
+        assertTrue(config.useTeams(), "Apoli default");
+        assertEquals(0xFFFFFF, config.rgb());
         assertTrue(declaredMixins().contains("client.MinecraftEntityGlowMixin"));
+        assertTrue(declaredMixins().contains("client.EntityRendererGlowColorMixin"));
     }
 
     // ── projectile_vulnerability ────────────────────────────────────────

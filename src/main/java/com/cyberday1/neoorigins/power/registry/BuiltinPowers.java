@@ -1933,8 +1933,15 @@ public final class BuiltinPowers {
         // it refs condition.schema.json; what narrows it is the evaluation target
         // (an arbitrary entity, not the holder), which the doc string spells out.
         define("entity_glow", EntityGlowPower.class, List.of(
-            new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition, plus in_block_anywhere.")));
+            new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json").boundTo("selection")
+                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition."),
+            new FieldSpec("bientity_condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, constant, target_condition/actor_condition, and and/or/not over those."),
+            new FieldSpec("use_teams", Kind.BOOLEAN, false)
+                .def(true).doc("If true, an entity on a coloured team is outlined in its team colour (default true)."),
+            new FieldSpec("red", Kind.NUMBER, false).def(1.0).doc("Outline red channel, 0.0 to 1.0, used when the team colour does not apply (default 1.0)."),
+            new FieldSpec("green", Kind.NUMBER, false).def(1.0).doc("Outline green channel, 0.0 to 1.0 (default 1.0)."),
+            new FieldSpec("blue", Kind.NUMBER, false).def(1.0).doc("Outline blue channel, 0.0 to 1.0 (default 1.0).")));
         define("prevent_entity_render", PreventEntityRenderPower.class, List.of(
             new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json")
                 .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, in_block_anywhere, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.")));

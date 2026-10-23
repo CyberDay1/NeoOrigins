@@ -36,6 +36,7 @@
         "apace:conditioned_attribute",
         "apace:conditioned_restrict_armor",
         "apace:conditioned_status_effect",
+        "apace:conduit_power_on_land",
         "apace:cooldown",
         "apace:creative_flight",
         "apace:damage_over_time",
@@ -140,6 +141,7 @@
         "apoli:conditioned_attribute",
         "apoli:conditioned_restrict_armor",
         "apoli:conditioned_status_effect",
+        "apoli:conduit_power_on_land",
         "apoli:cooldown",
         "apoli:creative_flight",
         "apoli:damage_over_time",
@@ -248,6 +250,7 @@
         "apugli:conditioned_attribute",
         "apugli:conditioned_restrict_armor",
         "apugli:conditioned_status_effect",
+        "apugli:conduit_power_on_land",
         "apugli:cooldown",
         "apugli:creative_flight",
         "apugli:damage_over_time",
@@ -511,6 +514,7 @@
         "origins:conditioned_attribute",
         "origins:conditioned_restrict_armor",
         "origins:conditioned_status_effect",
+        "origins:conduit_power_on_land",
         "origins:cooldown",
         "origins:creative_flight",
         "origins:damage_over_time",
@@ -3757,7 +3761,7 @@
           "const": "neoorigins:entity_glow"
         },
         "entity_condition": {
-          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition, plus in_block_anywhere.",
+          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition.",
           "oneOf": [
             {
               "$ref": "condition.schema.json"
@@ -3769,6 +3773,40 @@
               }
             }
           ]
+        },
+        "bientity_condition": {
+          "description": "Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, constant, target_condition/actor_condition, and and/or/not over those.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "use_teams": {
+          "description": "If true, an entity on a coloured team is outlined in its team colour (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "red": {
+          "description": "Outline red channel, 0.0 to 1.0, used when the team colour does not apply (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "green": {
+          "description": "Outline green channel, 0.0 to 1.0 (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "blue": {
+          "description": "Outline blue channel, 0.0 to 1.0 (default 1.0).",
+          "type": "number",
+          "default": 1.0
         }
       },
       "required": [
