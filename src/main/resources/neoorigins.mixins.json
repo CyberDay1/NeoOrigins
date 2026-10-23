@@ -67,7 +67,8 @@
     "client.LivingEntityRendererShadowMixin",
     "client.EntityRenderDispatcherHideMixin",
     "client.LivingEntitySwingAccessor",
-    "client.MinecraftEntityGlowMixin"
+    "client.MinecraftEntityGlowMixin",
+    "client.EntityRendererGlowColorMixin"
   ],
   "injectors": {
     "defaultRequire": 1

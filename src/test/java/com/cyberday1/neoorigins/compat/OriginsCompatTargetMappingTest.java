@@ -40,6 +40,14 @@ class OriginsCompatTargetMappingTest {
         return out.orElseThrow();
     }
 
+    /** The full pre-parse pipeline, which also canonicalizes the apoli: spelling. */
+    private static JsonObject throughLoader(String id, String json) {
+        var resolved = com.cyberday1.neoorigins.data.PowerDataManager.resolvePowerType(
+            Identifier.parse(id), JsonParser.parseString(json).getAsJsonObject());
+        assertTrue(resolved != null, id + " was dropped");
+        return resolved.json();
+    }
+
     private static JsonObject wellKnown(String id) {
         var supplier = OriginsCompatPowerLoader.WELL_KNOWN.get(id);
         assertTrue(supplier != null, id + " is not in WELL_KNOWN");
@@ -85,24 +93,58 @@ class OriginsCompatTargetMappingTest {
     }
 
     /**
-     * {@code neoorigins:conduit_power} has never been registered. The effect set
-     * mirrors the repo's own merling_ascended_conduit.json.
+     * Origins' conduit_power_on_land does not grant any effect: it lets an active
+     * conduit reach the holder out of water. It used to be mapped onto a permanent
+     * water breathing, night vision and Haste set, which an Origins pack never had.
+     * Both the bare id and the type now land on the native type.
      */
     @Test
-    void conduitPowerOnLandGrantsTheConduitEffects() {
+    void conduitPowerOnLandLiftsTheConduitWaterCheckAndGrantsNothing() {
         for (JsonObject out : new JsonObject[] {
                 translate("origins:conduit_power_on_land", "{ \"type\": \"origins:simple\" }"),
-                wellKnown("origins:conduit_power_on_land") }) {
-            assertEquals("neoorigins:persistent_effect", out.get("type").getAsString());
-            var effects = out.getAsJsonArray("effects");
-            assertEquals(3, effects.size());
-            assertEquals("minecraft:water_breathing",
-                effects.get(0).getAsJsonObject().get("effect").getAsString());
-            assertEquals("minecraft:night_vision",
-                effects.get(1).getAsJsonObject().get("effect").getAsString());
-            assertEquals("minecraft:haste",
-                effects.get(2).getAsJsonObject().get("effect").getAsString());
+                wellKnown("origins:conduit_power_on_land"),
+                translate("compat:conduit", "{ \"type\": \"origins:conduit_power_on_land\" }"),
+                throughLoader("compat:conduit_apoli", "{ \"type\": \"apoli:conduit_power_on_land\" }") }) {
+            assertEquals("neoorigins:conduit_power_on_land", out.get("type").getAsString());
+            assertTrue(!out.has("effects"), "must not grant potion effects: " + out);
         }
+    }
+
+    /**
+     * Origins' entity_glow outlines matching OTHER entities for the holder. It used
+     * to be a Route B handler that put Glowing on the holder, visible to everyone.
+     * The native type takes Apoli's fields as they are.
+     */
+    @Test
+    void entityGlowOutlinesOthersForTheHolder() {
+        JsonObject out = throughLoader("compat:glow", """
+            { "type": "apoli:entity_glow",
+              "entity_condition": { "type": "apoli:in_tag", "tag": "minecraft:arthropod", "inverted": true },
+              "bientity_condition": { "type": "apoli:can_see" },
+              "use_teams": false, "red": 1.0, "green": 0.0, "blue": 0.0 }
+            """);
+        assertEquals("neoorigins:entity_glow", out.get("type").getAsString());
+        var config = new com.cyberday1.neoorigins.power.builtin.EntityGlowPower().codec()
+            .parse(com.mojang.serialization.JsonOps.INSTANCE, out)
+            .getOrThrow(msg -> new AssertionError("decode failed: " + msg));
+        assertTrue(config.selection().entityCondition().isPresent());
+        assertTrue(config.bientityCondition().isPresent());
+        assertTrue(!config.useTeams());
+        assertEquals(0xFF0000, config.rgb());
+        assertTrue(!OriginsCompatPowerLoader.isRouteBType("origins:entity_glow"),
+            "entity_glow must not reach the Route B self-glow handler");
+        assertTrue(OriginsCompatPowerLoader.isRouteBType("origins:self_glow"));
+    }
+
+    /**
+     * The bare origins:master_of_webs id stood for wall_climbing, which climbs every
+     * wall. Master of Webs is web movement and climbing inside webs.
+     */
+    @Test
+    void masterOfWebsIsWebMovementNotWallClimbing() {
+        JsonObject out = wellKnown("origins:master_of_webs");
+        assertEquals("neoorigins:cobweb_affinity", out.get("type").getAsString());
+        assertTrue(out.get("climb").getAsBoolean());
     }
 
     /**

@@ -106,7 +106,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:target_action_on_hit",  "apace:target_action_on_hit",
         "origins:self_action_on_kill",   "apace:self_action_on_kill",
         "origins:launch",               "apace:launch",
-        "origins:entity_glow",          "apace:entity_glow",
         "origins:self_glow",            "apace:self_glow",
         "origins:prevent_death",        "apace:prevent_death",
         "origins:action_when_hit",      "apace:action_when_hit",
@@ -437,7 +436,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:aquatic",             () -> json("neoorigins:entity_group", "group", "water")),
             Map.entry("origins:water_vision",        () -> waterVisionJson()),
             Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining_speed")),
-            Map.entry("origins:conduit_power_on_land", () -> conduitPowerJson()),
+            Map.entry("origins:conduit_power_on_land", () -> json("neoorigins:conduit_power_on_land")),
             Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
             Map.entry("origins:water_breathing",     () -> json("neoorigins:water_breathing")),
             Map.entry("origins:swim_speed",          () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
@@ -473,7 +472,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:strong_arms_break_speed", () -> json("neoorigins:break_speed_modifier", "multiplier", 5.0)),
             Map.entry("origins:natural_armor",        () -> naturalArmorJson()),
             Map.entry("origins:more_exhaustion",      () -> moreExhaustionJson()),
-            Map.entry("origins:master_of_webs",       () -> json("neoorigins:wall_climbing")),
+            // master_of_webs is web movement and web climbing, not climbing every
+            // wall; the bare id can only stand for one power, so it takes the movement.
+            Map.entry("origins:master_of_webs",       () -> json("neoorigins:cobweb_affinity", "climb", true)),
             Map.entry("origins:arthropod",            () -> json("neoorigins:entity_group", "group", "arthropod")),
             Map.entry("origins:fragile",              () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -6.0, "operation", "add_value")),
             Map.entry("origins:phasing",              () -> json("neoorigins:phantom_form")),
@@ -547,6 +548,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     private static JsonObject json(String type, String k1, String v1, String k2, String v2) {
         JsonObject o = json(type); o.addProperty(k1, v1); o.addProperty(k2, v2); return o;
     }
+    private static JsonObject json(String type, String k1, boolean v1) {
+        JsonObject o = json(type); o.addProperty(k1, v1); return o;
+    }
     private static JsonObject json(String type, String k1, double v1) {
         JsonObject o = json(type); o.addProperty(k1, v1); return o;
     }
@@ -565,26 +569,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         blockCond.addProperty("comparison", "<");
         blockCond.addProperty("compare_to", 86);
         o.add("block_condition", blockCond);
-        return o;
-    }
-
-    /**
-     * origins:conduit_power_on_land — the conduit effect set granted anywhere.
-     * Mirrors the repo's own merling_ascended_conduit.json.
-     */
-    private static com.google.gson.JsonObject conduitPowerJson() {
-        com.google.gson.JsonObject o = json("neoorigins:persistent_effect");
-        o.addProperty("toggleable", false);
-        o.addProperty("show_particles", false);
-        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
-        for (String id : new String[] {
-                "minecraft:water_breathing", "minecraft:night_vision", "minecraft:haste" }) {
-            com.google.gson.JsonObject e = new com.google.gson.JsonObject();
-            e.addProperty("effect", id);
-            e.addProperty("amplifier", 0);
-            effects.add(e);
-        }
-        o.add("effects", effects);
         return o;
     }
 
@@ -858,8 +842,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:self_action_on_kill",        "apace:self_action_on_kill",
                  "origins:action_on_kill",              "apace:action_on_kill"             -> parseSelfActionOnKill(id, json);
             case "origins:launch",                     "apace:launch"                     -> parseLaunch(id, json);
-            case "origins:entity_glow",                "apace:entity_glow",
-                 "origins:self_glow",                  "apace:self_glow"                  -> parseEntityGlow(id, json);
+            case "origins:self_glow",                  "apace:self_glow"                  -> parseEntityGlow(id, json);
             case "origins:prevent_death",              "apace:prevent_death"              -> parsePreventDeath(id, json);
             case "origins:action_on_land",             "apace:action_on_land"             -> parseActionOnLand(id, json);
             // Phase 5: Event-based powers

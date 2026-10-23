@@ -43,7 +43,6 @@ public final class OriginsPowerTranslator {
         "origins:target_action_on_hit",  "apace:target_action_on_hit",
         "origins:self_action_on_kill",   "apace:self_action_on_kill",
         "origins:launch",               "apace:launch",
-        "origins:entity_glow",          "apace:entity_glow",
         "origins:self_glow",            "apace:self_glow",
         // prevent_death is now Route A (translatePreventDeath); it falls back
         // to Route B only when a damage_condition is present (see that method).
@@ -166,7 +165,7 @@ public final class OriginsPowerTranslator {
         Map.entry("origins:aquatic",            () -> simpleType("neoorigins:entity_group", "group", "water")),
         Map.entry("origins:water_vision",       () -> waterVisionJson()),
         Map.entry("origins:aqua_affinity",      () -> simpleType("neoorigins:underwater_mining_speed")),
-        Map.entry("origins:conduit_power_on_land", () -> conduitPowerJson()),
+        Map.entry("origins:conduit_power_on_land", () -> simpleType("neoorigins:conduit_power_on_land")),
         Map.entry("origins:air_from_potions",   () -> simpleType("neoorigins:water_breathing")),
         Map.entry("origins:water_breathing",    () -> simpleType("neoorigins:water_breathing")),
         Map.entry("origins:swim_speed",         () -> simpleType("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
@@ -200,27 +199,6 @@ public final class OriginsPowerTranslator {
         cond.addProperty("type", "neoorigins:submerged_in");
         cond.addProperty("fluid", "minecraft:water");
         out.add("condition", cond);
-        return out;
-    }
-
-    /**
-     * Upstream {@code origins:conduit_power_on_land} grants the conduit effect set
-     * anywhere. Mirrors the repo's own {@code merling_ascended_conduit.json}.
-     */
-    private static JsonObject conduitPowerJson() {
-        JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:persistent_effect");
-        out.addProperty("toggleable", false);
-        out.addProperty("show_particles", false);
-        JsonArray effects = new JsonArray();
-        for (String id : new String[] {
-                "minecraft:water_breathing", "minecraft:night_vision", "minecraft:haste" }) {
-            JsonObject e = new JsonObject();
-            e.addProperty("effect", id);
-            e.addProperty("amplifier", 0);
-            effects.add(e);
-        }
-        out.add("effects", effects);
         return out;
     }
 
@@ -430,7 +408,9 @@ public final class OriginsPowerTranslator {
         "origins:exhaust", "apace:exhaust",
         "origins:starting_equipment", "apace:starting_equipment",
         "origins:walk_on_fluid", "apace:walk_on_fluid",
-        "origins:inventory", "apace:inventory");
+        "origins:inventory", "apace:inventory",
+        "origins:entity_glow", "apace:entity_glow",
+        "origins:conduit_power_on_land", "apace:conduit_power_on_land");
 
     private static Optional<JsonObject> doTranslate(Identifier id, String type, JsonObject src) {
         return switch (type) {
@@ -506,6 +486,8 @@ public final class OriginsPowerTranslator {
             case "origins:starting_equipment",      "apace:starting_equipment"      -> translateStartingEquipment(id, src);
             case "origins:walk_on_fluid",           "apace:walk_on_fluid"           -> translateWalkOnFluid(src);
             case "origins:inventory",              "apace:inventory"              -> translateInventory(src);
+            case "origins:entity_glow",            "apace:entity_glow"            -> translateEntityGlow(src);
+            case "origins:conduit_power_on_land",  "apace:conduit_power_on_land"  -> translateSimple("neoorigins:conduit_power_on_land");
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -514,6 +496,19 @@ public final class OriginsPowerTranslator {
     }
 
     // ---- Helpers ----
+
+    /**
+     * {@code origins:entity_glow}: matching entities glow for the holder only.
+     * The native type reads Apoli's fields as they are (entity_condition,
+     * bientity_condition, use_teams, red, green, blue), and its condition readers
+     * accept the origins:/apoli: verb spellings, so only the type changes. It was
+     * once routed to a Route B handler that put Glowing on the holder instead.
+     */
+    private static Optional<JsonObject> translateEntityGlow(JsonObject src) {
+        JsonObject out = src.deepCopy();
+        out.addProperty("type", "neoorigins:entity_glow");
+        return Optional.of(out);
+    }
 
     private static Optional<JsonObject> translateSimple(String neoType) {
         JsonObject out = new JsonObject();
