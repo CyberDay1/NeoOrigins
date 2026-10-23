@@ -66,18 +66,19 @@ class BounceOnLandMomentumTest {
     }
 
     @Test
-    void horizontalComesFromTheLandingTickNotThePreviousOne() {
+    void horizontalComesFromTheLastAirborneStepNotTheLandingTick() {
         // The two ticks disagree: the player was sprinting, then hit a wall (or
         // let go) on the tick they landed. The bounce must carry the speed they
-        // actually have now, not the one they had a tick ago.
+        // had BEFORE ground contact truncated it — nowDelta's X/Z is near-zero
+        // after collision resolution and would kill all forward momentum.
         Vec3 lastDelta = new Vec3(0.28, -0.90, 0.0);
         Vec3 nowDelta = new Vec3(0.05, -0.10, 0.0);
 
         Vec3 launch = BounceOnLandPower.launchVelocity(lastDelta, nowDelta, shipped());
 
         assertNotNull(launch);
-        assertEquals(0.05, launch.x, 1e-9,
-            "horizontal must read the landing tick (nowDelta), not the previous one");
+        assertEquals(0.28, launch.x, 1e-9,
+            "horizontal must read the last airborne step (lastDelta), not the truncated landing tick");
     }
 
     @Test

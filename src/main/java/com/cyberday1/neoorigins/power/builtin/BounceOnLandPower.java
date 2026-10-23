@@ -16,12 +16,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * upward, mimicking a slime block, so a slime-morphed player springs off the
  * ground after a fall.
  *
- * <p>Both the lift and the preserved horizontal speed are derived from per-tick
- * <b>position</b> deltas. A remote {@code ServerPlayer}'s {@code deltaMovement}
- * is never written by client movement on any axis, so reading it here produced
- * a zero launch (#102, vertical) and then destroyed the player's running speed
- * (#133, horizontal) — the velocity packet {@code hurtMarked} triggers replaces
- * motion rather than adding to it.
+ * <p>Momentum preservation: horizontal velocity is taken from {@code lastDelta}
+ * (the last complete airborne step) rather than {@code nowDelta} (the landing
+ * tick, which is truncated by ground collision). This keeps sprint-jump speed
+ * through the bounce instead of killing it.
+ *
+ * <p>Delay fix: the bounce fires on the same tick the player lands (when
+ * {@code onGround} transitions true) using the already-computed {@code lastDelta}
+ * as the impact source. There is no additional tick of latency — the launch
+ * vector is applied immediately via {@code setDeltaMovement} + {@code hurtMarked}.
  *
  * <p>Pair with {@code neoorigins:no_fall_damage} so the impact driving the
  * bounce doesn't also hurt. Sneaking suppresses the bounce, matching slime
@@ -102,17 +105,21 @@ public class BounceOnLandPower extends PowerType<BounceOnLandPower.Config> {
     /**
      * The velocity to publish on a landing tick, or {@code null} for no bounce.
      *
-     * <p>Vertical prefers {@code lastDelta} — the landing tick's own Y step is
+     * <p>Vertical uses {@code lastDelta} — the landing tick's own Y step is
      * truncated at ground contact, so the previous tick's full in-air step is
-     * the genuine impact speed. Horizontal takes {@code nowDelta}, which a
-     * vertical collision does not truncate, so the player keeps the speed they
-     * actually landed with.
+     * the genuine impact speed. Horizontal also uses {@code lastDelta} to
+     * preserve the sprint/jump momentum the player had before ground contact
+     * truncated their movement. Using {@code nowDelta} for horizontal killed
+     * all forward speed because the landing tick's X/Z is near-zero after
+     * collision resolution.
      */
     static Vec3 launchVelocity(Vec3 lastDelta, Vec3 nowDelta, Config config) {
         double impact = Math.max(-lastDelta.y, -nowDelta.y);
         if (impact < config.minVelocity()) return null;
         double bounce = Math.min(impact * config.restitution(), config.maxVelocity());
-        return new Vec3(nowDelta.x, bounce, nowDelta.z);
+        // Horizontal from lastDelta preserves pre-impact momentum; nowDelta's
+        // X/Z is truncated by ground collision and reads as near-zero.
+        return new Vec3(lastDelta.x, bounce, lastDelta.z);
     }
 
     @Override
