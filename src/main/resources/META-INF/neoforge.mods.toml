@@ -50,7 +50,7 @@ license = "${mod_license}"
     ordering = "AFTER"
     side = "CLIENT"
 
-# TOP's mod version is `26.2_neo-15.0.1`, which Maven's ComparableVersion reads
+# TOP's mod version is `26.3_neo-16.0.0`, which Maven's ComparableVersion reads
 # starting from the Minecraft version, so a numeric bound on the TOP version
 # compares the wrong piece. Unbounded; ModList.isLoaded gates the integration.
 [[dependencies.${mod_id}]]

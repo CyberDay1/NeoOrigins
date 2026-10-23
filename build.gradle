@@ -107,17 +107,18 @@ dependencies {
 
     // FTB Ultimine – would back the `ultimine` vein-mining power via a registered
     // RestrictionHandler (see compat/ftbultimine on the 26.1 branch).
-    // BLOCKED ON 26.2, re-checked 2026-09-24: maven.ftb.dev/releases still publishes
-    // no 26.2 line — ftb-ultimine-neoforge stops at 26.1.2.5 and ftb-library-neoforge
-    // at 26.1.2.8. Not an "unchecked assumption": the maven-metadata.xml was read.
+    // BLOCKED ON 26.3, re-checked 2026-10-23: maven.ftb.dev/releases still publishes
+    // no 26.2 or 26.3 line — ftb-ultimine-neoforge stops at 26.1.2.6 and
+    // ftb-library-neoforge at 26.1.2.10. The maven-metadata.xml was read.
     // The neoorigins:ultimine power stays registered as an inert marker until then;
-    // re-check the metadata and port compat/ftbultimine from 26.1 when 26.2 lands.
+    // re-check the metadata and port compat/ftbultimine from 26.1 when 26.3 lands.
     //   compileOnly "dev.ftb.mods:ftb-ultimine-neoforge:${property('deps.ftbultimine')}"
     //   compileOnly "dev.ftb.mods:ftb-library-neoforge:${property('deps.ftblibrary')}"
 
-    // Also absent on 26.2 for want of an upstream build, re-checked 2026-09-24:
-    // KubeJS (newest 26.1.2-8.0.6, nothing for 26.2), FTB Quests (26.1.2.8), EMI
+    // Also absent on 26.3 for want of an upstream build. Last full check on 26.2,
+    // 2026-09-24: KubeJS (newest 26.1.2-8.0.6), FTB Quests (26.1.2.8), EMI
     // (1.1.24+1.21.1), Accessories (1.1.0-beta.53+1.21.1) and Sable (2.0.5+mc1.21.1).
+    // Re-checked for 26.3 on 2026-10-23: still nothing from KubeJS or FTB Quests.
 
     // Build A Spell (buildaspell) – the `cast_spell` action casts an inline
     // author-baked spell via BuildASpellAPI. Every BaS-typed reference is
@@ -142,8 +143,8 @@ dependencies {
     // one event class, and a stub costs nothing and can't break a build if that
     // maven has an outage (which has bitten this project before). AppleSkin is
     // Unlicense (public domain), so mirroring the signatures is unencumbered.
-    // Descriptors verified with `javap` against appleskin-neoforge-mc26.2-3.0.10.jar,
-    // the 26.2 NeoForge build: the four fields and the constructor are unchanged
+    // Descriptors verified with `javap` against appleskin-neoforge-mc26.3-3.0.10.jar,
+    // the 26.3 NeoForge build: the four fields and the constructor are unchanged
     // from the 1.21 line.
 }
 
