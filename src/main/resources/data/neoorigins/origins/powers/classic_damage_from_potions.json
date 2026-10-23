@@ -1,0 +1,15 @@
+{
+  "type": "neoorigins:action_on_event",
+  "hidden": true,
+  "event": "item_use_finish",
+  "item_condition": {
+    "item": "minecraft:potion"
+  },
+  "entity_action": {
+    "type": "neoorigins:damage",
+    "amount": 2.0,
+    "damage_type": "minecraft:magic"
+  },
+  "name": "power.neoorigins.classic_damage_from_potions.name",
+  "description": "power.neoorigins.classic_damage_from_potions.description"
+}

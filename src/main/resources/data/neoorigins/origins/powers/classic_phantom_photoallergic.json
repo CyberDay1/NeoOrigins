@@ -1,0 +1,21 @@
+{
+  "type": "neoorigins:burn",
+  "interval": 20,
+  "burn_duration": 120,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:exposed_to_sun"
+      },
+      {
+        "type": "neoorigins:not",
+        "condition": {
+          "type": "neoorigins:invisible"
+        }
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_phantom_photoallergic.name",
+  "description": "power.neoorigins.classic_phantom_photoallergic.description"
+}

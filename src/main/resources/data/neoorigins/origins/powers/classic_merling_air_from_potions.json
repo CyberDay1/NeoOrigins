@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:action_on_event",
+  "hidden": true,
+  "event": "item_use_finish",
+  "item_condition": {
+    "item": "minecraft:potion"
+  },
+  "entity_action": {
+    "type": "neoorigins:gain_air",
+    "amount": 60
+  },
+  "name": "power.neoorigins.classic_merling_air_from_potions.name",
+  "description": "power.neoorigins.classic_merling_air_from_potions.description"
+}

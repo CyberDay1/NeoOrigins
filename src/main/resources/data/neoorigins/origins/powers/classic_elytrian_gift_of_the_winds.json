@@ -1,0 +1,20 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 600,
+  "cooldown_icon": "minecraft:feather",
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:add_velocity",
+        "y": 2.0
+      },
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.parrot.fly"
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_elytrian_gift_of_the_winds.name",
+  "description": "power.neoorigins.classic_elytrian_gift_of_the_winds.description"
+}

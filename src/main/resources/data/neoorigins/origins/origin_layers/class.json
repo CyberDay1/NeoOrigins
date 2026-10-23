@@ -21,7 +21,9 @@
     "neoorigins:class_nitwit",
     "neoorigins:class_fisher",
     "neoorigins:class_mason",
-    "neoorigins:class_paladin"
+    "neoorigins:class_paladin",
+    "neoorigins:class_farmer",
+    "neoorigins:class_rancher"
   ],
   "allow_random": true,
   "auto_choose": false,

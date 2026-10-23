@@ -1,0 +1,16 @@
+{
+  "name": "origins.neoorigins.classic.arachnid.name",
+  "description": "origins.neoorigins.classic.arachnid.description",
+  "icon": "minecraft:cobweb",
+  "impact": "low",
+  "order": 7,
+  "powers": [
+    "neoorigins:arachnid_wall_climbing",
+    "neoorigins:classic_arachnid_master_of_webs",
+    "neoorigins:classic_arachnid_webbing",
+    "neoorigins:classic_arachnid_carnivore",
+    "neoorigins:classic_fragile",
+    "neoorigins:arachnid_entity_group"
+  ],
+  "upgrades": []
+}

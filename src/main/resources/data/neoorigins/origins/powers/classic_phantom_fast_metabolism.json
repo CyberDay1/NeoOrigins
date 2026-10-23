@@ -1,0 +1,14 @@
+{
+  "type": "neoorigins:condition_passive",
+  "interval": 20,
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "neoorigins:classic_phantom_form_state"
+  },
+  "entity_action": {
+    "type": "neoorigins:exhaust",
+    "amount": 0.812
+  },
+  "name": "power.neoorigins.classic_phantom_fast_metabolism.name",
+  "description": "power.neoorigins.classic_phantom_fast_metabolism.description"
+}

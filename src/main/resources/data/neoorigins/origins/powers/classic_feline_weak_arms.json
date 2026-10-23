@@ -1,0 +1,34 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "block_break",
+  "condition": {
+    "type": "neoorigins:not",
+    "condition": {
+      "type": "neoorigins:has_effect",
+      "effect": "minecraft:strength"
+    }
+  },
+  "block_condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:block",
+        "tag": "neoorigins:natural_stone"
+      },
+      {
+        "type": "neoorigins:adjacent",
+        "adjacent_condition": {
+          "type": "neoorigins:block",
+          "tag": "neoorigins:natural_stone"
+        },
+        "comparison": ">",
+        "compare_to": 2
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:cancel_event"
+  },
+  "name": "power.neoorigins.classic_feline_weak_arms.name",
+  "description": "power.neoorigins.classic_feline_weak_arms.description"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.classic.avian.name",
+  "description": "origins.neoorigins.classic.avian.description",
+  "icon": "minecraft:feather",
+  "impact": "low",
+  "order": 3,
+  "powers": [
+    "neoorigins:classic_avian_featherweight",
+    "neoorigins:classic_avian_fresh_air",
+    "neoorigins:classic_avian_tailwind",
+    "neoorigins:classic_avian_lay_eggs",
+    "neoorigins:classic_avian_vegetarian"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,18 @@
+{
+  "type": "neoorigins:restrict_items",
+  "prevent_use": true,
+  "deny": true,
+  "item_condition": {
+    "type": "neoorigins:or",
+    "conditions": [
+      {
+        "item": "minecraft:shield"
+      },
+      {
+        "tag": "c:tools/shield"
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_shulk_unwieldy.name",
+  "description": "power.neoorigins.classic_shulk_unwieldy.description"
+}

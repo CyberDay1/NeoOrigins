@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "mod_harvest_drops",
+  "modifier": {
+    "operation": "multiplication",
+    "value": 2.0
+  },
+  "name": "power.neoorigins.classic_rancher_scavenging.name",
+  "description": "power.neoorigins.classic_rancher_scavenging.description"
+}

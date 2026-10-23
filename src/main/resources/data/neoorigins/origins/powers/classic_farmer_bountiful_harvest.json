@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:crop_harvest_bonus",
+  "extra_drops": 1,
+  "name": "power.neoorigins.classic_farmer_bountiful_harvest.name",
+  "description": "power.neoorigins.classic_farmer_bountiful_harvest.description"
+}
