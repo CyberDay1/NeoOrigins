@@ -59,10 +59,17 @@ public record OriginDetailViewModel(
         List<String> keyTags = new ArrayList<>();
 
         // Skill-slot assignment, shared with the HUD cluster: actives in
-        // powers() order get slots 0–5 (class layer: first active only).
-        Map<Identifier, Integer> slotMap = AbilitySlotKeys.assignSlots(origin, classLayer);
+        // powersForTier(tier) order get slots 0–5 (class layer: first active only).
+        // Tier-granted actives (e.g. Sword Immortal's Heavenly Sword Formation at
+        // tier 2) need the player's evolution tier so they receive a slot and
+        // display their keybind; without it the info screen only shows base powers.
+        int tier = classLayer ? 0 : com.cyberday1.neoorigins.client.ClientEvolutionConfig.getCurrentTier();
+        Map<Identifier, Integer> slotMap = AbilitySlotKeys.assignSlots(origin, classLayer, tier);
+        List<Identifier> effectivePowers = classLayer
+            ? origin.powers()
+            : origin.powersForTier(tier);
 
-        for (Identifier powerId : origin.powers()) {
+        for (Identifier powerId : effectivePowers) {
             // Skip internal/capability-only power types from the info panel —
             // pack authors add these to drive client behaviour (HUD bars, etc.)
             // and don't want them cluttering the "Powers" section.
