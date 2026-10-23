@@ -148,6 +148,99 @@ class OriginsCompatTargetMappingTest {
     }
 
     /**
+     * Blazeborn's damage_from_snowballs is a modify_damage_taken add gated on a
+     * snowball projectile. As modify_damage it lost the gate and could never fire
+     * on a 0-damage snowball hit. All three upstream spellings, and the bare id.
+     */
+    @Test
+    void snowballDamageIsProjectileVulnerability() {
+        for (JsonObject out : new JsonObject[] {
+                throughLoader("compat:snow_120", """
+                    { "type": "origins:modify_damage_taken", "hidden": true,
+                      "modifier": { "name": "Snowball damage taken like Blazes", "value": 3, "operation": "addition" },
+                      "damage_condition": { "type": "origins:projectile", "projectile": "minecraft:snowball" } }
+                    """),
+                throughLoader("compat:snow_121", """
+                    { "type": "origins:modify_damage_taken", "hidden": true,
+                      "modifier": { "amount": 3, "operation": "add_base_early" },
+                      "damage_condition": { "type": "origins:projectile", "projectile": "minecraft:snowball" } }
+                    """),
+                throughLoader("compat:snow_apoli", """
+                    { "type": "apoli:modify_damage_taken", "hidden": true,
+                      "apply_armor_condition": "apoli:allow", "attacker_action": "apoli:nothing",
+                      "bientity_action": "apoli:nothing", "bientity_condition": "apoli:allow",
+                      "damage_armor_condition": "apoli:allow", "self_action": "apoli:nothing",
+                      "modifier": { "operation": "apoli:add_base_early", "value": 3.0 },
+                      "damage_condition": { "type": "apoli:projectile", "projectile": "minecraft:snowball",
+                                            "projectile_condition": "apoli:allow" } }
+                    """),
+                wellKnown("origins:damage_from_snowballs") }) {
+            assertEquals("neoorigins:projectile_vulnerability", out.get("type").getAsString(), out.toString());
+            var config = new com.cyberday1.neoorigins.power.builtin.ProjectileVulnerabilityPower().codec()
+                .parse(com.mojang.serialization.JsonOps.INSTANCE, out)
+                .getOrThrow(msg -> new AssertionError("decode failed: " + msg));
+            assertEquals(java.util.List.of("minecraft:snowball"), config.projectiles());
+            assertEquals(3.0F, config.amount());
+            assertTrue(config.matches(net.minecraft.world.entity.EntityTypes.SNOWBALL));
+            assertTrue(!config.matches(net.minecraft.world.entity.EntityTypes.ARROW));
+        }
+    }
+
+    /** Any other modify_damage_taken shape keeps the modify_damage translation. */
+    @Test
+    void otherModifyDamageTakenShapesAreUntouched() {
+        for (String json : new String[] {
+                // multiplicative, not a flat add
+                """
+                { "type": "origins:modify_damage_taken",
+                  "modifier": { "value": 1.0, "operation": "multiply_total" },
+                  "damage_condition": { "type": "origins:projectile", "projectile": "minecraft:snowball" } }
+                """,
+                // inverted: everything except snowballs
+                """
+                { "type": "origins:modify_damage_taken",
+                  "modifier": { "value": 3, "operation": "addition" },
+                  "damage_condition": { "type": "origins:projectile", "projectile": "minecraft:snowball", "inverted": true } }
+                """,
+                // a real projectile_condition
+                """
+                { "type": "origins:modify_damage_taken",
+                  "modifier": { "value": 3, "operation": "addition" },
+                  "damage_condition": { "type": "origins:projectile", "projectile": "minecraft:arrow",
+                                        "projectile_condition": { "type": "origins:on_fire" } } }
+                """,
+                // a real bientity_condition
+                """
+                { "type": "origins:modify_damage_taken",
+                  "modifier": { "value": 3, "operation": "addition" },
+                  "bientity_condition": { "type": "origins:can_see" },
+                  "damage_condition": { "type": "origins:projectile", "projectile": "minecraft:snowball" } }
+                """,
+                // any projectile, no type
+                """
+                { "type": "origins:modify_damage_taken",
+                  "modifier": { "value": 3, "operation": "addition" },
+                  "damage_condition": { "type": "origins:projectile" } }
+                """,
+                // a different damage_condition
+                """
+                { "type": "origins:modify_damage_taken",
+                  "modifier": { "value": 3, "operation": "addition" },
+                  "damage_condition": { "type": "origins:name", "name": "inFire" } }
+                """ }) {
+            JsonObject out = translate("compat:other", json);
+            assertEquals("neoorigins:modify_damage", out.get("type").getAsString(), json);
+        }
+        // a power-level condition still defers to Route B
+        assertTrue(OriginsPowerTranslator.translate(Identifier.parse("compat:gated"),
+            JsonParser.parseString("""
+                { "type": "origins:modify_damage_taken", "condition": { "type": "origins:sneaking" },
+                  "modifier": { "value": 3, "operation": "addition" },
+                  "damage_condition": { "type": "origins:projectile", "projectile": "minecraft:snowball" } }
+                """).getAsJsonObject()).isEmpty());
+    }
+
+    /**
      * {@code neoorigins:spawn_location} has never been registered.
      * ModifyPlayerSpawnPower requires a nested LocationCondition, so a flat
      * {@code {"type": ...}} would fail the codec even if the type were right.
