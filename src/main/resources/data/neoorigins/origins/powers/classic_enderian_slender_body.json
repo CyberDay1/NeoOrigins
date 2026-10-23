@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:block_interaction_range",
+  "amount": 1.5,
+  "operation": "add_value",
+  "name": "power.neoorigins.classic_enderian_slender_body.name",
+  "description": "power.neoorigins.classic_enderian_slender_body.description"
+}

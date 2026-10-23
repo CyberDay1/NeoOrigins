@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:break_speed_modifier",
+  "multiplier": 1.45,
+  "block_tag": "#minecraft:mineable/pickaxe",
+  "condition": {
+    "type": "neoorigins:using_effective_tool"
+  },
+  "name": "power.neoorigins.classic_miner_mining_expert.name",
+  "description": "power.neoorigins.classic_miner_mining_expert.description"
+}

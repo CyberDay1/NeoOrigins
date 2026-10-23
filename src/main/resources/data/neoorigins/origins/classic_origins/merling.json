@@ -1,0 +1,18 @@
+{
+  "name": "origins.neoorigins.classic.merling.name",
+  "description": "origins.neoorigins.classic.merling.description",
+  "icon": "minecraft:cod",
+  "impact": "high",
+  "order": 2,
+  "powers": [
+    "neoorigins:merling_water_breathing",
+    "neoorigins:merling_dries_out",
+    "neoorigins:classic_merling_wet_eyes",
+    "neoorigins:aquatic_underwater_mining",
+    "neoorigins:classic_merling_fins",
+    "neoorigins:classic_merling_like_water",
+    "neoorigins:classic_merling_aquatic",
+    "neoorigins:classic_merling_air_from_potions"
+  ],
+  "upgrades": []
+}

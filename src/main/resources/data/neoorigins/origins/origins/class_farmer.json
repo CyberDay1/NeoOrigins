@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_farmer.name",
+  "description": "origins.neoorigins.class_farmer.description",
+  "icon": "minecraft:wheat",
+  "impact": "none",
+  "order": 21,
+  "powers": [
+    "neoorigins:classic_farmer_bountiful_harvest",
+    "neoorigins:class_herbalist_green_thumb"
+  ],
+  "upgrades": []
+}

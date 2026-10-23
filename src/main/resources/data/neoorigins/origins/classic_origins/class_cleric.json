@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.classic.class_cleric.name",
+  "description": "origins.neoorigins.classic.class_cleric.description",
+  "icon": "minecraft:brewing_stand",
+  "impact": "none",
+  "order": 17,
+  "powers": [
+    "neoorigins:class_cleric_potions",
+    "neoorigins:class_cleric_enchanting"
+  ],
+  "upgrades": []
+}

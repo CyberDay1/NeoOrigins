@@ -4176,7 +4176,7 @@
     blow cleaves through all it touches. Requires a sword in hand.
 
 
-  LAYER neoorigins:class - Class (20 origins, layer order 2)
+  LAYER neoorigins:class - Class (22 origins, layer order 2)
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 --------------------------------------------------------------------------------
@@ -4735,6 +4735,36 @@
     Type: neoorigins:effect_immunity
     Immune to Wither — the blight cannot touch you.
 
+--------------------------------------------------------------------------------
+  FARMER
+  ID: neoorigins:class_farmer | Impact: NONE | Order: 21 | Icon: minecraft:wheat
+--------------------------------------------------------------------------------
+  Farmers have been known to provide everyone with food for as long as anyone
+  can remember.
+
+  Bountiful Harvest (neoorigins:classic_farmer_bountiful_harvest)
+    Type: neoorigins:crop_harvest_bonus
+    Harvesting fully grown crops gives you twice the yield.
+
+  Blessed Bone Meal (neoorigins:class_herbalist_green_thumb)
+    Type: neoorigins:action_on_event
+    Bone meal applications grow an extra stage.
+
+--------------------------------------------------------------------------------
+  RANCHER
+  ID: neoorigins:class_rancher | Impact: NONE | Order: 22 | Icon: minecraft:lead
+--------------------------------------------------------------------------------
+  Making the most of animals, Ranchers are able to gather many useful
+  resources.
+
+  Twin Births (neoorigins:classic_rancher_twin_births)
+    Type: neoorigins:twin_breeding
+    Animals bred by you have a chance to produce two babies.
+
+  Scavenging (neoorigins:classic_rancher_scavenging)
+    Type: neoorigins:action_on_event
+    Animals you kill drop twice the material.
+
 
 ================================================================================
   2. POWER TYPES
@@ -4746,26 +4776,26 @@
   powers" counts the built-in powers that load as this type.
 
   neoorigins:action_on_event
-    Passive | Shipped powers: 52 | ActionOnEventPower
+    Passive | Shipped powers: 61 | ActionOnEventPower
     Fields: block_condition, condition, cooldown_ticks, effect, effect_tag,
     entity_action, event, hand, hands, immunity_ticks, item_condition,
     modifier, power
-    (hand-written parser: the keys it read from an empty object and from 46
+    (hand-written parser: the keys it read from an empty object and from 55
     shipped powers; a branch those never reach may read more)
 
   neoorigins:action_on_hit
-    Passive | Shipped powers: 4 | ActionOnHitPower
+    Passive | Shipped powers: 5 | ActionOnHitPower
     Fields: action, amount, amplifier, bientity_action, chance, damage_type,
     duration, effect, entity_action, min_damage, target_group, target_type
-    (hand-written parser: the keys it read from an empty object and from 4
+    (hand-written parser: the keys it read from an empty object and from 5
     shipped powers; a branch those never reach may read more)
 
   neoorigins:active_ability
-    Active | Shipped powers: 49 | ActiveAbilityPower
+    Active | Shipped powers: 52 | ActiveAbilityPower
     Fields: always_show_icon, condition, cooldown_countdown, cooldown_icon,
     cooldown_resource, cooldown_ticks, entity_action, fail_action,
     hunger_cost, resource_cost, resource_cost_amount
-    (hand-written parser: the keys it read from an empty object and from 48
+    (hand-written parser: the keys it read from an empty object and from 51
     shipped powers; a branch those never reach may read more)
 
   neoorigins:active_bolt
@@ -4816,14 +4846,14 @@
     Fields: entity_blacklist, entity_types, radius, speed
 
   neoorigins:attribute_modifier
-    Passive | Shipped powers: 304 | AttributeModifierPower
+    Passive | Shipped powers: 314 | AttributeModifierPower
     Fields: amount, attribute, condition, equipment_condition,
     location_condition, operation
-    (hand-written parser: the keys it read from an empty object and from 349
+    (hand-written parser: the keys it read from an empty object and from 359
     shipped powers; a branch those never reach may read more)
 
   neoorigins:bare_hand_tool
-    Passive | Shipped powers: 6 | BareHandToolPower
+    Passive | Shipped powers: 7 | BareHandToolPower
     Fields: tool
 
   neoorigins:become_dragon
@@ -4835,7 +4865,7 @@
     Fields: max_velocity, min_velocity, restitution
 
   neoorigins:break_speed_modifier
-    Passive | Shipped powers: 7 | BreakSpeedModifierPower
+    Passive | Shipped powers: 8 | BreakSpeedModifierPower
     Fields: block_tag, multiplier
 
   neoorigins:breath_in_fluid
@@ -4851,11 +4881,11 @@
     shipped powers; a branch those never reach may read more)
 
   neoorigins:burn
-    Passive | Shipped powers: 0 | BurnPower
+    Passive | Shipped powers: 1 | BurnPower
     Fields: burn_duration, interval
 
   neoorigins:cobweb_affinity
-    Passive | Shipped powers: 1 | CobwebAffinityPower
+    Passive | Shipped powers: 2 | CobwebAffinityPower
     Fields: none
 
   neoorigins:command_pack
@@ -4864,10 +4894,10 @@
     cooldown_ticks, range
 
   neoorigins:condition_passive
-    Passive | Shipped powers: 62 | ConditionPassivePower
+    Passive | Shipped powers: 65 | ConditionPassivePower
     Fields: always_show_icon, condition, cooldown_icon, default_off,
     else_action, enabled, entity_action, interval, toggleable
-    (hand-written parser: the keys it read from an empty object and from 52
+    (hand-written parser: the keys it read from an empty object and from 54
     shipped powers; a branch those never reach may read more)
 
   neoorigins:conditional
@@ -4889,7 +4919,7 @@
     Fields: growths_per_interval, radius, tick_interval
 
   neoorigins:crop_harvest_bonus
-    Passive | Shipped powers: 2 | CropHarvestBonusPower
+    Passive | Shipped powers: 3 | CropHarvestBonusPower
     Fields: extra_drops
 
   neoorigins:dodge_chance
@@ -4902,7 +4932,7 @@
     tiers
 
   neoorigins:effect_immunity
-    Passive | Shipped powers: 11 | EffectImmunityPower
+    Passive | Shipped powers: 12 | EffectImmunityPower
     Fields: effects, inverted
 
   neoorigins:effect_over_time
@@ -4927,11 +4957,11 @@
     Fields: none
 
   neoorigins:enhanced_vision
-    Passive | Shipped powers: 4 | EnhancedVisionPower
+    Passive | Shipped powers: 5 | EnhancedVisionPower
     Fields: exposure
 
   neoorigins:entity_group
-    Passive | Shipped powers: 6 | EntityGroupPower
+    Passive | Shipped powers: 7 | EntityGroupPower
     Fields: group
 
   neoorigins:entity_model
@@ -4948,7 +4978,7 @@
     Fields: sources
 
   neoorigins:extra_inventory
-    Passive | Shipped powers: 0 | ExtraInventoryPower
+    Passive | Shipped powers: 1 | ExtraInventoryPower
     Fields: drop_on_death, size, title
 
   neoorigins:flight
@@ -4981,7 +5011,7 @@
     Fields: none
 
   neoorigins:invisibility
-    Passive | Shipped powers: 0 | InvisibilityPower
+    Passive | Shipped powers: 1 | InvisibilityPower
     Fields: render_armor
 
   neoorigins:invulnerability
@@ -5015,7 +5045,7 @@
     Fields: end, start, strength
 
   neoorigins:less_item_use_slowdown
-    Passive | Shipped powers: 0 | LessItemUseSlowdownPower
+    Passive | Shipped powers: 2 | LessItemUseSlowdownPower
     Fields: item_type, speed_multiplier
 
   neoorigins:light_level_effect
@@ -5048,16 +5078,16 @@
     Fields: entity_blacklist, entity_types, range
 
   neoorigins:model_color
-    Passive | Shipped powers: 6 | ModelColorPower
+    Passive | Shipped powers: 7 | ModelColorPower
     Fields: alpha, blue, condition, enabled, green, red
-    (hand-written parser: the keys it read from an empty object and from 6
+    (hand-written parser: the keys it read from an empty object and from 7
     shipped powers; a branch those never reach may read more)
 
   neoorigins:modify_damage
-    Passive | Shipped powers: 24 | ModifyDamagePower
+    Passive | Shipped powers: 26 | ModifyDamagePower
     Fields: condition, damage_type, direction, max_total, min_total,
     multiplier, set_total, target_group
-    (hand-written parser: the keys it read from an empty object and from 24
+    (hand-written parser: the keys it read from an empty object and from 26
     shipped powers; a branch those never reach may read more)
 
   neoorigins:modify_flight_speed
@@ -5087,7 +5117,7 @@
     mount_position, range
 
   neoorigins:muffle_sound
-    Passive | Shipped powers: 0 | MuffleSoundPower
+    Passive | Shipped powers: 1 | MuffleSoundPower
     Fields: strength
 
   neoorigins:natural_glide
@@ -5115,17 +5145,17 @@
     Fields: strength, texture
 
   neoorigins:particle
-    Passive | Shipped powers: 0 | ParticlePower
-    Fields: particle
-    (hand-written parser: the keys it read from an empty object and from 0
+    Passive | Shipped powers: 2 | ParticlePower
+    Fields: condition, count, frequency, offset, particle, speed, spread
+    (hand-written parser: the keys it read from an empty object and from 2
     shipped powers; a branch those never reach may read more)
 
   neoorigins:persistent_effect
-    Passive | Shipped powers: 89 | PersistentEffectPower
+    Passive | Shipped powers: 92 | PersistentEffectPower
     Fields: always_show_icon, ambient, amplifier, condition, cooldown_icon,
     default_off, effect, effects, enabled, id, show_icon, show_particles,
     toggleable
-    (hand-written parser: the keys it read from an empty object and from 67
+    (hand-written parser: the keys it read from an empty object and from 70
     shipped powers; a branch those never reach may read more)
 
   neoorigins:phantom_form
@@ -5138,7 +5168,7 @@
     toggleable
 
   neoorigins:prevent_action
-    Passive | Shipped powers: 27 | PreventActionPower
+    Passive | Shipped powers: 29 | PreventActionPower
     Fields: action, active_when, chest, feet, head, legs
 
   neoorigins:prevent_death
@@ -5149,10 +5179,10 @@
     shipped powers; a branch those never reach may read more)
 
   neoorigins:prevent_entity_render
-    Passive | Shipped powers: 0 | PreventEntityRenderPower
+    Passive | Shipped powers: 1 | PreventEntityRenderPower
     Fields: entity_condition
-    (hand-written parser: the keys it read from an empty object and from 0
-    shipped powers; a branch those never reach may read more)
+    (hand-written parser: the keys it read from an empty object and from 1
+    shipped power; a branch those never reach may read more)
 
   neoorigins:prevent_item_damage
     Passive | Shipped powers: 0 | PreventItemDamagePower
@@ -5179,18 +5209,18 @@
     shipped powers; a branch those never reach may read more)
 
   neoorigins:restrict_armor
-    Passive | Shipped powers: 1 | RestrictArmorPower
+    Passive | Shipped powers: 2 | RestrictArmorPower
     Fields: restrictions
 
   neoorigins:restrict_items
-    Passive | Shipped powers: 0 | RestrictItemsPower
+    Passive | Shipped powers: 1 | RestrictItemsPower
     Fields: condition, deny, hands, item_condition, prevent_equip,
     prevent_use, slots
-    (hand-written parser: the keys it read from an empty object and from 0
-    shipped powers; a branch those never reach may read more)
+    (hand-written parser: the keys it read from an empty object and from 1
+    shipped power; a branch those never reach may read more)
 
   neoorigins:scare_entities
-    Passive | Shipped powers: 4 | ScareEntitiesPower
+    Passive | Shipped powers: 5 | ScareEntitiesPower
     Fields: entity_blacklist, entity_types
 
   neoorigins:shader
@@ -5203,7 +5233,7 @@
     cooldown_ticks, hunger_cost, max_orbs, radius, tick_interval
 
   neoorigins:simple
-    Passive | Shipped powers: 0 | SimplePower
+    Passive | Shipped powers: 2 | SimplePower
     Fields: none
 
   neoorigins:size_scaling
@@ -5254,7 +5284,7 @@
     resource_cost, resource_cost_amount, targeting
 
   neoorigins:tamed_animal_boost
-    Passive | Shipped powers: 0 | TamedAnimalBoostPower
+    Passive | Shipped powers: 1 | TamedAnimalBoostPower
     Fields: health_bonus, radius, speed_bonus
 
   neoorigins:tamed_potion_diffusal
@@ -5275,7 +5305,7 @@
     cooldown_ticks, damage, hunger_cost, knockback_strength, range
 
   neoorigins:toggle
-    Passive | Shipped powers: 1 | TogglePower
+    Passive | Shipped powers: 2 | TogglePower
     Fields: default
 
   neoorigins:trade_availability
@@ -5287,7 +5317,7 @@
     Fields: max_blocks
 
   neoorigins:twin_breeding
-    Passive | Shipped powers: 0 | TwinBreedingPower
+    Passive | Shipped powers: 1 | TwinBreedingPower
     Fields: chance
 
   neoorigins:ultimine
@@ -5317,7 +5347,7 @@
     Fields: enabled
 
   neoorigins:wraith_phase
-    Active | Shipped powers: 3 | WraithPhasePower
+    Active | Shipped powers: 4 | WraithPhasePower
     Fields: always_on, always_show_icon, blocked_blocks, cooldown_icon,
     exhaustion_per_tick
 
@@ -5373,13 +5403,13 @@
   3. QUICK STATS
 ================================================================================
 
-  Origins shipped:         78
-    in neoorigins:class: 20
+  Origins shipped:         80
+    in neoorigins:class: 22
     in neoorigins:origin: 58
     needing another mod:   3
-    by impact:             {HIGH=34, LOW=4, MEDIUM=22, NONE=18}
-  Power files shipped:     887
-    load with no other mod: 839
+    by impact:             {HIGH=34, LOW=4, MEDIUM=22, NONE=20}
+  Power files shipped:     946
+    load with no other mod: 898
     needing another mod:   48
     do not load:           0
     referenced, not shipped: 0

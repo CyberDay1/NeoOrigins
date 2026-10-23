@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "hidden": true,
+  "attribute": "minecraft:entity_interaction_range",
+  "amount": 1.5,
+  "operation": "add_value",
+  "name": "power.neoorigins.classic_enderian_slender_reach.name",
+  "description": "power.neoorigins.classic_enderian_slender_reach.description"
+}

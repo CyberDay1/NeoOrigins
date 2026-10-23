@@ -1,0 +1,23 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "wake_up",
+  "condition": {
+    "type": "neoorigins:daytime"
+  },
+  "entity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:give",
+        "item": "minecraft:egg",
+        "count": 1
+      },
+      {
+        "type": "neoorigins:play_sound",
+        "sound": "minecraft:entity.chicken.egg"
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_avian_lay_eggs.name",
+  "description": "power.neoorigins.classic_avian_lay_eggs.description"
+}

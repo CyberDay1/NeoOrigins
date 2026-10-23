@@ -1,0 +1,45 @@
+{
+  "type": "neoorigins:action_on_hit",
+  "hidden": true,
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:cooldown",
+        "power": "neoorigins:classic_arachnid_webbing"
+      },
+      {
+        "type": "neoorigins:not",
+        "condition": {
+          "type": "neoorigins:sneaking"
+        }
+      }
+    ]
+  },
+  "bientity_action": {
+    "type": "neoorigins:and",
+    "actions": [
+      {
+        "type": "neoorigins:target_action",
+        "action": {
+          "type": "neoorigins:block_action_at",
+          "block_action": {
+            "type": "neoorigins:set_block",
+            "block": "neoorigins:temporary_cobweb",
+            "keep": true
+          }
+        }
+      },
+      {
+        "type": "neoorigins:actor_action",
+        "action": {
+          "type": "neoorigins:trigger_cooldown",
+          "power": "neoorigins:classic_arachnid_webbing",
+          "cooldown": 120
+        }
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_arachnid_webbing.name",
+  "description": "power.neoorigins.classic_arachnid_webbing.description"
+}

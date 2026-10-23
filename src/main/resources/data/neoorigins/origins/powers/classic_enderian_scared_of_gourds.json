@@ -1,0 +1,16 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "food_eaten",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": {
+      "type": "neoorigins:food_item_id",
+      "id": "minecraft:pumpkin_pie"
+    },
+    "if_action": {
+      "type": "neoorigins:cancel_event"
+    }
+  },
+  "name": "power.neoorigins.classic_enderian_scared_of_gourds.name",
+  "description": "power.neoorigins.classic_enderian_scared_of_gourds.description"
+}

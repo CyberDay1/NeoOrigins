@@ -1,0 +1,19 @@
+{
+  "name": "origins.neoorigins.classic.phantom.name",
+  "description": "origins.neoorigins.classic.phantom.description",
+  "icon": "minecraft:phantom_membrane",
+  "impact": "high",
+  "order": 9,
+  "powers": [
+    "neoorigins:classic_phantom_form_state",
+    "neoorigins:classic_phantom_phantom_form",
+    "neoorigins:classic_phantom_phasing",
+    "neoorigins:classic_phantom_invisibility",
+    "neoorigins:classic_phantom_fast_metabolism",
+    "neoorigins:classic_phantom_form_hunger_gate",
+    "neoorigins:classic_phantom_translucent",
+    "neoorigins:classic_phantom_photoallergic",
+    "neoorigins:classic_fragile"
+  ],
+  "upgrades": []
+}

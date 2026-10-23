@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:invisibility",
+  "render_armor": true,
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "neoorigins:classic_phantom_form_state"
+  },
+  "name": "power.neoorigins.classic_phantom_invisibility.name",
+  "description": "power.neoorigins.classic_phantom_invisibility.description"
+}

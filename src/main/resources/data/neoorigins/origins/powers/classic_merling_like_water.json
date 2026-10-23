@@ -1,0 +1,22 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:gravity",
+  "amount": -0.08,
+  "operation": "add_value",
+  "condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:submerged_in_water"
+      },
+      {
+        "type": "neoorigins:not",
+        "condition": {
+          "type": "neoorigins:sneaking"
+        }
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_merling_like_water.name",
+  "description": "power.neoorigins.classic_merling_like_water.description"
+}

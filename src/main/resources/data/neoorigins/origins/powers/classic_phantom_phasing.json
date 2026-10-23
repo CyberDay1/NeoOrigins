@@ -1,0 +1,17 @@
+{
+  "type": "neoorigins:wraith_phase",
+  "always_on": true,
+  "exhaustion_per_tick": 0.0,
+  "blocked_blocks": [
+    "minecraft:barrier",
+    "minecraft:bedrock",
+    "minecraft:crying_obsidian",
+    "minecraft:obsidian"
+  ],
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "neoorigins:classic_phantom_form_state"
+  },
+  "name": "power.neoorigins.classic_phantom_phasing.name",
+  "description": "power.neoorigins.classic_phantom_phasing.description"
+}

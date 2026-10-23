@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "out",
+  "multiplier": 2.0,
+  "condition": {
+    "type": "neoorigins:fall_flying"
+  },
+  "name": "power.neoorigins.classic_elytrian_aerial_combatant.name",
+  "description": "power.neoorigins.classic_elytrian_aerial_combatant.description"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "origins.neoorigins.classic.blazeling.name",
+  "description": "origins.neoorigins.classic.blazeling.description",
+  "icon": "minecraft:blaze_rod",
+  "impact": "high",
+  "order": 4,
+  "powers": [
+    "neoorigins:blazeling_fire_immunity",
+    "neoorigins:classic_blazeling_nether_inhabitant",
+    "neoorigins:classic_blazeling_burning_wrath",
+    "neoorigins:classic_blazeling_hotblooded",
+    "neoorigins:classic_water_vulnerability",
+    "neoorigins:classic_blazeling_flame_particles",
+    "neoorigins:classic_damage_from_potions"
+  ],
+  "upgrades": [],
+  "spawn_location": {
+    "dimension": "minecraft:the_nether"
+  }
+}

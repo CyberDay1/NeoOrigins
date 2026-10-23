@@ -1,0 +1,51 @@
+{
+  "type": "neoorigins:restrict_armor",
+  "restrictions": [
+    {
+      "slot": "head",
+      "item": "minecraft:diamond_helmet"
+    },
+    {
+      "slot": "head",
+      "item": "minecraft:netherite_helmet"
+    },
+    {
+      "slot": "chest",
+      "item": "minecraft:iron_chestplate"
+    },
+    {
+      "slot": "chest",
+      "item": "minecraft:diamond_chestplate"
+    },
+    {
+      "slot": "chest",
+      "item": "minecraft:netherite_chestplate"
+    },
+    {
+      "slot": "legs",
+      "item": "minecraft:iron_leggings"
+    },
+    {
+      "slot": "legs",
+      "item": "minecraft:diamond_leggings"
+    },
+    {
+      "slot": "legs",
+      "item": "minecraft:netherite_leggings"
+    },
+    {
+      "slot": "feet",
+      "item": "minecraft:iron_boots"
+    },
+    {
+      "slot": "feet",
+      "item": "minecraft:diamond_boots"
+    },
+    {
+      "slot": "feet",
+      "item": "minecraft:netherite_boots"
+    }
+  ],
+  "name": "power.neoorigins.classic_elytrian_need_for_mobility.name",
+  "description": "power.neoorigins.classic_elytrian_need_for_mobility.description"
+}

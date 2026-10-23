@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:action_on_event",
+  "event": "mod_exhaustion",
+  "modifier": {
+    "operation": "multiplication",
+    "value": 1.6
+  },
+  "name": "power.neoorigins.classic_shulk_large_appetite.name",
+  "description": "power.neoorigins.classic_shulk_large_appetite.description"
+}

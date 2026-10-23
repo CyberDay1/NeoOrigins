@@ -1,0 +1,15 @@
+{
+  "name": "origins.neoorigins.classic.shulk.name",
+  "description": "origins.neoorigins.classic.shulk.description",
+  "icon": "minecraft:shulker_shell",
+  "impact": "low",
+  "order": 8,
+  "powers": [
+    "neoorigins:classic_shulk_hoarder",
+    "neoorigins:classic_shulk_sturdy_skin",
+    "neoorigins:classic_shulk_strong_arms",
+    "neoorigins:classic_shulk_unwieldy",
+    "neoorigins:classic_shulk_large_appetite"
+  ],
+  "upgrades": []
+}

@@ -1,0 +1,12 @@
+{
+  "name": "origins.neoorigins.class_rancher.name",
+  "description": "origins.neoorigins.class_rancher.description",
+  "icon": "minecraft:lead",
+  "impact": "none",
+  "order": 22,
+  "powers": [
+    "neoorigins:classic_rancher_twin_births",
+    "neoorigins:classic_rancher_scavenging"
+  ],
+  "upgrades": []
+}
