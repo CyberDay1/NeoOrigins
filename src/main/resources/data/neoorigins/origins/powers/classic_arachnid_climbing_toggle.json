@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:toggle",
+  "hidden": true,
+  "default": true,
+  "name": "power.neoorigins.classic_arachnid_climbing_toggle.name",
+  "description": "power.neoorigins.classic_arachnid_climbing_toggle.description"
+}

@@ -5,7 +5,10 @@
   "impact": "low",
   "order": 7,
   "powers": [
-    "neoorigins:arachnid_wall_climbing",
+    "neoorigins:classic_arachnid_climbing_toggle",
+    "neoorigins:classic_arachnid_climbing",
+    "neoorigins:classic_arachnid_wall_climbing",
+    "neoorigins:classic_arachnid_web_climbing",
     "neoorigins:classic_arachnid_master_of_webs",
     "neoorigins:classic_arachnid_web_sense",
     "neoorigins:classic_arachnid_webbing",

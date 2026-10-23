@@ -2713,5 +2713,13 @@
   "power.neoorigins.classic_miner_experienced_excavator.name": "Experienced Excavator",
   "power.neoorigins.classic_miner_experienced_excavator.description": "Breaking blocks doesn't cause you to exhaust.",
   "neoorigins.classic_mode.hidden_origin": "Your origin, %s, is not part of classic mode. Reset it to choose a classic origin: use an Orb of Origin, or ask an admin to run %s.",
-  "neoorigins.classic_mode.hidden_class": "Your class, %s, is not part of classic mode. Reset it to choose a classic class: use an Orb of Class, or ask an admin to run %s."
+  "neoorigins.classic_mode.hidden_class": "Your class, %s, is not part of classic mode. Reset it to choose a classic class: use an Orb of Class, or ask an admin to run %s.",
+  "power.neoorigins.classic_arachnid_climbing_toggle.name": "Climbing Toggle",
+  "power.neoorigins.classic_arachnid_climbing_toggle.description": "Whether climbing is on.",
+  "power.neoorigins.classic_arachnid_climbing.name": "Climbing",
+  "power.neoorigins.classic_arachnid_climbing.description": "You are able to climb up any kind of wall, not just ladders. Press your ability key to turn climbing on or off.",
+  "power.neoorigins.classic_arachnid_wall_climbing.name": "Wall Climbing",
+  "power.neoorigins.classic_arachnid_wall_climbing.description": "Climb walls while climbing is on.",
+  "power.neoorigins.classic_arachnid_web_climbing.name": "Web Climbing",
+  "power.neoorigins.classic_arachnid_web_climbing.description": "Climb inside cobweb while climbing is on."
 }

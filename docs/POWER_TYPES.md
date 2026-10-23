@@ -701,6 +701,29 @@ No additional fields beyond `name` and `description`.
 }
 ```
 
+**Making climbing a toggle.** Wall climbing is always on. To put it on a key, the way Origins' Arachnid does, gate it on a hidden [`toggle`](#neooriginstoggle) with a top-level `condition`, and flip that toggle from an `active_ability`. The classic-mode Arachnid is built this way (`classic_arachnid_climbing*.json`), and gates `cobweb_affinity`'s `climb` on the same toggle so web climbing also needs climbing switched on.
+
+```json
+{ "type": "neoorigins:toggle", "hidden": true, "default": true }
+```
+```json
+{
+  "type": "neoorigins:wall_climbing",
+  "hidden": true,
+  "condition": { "type": "neoorigins:power_active", "power": "mypack:climbing_toggle" }
+}
+```
+```json
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "cooldown_icon": "minecraft:cobweb",
+  "entity_action": { "type": "neoorigins:toggle", "power": "mypack:climbing_toggle" },
+  "name": "Climbing",
+  "description": "Press your ability key to turn climbing on or off."
+}
+```
+
 ---
 
 ## `neoorigins:elytra_boost`
@@ -4105,11 +4128,16 @@ Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag
 
 ## `neoorigins:entity_glow`
 
-Living entities matching `entity_condition` are drawn with the glowing outline for the holder only, the way a Spectral Arrow outlines its target. Nobody else sees the outline and the entity gets no Glowing effect. Origins' Arachnid uses it to sense creatures caught in cobweb. The selection works exactly like [`prevent_entity_render`](#neooriginsprevent_entity_render): evaluated on the server every 5 ticks over the entities in view distance, and sent to the holder alone.
+Living entities matching `entity_condition` are drawn with the glowing outline for the holder only, the way a Spectral Arrow outlines its target. Nobody else sees the outline and the entity gets no Glowing effect. Origins' Arachnid uses it to sense creatures caught in cobweb. The selection works exactly like [`prevent_entity_render`](#neooriginsprevent_entity_render): evaluated on the server every 5 ticks over the entities in view distance, and sent to the holder alone. The fields are Apoli's, so imported `origins:entity_glow` powers map straight onto this type.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes glows for the holder. Omit it to outline every living entity. Takes the same entity-general verbs as `prevent_entity_render`. |
+| `bientity_condition` | [condition](schema/condition.schema.json) | no | — | Pair condition with the holder as actor and the candidate as target; it must pass too. Pair verbs: `can_see`, `constant`, `target_condition` / `actor_condition`, and `and` / `or` / `not` over those. One using anything else loads, warns and outlines nothing. |
+| `use_teams` | bool | no | `true` | An entity on a coloured team is outlined in its team colour. |
+| `red` | float | no | `1.0` | Outline colour, 0.0 to 1.0, used when the team colour does not apply. |
+| `green` | float | no | `1.0` | As `red`. |
+| `blue` | float | no | `1.0` | As `red`. |
 
 **Example: sense anything stuck in a web that is not a spider**
 ```json
@@ -4150,7 +4178,7 @@ An active conduit gives the holder Conduit Power on dry land too. Vanilla only g
 
 ## `neoorigins:like_air`
 
-The player's walking-speed modifiers also apply to their speed while airborne. Vanilla airborne control is a flat 0.02 (0.026 while sprinting) that ignores the movement speed attribute, so speed effects and attribute bonuses do nothing mid-jump. With this power that value goes through every `movement_speed` modifier the player has, in vanilla's order, which includes the sprint modifier: a sprinting holder moves faster in the air than vanilla allows. Creative and ability flight are not changed. Origins' Avian power of the same name.
+The player's walking-speed modifiers also apply to their speed while airborne. Vanilla airborne control is a flat 0.02 (0.026 while sprinting) that ignores the movement speed attribute, so speed effects and attribute bonuses do nothing mid-jump. With this power that value goes through every `movement_speed` modifier the player has, in vanilla's order, which includes the sprint modifier. Sprint is therefore counted twice while airborne, once by vanilla's sprinting value and once by the modifier, so a sprinting holder moves about 30% faster in the air than vanilla allows. Origins does the same, and this power keeps it on purpose. Creative and ability flight are not changed. Origins' Avian power of the same name.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|

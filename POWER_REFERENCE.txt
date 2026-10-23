@@ -4791,11 +4791,11 @@
     shipped powers; a branch those never reach may read more)
 
   neoorigins:active_ability
-    Active | Shipped powers: 52 | ActiveAbilityPower
+    Active | Shipped powers: 53 | ActiveAbilityPower
     Fields: always_show_icon, condition, cooldown_countdown, cooldown_icon,
     cooldown_resource, cooldown_ticks, entity_action, fail_action,
     hunger_cost, resource_cost, resource_cost_amount
-    (hand-written parser: the keys it read from an empty object and from 51
+    (hand-written parser: the keys it read from an empty object and from 52
     shipped powers; a branch those never reach may read more)
 
   neoorigins:active_bolt
@@ -4885,7 +4885,7 @@
     Fields: burn_duration, interval
 
   neoorigins:cobweb_affinity
-    Passive | Shipped powers: 2 | CobwebAffinityPower
+    Passive | Shipped powers: 3 | CobwebAffinityPower
     Fields: climb
 
   neoorigins:command_pack
@@ -4966,7 +4966,7 @@
 
   neoorigins:entity_glow
     Passive | Shipped powers: 1 | EntityGlowPower
-    Fields: entity_condition
+    Fields: bientity_condition, blue, green, red, use_teams
     (hand-written parser: the keys it read from an empty object and from 1
     shipped power; a branch those never reach may read more)
 
@@ -5323,7 +5323,7 @@
     cooldown_ticks, damage, hunger_cost, knockback_strength, range
 
   neoorigins:toggle
-    Passive | Shipped powers: 2 | TogglePower
+    Passive | Shipped powers: 3 | TogglePower
     Fields: default
 
   neoorigins:trade_availability
@@ -5357,7 +5357,7 @@
     Fields: fluid
 
   neoorigins:wall_climbing
-    Passive | Shipped powers: 4 | WallClimbingPower
+    Passive | Shipped powers: 5 | WallClimbingPower
     Fields: none
 
   neoorigins:water_breathing
@@ -5426,8 +5426,8 @@
     in neoorigins:origin: 58
     needing another mod:   3
     by impact:             {HIGH=34, LOW=4, MEDIUM=22, NONE=20}
-  Power files shipped:     951
-    load with no other mod: 903
+  Power files shipped:     955
+    load with no other mod: 907
     needing another mod:   48
     do not load:           0
     referenced, not shipped: 0
