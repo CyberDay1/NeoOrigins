@@ -4,12 +4,15 @@ import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.client.ClientActivePowers;
 import com.cyberday1.neoorigins.client.ClientOriginState;
 import com.cyberday1.neoorigins.client.ClientPowerCache;
+import com.cyberday1.neoorigins.client.ClientResourceState;
+import com.cyberday1.neoorigins.client.ResourceHudPositions;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.network.payload.EditorTogglePowerPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -23,17 +26,20 @@ import java.util.Map;
 /**
  * 2.0 phase 4: in-game origin editor & power tester.
  *
- * <p>Two panels:
+ * <p>Three panels:
  * <ul>
  *   <li>Top — list of origin layers with the current origin name and a "Change" button
  *       that opens the standard {@link OriginSelectionScreen} with {@code forceReselect=true}.</li>
- *   <li>Bottom — list of granted toggle powers with an on/off switch that sends
+ *   <li>Middle — list of granted toggle powers with an on/off switch that sends
  *       {@link EditorTogglePowerPayload} to the server.</li>
+ *   <li>Bottom — per-resource scale sliders for each custom resource bar the current
+ *       origin provides (from {@link ClientResourceState}). Each slider controls the
+ *       visual size of that specific bar via {@link ResourceHudPositions#setBarScale}.</li>
  * </ul>
  *
  * <p>All data is pulled from already-synced client state ({@link ClientOriginState},
- * {@link ClientActivePowers}, {@link ClientPowerCache}), so opening the editor has no
- * server round-trip until the user actually makes a change.
+ * {@link ClientActivePowers}, {@link ClientPowerCache}, {@link ClientResourceState}),
+ * so opening the editor has no server round-trip until the user actually makes a change.
  */
 public class OriginEditorScreen extends Screen {
 
@@ -41,12 +47,15 @@ public class OriginEditorScreen extends Screen {
     private static final int PANEL_BTM_MARGIN = 32;
     private static final int PAD = 10;
     private static final int ROW_H = 22;
+    private static final int SLIDER_H = 18;
 
     private final Screen parent;
 
     private int panelX, panelW, panelBottom;
-    private int splitY;      // y-boundary between layers panel (top) and powers panel (bottom)
+    private int splitY, barsSplitY;
     private int powersScrollOffset = 0;
+    private int barsScrollOffset = 0;
+    private final List<ResourceBarSlider> barSliders = new ArrayList<>();
 
     public OriginEditorScreen(Screen parent) {
         super(Component.translatable("screen.neoorigins.origin_editor"));
@@ -58,7 +67,9 @@ public class OriginEditorScreen extends Screen {
         panelW = Math.min(width - 40, 440);
         panelX = (width - panelW) / 2;
         panelBottom = height - PANEL_BTM_MARGIN;
-        splitY = PANEL_TOP + (panelBottom - PANEL_TOP) / 2;
+        int totalH = panelBottom - PANEL_TOP;
+        splitY = PANEL_TOP + (int)(totalH * 0.38);
+        barsSplitY = splitY + (int)((panelBottom - splitY) * 0.55);
 
         refreshWidgets();
     }
@@ -91,7 +102,7 @@ public class OriginEditorScreen extends Screen {
 
         // --- Powers panel ---
         int powersTop = splitY + 22;
-        int powersBottom = panelBottom - 8;
+        int powersBottom = barsSplitY - 4;
         int py = powersTop - powersScrollOffset;
         List<Identifier> togglePowers = collectTogglePowers();
         for (Identifier powerId : togglePowers) {
@@ -109,14 +120,35 @@ public class OriginEditorScreen extends Screen {
             py += ROW_H;
         }
 
-        // Footer close button
+        // --- Custom resource bar scale sliders (third panel) ---
+        barSliders.clear();
+        int barsTop = barsSplitY + 16;
+        int barsBottom = panelBottom - 4;
+        int sliderW = panelW - PAD * 2;
+        int sy = barsTop - barsScrollOffset;
+        Map<String, ClientResourceState.ResourceEntry> resources = ClientResourceState.getResources();
+        for (var entry : resources.entrySet()) {
+            String key = entry.getKey();
+            ClientResourceState.ResourceEntry res = entry.getValue();
+            // Skip hidden resources — they have no visible bar to resize.
+            if (res.label() == null || res.label().isEmpty()) continue;
+            if (sy + SLIDER_H > barsBottom && sy >= barsTop) break;
+            if (sy + SLIDER_H < barsTop) { sy += SLIDER_H + 2; continue; }
+            float current = ResourceHudPositions.getBarScale(key);
+            String label = res.label();
+            ResourceBarSlider slider = new ResourceBarSlider(
+                panelX + PAD, sy, sliderW, SLIDER_H,
+                Component.literal(label), key, current);
+            barSliders.add(slider);
+            addRenderableWidget(slider);
+            sy += SLIDER_H + 2;
+        }
+
         addRenderableWidget(Button.builder(Component.translatable("gui.neoorigins.info.close"), b -> onClose())
             .bounds(width / 2 - 40, height - 24, 80, 20).build());
     }
 
     private void openOriginPicker() {
-        // Route through the trampoline so the picker has exactly one
-        // construction site (see ClientOriginState.openSelectionScreen).
         com.cyberday1.neoorigins.client.ClientOriginState.openSelectionScreen(false, true);
     }
 
@@ -150,14 +182,21 @@ public class OriginEditorScreen extends Screen {
         g.text(font, Component.translatable("gui.neoorigins.editor.layers_header"),
             panelX + PAD, PAD + PANEL_TOP - 6, 0xFFCCCCDD, false);
 
-        // Powers panel background + header
-        g.fill(panelX, splitY, panelX + panelW, panelBottom, 0xFF09091A);
-        g.outline(panelX - 1, splitY - 1, panelW + 2, panelBottom - splitY + 2, 0xFF252540);
+        // Powers panel
+        g.fill(panelX, splitY, panelX + panelW, barsSplitY - 4, 0xFF09091A);
+        g.outline(panelX - 1, splitY - 1, panelW + 2, (barsSplitY - 4) - splitY + 2, 0xFF252540);
         g.text(font, Component.translatable("gui.neoorigins.editor.powers_header"),
             panelX + PAD, splitY + PAD - 2, 0xFFCCCCDD, false);
 
+        // Resource bar scales panel
+        g.fill(panelX, barsSplitY, panelX + panelW, panelBottom, 0xFF09091A);
+        g.outline(panelX - 1, barsSplitY - 1, panelW + 2, panelBottom - barsSplitY + 2, 0xFF252540);
+        g.text(font, Component.literal("Resource Bar Sizes"),
+            panelX + PAD, barsSplitY + PAD - 2, 0xFFCCCCDD, false);
+
         drawLayerLabels(g);
         drawPowerLabels(g);
+        drawBarScaleScrollbar(g);
 
         super.extractRenderState(g, mouseX, mouseY, partial);
     }
@@ -191,7 +230,7 @@ public class OriginEditorScreen extends Screen {
 
     private void drawPowerLabels(GuiGraphicsExtractor g) {
         int powersTop = splitY + 22;
-        int powersBottom = panelBottom - 8;
+        int powersBottom = barsSplitY - 4;
         g.enableScissor(panelX + 1, powersTop - 4, panelX + panelW - 1, powersBottom);
         int py = powersTop - powersScrollOffset;
         List<Identifier> togglePowers = collectTogglePowers();
@@ -222,15 +261,51 @@ public class OriginEditorScreen extends Screen {
         }
     }
 
+    private void drawBarScaleScrollbar(GuiGraphicsExtractor g) {
+        int barsTop = barsSplitY + 16;
+        int barsBottom = panelBottom - 4;
+        int viewH = barsBottom - barsTop;
+        // Count visible resource entries (those with labels)
+        int count = 0;
+        for (var entry : ClientResourceState.getResources().entrySet()) {
+            if (entry.getValue().label() != null && !entry.getValue().label().isEmpty()) count++;
+        }
+        int contentH = count * (SLIDER_H + 2);
+        if (contentH > viewH) {
+            int barX = panelX + panelW - 4;
+            int maxScroll = contentH - viewH;
+            int thumbH = Math.max(12, viewH * viewH / contentH);
+            int thumbY = barsTop + (int) ((long) barsScrollOffset * (viewH - thumbH) / Math.max(1, maxScroll));
+            g.fill(barX, barsTop, barX + 2, barsBottom, 0xFF1A1A30);
+            g.fill(barX, thumbY, barX + 2, thumbY + thumbH, 0xFF4A90D9);
+        }
+    }
+
     @Override
     public boolean mouseScrolled(double mx, double my, double sx, double sy) {
-        if (mx >= panelX && mx <= panelX + panelW && my >= splitY && my <= panelBottom) {
+        // Powers panel scroll
+        if (mx >= panelX && mx <= panelX + panelW && my >= splitY && my < barsSplitY) {
             int powersTop = splitY + 22;
-            int powersBottom = panelBottom - 8;
+            int powersBottom = barsSplitY - 4;
             int viewH = powersBottom - powersTop;
             int contentH = collectTogglePowers().size() * ROW_H;
             int maxScroll = Math.max(0, contentH - viewH);
             powersScrollOffset = Mth.clamp(powersScrollOffset + (sy > 0 ? -14 : 14), 0, maxScroll);
+            refreshWidgets();
+            return true;
+        }
+        // Resource bars panel scroll
+        if (mx >= panelX && mx <= panelX + panelW && my >= barsSplitY && my <= panelBottom) {
+            int barsTop = barsSplitY + 16;
+            int barsBottom = panelBottom - 4;
+            int viewH = barsBottom - barsTop;
+            int count = 0;
+            for (var entry : ClientResourceState.getResources().entrySet()) {
+                if (entry.getValue().label() != null && !entry.getValue().label().isEmpty()) count++;
+            }
+            int contentH = count * (SLIDER_H + 2);
+            int maxScroll = Math.max(0, contentH - viewH);
+            barsScrollOffset = Mth.clamp(barsScrollOffset + (sy > 0 ? -14 : 14), 0, maxScroll);
             refreshWidgets();
             return true;
         }
@@ -239,5 +314,59 @@ public class OriginEditorScreen extends Screen {
 
     @Override protected void extractBlurredBackground(GuiGraphicsExtractor g) { /* no blur */ }
     @Override public boolean isPauseScreen() { return false; }
-    @Override public void onClose() { Minecraft.getInstance().gui.setScreen(parent); }
+
+    @Override
+    public void onClose() {
+        // Persist any resource bar scale changes made via sliders.
+        for (ResourceBarSlider slider : barSliders) {
+            ResourceHudPositions.setBarScale(slider.resourceKey, slider.getScale());
+        }
+        ResourceHudPositions.save();
+        Minecraft.getInstance().gui.setScreen(parent);
+    }
+
+    /**
+     * Slider controlling the HUD scale of one custom resource bar.
+     * Maps the 0..1 slider range onto {@link ResourceHudPositions#MIN_SCALE}..
+     * {@link ResourceHudPositions#MAX_SCALE} and writes back on every drag so the
+     * HUD updates live while the editor is open.
+     */
+    private static final class ResourceBarSlider extends AbstractSliderButton {
+        private final String resourceKey;
+        private final Component barName;
+
+        ResourceBarSlider(int x, int y, int w, int h, Component label, String resourceKey, float initial) {
+            super(x, y, w, h, label, scaleToValue(initial));
+            this.resourceKey = resourceKey;
+            this.barName = label;
+            updateMessage();
+        }
+
+        float getScale() {
+            return valueToScale(value);
+        }
+
+        @Override
+        protected void updateMessage() {
+            int pct = Math.round(getScale() * 100);
+            setMessage(barName.copy().append(": " + pct + "%"));
+        }
+
+        @Override
+        protected void applyValue() {
+            // Live preview: write through so the HUD behind this screen
+            // reflects the new scale immediately.
+            ResourceHudPositions.setBarScale(resourceKey, getScale());
+        }
+
+        private static double scaleToValue(float scale) {
+            float range = ResourceHudPositions.MAX_SCALE - ResourceHudPositions.MIN_SCALE;
+            return Mth.clamp((scale - ResourceHudPositions.MIN_SCALE) / range, 0.0, 1.0);
+        }
+
+        private static float valueToScale(double v) {
+            float range = ResourceHudPositions.MAX_SCALE - ResourceHudPositions.MIN_SCALE;
+            return ResourceHudPositions.MIN_SCALE + (float) v * range;
+        }
+    }
 }
