@@ -97,15 +97,17 @@ The same mechanism for the built-in classes (`class_warrior`, `class_archer`,
 
 `classic_mode = true` turns NeoOrigins into the original Origins experience:
 
+> **Warning: turn it on before the world is created if you can.** If you turn it on in a world that already has players, anyone who already holds an origin or class that classic mode hides keeps it, powers and all, until it is reset. They need to reset it with an Orb of Origin (for an origin) or an Orb of Class (for a class), or an admin can run `/neoorigins reset <player>`, or `/neoorigins reset <player> neoorigins:class` for the class alone. Each such player is told this in chat when they join, and when the mode is switched on while they are online, and the server logs a warning on every start of a world that already has player data while the mode is on, not only when the mode is switched on while the server runs.
+
 - **Origins:** only Human, Merling, Avian, Blazeborn (`blazeling`), Elytrian, Enderian, Arachnid, Shulk, Phantom and Feline are offered. Every other built-in origin is hidden, the Dragon Survival dragons included.
 - **Classes:** only the fourteen Origins: Classes classes are offered: Archer, Beastmaster, Blacksmith, Cleric, Cook, Explorer, Farmer, Lumberjack, Merchant, Miner, Nitwit, Rancher, Rogue and Warrior. Farmer and Rancher ship for classic mode: they stay registered either way, but outside the mode they are hidden from the picker, the way a class switched off by its own toggle is.
 - **Powers:** each of those origins and classes swaps its NeoOrigins power list for one modelled on the original mod. The classic definitions live in `data/neoorigins/origins/classic_origins/<id>.json`, one full origin body per id, and replace `neoorigins:<id>` while the mode is on. They have no evolution tiers. A datapack can override a classic definition by shipping the same path.
 
 | Behaviour | Detail |
 |---|---|
-| Toggles | Classic mode hides every non-classic built-in whatever its `[origins]`/`[classes]` toggle says. A classic origin or class whose own toggle is `false` stays hidden. |
+| Toggles | Classic mode hides every non-classic built-in whatever its `[origins]`/`[classes]` toggle says. The toggles still work on the classic ones: set a classic origin or class to `false` and it stays hidden, in classic mode as outside it. |
 | Datapack origins | Not affected. Origins and classes from datapacks or `originpacks/` stay offered in classic mode. |
-| Existing players | A player who already holds an origin or class that classic mode hides keeps it, with its powers, until they change it (an orb, `/neoorigins set`, a reset). This is the same as disabling it with its toggle. A player holding a classic origin gets its classic powers. |
+| Existing players | A player who already holds an origin or class that classic mode hides keeps it, with its powers, until it is reset (see the warning above). This is the same as disabling it with its toggle. A player holding a classic origin gets its classic powers. |
 | Switching mid-session | Editing the file while the server runs applies at once: online players' classic origins swap power sets (powers shared by both versions keep their state), and every client's picker is resent. Restarting is not needed. |
 | `/neoorigins list` | Marks hidden entries `[disabled]` and says `(classic mode)` in the header while it is on. |
 

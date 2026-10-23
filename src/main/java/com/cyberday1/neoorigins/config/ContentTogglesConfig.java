@@ -67,9 +67,13 @@ public final class ContentTogglesConfig {
             .comment("Classic mode: offer only the original Origins mod's origins and the original",
                      "Origins: Classes classes, with their original power sets.",
                      "When true, every other built-in origin and class is hidden from selection,",
-                     "whatever its toggle below says. A classic origin or class whose toggle is",
-                     "false stays hidden. Datapack and originpack origins are not affected.",
-                     "Players who already hold a hidden origin keep it until they change it.")
+                     "whatever its toggle below says. The toggles still work on the classic ones:",
+                     "set a classic origin or class to false below and it stays hidden.",
+                     "Datapack and originpack origins are not affected.",
+                     "WARNING: if you turn this on after a world is created, players who already",
+                     "hold an origin or class that classic mode hides keep it until it is reset.",
+                     "They need to reset it with an Orb of Origin or Orb of Class, or an admin can",
+                     "run /neoorigins reset <player>. They are told this in chat when they join.")
             .define("classic_mode", false);
 
     // ── Disabled Origins ────────────────────────────────────────────────
