@@ -486,6 +486,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:hotblooded",           () -> json("neoorigins:effect_immunity")),
             Map.entry("origins:water_vulnerability",  () -> json("neoorigins:condition_passive")),
             Map.entry("origins:flame_particles",      () -> json("neoorigins:particle", "particle", "minecraft:flame")),
+            Map.entry("origins:damage_from_snowballs", () -> snowballDamageJson()),
             Map.entry("origins:nether_spawn",         () -> netherSpawnJson())
         );
 
@@ -553,6 +554,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
     private static JsonObject json(String type, String k1, double v1) {
         JsonObject o = json(type); o.addProperty(k1, v1); return o;
+    }
+
+    /** Blazeborn's +3 from snowballs; see OriginsPowerTranslator#projectileVulnerability. */
+    private static com.google.gson.JsonObject snowballDamageJson() {
+        com.google.gson.JsonObject o = json("neoorigins:projectile_vulnerability", "amount", 3.0);
+        com.google.gson.JsonArray projectiles = new com.google.gson.JsonArray();
+        projectiles.add("minecraft:snowball");
+        o.add("projectiles", projectiles);
+        return o;
     }
 
     /**

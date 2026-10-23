@@ -142,7 +142,7 @@ public final class PowerEnumCheck {
      *
      * <p>398 → 402, 2026-10-23, under the exception above: {@code conduit_power_on_land}
      * joined Route A in its four spellings. Those ids were not accepted anywhere
-     * before, so a pack using the type had the power dropped. Owner sign-off pending.
+     * before, so a pack using the type had the power dropped. Owner-approved 2026-10-23.
      */
     private static final int MAX_UNBRANCHED_LEGACY = 402;
 

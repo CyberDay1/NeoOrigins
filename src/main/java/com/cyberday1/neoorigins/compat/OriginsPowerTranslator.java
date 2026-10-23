@@ -424,7 +424,7 @@ public final class OriginsPowerTranslator {
             case "origins:stacking_status_effect", "apace:stacking_status_effect" -> translateStackingStatusEffect(src);
             case "origins:status_effect",          "apace:status_effect"          -> translateStatusEffect(src);
             case "origins:effect_immunity",        "apace:effect_immunity"        -> translateEffectImmunity(src);
-            case "origins:modify_damage_taken"                                    -> translateModifyDamage(src, "in");
+            case "origins:modify_damage_taken"                                    -> translateModifyDamageTaken(src);
             case "origins:modify_damage_dealt"                                    -> translateModifyDamage(src, "out");
             case "origins:invulnerability"                                        -> translateInvulnerability(src);
             case "origins:prevent_death",          "apace:prevent_death"          -> translatePreventDeath(src);
@@ -1250,6 +1250,65 @@ public final class OriginsPowerTranslator {
         out.add("effects", effects);
         if (inverted) out.addProperty("inverted", true);
         return Optional.of(out);
+    }
+
+    /**
+     * {@code modify_damage_taken} with a lone projectile-type damage_condition and
+     * a flat add (Blazeborn's damage_from_snowballs) goes to the native
+     * {@code projectile_vulnerability}: a snowball hit deals 0, so no damage event
+     * fires for {@code modify_damage} to change. Every other shape is unchanged.
+     */
+    private static Optional<JsonObject> translateModifyDamageTaken(JsonObject src) {
+        Optional<JsonObject> projectile = projectileVulnerability(src);
+        return projectile.isPresent() ? projectile : translateModifyDamage(src, "in");
+    }
+
+    static Optional<JsonObject> projectileVulnerability(JsonObject src) {
+        if (src.has("condition") || src.has("target_condition")) return Optional.empty();
+        for (String key : new String[] {"bientity_condition", "apply_armor_condition",
+                "damage_armor_condition", "attacker_action", "bientity_action", "self_action"}) {
+            if (src.has(key) && !isNoopVerb(src.get(key))) return Optional.empty();
+        }
+        if (!(src.get("damage_condition") instanceof JsonObject dc)) return Optional.empty();
+        if (!verbIs(dc.get("type"), "projectile") || !dc.has("projectile")) return Optional.empty();
+        if (dc.has("inverted") && dc.get("inverted").getAsBoolean()) return Optional.empty();
+        if (dc.has("projectile_condition") && !isNoopVerb(dc.get("projectile_condition"))) return Optional.empty();
+        if (!dc.get("projectile").isJsonPrimitive()) return Optional.empty();
+        if (!(src.get("modifier") instanceof JsonObject mod)) return Optional.empty();
+        String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+        op = op.substring(op.indexOf(':') + 1);
+        if (!op.equals("addition") && !op.equals("add_base_early") && !op.equals("add_base_late")) {
+            return Optional.empty();
+        }
+        JsonElement value = mod.has("value") ? mod.get("value") : mod.get("amount");
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) return Optional.empty();
+        float amount = value.getAsFloat();
+        if (amount <= 0F) return Optional.empty();
+
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:projectile_vulnerability");
+        JsonArray projectiles = new JsonArray();
+        projectiles.add(dc.get("projectile").getAsString());
+        out.add("projectiles", projectiles);
+        out.addProperty("amount", amount);
+        return Optional.of(out);
+    }
+
+    /** Apoli's {@code allow}/{@code nothing} defaults, as a bare id or a typed object. */
+    private static boolean isNoopVerb(JsonElement el) {
+        return verbIs(el, "allow") || verbIs(el, "nothing")
+            || (el instanceof JsonObject o && (verbIs(o.get("type"), "allow") || verbIs(o.get("type"), "nothing")));
+    }
+
+    /** True when {@code el} is a legacy-namespace id whose path is {@code path}. */
+    private static boolean verbIs(JsonElement el, String path) {
+        if (el == null || !el.isJsonPrimitive()) return false;
+        String id = el.getAsString();
+        int colon = id.indexOf(':');
+        if (colon < 0) return false;
+        String ns = id.substring(0, colon);
+        return id.substring(colon + 1).equals(path)
+            && (ns.equals("origins") || ns.equals("apace") || OriginsFormatDetector.isApoliFamily(ns));
     }
 
     private static Optional<JsonObject> translateModifyDamage(JsonObject src, String direction) {
