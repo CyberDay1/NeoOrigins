@@ -80,4 +80,14 @@ class ClassicModeToggleRuleTest {
         for (String path : ContentTogglesConfig.CLASSIC_ORIGINS) assertTrue(ContentTogglesConfig.isBuiltIn(path), path);
         for (String path : ContentTogglesConfig.CLASSIC_CLASSES) assertTrue(ContentTogglesConfig.isBuiltIn(path), path);
     }
+
+    /** Who gets the reset warning: holders of a built-in classic mode hides, nobody else. */
+    @Test
+    void theResetWarningTargetsOnlyWhatClassicModeHides() {
+        assertTrue(com.cyberday1.neoorigins.service.ClassicModeService.hiddenByClassicMode("caveborn"));
+        assertTrue(com.cyberday1.neoorigins.service.ClassicModeService.hiddenByClassicMode("class_paladin"));
+        assertFalse(com.cyberday1.neoorigins.service.ClassicModeService.hiddenByClassicMode("avian"));
+        assertFalse(com.cyberday1.neoorigins.service.ClassicModeService.hiddenByClassicMode("class_farmer"));
+        assertFalse(com.cyberday1.neoorigins.service.ClassicModeService.hiddenByClassicMode("my_pack_origin"));
+    }
 }

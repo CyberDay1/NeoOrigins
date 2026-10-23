@@ -2591,7 +2591,7 @@
   "power.neoorigins.classic_enderian_ender_particles.name": "Ender Particles",
   "power.neoorigins.classic_enderian_ender_particles.description": "Particles drift off your body.",
   "power.neoorigins.classic_arachnid_master_of_webs.name": "Master of Webs",
-  "power.neoorigins.classic_arachnid_master_of_webs.description": "You navigate cobweb perfectly. When you hit an enemy in melee, they get stuck in cobweb for a while. You are able to craft cobweb from string.",
+  "power.neoorigins.classic_arachnid_master_of_webs.description": "You navigate cobweb perfectly, and are able to climb in them. When you hit an enemy in melee, they get stuck in cobweb for a while. Non-arthropods stuck in cobweb will be sensed by you. You are able to craft cobweb from string.",
   "power.neoorigins.classic_arachnid_webbing.name": "Webbing",
   "power.neoorigins.classic_arachnid_webbing.description": "When you hit an enemy in melee, they get stuck in cobweb. Six second cooldown.",
   "power.neoorigins.classic_arachnid_carnivore.name": "Carnivore",
@@ -2700,5 +2700,17 @@
   "origins.neoorigins.class_farmer.description": "Farmers have been known to provide everyone with food for as long as anyone can remember.",
   "origins.neoorigins.class_rancher.name": "Rancher",
   "origins.neoorigins.class_rancher.description": "Making the most of animals, Ranchers are able to gather many useful resources.",
-  "neoorigins.configuration.classic_mode": "Classic mode"
+  "neoorigins.configuration.classic_mode": "Classic mode",
+  "power.neoorigins.classic_merling_conduit_power_on_land.name": "Conduit Power on Land",
+  "power.neoorigins.classic_merling_conduit_power_on_land.description": "An active conduit gives you Conduit Power on land too, not only in water or rain.",
+  "power.neoorigins.classic_avian_like_air.name": "Like Air",
+  "power.neoorigins.classic_avian_like_air.description": "Modifiers to your walking speed also apply while you're airborne.",
+  "power.neoorigins.classic_blazeling_snowball_damage.name": "Snowball Weakness",
+  "power.neoorigins.classic_blazeling_snowball_damage.description": "Snowballs hurt you.",
+  "power.neoorigins.classic_arachnid_web_sense.name": "Web Sense",
+  "power.neoorigins.classic_arachnid_web_sense.description": "Non-arthropods stuck in cobweb glow for you.",
+  "power.neoorigins.classic_miner_experienced_excavator.name": "Experienced Excavator",
+  "power.neoorigins.classic_miner_experienced_excavator.description": "Breaking blocks doesn't cause you to exhaust.",
+  "neoorigins.classic_mode.hidden_origin": "Your origin, %s, is not part of classic mode. Reset it to choose a classic origin: use an Orb of Origin, or ask an admin to run %s.",
+  "neoorigins.classic_mode.hidden_class": "Your class, %s, is not part of classic mode. Reset it to choose a classic class: use an Orb of Class, or ask an admin to run %s."
 }

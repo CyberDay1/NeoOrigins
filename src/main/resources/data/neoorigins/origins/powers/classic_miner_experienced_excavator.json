@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:exhaustion_filter",
+  "sources": [
+    "mining"
+  ],
+  "name": "power.neoorigins.classic_miner_experienced_excavator.name",
+  "description": "power.neoorigins.classic_miner_experienced_excavator.description"
+}
