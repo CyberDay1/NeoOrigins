@@ -106,7 +106,7 @@ public class ResourceHudOverlay {
 
             // Per-bar scale set in the origin editor, anchored at the bar's
             // top-left corner so the label and readout scale with the bar.
-            float scale = ResourceHudPositions.getBarScale(entry.getKey());
+            float scale = bars.get(i).scale();
             boolean scaled = scale != 1.0f;
             if (scaled) {
                 g.pose().pushMatrix();
@@ -159,7 +159,7 @@ public class ResourceHudOverlay {
             }
 
             // Label above bar, value readout below it. The stack measured both
-            // lines (stackBar), so this is where its slot left room for them.
+            // lines at this scale (stackBar), so this is where its slot left room.
             var bar = bars.get(i);
             if (bar.label()) {
                 String label = res.label();
@@ -190,7 +190,7 @@ public class ResourceHudOverlay {
         else box = ResourceBarStacking.Box.PLAIN;
         boolean label = res.label() != null && !res.label().isEmpty();
         return new ResourceBarStacking.Bar(key, drawn, ResourceHudPositions.get(key) != null,
-            box, label, true);
+            box, label, true, ResourceHudPositions.getBarScale(key));
     }
 
     /**
