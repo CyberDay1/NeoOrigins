@@ -139,8 +139,12 @@ public final class PowerEnumCheck {
      * <p>410 → 398, 2026-09-22: {@code 844c6875} gave {@code cooldown},
      * {@code modify_fall_damage} and {@code modify_xp_gain} a branch in all four legacy
      * namespaces, and the ceiling was never lowered to match.
+     *
+     * <p>398 → 402, 2026-10-23, under the exception above: {@code conduit_power_on_land}
+     * joined Route A in its four spellings. Those ids were not accepted anywhere
+     * before, so a pack using the type had the power dropped. Owner sign-off pending.
      */
-    private static final int MAX_UNBRANCHED_LEGACY = 398;
+    private static final int MAX_UNBRANCHED_LEGACY = 402;
 
     public static void main(String[] args) throws IOException {
         int failures = 0;
