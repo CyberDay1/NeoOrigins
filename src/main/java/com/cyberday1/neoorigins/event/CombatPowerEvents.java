@@ -99,9 +99,9 @@ public class CombatPowerEvents {
                 }
             });
 
-            // Route B self_action_on_hit / action_on_hit — fires when the holder
-            // deals damage; passes the victim directly so the parsed
-            // bientity_action can resolve (actor=holder, target=victim).
+            // Route B self_action_on_hit / action_on_hit / target_action_on_hit —
+            // fires when the holder deals damage; passes the victim directly so
+            // the parsed bientity_action can resolve (actor=holder, target=victim).
             final LivingEntity dealTarget = outTarget;
             ActiveOriginService.forEachOfType(outAttacker,
                 com.cyberday1.neoorigins.compat.CompatPower.class, cfg -> {

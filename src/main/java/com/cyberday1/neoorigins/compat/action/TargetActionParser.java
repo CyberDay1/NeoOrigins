@@ -86,6 +86,31 @@ public final class TargetActionParser {
             case "neoorigins:damage"          -> parseDamage(json);
             case "neoorigins:spawn_particles" -> parseSpawnParticles(json);
 
+            // execute_command: runs as the target (@s = the mob), through the same
+            // rewrite, block-list and parse log as every other command site.
+            case "neoorigins:execute_command" -> {
+                String command = json.has("command") ? json.get("command").getAsString() : "";
+                if (command.isBlank()) yield (t, a) -> {};
+                yield (t, a) -> {
+                    if (!(t.level() instanceof ServerLevel sl)) return;
+                    try {
+                        var src = t.createCommandSourceStackForNameResolution(sl).withSuppressedOutput()
+                            .withPermission(net.minecraft.server.permissions.LevelBasedPermissionSet.GAMEMASTER);
+                        String finalCmd = BuiltinActions.rewriteIfBroken(src, command);
+                        if (com.cyberday1.neoorigins.command.CommandPowerGuard.isBlocked(finalCmd)) {
+                            com.cyberday1.neoorigins.command.CommandPowerGuard.warnBlocked(finalCmd, contextId);
+                            return;
+                        }
+                        com.cyberday1.neoorigins.command.CommandPowerGuard.checkParses(
+                            src, finalCmd, contextId, "target execute_command", true);
+                        sl.getServer().getCommands().performPrefixedCommand(src, finalCmd);
+                    } catch (Exception e) {
+                        NeoOrigins.LOGGER.warn("[CompatB] execute_command (target): failed '{}' on {}: {}",
+                            command, t.getName().getString(), e.getMessage());
+                    }
+                };
+            }
+
             // and — compose child target-actions. Generalizable ONLY when every
             // child is generalizable; if any child is player-only we return null
             // so the caller keeps the player-only EntityAction path for the whole
