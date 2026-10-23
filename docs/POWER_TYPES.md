@@ -849,7 +849,7 @@ The condition is evaluated on the server, which then tells the client which enti
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes becomes invisible to the holder. Omit it to hide every living entity. Because the subject is an arbitrary entity rather than the holder, only entity-general verbs apply: `entity_type`, `in_tag`, `target_group`, `living`, `on_fire`, `health`, `relative_health`, `status_effect` / `has_effect`, `nbt`, `constant`, and `and` / `or` / `not` over those. A condition using anything else is not refused — the power loads, warns, and hides nothing rather than hiding everything. Takes one condition object, or an array of them, which is read as all of them AND-combined. |
+| `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes becomes invisible to the holder. Omit it to hide every living entity. Because the subject is an arbitrary entity rather than the holder, only entity-general verbs apply: `entity_type`, `in_tag`, `target_group`, `living`, `on_fire`, `health`, `relative_health`, `status_effect` / `has_effect`, `nbt`, `in_block_anywhere`, `constant`, and `and` / `or` / `not` over those. A condition using anything else is not refused — the power loads, warns, and hides nothing rather than hiding everything. Takes one condition object, or an array of them, which is read as all of them AND-combined. |
 
 **Refresh rate and scope.** The hidden set is recomputed every 5 ticks, over the living entities within the server's view distance and no further than 256 blocks. An entity that starts or stops matching therefore appears or disappears up to a quarter of a second later. At most 1024 entities are hidden from one player at a time; past that, the remainder stay visible.
 
@@ -3654,11 +3654,11 @@ Rewrites a **mob origin's** AI so the mob hunts players (or another entity type)
 
 ## `neoorigins:exhaustion_filter`
 
-Meant to filter out specific vanilla exhaustion sources. It currently has no effect: the power loads, but nothing reads it. Imported `origins-classes:no_sprint_exhaustion` / `no_mining_exhaustion` translate onto this type, so they do nothing either. For sprint hunger use `prevent_action` with `sprint_food`, or `action_on_event` with `mod_exhaustion`.
+Cancels the hunger exhaustion vanilla charges for specific actions, leaving every other source alone. `sprint` is sprinting on the ground, `mining` is breaking a block, `jump` is any jump, and `swim` is swimming, walking underwater or wading. Imported `origins-classes:no_sprint_exhaustion` / `no_mining_exhaustion` translate onto this type. In 2.2.30 and earlier the power loaded but nothing read it, so it did nothing.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `sources` | list of string | no | `["sprint"]` | Exhaustion sources to cancel, e.g. `sprint`, `mining` |
+| `sources` | list of string | no | `["sprint"]` | Exhaustion sources to cancel: `sprint`, `mining`, `jump`, `swim` |
 
 **Example:**
 ```json
@@ -4085,7 +4085,53 @@ NeoOrigins' built-in `neoorigins:tick_action` ships no behaviour at all: it disp
 
 ## `neoorigins:cobweb_affinity`
 
-Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag; `EntityMakeStuckInBlockMixin` reads it to suppress the usual slowdown inside cobwebs, and `MovementPowerEvents.onBreakSpeed` reads it to multiply cobweb break speed by 10×.
+Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag: `EntityMakeStuckInBlockMixin` reads it to suppress the usual slowdown inside cobwebs, and `MovementPowerEvents.onBreakSpeed` reads it to multiply cobweb break speed by 10×. With `climb` on, any block in `#neoorigins:cobwebs` (cobweb and the temporary cobweb) that the player is inside also works as a ladder: jump to climb, sneak to hold, on the ground or off it. That is the climbing half of Origins' Arachnid Master of Webs.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `climb` | bool | no | `false` | When true, a cobweb the player is inside works as a ladder. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:cobweb_affinity",
+  "climb": true,
+  "name": "Spider Affinity",
+  "description": "Move through, break and climb cobwebs easily."
+}
+```
+
+---
+
+## `neoorigins:entity_glow`
+
+Living entities matching `entity_condition` are drawn with the glowing outline for the holder only, the way a Spectral Arrow outlines its target. Nobody else sees the outline and the entity gets no Glowing effect. Origins' Arachnid uses it to sense creatures caught in cobweb. The selection works exactly like [`prevent_entity_render`](#neooriginsprevent_entity_render): evaluated on the server every 5 ticks over the entities in view distance, and sent to the holder alone.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes glows for the holder. Omit it to outline every living entity. Takes the same entity-general verbs as `prevent_entity_render`. |
+
+**Example: sense anything stuck in a web that is not a spider**
+```json
+{
+  "type": "neoorigins:entity_glow",
+  "entity_condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:in_block_anywhere", "block_condition": { "type": "neoorigins:block", "tag": "neoorigins:cobwebs" } },
+      { "type": "neoorigins:in_tag", "tag": "minecraft:arthropod", "inverted": true }
+    ]
+  },
+  "name": "Web Sense",
+  "description": "Non-arthropods stuck in cobweb glow for you."
+}
+```
+
+---
+
+## `neoorigins:conduit_power_on_land`
+
+An active conduit gives the holder Conduit Power on dry land too. Vanilla only grants it to players in water or rain. The power does not grant the effect on its own: a conduit still has to be built and active within its usual range. Origins' Merling power of the same name.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4094,9 +4140,50 @@ Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag
 **Example:**
 ```json
 {
-  "type": "neoorigins:cobweb_affinity",
-  "name": "Spider Affinity",
-  "description": "Move and break cobwebs easily."
+  "type": "neoorigins:conduit_power_on_land",
+  "name": "Sea Blessed",
+  "description": "Conduits empower you on land as well as in water."
+}
+```
+
+---
+
+## `neoorigins:like_air`
+
+The player's walking-speed modifiers also apply to their speed while airborne. Vanilla airborne control is a flat 0.02 (0.026 while sprinting) that ignores the movement speed attribute, so speed effects and attribute bonuses do nothing mid-jump. With this power that value goes through every `movement_speed` modifier the player has, in vanilla's order, which includes the sprint modifier: a sprinting holder moves faster in the air than vanilla allows. Creative and ability flight are not changed. Origins' Avian power of the same name.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker power. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:like_air",
+  "name": "Like Air",
+  "description": "Modifiers to your walking speed also apply while you're airborne."
+}
+```
+
+---
+
+## `neoorigins:projectile_vulnerability`
+
+The holder takes extra damage from the listed projectiles, including ones that normally deal a player no damage at all, such as snowballs and eggs. The bonus is added to the projectile's own damage when it has some, and dealt on its own, credited to the projectile's thrower, when it has none. Origins' Blazeborn takes 3 from snowballs this way.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `projectiles` | list of string | yes | — | Projectile entity ids or `#tags`, e.g. `minecraft:snowball`. |
+| `amount` | float | no | `3.0` | Extra damage per hit. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:projectile_vulnerability",
+  "projectiles": ["minecraft:snowball"],
+  "amount": 3.0,
+  "name": "Melting Point",
+  "description": "Snowballs hurt you."
 }
 ```
 

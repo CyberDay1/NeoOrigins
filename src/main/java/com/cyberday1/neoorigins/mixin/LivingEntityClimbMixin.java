@@ -22,6 +22,12 @@ public abstract class LivingEntityClimbMixin {
     @Inject(method = "onClimbable", at = @At("HEAD"), cancellable = true)
     private void neoorigins$wallClimbCapability(CallbackInfoReturnable<Boolean> cir) {
         LivingEntity self = (LivingEntity) (Object) this;
+        // cobweb_affinity with climb: a web is a ladder, on the ground or off it.
+        if (PowerCapabilities.hasActive(self, com.cyberday1.neoorigins.power.builtin.CobwebAffinityPower.WEB_CLIMB)
+                && overlapsCobweb(self)) {
+            cir.setReturnValue(true);
+            return;
+        }
         if (self.onGround()) return;
         if (!PowerCapabilities.hasActive(self, "wall_climb")) return;
         // Accept both full and minor horizontal collision — when sneaking,
@@ -31,5 +37,20 @@ public abstract class LivingEntityClimbMixin {
         // falls instead of holding position.
         if (!self.horizontalCollision && !self.minorHorizontalCollision) return;
         cir.setReturnValue(true);
+    }
+
+    private static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> COBWEBS =
+        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK,
+            net.minecraft.resources.Identifier.fromNamespaceAndPath("neoorigins", "cobwebs"));
+
+    /** True when any block the entity's hitbox overlaps is in {@code #neoorigins:cobwebs}. */
+    private static boolean overlapsCobweb(LivingEntity self) {
+        var box = self.getBoundingBox().deflate(1.0E-3);
+        var min = net.minecraft.core.BlockPos.containing(box.minX, box.minY, box.minZ);
+        var max = net.minecraft.core.BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+        for (var pos : net.minecraft.core.BlockPos.betweenClosed(min, max)) {
+            if (self.level().getBlockState(pos).is(COBWEBS)) return true;
+        }
+        return false;
     }
 }

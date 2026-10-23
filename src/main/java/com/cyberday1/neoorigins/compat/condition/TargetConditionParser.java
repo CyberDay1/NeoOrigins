@@ -32,7 +32,8 @@ import net.minecraft.world.entity.LivingEntity;
  * <p>Generalizable verbs: {@code entity_type} (and its {@code target_type}/
  * {@code type_id} forms, with {@code #tag} support), {@code target_group},
  * {@code living}, {@code on_fire}, {@code health}, {@code relative_health},
- * {@code has_effect}/{@code status_effect}, {@code nbt}, {@code constant}, and the boolean
+ * {@code has_effect}/{@code status_effect}, {@code nbt}, {@code in_block_anywhere},
+ * {@code constant}, and the boolean
  * combinators {@code and}/{@code all_of}, {@code or}/{@code any_of}, {@code not}
  * (generalizable only when every child is). The Apoli {@code inverted:true} flag
  * is honoured.
@@ -66,6 +67,10 @@ public final class TargetConditionParser {
             case "neoorigins:has_effect",
                  "neoorigins:status_effect"     -> parseHasEffect(json);
             case "neoorigins:nbt"               -> parseNbt(json);
+            case "neoorigins:in_block_anywhere" -> {
+                var inBlock = ConditionParser.inBlockAnywhere(json, contextId);
+                yield (t, a) -> inBlock.test(t);
+            }
             case "neoorigins:and",
                  "neoorigins:all_of"            -> parseAndOr(json, contextId, true);
             case "neoorigins:or",
