@@ -24,7 +24,11 @@ class ResourceBarOrderTest {
         "zpack:mana", "apack:rage", "mpack:stamina", "neoorigins:qi_resource", "bpack:heat", "origins:charge");
 
     private static SyncResourcePayload.Entry entry(int value) {
-        return new SyncResourcePayload.Entry(value, 0, 100, "bar", 0xFFFFFFFF, -1, -1, "", "", 0, 0, false);
+        return new SyncResourcePayload.Entry(value, 0, 100, "bar", 0xFFFFFFFF, -1, -1, "", "", 0, 0, false, false);
+    }
+
+    private static SyncResourcePayload.Entry dynamicEntry(int value) {
+        return new SyncResourcePayload.Entry(value, 0, 100, "bar", 0xFFFFFFFF, -1, -1, "", "", 0, 0, false, true);
     }
 
     private static Map<String, SyncResourcePayload.Entry> payload(List<String> keys) {
@@ -64,5 +68,20 @@ class ResourceBarOrderTest {
 
         assertEquals(before, order());
         assertEquals(10, ClientResourceState.getResources().get("apack:rage").value());
+    }
+
+    @Test
+    void dynamicBarsStackAboveStaticOnes() {
+        Map<String, SyncResourcePayload.Entry> m = payload(KEYS);
+        m.put("apack:cooldown", dynamicEntry(5));
+        m.put("zpack:timer", dynamicEntry(5));
+
+        ClientResourceState.apply(m);
+
+        List<String> expected = new ArrayList<>(KEYS);
+        expected.sort(null);
+        expected.add("apack:cooldown");
+        expected.add("zpack:timer");
+        assertEquals(expected, order());
     }
 }

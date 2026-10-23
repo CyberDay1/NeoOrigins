@@ -1080,7 +1080,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             final int barMax = cooldown;
             CompatAttachments.registerResourceMeta(idStr,
                 new CompatAttachments.ResourceMeta(0, barMax, prettyLabel(id), 0xFF55AAFF,
-                    barHidden, barIndex, iconIndex, spriteLocation));
+                    barHidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, true));
             barGranted = player -> {
                 int rem = player.getData(OriginAttachments.originData()).remainingCooldown(idStr, player.tickCount);
                 player.getData(CompatAttachments.resourceState()).set(idStr, inverted ? rem : (barMax - rem));
@@ -1703,7 +1703,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         label = sb.toString();
 
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation));
+            new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, false));
         // Registered here, not on grant: a reload clears it and does not re-grant online players.
         CompatAttachments.registerResourceBacking(key, backing);
         if (renderCondition != null) {
@@ -1829,7 +1829,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String label = sb.toString();
 
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(0, cooldown, label, 0xFF55AAFF, hidden, barIndex, iconIndex, spriteLocation));
+            new CompatAttachments.ResourceMeta(0, cooldown, label, 0xFF55AAFF, hidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, true));
         CompatAttachments.registerCooldownDuration(key, cooldown);
         if (renderCondition != null) {
             CompatAttachments.registerResourceRenderCondition(key, renderCondition);
