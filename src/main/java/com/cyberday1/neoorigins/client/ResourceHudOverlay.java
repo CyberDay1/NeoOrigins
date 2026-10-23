@@ -104,6 +104,17 @@ public class ResourceHudOverlay {
                 y = defaultBaseY - offsets[i];
             }
 
+            // Per-bar scale set in the origin editor, anchored at the bar's
+            // top-left corner so the label and readout scale with the bar.
+            float scale = ResourceHudPositions.getBarScale(entry.getKey());
+            boolean scaled = scale != 1.0f;
+            if (scaled) {
+                g.pose().pushMatrix();
+                g.pose().translate(x, y);
+                g.pose().scale(scale, scale);
+                g.pose().translate(-x, -y);
+            }
+
             BarFxManager.BarFx fx = BarFxManager.get(res.animated());
             boolean framed = fx != null && fx.frame() != null;
             // Unframed animated bars use a slightly narrower box than native/Apoli
@@ -158,6 +169,10 @@ public class ResourceHudOverlay {
             String readout = res.value() + "/" + res.max();
             int readoutW = mc.font.width(readout);
             g.text(mc.font, readout, x + (barW - readoutW) / 2, y + bar.box().readoutY(), LABEL_COLOR, false);
+
+            if (scaled) {
+                g.pose().popMatrix();
+            }
         }
     }
 
