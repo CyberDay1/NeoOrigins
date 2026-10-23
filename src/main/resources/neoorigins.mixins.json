@@ -43,6 +43,10 @@
     "EntityForcedSwimmingMixin",
     "BlockStateBaseCobwebShapeMixin",
     "ServerPlayerGameModeMiningAccessor",
+    "PlayerFlyingSpeedMixin",
+    "ExhaustionMiningMixin",
+    "ExhaustionJumpMixin",
+    "ExhaustionMovementMixin",
     "recipe.CraftingMenuOriginContextMixin",
     "recipe.RecipeManagerReplaceMixin",
     "recipe.ResultSlotOriginContextMixin"
@@ -62,7 +66,8 @@
     "client.EntityRendererCullingMixin",
     "client.LivingEntityRendererShadowMixin",
     "client.EntityRenderDispatcherHideMixin",
-    "client.LivingEntitySwingAccessor"
+    "client.LivingEntitySwingAccessor",
+    "client.MinecraftEntityGlowMixin"
   ],
   "injectors": {
     "defaultRequire": 1

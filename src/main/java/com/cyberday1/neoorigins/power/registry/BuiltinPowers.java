@@ -299,7 +299,11 @@ public final class BuiltinPowers {
         // behavior-neutral. The marker set is exactly SchemaFormCheck
         // .auditPowerFormCoverage's "marker-only" list; each Config is
         // `record Config(String type)` (type is internal plumbing, not a field).
-        define("cobweb_affinity",          CobwebAffinityPower.class,         List.of());
+        define("cobweb_affinity", CobwebAffinityPower.class, List.of(
+            new FieldSpec("climb", Kind.BOOLEAN, false)
+                .def(false).doc("If true, any cobweb the player is inside works as a ladder: jump to climb, sneak to hold (default false).")));
+        define("conduit_power_on_land",    ConduitPowerOnLandPower.class,     List.of());
+        define("like_air",                 LikeAirPower.class,                List.of());
         define("simple",                   SimplePower.class,                 List.of());
         // Marker power: grants FTB Ultimine vein-mining to active holders via the
         // ftbultimine soft-compat bridge. The restriction API exposes no setter for
@@ -473,7 +477,13 @@ public final class BuiltinPowers {
         define("exhaustion_filter", ExhaustionFilterPower.class, List.of(
             new FieldSpec("sources", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
-                .doc("Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).")));
+                .doc("Exhaustion sources to cancel: sprint, mining, jump, swim (default [sprint]).")));
+        define("projectile_vulnerability", ProjectileVulnerabilityPower.class, List.of(
+            new FieldSpec("projectiles", Kind.ARRAY, true)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Projectile entity ids or #entity-type tags that hurt the holder more, e.g. minecraft:snowball."),
+            new FieldSpec("amount", Kind.NUMBER, false)
+                .def(3.0).doc("Extra damage taken per hit, added even when the projectile normally deals none (default 3.0).")));
         define("extra_inventory", ExtraInventoryPower.class, List.of(
             new FieldSpec("size", Kind.INTEGER, false)
                 .def(9).doc("Slot count, rounded to a multiple of 9 (min 9, max 54; default 9)."),
@@ -1915,9 +1925,12 @@ public final class BuiltinPowers {
         // The condition is written in the ordinary Apoli condition vocabulary, so
         // it refs condition.schema.json; what narrows it is the evaluation target
         // (an arbitrary entity, not the holder), which the doc string spells out.
+        define("entity_glow", EntityGlowPower.class, List.of(
+            new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition, plus in_block_anywhere.")));
         define("prevent_entity_render", PreventEntityRenderPower.class, List.of(
             new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.")));
+                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, in_block_anywhere, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.")));
 
         // ── neoorigins:resource — registered via nested-object (children) support ─
         // Its Codec reads a NESTED `hud_render` JSON object — { label, color,

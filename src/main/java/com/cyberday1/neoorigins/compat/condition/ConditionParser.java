@@ -1262,14 +1262,24 @@ public final class ConditionParser {
      * hitbox edge must still count as "in" it.
      */
     static EntityCondition parseInBlockAnywhere(JsonObject json, String contextId) {
+        java.util.function.Predicate<net.minecraft.world.entity.Entity> test = inBlockAnywhere(json, contextId);
+        return test::test;
+    }
+
+    /**
+     * {@code in_block_anywhere} over any entity, not just the player: the shared
+     * body of the player condition and the entity-general one in
+     * {@link TargetConditionParser}.
+     */
+    static java.util.function.Predicate<net.minecraft.world.entity.Entity> inBlockAnywhere(JsonObject json, String contextId) {
         JsonObject blockCond = json.has("block_condition") && json.get("block_condition").isJsonObject()
             ? json.getAsJsonObject("block_condition") : null;
-        if (blockCond == null) return EntityCondition.alwaysTrue();
+        if (blockCond == null) return e -> true;
         BlockPosCondition pred = compileInBlockPredicate(blockCond, contextId);
         // Fail closed, not "count zero". Substituting a zero count would still
         // satisfy an at-most comparison (`<= 2` on an unknown type reads true),
         // which is the same fail-open trap in a different shape.
-        if (pred == null) return EntityCondition.alwaysFalse();
+        if (pred == null) return e -> false;
 
         String comp = json.has("comparison") ? json.get("comparison").getAsString() : ">=";
         int target = json.has("compare_to") ? json.get("compare_to").getAsInt() : 1;

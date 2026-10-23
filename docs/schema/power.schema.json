@@ -364,6 +364,7 @@
         "neoorigins:command_pack",
         "neoorigins:condition_passive",
         "neoorigins:conditional",
+        "neoorigins:conduit_power_on_land",
         "neoorigins:craft_amount_bonus",
         "neoorigins:creative_flight",
         "neoorigins:crop_growth_accelerator",
@@ -380,6 +381,7 @@
         "neoorigins:elytra_flight",
         "neoorigins:ender_gaze_immunity",
         "neoorigins:enhanced_vision",
+        "neoorigins:entity_glow",
         "neoorigins:entity_group",
         "neoorigins:entity_model",
         "neoorigins:entity_set",
@@ -405,6 +407,7 @@
         "neoorigins:lava_vision",
         "neoorigins:less_item_use_slowdown",
         "neoorigins:light_level_effect",
+        "neoorigins:like_air",
         "neoorigins:longer_potions",
         "neoorigins:loot_pool_grant",
         "neoorigins:low_hp_threshold",
@@ -439,6 +442,7 @@
         "neoorigins:prevent_entity_render",
         "neoorigins:prevent_item_damage",
         "neoorigins:projectile_immunity",
+        "neoorigins:projectile_vulnerability",
         "neoorigins:quality_equipment",
         "neoorigins:rare_wandering_loot",
         "neoorigins:regen_in_fluid",
@@ -3052,6 +3056,11 @@
       "properties": {
         "type": {
           "const": "neoorigins:cobweb_affinity"
+        },
+        "climb": {
+          "description": "If true, any cobweb the player is inside works as a ladder: jump to climb, sneak to hold (default false).",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -3203,6 +3212,17 @@
       "required": [
         "type",
         "inner_power"
+      ]
+    },
+    {
+      "$comment": "neoorigins:conduit_power_on_land",
+      "properties": {
+        "type": {
+          "const": "neoorigins:conduit_power_on_land"
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -3729,6 +3749,31 @@
       ]
     },
     {
+      "$comment": "neoorigins:entity_glow",
+      "properties": {
+        "type": {
+          "const": "neoorigins:entity_glow"
+        },
+        "entity_condition": {
+          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition, plus in_block_anywhere.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:entity_group",
       "properties": {
         "type": {
@@ -3900,7 +3945,7 @@
           "const": "neoorigins:exhaustion_filter"
         },
         "sources": {
-          "description": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).",
+          "description": "Exhaustion sources to cancel: sprint, mining, jump, swim (default [sprint]).",
           "type": "array",
           "items": {
             "type": "string",
@@ -4593,6 +4638,17 @@
       "required": [
         "type",
         "effect"
+      ]
+    },
+    {
+      "$comment": "neoorigins:like_air",
+      "properties": {
+        "type": {
+          "const": "neoorigins:like_air"
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -5718,7 +5774,7 @@
           "const": "neoorigins:prevent_entity_render"
         },
         "entity_condition": {
-          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.",
+          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, in_block_anywhere, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.",
           "oneOf": [
             {
               "$ref": "condition.schema.json"
@@ -5789,6 +5845,31 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:projectile_vulnerability",
+      "properties": {
+        "type": {
+          "const": "neoorigins:projectile_vulnerability"
+        },
+        "projectiles": {
+          "description": "Projectile entity ids or #entity-type tags that hurt the holder more, e.g. minecraft:snowball.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
+        "amount": {
+          "description": "Extra damage taken per hit, added even when the projectile normally deals none (default 3.0).",
+          "type": "number",
+          "default": 3.0
+        }
+      },
+      "required": [
+        "type",
+        "projectiles"
       ]
     },
     {
@@ -7672,6 +7753,7 @@
               "neoorigins:command_pack",
               "neoorigins:condition_passive",
               "neoorigins:conditional",
+              "neoorigins:conduit_power_on_land",
               "neoorigins:craft_amount_bonus",
               "neoorigins:creative_flight",
               "neoorigins:crop_growth_accelerator",
@@ -7688,6 +7770,7 @@
               "neoorigins:elytra_flight",
               "neoorigins:ender_gaze_immunity",
               "neoorigins:enhanced_vision",
+              "neoorigins:entity_glow",
               "neoorigins:entity_group",
               "neoorigins:entity_model",
               "neoorigins:entity_set",
@@ -7713,6 +7796,7 @@
               "neoorigins:lava_vision",
               "neoorigins:less_item_use_slowdown",
               "neoorigins:light_level_effect",
+              "neoorigins:like_air",
               "neoorigins:longer_potions",
               "neoorigins:loot_pool_grant",
               "neoorigins:low_hp_threshold",
@@ -7746,6 +7830,7 @@
               "neoorigins:prevent_entity_render",
               "neoorigins:prevent_item_damage",
               "neoorigins:projectile_immunity",
+              "neoorigins:projectile_vulnerability",
               "neoorigins:quality_equipment",
               "neoorigins:rare_wandering_loot",
               "neoorigins:regen_in_fluid",

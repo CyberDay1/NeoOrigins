@@ -16,11 +16,19 @@ import java.util.Set;
  *   <li>{@code MovementPowerEvents.onBreakSpeed} — multiplies cobweb break
  *       speed so the player can mine webs in a tick or two</li>
  * </ul>
+ *
+ * <p>With {@code climb} on it also emits {@code web_climb}, which
+ * {@code LivingEntityClimbMixin} reads to treat any {@code #neoorigins:cobwebs}
+ * block the player overlaps as a ladder: jump to climb, sneak to hold. That is
+ * the climbing half of Origins' Arachnid {@code master_of_webs}.
  */
 public class CobwebAffinityPower extends PowerType<CobwebAffinityPower.Config> {
 
-    public record Config(String type) implements PowerConfiguration {
+    public static final String WEB_CLIMB = "web_climb";
+
+    public record Config(boolean climb, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+            Codec.BOOL.optionalFieldOf("climb", false).forGetter(Config::climb),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -30,6 +38,6 @@ public class CobwebAffinityPower extends PowerType<CobwebAffinityPower.Config> {
 
     @Override
     public Set<String> capabilities(Config config) {
-        return Set.of("cobweb_affinity");
+        return config.climb() ? Set.of("cobweb_affinity", WEB_CLIMB) : Set.of("cobweb_affinity");
     }
 }
