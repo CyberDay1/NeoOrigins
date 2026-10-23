@@ -3773,7 +3773,7 @@
           ]
         },
         "bientity_condition": {
-          "description": "Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, constant, target_condition/actor_condition, and and/or/not over those.",
+          "description": "Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, distance, constant, target_condition/actor_condition, and and/or/not over those.",
           "oneOf": [
             {
               "$ref": "condition.schema.json"

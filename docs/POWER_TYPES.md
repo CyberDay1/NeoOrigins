@@ -4133,7 +4133,7 @@ Living entities matching `entity_condition` are drawn with the glowing outline f
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes glows for the holder. Omit it to outline every living entity. Takes the same entity-general verbs as `prevent_entity_render`. |
-| `bientity_condition` | [condition](schema/condition.schema.json) | no | — | Pair condition with the holder as actor and the candidate as target; it must pass too. Pair verbs: `can_see`, `constant`, `target_condition` / `actor_condition`, and `and` / `or` / `not` over those. One using anything else loads, warns and outlines nothing. |
+| `bientity_condition` | [condition](schema/condition.schema.json) | no | — | Pair condition with the holder as actor and the candidate as target; it must pass too. Pair verbs: `can_see`, `distance` (holder to candidate, Apoli's feet-to-feet measure), `constant`, `target_condition` / `actor_condition`, and `and` / `or` / `not` over those. One using anything else loads, warns and outlines nothing. |
 | `use_teams` | bool | no | `true` | An entity on a coloured team is outlined in its team colour. |
 | `red` | float | no | `1.0` | Outline colour, 0.0 to 1.0, used when the team colour does not apply. |
 | `green` | float | no | `1.0` | As `red`. |

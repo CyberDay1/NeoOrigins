@@ -83,7 +83,8 @@ public class EntityGlowPower extends PowerType<EntityGlowPower.Config> {
                 return SELECTION.parse(JsonOps.INSTANCE, obj).map(selection -> {
                     Optional<BiPredicate<ServerPlayer, Entity>> bi = Optional.empty();
                     if (obj.has("bientity_condition") && obj.get("bientity_condition").isJsonObject()) {
-                        var parsed = TargetConditionParser.parseBiEntity(
+                        // Per-tick actor: one holder is tested against every candidate in a scan.
+                        var parsed = TargetConditionParser.parseBiEntityPerTickActor(
                             obj.getAsJsonObject("bientity_condition"), selection.type());
                         if (parsed == null) {
                             NeoOrigins.LOGGER.warn("[NeoOrigins] entity_glow ({}): bientity_condition uses a verb "
