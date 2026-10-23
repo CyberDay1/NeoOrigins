@@ -30,7 +30,7 @@ public final class RealCommands {
             SharedConstants.tryDetectVersion();
             Bootstrap.bootStrap();
             commands = new Commands(Commands.CommandSelection.DEDICATED,
-                Commands.createValidationContext(VanillaRegistries.createLookup()));
+                Commands.createValidationContext(VanillaRegistries.createWorldLookup()));
         }
         return commands;
     }
@@ -43,13 +43,13 @@ public final class RealCommands {
         ServerLevel overworld = Mockito.mock(ServerLevel.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(server.createCommandSourceStack()).thenAnswer(inv -> new CommandSourceStack(
             CommandSource.NULL, Vec3.ZERO, Vec2.ZERO, overworld, LevelBasedPermissionSet.OWNER,
-            "Server", Component.literal("Server"), server, null));
+            Component.literal("Server"), server));
         return server;
     }
 
     /** A permission-2 source on a server that parses with the real dispatcher. */
     public static CommandSourceStack source() {
         return new CommandSourceStack(CommandSource.NULL, Vec3.ZERO, Vec2.ZERO, null, LevelBasedPermissionSet.GAMEMASTER,
-            "rig", Component.literal("rig"), server(commands()), null);
+            Component.literal("rig"), server(commands()));
     }
 }

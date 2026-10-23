@@ -63,7 +63,8 @@ class BiomeGatedPowerTest {
         ResourceKey<Biome> key = ResourceKey.create(Registries.BIOME, id(biome));
         Set<TagKey<Biome>> members = new java.util.HashSet<>();
         for (String t : tags) members.add(TagKey.create(Registries.BIOME, id(t)));
-        Holder<Biome> holder = mock(Holder.class, inv -> {
+        // Holder is sealed on 26.3; Reference is its one non-sealed, mockable branch.
+        Holder<Biome> holder = mock(Holder.Reference.class, inv -> {
             if (inv.getMethod().getName().equals("is") && inv.getArguments().length == 1) {
                 Object a = inv.getArgument(0);
                 if (a instanceof TagKey<?> t) return members.contains(t);
