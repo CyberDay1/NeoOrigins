@@ -1,16 +1,20 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.power.registry.BuiltinPowers;
+import com.cyberday1.neoorigins.power.util.PowerFlight;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.common.NeoForgeMod;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -53,10 +57,22 @@ class SwordArtConditionGateTest {
 
     /** A player whose only interesting property is whether it is sneaking. */
     private static ServerPlayer player(Abilities abilities, boolean sneaking) {
+        return player(abilities, sneaking, flightAttr());
+    }
+
+    /** As above, with a real creative_flight attribute and NeoForge's mayFly() rule. */
+    private static ServerPlayer player(Abilities abilities, boolean sneaking, AttributeInstance flightAttr) {
         ServerPlayer p = mock(ServerPlayer.class);
         when(p.getAbilities()).thenReturn(abilities);
         when(p.isShiftKeyDown()).thenReturn(sneaking);
+        when(p.getUUID()).thenReturn(UUID.randomUUID());
+        when(p.getAttribute(NeoForgeMod.CREATIVE_FLIGHT)).thenReturn(flightAttr);
+        when(p.mayFly()).thenAnswer(inv -> abilities.mayfly || flightAttr.getValue() > 0);
         return p;
+    }
+
+    private static AttributeInstance flightAttr() {
+        return new AttributeInstance(NeoForgeMod.CREATIVE_FLIGHT, i -> { });
     }
 
     private static final String SNEAK_GATED = """
@@ -144,10 +160,49 @@ class SwordArtConditionGateTest {
 
     @Test
     void flightIsGrantedWhileTheConditionHolds() {
+        // Granted through the attribute, not mayfly: mods that clear mayfly every
+        // tick (Create Buzzy Beez) must not be able to cancel it.
         Abilities abilities = new Abilities();
         ServerPlayer p = player(abilities, true);
         FLIGHT.tickEffect(p, flight(SNEAK_GATED));
-        assertTrue(abilities.mayfly);
+        assertTrue(p.mayFly());
+        assertFalse(abilities.mayfly);
+    }
+
+    @Test
+    void flightSurvivesAnotherModClearingMayfly() {
+        Abilities abilities = new Abilities();
+        ServerPlayer p = player(abilities, true);
+        FLIGHT.tickEffect(p, flight(SNEAK_GATED));
+        // What cbbees does each tick, gated on mayfly being true.
+        if (abilities.mayfly) { abilities.mayfly = false; abilities.flying = false; }
+        FLIGHT.tickEffect(p, flight(SNEAK_GATED));
+        assertTrue(p.mayFly());
+    }
+
+    @Test
+    void tickDoesNotForceFlyingSoThePlayerCanLand() {
+        Abilities abilities = new Abilities();
+        ServerPlayer p = player(abilities, true);
+        for (int tick = 0; tick < 3; tick++) FLIGHT.tickEffect(p, flight(SNEAK_GATED));
+        assertFalse(abilities.flying);
+    }
+
+    @Test
+    void togglingOnBeforeTheConditionHoldsTakesOffOnceWhenItDoes() {
+        Abilities abilities = new Abilities();
+        ServerPlayer p = player(abilities, false);
+        var cfg = flight(SNEAK_GATED);
+        FLIGHT.onToggledOn(p, cfg);
+        assertFalse(abilities.flying);
+
+        when(p.isShiftKeyDown()).thenReturn(true);
+        FLIGHT.tickEffect(p, cfg);
+        assertTrue(abilities.flying, "first tick with the condition met should lift off");
+
+        abilities.flying = false; // player lands
+        FLIGHT.tickEffect(p, cfg);
+        assertFalse(abilities.flying, "takeoff must happen once, not every tick");
     }
 
     @Test
@@ -155,7 +210,7 @@ class SwordArtConditionGateTest {
         Abilities abilities = new Abilities();
         ServerPlayer p = player(abilities, false);
         FLIGHT.tickEffect(p, flight(SNEAK_GATED));
-        assertFalse(abilities.mayfly);
+        assertFalse(p.mayFly());
     }
 
     @Test
@@ -163,14 +218,33 @@ class SwordArtConditionGateTest {
         // The whole point: a condition checked only at takeoff would let the player
         // sheathe the sword in the sky and keep flying.
         Abilities abilities = new Abilities();
-        abilities.mayfly = true;
         abilities.flying = true;
-        ServerPlayer p = player(abilities, false);
+        AttributeInstance attr = flightAttr();
+        PowerFlight.grant(attr, null);
+        ServerPlayer p = player(abilities, false, attr);
+        p.fallDistance = 12.0F;
 
         FLIGHT.tickEffect(p, flight(SNEAK_GATED));
 
-        assertFalse(abilities.mayfly);
+        assertFalse(p.mayFly());
         assertFalse(abilities.flying);
+        assertEquals(0.0F, p.fallDistance);
+    }
+
+    @Test
+    void strippingPowerFlightLeavesCreativeFlightAlone() {
+        Abilities abilities = new Abilities();
+        abilities.mayfly = true; // creative
+        abilities.flying = true;
+        AttributeInstance attr = flightAttr();
+        PowerFlight.grant(attr, null);
+        ServerPlayer p = player(abilities, false, attr);
+
+        FLIGHT.tickEffect(p, flight(SNEAK_GATED));
+
+        assertEquals(0.0, attr.getValue());
+        assertTrue(abilities.mayfly);
+        assertTrue(abilities.flying);
     }
 
     @Test
@@ -198,7 +272,7 @@ class SwordArtConditionGateTest {
 
         FLIGHT.onToggledOn(p, flight(SNEAK_GATED));
 
-        assertFalse(abilities.mayfly);
+        assertFalse(p.mayFly());
         assertFalse(abilities.flying);
     }
 
@@ -207,8 +281,9 @@ class SwordArtConditionGateTest {
         // The power_overrides kill-switch is checked first and must not be
         // reachable-around by authoring a condition that happens to pass.
         Abilities abilities = new Abilities();
-        abilities.mayfly = true;
-        ServerPlayer p = player(abilities, true);
+        AttributeInstance attr = flightAttr();
+        PowerFlight.grant(attr, null);
+        ServerPlayer p = player(abilities, true, attr);
 
         FLIGHT.tickEffect(p, flight("""
             {
@@ -218,7 +293,7 @@ class SwordArtConditionGateTest {
             }
             """));
 
-        assertFalse(abilities.mayfly);
+        assertFalse(p.mayFly());
     }
 
     // ── active_dash: the gate ───────────────────────────────────────────

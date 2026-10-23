@@ -1,10 +1,12 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.cyberday1.neoorigins.power.builtin.base.HudIconConfig;
+import com.cyberday1.neoorigins.power.util.PowerFlight;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -15,17 +17,17 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
- * Grants free, creative-style flight (mayfly + flying) as a toggle, without the
+ * Grants free, creative-style flight as a toggle, without the
  * extra phantom/spectator behaviour — the player keeps solid block collision,
  * normal visibility and gravity when not flying. Double-tap jump to take off,
  * jump/sneak to climb and descend, exactly like creative mode.
  *
  * <p>Unlike {@code neoorigins:flight} and {@code neoorigins:natural_glide}
  * (both elytra/fall-flying mechanics), this is true hover-flight — intended for
- * "ride the sword" / levitating-cultivator fantasies. The abilities are pushed
- * to the client each tick via {@code onUpdateAbilities()} to survive sync
- * races; {@link #removeEffect} restores survival defaults but never clears the
- * flags for a creative/spectator player (that would lock them out of their mode).
+ * "ride the sword" / levitating-cultivator fantasies. Flight comes from the
+ * {@code creative_flight} attribute ({@link PowerFlight}), not {@code mayfly},
+ * so mods that reset {@code mayfly} every tick can't cancel it, and removing it
+ * never strips a creative/spectator player's own flight.
  *
  * <p>An optional {@code condition} gates the flight and is re-tested every tick,
  * so a requirement like "sword in the main hand" holds the player in the air only
@@ -91,6 +93,13 @@ public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
+    /** Players whose toggle-on found the condition false; they take off once when it first holds. */
+    private static final java.util.Set<String> PENDING_TAKEOFF = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private static String pendingKey(ServerPlayer player) {
+        return player.getUUID() + "|" + PowerHolder.currentDispatchId();
+    }
+
     @Override
     protected void tickEffect(ServerPlayer player, Config config) {
         if (!config.enabled()) {
@@ -106,24 +115,31 @@ public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower
             removeEffect(player, config);
             return;
         }
-        var abilities = player.getAbilities();
-        boolean changed = false;
-        if (!abilities.mayfly) { abilities.mayfly = true; changed = true; }
-        if (changed) player.onUpdateAbilities();
+        PowerFlight.grant(player, PowerHolder.currentDispatchId());
+        // Toggled on before the condition held (e.g. sword not yet in hand):
+        // take off once now, then leave flying to the player.
+        if (PENDING_TAKEOFF.remove(pendingKey(player))) takeOff(player);
     }
 
     @Override
     protected void onToggledOn(ServerPlayer player, Config config) {
-        // Keybind flipped the power on: actually take off, don't just arm mayfly.
+        // Keybind flipped the power on: actually take off, don't just arm flight.
         // Without this the player would still have to double-tap jump to lift —
         // which reads as "the toggle did nothing".
+        PENDING_TAKEOFF.remove(pendingKey(player));
         if (!config.enabled()) return;
         // Toggling on while the condition is false leaves the power armed but
-        // grounded; the tick grants the flight the moment the condition is met.
-        if (!config.condition().test(player)) return;
-        var abilities = player.getAbilities();
-        abilities.mayfly = true;
-        abilities.flying = true;
+        // grounded; the first tick the condition holds grants flight and lifts off.
+        if (!config.condition().test(player)) {
+            PENDING_TAKEOFF.add(pendingKey(player));
+            return;
+        }
+        PowerFlight.grant(player, PowerHolder.currentDispatchId());
+        takeOff(player);
+    }
+
+    private static void takeOff(ServerPlayer player) {
+        player.getAbilities().flying = true;
         player.onUpdateAbilities();
         // The client cancels `flying` while on the ground (LocalPlayer.aiStep),
         // so nudge the player up a hair and force-sync the velocity — that puts
@@ -136,17 +152,23 @@ public class CreativeFlightPower extends AbstractTogglePower<CreativeFlightPower
     }
 
     @Override
+    public void onRevoked(ServerPlayer player, Config config) {
+        PENDING_TAKEOFF.remove(pendingKey(player));
+        super.onRevoked(player, config);
+    }
+
+    @Override
+    public void onLogin(ServerPlayer player, Config config) {
+        PENDING_TAKEOFF.remove(pendingKey(player));
+        super.onLogin(player, config);
+    }
+
+    @Override
     protected void removeEffect(ServerPlayer player, Config config) {
-        if (player.isCreative() || player.isSpectator()) return;
-        var abilities = player.getAbilities();
-        // No-op when there is nothing to strip. Load bearing now that the tick
-        // path calls this on every tick the condition is false: without it we
-        // would resend the abilities packet every tick, and — far worse — zero
-        // fallDistance every tick, quietly making the player fall-damage-proof.
-        if (!abilities.mayfly && !abilities.flying) return;
-        abilities.mayfly = false;
-        abilities.flying = false;
-        player.onUpdateAbilities();
-        player.fallDistance = 0.0F;
+        // No-op unless our modifier is present. Load bearing: the tick path calls
+        // this every tick the condition is false, and resyncing / zeroing
+        // fallDistance each tick would make the player fall-damage-proof.
+        // Never touches mayfly, so creative/spectator flight is left alone.
+        PowerFlight.revoke(player, PowerHolder.currentDispatchId());
     }
 }
