@@ -3,7 +3,6 @@ package com.cyberday1.neoorigins.client;
 import com.cyberday1.neoorigins.network.payload.SyncResourcePayload;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +17,8 @@ public class ClientResourceState {
 
     public record ResourceEntry(int value, int min, int max, String label, int color,
                                 int barIndex, int iconIndex, String spriteLocation,
-                                String animated, int tint, int tintEnd, boolean alwaysShow) {
+                                String animated, int tint, int tintEnd, boolean alwaysShow,
+                                boolean dynamic) {
         public float fraction() {
             int range = max - min;
             if (range <= 0) return 1.0f;
@@ -30,14 +30,19 @@ public class ClientResourceState {
     private static final Map<String, ResourceEntry> resources = new LinkedHashMap<>();
 
     /**
-     * The stacking order: resource keys (the power ids) in ascending string
-     * order, so slot 0, nearest the hotbar, holds the lowest id. The payload
-     * map carries no order of its own.
+     * The stacking order: static bars, then {@code dynamic} ones on top, each
+     * group by ascending key (the power id); slot 0, nearest the hotbar, is the
+     * lowest static id. Flags come from the payload, not the cleared store.
      */
     // hub: neoorigins/resource-bar-first-spend.md
-    static List<String> stackingOrder(Collection<String> keys) {
-        List<String> ordered = new ArrayList<>(keys);
-        Collections.sort(ordered);
+    static List<String> stackingOrder(Map<String, SyncResourcePayload.Entry> incoming) {
+        List<String> ordered = new ArrayList<>(incoming.keySet());
+        ordered.sort((a, b) -> {
+            boolean da = incoming.get(a).dynamic();
+            boolean db = incoming.get(b).dynamic();
+            if (da != db) return da ? 1 : -1;
+            return a.compareTo(b);
+        });
         return ordered;
     }
 
@@ -46,10 +51,10 @@ public class ClientResourceState {
         // A full sync may bring new sprite_locations (or follow a resource-pack
         // reload) — re-check texture presence next render.
         ResourceHudOverlay.clearSheetCache();
-        for (String key : stackingOrder(incoming.keySet())) {
+        for (String key : stackingOrder(incoming)) {
             var v = incoming.get(key);
             ResourceEntry entry = new ResourceEntry(v.value(), v.min(), v.max(), v.label(), v.color(),
-                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.tintEnd(), v.alwaysShow());
+                v.barIndex(), v.iconIndex(), v.spriteLocation(), v.animated(), v.tint(), v.tintEnd(), v.alwaysShow(), v.dynamic());
             resources.put(key, entry);
             ResourceBarVisibility.observe(key, entry.fraction());
         }
@@ -80,7 +85,7 @@ public class ClientResourceState {
             Integer dynMax = maxes.get(e.getKey());
             int max = dynMax != null ? dynMax : old.max();
             ResourceEntry entry = new ResourceEntry(e.getValue(), old.min(), max, old.label(),
-                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint(), old.tintEnd(), old.alwaysShow());
+                old.color(), old.barIndex(), old.iconIndex(), old.spriteLocation(), old.animated(), old.tint(), old.tintEnd(), old.alwaysShow(), old.dynamic());
             resources.put(e.getKey(), entry);
             ResourceBarVisibility.observe(e.getKey(), entry.fraction());
         }
