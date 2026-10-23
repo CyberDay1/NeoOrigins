@@ -2534,5 +2534,6 @@
   "power.neoorigins.sylvan_vitality.description": "Life force drawn from nature.",
   "power.neoorigins.sporeling_vitality.name": "Vitality",
   "power.neoorigins.sporeling_vitality.description": "Life force drawn from nature.",
-  "container.neoorigins.extra_inventory": "Extra Inventory"
+  "container.neoorigins.extra_inventory": "Extra Inventory",
+  "neoorigins.configuration.classic_mode": "Classic mode"
 }

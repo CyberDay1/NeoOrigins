@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.command;
 
 import com.cyberday1.neoorigins.config.AdminConfig;
+import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.attachment.EntityAttachments;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
@@ -400,21 +401,31 @@ public class OriginCommand {
                 ctx.getSource().sendFailure(Component.literal("Unknown layer: " + layerId));
                 return 0;
             }
-            StringBuilder sb = new StringBuilder("Origins in layer " + layerId + ":\n");
+            StringBuilder sb = new StringBuilder("Origins in layer " + layerId + listHeaderSuffix() + ":\n");
             for (var condOrigin : layer.origins()) {
                 var origin = OriginDataManager.INSTANCE.getOrigin(condOrigin.origin());
                 String name = origin != null ? origin.name().getString() : condOrigin.origin().toString();
-                sb.append("  ").append(condOrigin.origin()).append(" - ").append(name).append("\n");
+                sb.append("  ").append(condOrigin.origin()).append(" - ").append(name);
+                if (origin == null) sb.append(" [not loaded]");
+                else if (ContentTogglesConfig.isOriginDisabled(condOrigin.origin())) sb.append(" [disabled]");
+                sb.append("\n");
             }
             ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), false);
         } else {
-            StringBuilder sb = new StringBuilder("All registered origins:\n");
+            StringBuilder sb = new StringBuilder("All registered origins" + listHeaderSuffix() + ":\n");
             new TreeMap<>(OriginDataManager.INSTANCE.getOrigins()).forEach((id, origin) -> {
-                sb.append("  ").append(id).append(" - ").append(origin.name().getString()).append("\n");
+                sb.append("  ").append(id).append(" - ").append(origin.name().getString());
+                if (ContentTogglesConfig.isOriginDisabled(id)) sb.append(" [disabled]");
+                sb.append("\n");
             });
             ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), false);
         }
         return 1;
+    }
+
+    /** Marks list output taken in classic mode, so a pasted list says which content it shows. */
+    private static String listHeaderSuffix() {
+        return ContentTogglesConfig.isClassicMode() ? " (classic mode)" : "";
     }
 
     private static int executeHas(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {

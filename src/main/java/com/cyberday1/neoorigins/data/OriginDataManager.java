@@ -32,8 +32,21 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
     private static final FileToIdConverter FILE_CONVERTER = FileToIdConverter.json("origins/origins");
     // Origins mod format: data/<ns>/origins/<name>.json
     private static final FileToIdConverter COMPAT_CONVERTER = FileToIdConverter.json("origins");
+    // Classic-mode variants: data/<ns>/origins/classic_origins/<name>.json, each a full
+    // origin body that replaces <ns>:<name> while content.toml's classic_mode is on.
+    private static final FileToIdConverter CLASSIC_CONVERTER = FileToIdConverter.json("origins/classic_origins");
+    /** Prefix that keeps classic variant files apart from the main origin map until apply(). */
+    public static final String CLASSIC_KEY_PREFIX = "classic_origins/";
 
+    /** The effective registry: {@link #baseOrigins} with the classic variants applied when classic mode is on. */
     private Map<Identifier, Origin> origins = new HashMap<>();
+    /** Origins as loaded, before classic mode. Server-side only; a remote client never fills it. */
+    private Map<Identifier, Origin> baseOrigins = Map.of();
+    /** Classic-mode replacements, keyed by the origin id they replace. */
+    private Map<Identifier, Origin> classicVariants = Map.of();
+    /** True once apply() has run in this JVM, so {@link #rebuildEffective} has a base to work from. */
+    private boolean hasServerData = false;
+    private boolean classicApplied = false;
     /** Raw post-normalize JSON for each loaded origin id, kept so the in-game
      *  creator's "Load template" path can clone an existing origin's body
      *  verbatim (display fields, impact, order, power list) without having to
@@ -50,6 +63,15 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
         scanConverter(FILE_CONVERTER, resourceManager, map);
         // Also scan Origins-format path (data/<ns>/origins/), skipping IDs already loaded natively
         scanConverter(COMPAT_CONVERTER, resourceManager, map);
+        for (var entry : CLASSIC_CONVERTER.listMatchingResources(resourceManager).entrySet()) {
+            Identifier id = CLASSIC_CONVERTER.fileToId(entry.getKey());
+            Identifier key = Identifier.fromNamespaceAndPath(id.getNamespace(), CLASSIC_KEY_PREFIX + id.getPath());
+            try (Reader reader = entry.getValue().openAsReader()) {
+                map.put(key, JsonParser.parseReader(reader));
+            } catch (Exception e) {
+                NeoOrigins.LOGGER.error("Error reading classic origin file {}", entry.getKey(), e);
+            }
+        }
         return map;
     }
 
@@ -129,9 +151,16 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
     @Override
     protected void apply(Map<Identifier, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
         Map<Identifier, Origin> loaded = new HashMap<>();
+        Map<Identifier, Origin> classic = new HashMap<>();
         Map<Identifier, JsonObject> rawSnapshot = new HashMap<>();
         for (Map.Entry<Identifier, JsonElement> entry : pObject.entrySet()) {
-            Identifier id = entry.getKey();
+            Identifier fileKey = entry.getKey();
+            // A classic variant parses under the id it replaces and lands in its own map.
+            boolean isClassic = fileKey.getPath().startsWith(CLASSIC_KEY_PREFIX);
+            Identifier id = isClassic
+                ? Identifier.fromNamespaceAndPath(fileKey.getNamespace(),
+                    fileKey.getPath().substring(CLASSIC_KEY_PREFIX.length()))
+                : fileKey;
             try {
                 if (!entry.getValue().isJsonObject()) continue;
                 JsonObject json = entry.getValue().getAsJsonObject();
@@ -169,6 +198,10 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
                 Origin.CODEC.parse(JsonOps.INSTANCE, json)
                     .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse origin {}: {}", id, err))
                     .ifPresent(origin -> {
+                        if (isClassic) {
+                            classic.put(id, origin);
+                            return;
+                        }
                         loaded.put(id, origin);
                         // Stash a deep copy so the template path can hand back
                         // the exact body that was just successfully parsed,
@@ -211,14 +244,20 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
             }
         }
 
-        this.origins = Collections.unmodifiableMap(loaded);
+        this.baseOrigins = Collections.unmodifiableMap(loaded);
+        this.classicVariants = Collections.unmodifiableMap(classic);
+        this.hasServerData = true;
+        boolean classicMode = com.cyberday1.neoorigins.config.ContentTogglesConfig.isClassicMode();
+        this.origins = applyClassicVariants(baseOrigins, classicVariants, classicMode);
+        this.classicApplied = classicMode;
         // Prune rawSnapshot to only the ids that survived the compat-filter loop
         // above so template lookups don't expose origins that were intentionally
         // hidden from players.
         rawSnapshot.keySet().retainAll(loaded.keySet());
         this.rawOriginJson = Collections.unmodifiableMap(rawSnapshot);
         this.version++;
-        NeoOrigins.LOGGER.info("Loaded {} origins", loaded.size());
+        NeoOrigins.LOGGER.info("Loaded {} origins ({} classic variants{})", loaded.size(), classic.size(),
+            classicMode ? ", classic mode on" : "");
 
         if (AdminConfig.DEBUG_POWER_LOADING.get()) {
             Map<String, List<String>> byNamespace = new HashMap<>();
@@ -233,6 +272,47 @@ public class OriginDataManager extends SimplePreparableReloadListener<Map<Identi
         NeoForge.EVENT_BUS.post(new OriginsLoadedEvent());
         CompatTranslationLog.close();
     }
+
+    /**
+     * The effective registry for a classic-mode setting: {@code base} with each
+     * variant swapped in for the origin it replaces. A variant whose base origin
+     * is absent is ignored, so a classic file can never add an origin the
+     * datapacks removed. Returns {@code base} itself when nothing changes.
+     */
+    static Map<Identifier, Origin> applyClassicVariants(Map<Identifier, Origin> base,
+                                                               Map<Identifier, Origin> variants,
+                                                               boolean classicMode) {
+        if (!classicMode || variants.isEmpty()) return base;
+        Map<Identifier, Origin> out = new HashMap<>(base);
+        variants.forEach((id, variant) -> {
+            if (out.containsKey(id)) out.put(id, variant);
+        });
+        return Collections.unmodifiableMap(out);
+    }
+
+    /**
+     * Re-derives the effective registry from the loaded data for the current
+     * {@code classic_mode} value. Returns true when the registry changed, in
+     * which case online players' powers must be reconciled by the caller. A no-op
+     * on a remote client, which has no loaded data, only the server's synced copy.
+     */
+    public boolean rebuildEffective() {
+        if (!hasServerData) return false;
+        boolean classicMode = com.cyberday1.neoorigins.config.ContentTogglesConfig.isClassicMode();
+        if (classicMode == classicApplied) return false;
+        this.origins = applyClassicVariants(baseOrigins, classicVariants, classicMode);
+        this.classicApplied = classicMode;
+        this.version++;
+        NeoOrigins.LOGGER.info("Classic mode {}: {} classic origin definitions {}", classicMode ? "on" : "off",
+            classicVariants.size(), classicMode ? "applied" : "reverted");
+        return true;
+    }
+
+    /** True when the effective registry currently carries the classic variants. */
+    public boolean isClassicApplied() { return classicApplied; }
+
+    /** Classic variants loaded from data, keyed by the origin id each replaces. */
+    public Map<Identifier, Origin> getClassicVariants() { return classicVariants; }
 
     /** Replace the origin registry with data received from the server (client-side only). */
     public void setClientData(Map<Identifier, Origin> clientOrigins) {
