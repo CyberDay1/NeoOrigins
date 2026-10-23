@@ -9,6 +9,8 @@ import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.service.ActionContextHolder;
+import com.cyberday1.neoorigins.service.EventPowerIndex;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -3115,11 +3117,35 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseTargetActionOnHit(Identifier id, JsonObject json) {
         String idStr = id.toString();
-        // [LOSSY] target_action_on_hit fires on kill, not on every hit (no hit event for target entity)
-        EntityAction action = parseActionField(json, "entity_action", idStr);
-        return CompatPower.Config.builder()
-            .onKill(action::execute)
-            .build();
+        // Fires on every hit via onDealDamage (actor=holder, target=victim).
+        // The entity_action runs on the TARGET entity, matching Apoli semantics.
+        // When the target is a player the full EntityAction set runs; for mobs
+        // TargetActionParser provides the generalizable verb subset (effects,
+        // damage, fire, knockback, …) — player-only verbs silently no-op.
+        EntityAction playerAction = parseActionField(json, "entity_action", idStr);
+        com.cyberday1.neoorigins.compat.action.TargetAction mobAction =
+            com.cyberday1.neoorigins.compat.action.TargetActionParser.parse(
+                json.has("entity_action") && json.get("entity_action").isJsonObject()
+                    ? json.getAsJsonObject("entity_action") : null, idStr);
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+        var builder = CompatPower.Config.builder().cooldownTicks(cooldown);
+        builder.onDealDamage((player, target) -> {
+            if (!condition.test(player)) return;
+            if (cooldown > 0) {
+                PlayerOriginData data = player.getData(OriginAttachments.originData());
+                if (data.isOnCooldown(player, idStr)) return;
+                data.setCooldown(idStr, player.tickCount, cooldown);
+            }
+            if (target instanceof ServerPlayer sp) {
+                Object prev = ActionContextHolder.set(new EventPowerIndex.EntityInteractContext(player));
+                try { playerAction.execute(sp); }
+                finally { ActionContextHolder.restore(prev); }
+            } else if (mobAction != null) {
+                mobAction.execute(target, player);
+            }
+        });
+        return builder.build();
     }
 
     private CompatPower.Config parseSelfActionOnKill(Identifier id, JsonObject json) {
