@@ -1,0 +1,10 @@
+{
+  "type": "neoorigins:projectile_vulnerability",
+  "hidden": true,
+  "projectiles": [
+    "minecraft:snowball"
+  ],
+  "amount": 3.0,
+  "name": "power.neoorigins.classic_blazeling_snowball_damage.name",
+  "description": "power.neoorigins.classic_blazeling_snowball_damage.description"
+}

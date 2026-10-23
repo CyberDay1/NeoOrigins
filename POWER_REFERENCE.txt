@@ -4886,7 +4886,7 @@
 
   neoorigins:cobweb_affinity
     Passive | Shipped powers: 2 | CobwebAffinityPower
-    Fields: none
+    Fields: climb
 
   neoorigins:command_pack
     Active | Shipped powers: 1 | CommandPackPower
@@ -4903,6 +4903,10 @@
   neoorigins:conditional
     Passive | Shipped powers: 0 | ConditionalPower
     Fields: condition, inner_power
+
+  neoorigins:conduit_power_on_land
+    Passive | Shipped powers: 1 | ConduitPowerOnLandPower
+    Fields: none
 
   neoorigins:craft_amount_bonus
     Passive | Shipped powers: 1 | CraftAmountBonusPower
@@ -4960,6 +4964,12 @@
     Passive | Shipped powers: 5 | EnhancedVisionPower
     Fields: exposure
 
+  neoorigins:entity_glow
+    Passive | Shipped powers: 1 | EntityGlowPower
+    Fields: entity_condition
+    (hand-written parser: the keys it read from an empty object and from 1
+    shipped power; a branch those never reach may read more)
+
   neoorigins:entity_group
     Passive | Shipped powers: 7 | EntityGroupPower
     Fields: group
@@ -4974,7 +4984,7 @@
     Fields: none
 
   neoorigins:exhaustion_filter
-    Passive | Shipped powers: 0 | ExhaustionFilterPower
+    Passive | Shipped powers: 1 | ExhaustionFilterPower
     Fields: sources
 
   neoorigins:extra_inventory
@@ -5044,6 +5054,10 @@
     Passive | Shipped powers: 2 | LightLevelEffectPower
     Fields: ambient, amplifier, effect, max_light_level, show_icon,
     show_particles
+
+  neoorigins:like_air
+    Passive | Shipped powers: 1 | LikeAirPower
+    Fields: none
 
   neoorigins:loot_pool_grant
     Active | Shipped powers: 0 | LootPoolGrantPower
@@ -5183,6 +5197,10 @@
   neoorigins:projectile_immunity
     Passive | Shipped powers: 3 | ProjectileImmunityPower
     Fields: chance, projectile_types, teleport, teleport_range
+
+  neoorigins:projectile_vulnerability
+    Passive | Shipped powers: 1 | ProjectileVulnerabilityPower
+    Fields: amount, projectiles
 
   neoorigins:quality_equipment
     Passive | Shipped powers: 1 | QualityEquipmentPower
@@ -5400,14 +5418,14 @@
     in neoorigins:origin: 58
     needing another mod:   3
     by impact:             {HIGH=34, LOW=4, MEDIUM=22, NONE=20}
-  Power files shipped:     946
-    load with no other mod: 898
+  Power files shipped:     951
+    load with no other mod: 903
     needing another mod:   48
     do not load:           0
     referenced, not shipped: 0
-  Power types registered:  120
-    codec parsers:         98
-    hand-written parsers:  22
+  Power types registered:  124
+    codec parsers:         101
+    hand-written parsers:  23
   Older type ids aliased:  39
 
 ================================================================================

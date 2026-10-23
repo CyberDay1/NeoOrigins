@@ -5,7 +5,8 @@
   "impact": "none",
   "order": 3,
   "powers": [
-    "neoorigins:classic_miner_mining_expert"
+    "neoorigins:classic_miner_mining_expert",
+    "neoorigins:classic_miner_experienced_excavator"
   ],
   "upgrades": []
 }

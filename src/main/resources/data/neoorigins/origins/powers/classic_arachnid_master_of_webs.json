@@ -1,5 +1,6 @@
 {
   "type": "neoorigins:cobweb_affinity",
+  "climb": true,
   "name": "power.neoorigins.classic_arachnid_master_of_webs.name",
   "description": "power.neoorigins.classic_arachnid_master_of_webs.description"
 }
