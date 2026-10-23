@@ -533,6 +533,81 @@ public final class ActiveOriginService {
     }
 
     /**
+     * The origin definitions behind each of the player's layers right now, for
+     * {@link #reconcileDefinitionChange} to diff against after the registry is
+     * swapped. Layers whose origin is not loaded map to nothing.
+     */
+    public static Map<Identifier, Origin> snapshotDefinitions(ServerPlayer player) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        Map<Identifier, Origin> out = new java.util.HashMap<>();
+        data.getOrigins().forEach((layer, id) -> {
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(id);
+            if (origin != null) out.put(layer, origin);
+        });
+        return out;
+    }
+
+    /**
+     * Brings a player's granted powers in line with a registry swap that changed
+     * what their origins grant without changing which origins they hold (classic
+     * mode switching on or off mid-session). For each layer whose definition
+     * changed, powers only the old definition had are revoked and powers only the
+     * new one has are granted. Powers both share are left alone, so their state
+     * (cooldowns, toggles, resource values) survives. Origin selections, the
+     * evolution tier and dynamic grants are untouched.
+     *
+     * @param before the result of {@link #snapshotDefinitions} taken before the swap
+     */
+    public static void reconcileDefinitionChange(ServerPlayer player, Map<Identifier, Origin> before) {
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        int tier = data.getEvolutionTier();
+        float maxHealthBefore = player.getMaxHealth();
+        java.util.LinkedHashSet<Identifier> revoke = new java.util.LinkedHashSet<>();
+        java.util.LinkedHashSet<Identifier> grant = new java.util.LinkedHashSet<>();
+        for (var entry : data.getOrigins().entrySet()) {
+            Origin old = before.get(entry.getKey());
+            Origin now = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (old == now) continue;
+            boolean isClassLayer = CLASS_LAYER.equals(entry.getKey());
+            List<Identifier> oldIds = old == null ? List.of()
+                : isClassLayer ? old.powers() : old.powersForTier(tier);
+            List<Identifier> newIds = now == null ? List.of()
+                : isClassLayer ? now.powers() : now.powersForTier(tier);
+            for (Identifier id : oldIds) if (!newIds.contains(id)) revoke.add(id);
+            for (Identifier id : newIds) if (!oldIds.contains(id)) grant.add(id);
+        }
+        if (revoke.isEmpty() && grant.isEmpty()) return;
+        // A power another layer still grants must not be revoked out from under it.
+        java.util.Set<Identifier> active = collectActivePowerIds(player, null, null);
+        revoke.removeAll(active);
+        for (Identifier powerId : revoke) {
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder == null) continue;
+            holder.onRevoked(player);
+            NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, powerId));
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LOST, powerId);
+        }
+        com.cyberday1.neoorigins.power.builtin.AttributeModifierPower.purgeOriginModifiersExcept(player, active);
+        invalidate(player.getUUID());
+        for (Identifier powerId : grant) {
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder == null) continue;
+            holder.onGranted(player);
+            NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, powerId));
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.GAINED, powerId);
+        }
+        // Same health reconcile as applyOriginPowers: fill gained hearts, clamp lost ones.
+        float maxHealthAfter = player.getMaxHealth();
+        if (maxHealthAfter > maxHealthBefore) {
+            player.setHealth(Math.min(player.getHealth() + (maxHealthAfter - maxHealthBefore), maxHealthAfter));
+        } else if (player.getHealth() > maxHealthAfter) {
+            player.setHealth(maxHealthAfter);
+        }
+    }
+
+    /**
      * Replaces a player's entire layer&rarr;origin selection in one clean
      * transition, tearing down the old powers before granting the new ones.
      * Intended for profile / loadout integrations (e.g. Switchy) that restore a

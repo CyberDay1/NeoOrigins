@@ -35,13 +35,14 @@ the boot-time datapack reload.
 
 ## Global toggles
 
-These three live at the top of the file, outside any section.
+These four live at the top of the file, outside any section.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `disable_resource_bars` | bool | `false` | Hide all resource bars (mana, stamina, rage, etc.) from the HUD globally. Any active power that would normally cost a resource instead falls back to costing **hunger**. `resource_cost_amount` food points are deducted. Useful for packs that prefer vanilla hunger as the universal ability cost. |
 | `disable_night_vision` | bool | `false` | Suppress the `minecraft:night_vision` effect globally. Any power that would apply it (the `neoorigins:night_vision` / `persistent_effect` path) no longer brightens the screen. **Only** night vision is stripped. Other effects on the same power still apply. For packs that want darkness to stay threatening. |
 | `disable_enhanced_vision` | bool | `false` | Withhold the `neoorigins:enhanced_vision` capability globally. The client-side low-light brightness boost (cat eyes, salamander, oculus drone, etc.) never turns on because the capability is never sent to clients. **Independent** of `disable_night_vision`. These are two separate mechanisms and can be toggled separately. |
+| `classic_mode` | bool | `false` | Offer only the original Origins mod's origins and the original Origins: Classes classes, with their original power sets. See [Classic mode](#classic-mode) below. |
 
 The two vision toggles are intentionally separate: `disable_night_vision` targets
 the vanilla potion-effect brightening, while `disable_enhanced_vision` targets
@@ -90,6 +91,26 @@ The same mechanism for the built-in classes (`class_warrior`, `class_archer`,
 [classes]
     class_warrior = true
     class_nitwit = false
+```
+
+## Classic mode
+
+`classic_mode = true` turns NeoOrigins into the original Origins experience:
+
+- **Origins:** only Human, Merling, Avian, Blazeborn (`blazeling`), Elytrian, Enderian, Arachnid, Shulk, Phantom and Feline are offered. Every other built-in origin is hidden, the Dragon Survival dragons included.
+- **Classes:** only the fourteen Origins: Classes classes are offered: Archer, Beastmaster, Blacksmith, Cleric, Cook, Explorer, Farmer, Lumberjack, Merchant, Miner, Nitwit, Rancher, Rogue and Warrior. Farmer and Rancher ship for classic mode: they stay registered either way, but outside the mode they are hidden from the picker, the way a class switched off by its own toggle is.
+- **Powers:** each of those origins and classes swaps its NeoOrigins power list for one modelled on the original mod. The classic definitions live in `data/neoorigins/origins/classic_origins/<id>.json`, one full origin body per id, and replace `neoorigins:<id>` while the mode is on. They have no evolution tiers. A datapack can override a classic definition by shipping the same path.
+
+| Behaviour | Detail |
+|---|---|
+| Toggles | Classic mode hides every non-classic built-in whatever its `[origins]`/`[classes]` toggle says. A classic origin or class whose own toggle is `false` stays hidden. |
+| Datapack origins | Not affected. Origins and classes from datapacks or `originpacks/` stay offered in classic mode. |
+| Existing players | A player who already holds an origin or class that classic mode hides keeps it, with its powers, until they change it (an orb, `/neoorigins set`, a reset). This is the same as disabling it with its toggle. A player holding a classic origin gets its classic powers. |
+| Switching mid-session | Editing the file while the server runs applies at once: online players' classic origins swap power sets (powers shared by both versions keep their state), and every client's picker is resent. Restarting is not needed. |
+| `/neoorigins list` | Marks hidden entries `[disabled]` and says `(classic mode)` in the header while it is on. |
+
+```toml
+classic_mode = true
 ```
 
 Source of truth: `config/ContentTogglesConfig.java`.

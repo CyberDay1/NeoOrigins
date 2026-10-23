@@ -93,6 +93,9 @@ public class NeoOrigins {
         // Per-world serverconfig override migration — must hook the config
         // Loading event because the world path isn't known at constructor time.
         modEventBus.addListener(com.cyberday1.neoorigins.config.ConfigMigrator::onModConfigLoading);
+        // classic_mode swaps origin definitions once the content spec is readable.
+        modEventBus.addListener(com.cyberday1.neoorigins.service.ClassicModeService::onConfigLoading);
+        modEventBus.addListener(com.cyberday1.neoorigins.service.ClassicModeService::onConfigReloading);
 
         // Client TOML config (config/neoorigins/client.toml) — UI theme
         // override + HUD display options. Registered on physical-client side
