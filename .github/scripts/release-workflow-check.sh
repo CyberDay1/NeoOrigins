@@ -52,11 +52,12 @@ line_in_job() {
 
 echo "release-workflow-check: $wf"
 
-# ── the three build jobs, and the branch each is expected to check out ───────
+# ── the four build jobs, and the branch each is expected to check out ────────
 #    job                 ref        is it the tag-bearing line?
 rows='build-master:master:false
 build-1-21-1:1.21.1:true
-build-26-2:26.2:false'
+build-26-2:26.2:false
+build-26-3:26.3:false'
 
 while IFS=: read -r job ref tagline; do
     [ -n "$job" ] || continue

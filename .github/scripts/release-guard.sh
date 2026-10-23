@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
 # Release guard. release.yml checks out branch TIPS, not the tagged commit, so a
-# tag cut while one tip is stale publishes three jars that disagree with each
+# tag cut while one tip is stale publishes four jars that disagree with each
 # other and with the tag's own changelog. Published changelogs are frozen, so
 # that is not recoverable after the fact — refuse the build instead.
 #
-# Two assertions, because the three lines are parallel histories:
+# Two assertions, because the four lines are parallel histories:
 #   A  version agreement  - gradle.properties mod_version must equal the tag.
 #                           Runs in every job. This is the one that catches a
-#                           stale tip on master/26.2, which can never contain
+#                           stale tip on master/26.2/26.3, which can never contain
 #                           the tag because the tag is cut on the 1.21.1 line.
 #   B  tag containment    - HEAD must contain the tag's commit. Runs only in the
 #                           job whose line owns the tag (GUARD_TAG_LINE=true).
@@ -75,7 +75,7 @@ if [ "$mod_version" != "$version" ]; then
   say "    $props on $branch : mod_version=$mod_version"
   say ""
   say "  release.yml checks out branch tips, not the tagged commit, so this job"
-  say "  would build a $mod_version jar and publish it as $version. The three jars"
+  say "  would build a $mod_version jar and publish it as $version. The four jars"
   say "  would disagree, and published changelogs cannot be edited afterwards."
   say ""
   say "  Fix: bump mod_version on '$branch' and push the tip BEFORE tagging."

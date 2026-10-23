@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Harness for release-guard.sh. Builds a throwaway repo with the same topology
-# the real one has — three parallel release lines sharing only an ancient base,
+# the real one has — four parallel release lines sharing only an ancient base,
 # the tag cut on the 1.21.1 line only — and drives the guard across a case
 # table, asserting the exit code AND the reason it gave.
 #
@@ -43,6 +43,10 @@ g tag -a v2.2.99 -m "NeoOrigins 2.2.99" >/dev/null 2>&1
 # ── master: parallel line, reconciled to the same version ───────────────────
 g checkout -q -b master base
 props 2.2.99; commit "master: this release"
+
+# ── 26.3: parallel line, reconciled like master ─────────────────────────────
+g checkout -q -b 26.3 base
+props 2.2.99; commit "26.3: this release"
 
 # ── 26.2: parallel line, tip NEVER bumped — the landmine ────────────────────
 g checkout -q -b 26.2 base
@@ -97,6 +101,7 @@ run tag-line-tip-contains-tag      1.21.1    0 "[B] tag containment OK" \
     GUARD_BRANCH=1.21.1 GUARD_TAG_LINE=true  GUARD_EVENT=push GUARD_REF=refs/tags/v2.2.99
 run parallel-line-version-agrees   master    0 "[B] skipped" \
     GUARD_BRANCH=master GUARD_TAG_LINE=false GUARD_EVENT=push GUARD_REF=refs/tags/v2.2.99
+run second-parallel-line-agrees    26.3      0 "[B] skipped"     GUARD_BRANCH=26.3 GUARD_TAG_LINE=false GUARD_EVENT=push GUARD_REF=refs/tags/v2.2.99
 run tip-ahead-of-tag-allowed       aheadline 0 "[B] tag containment OK" \
     GUARD_BRANCH=1.21.1 GUARD_TAG_LINE=true  GUARD_EVENT=push GUARD_REF=refs/tags/v2.2.99
 run dispatch-version-suffix-strip  1.21.1    0 "[B] tag containment OK" \
