@@ -71,6 +71,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         int tint,
         int tintEnd,
         boolean alwaysShow,
+        boolean dynamic,
         String type,
         String backing
     ) implements PowerConfiguration {
@@ -113,6 +114,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 int tintEnd = 0;
                 boolean hidden = obj.has("hidden") && obj.get("hidden").getAsBoolean();
                 boolean alwaysShow = false;
+                boolean dynamic = false;
                 if (obj.has("hud_render") && obj.get("hud_render").isJsonObject()) {
                     JsonObject hud = obj.getAsJsonObject("hud_render");
                     if (hud.has("label")) label = hud.get("label").getAsString();
@@ -135,11 +137,12 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                     // HUD hides a full bar (Apoli convention); a regenerating meter that
                     // sits at max is then invisible, so authors can force it visible.
                     if (hud.has("always_render")) alwaysShow = hud.get("always_render").getAsBoolean();
+                    if (hud.has("dynamic")) dynamic = hud.get("dynamic").getAsBoolean();
                 }
 
                 return DataResult.success(Pair.of(new Config(
                     powerId, min, max, startValue, regenRate, regenInterval,
-                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, tintEnd, alwaysShow, t, backing
+                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, tintEnd, alwaysShow, dynamic, t, backing
                 ), ops.empty()));
             }
 
@@ -229,7 +232,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         CompatAttachments.registerResourceBacking(key, config.backing());
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
-                config.hidden(), config.animated(), config.tint(), config.tintEnd(), config.alwaysShow()));
+                config.hidden(), config.animated(), config.tint(), config.tintEnd(), config.alwaysShow(), config.dynamic()));
     }
 
     /**
