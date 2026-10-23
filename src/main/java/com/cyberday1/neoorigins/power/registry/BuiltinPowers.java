@@ -1929,7 +1929,7 @@ public final class BuiltinPowers {
             new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json").boundTo("selection")
                 .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition."),
             new FieldSpec("bientity_condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, constant, target_condition/actor_condition, and and/or/not over those."),
+                .doc("Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, distance, constant, target_condition/actor_condition, and and/or/not over those."),
             new FieldSpec("use_teams", Kind.BOOLEAN, false)
                 .def(true).doc("If true, an entity on a coloured team is outlined in its team colour (default true)."),
             new FieldSpec("red", Kind.NUMBER, false).def(1.0).doc("Outline red channel, 0.0 to 1.0, used when the team colour does not apply (default 1.0)."),
