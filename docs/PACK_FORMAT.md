@@ -53,16 +53,16 @@ packs: the shorter paths exist for compatibility, not as an alternative style.
 
 ## pack.mcmeta
 
-Minecraft 26.2 uses data-pack format `107.1` (major `107`, minor `1`)
-and resource-pack format `88` (the `pack_version` in the 26.2 game jar's
-`version.json`).
+Minecraft 26.3 uses data-pack format `121` (major `121`, minor `0`)
+and resource-pack format `97.1` (major `97`, minor `1`), the `pack_version`
+in the 26.3 game jar's `version.json`.
 
 ```json
 {
   "pack": {
     "description": "My NeoOrigins pack",
-    "min_format": 107,
-    "max_format": 107
+    "min_format": 121,
+    "max_format": 121
   }
 }
 ```
@@ -71,14 +71,14 @@ and resource-pack format `88` (the `pack_version` in the 26.2 game jar's
   must declare both `min_format` and `max_format`. Each is a whole number or a
   `[major, minor]` pair. A whole-number `min_format` means `<major>.0` and a
   whole-number `max_format` means every minor version of that major, so
-  `107` to `107` covers `107.1`.
+  `121` to `121` covers every `121.x`.
 - `pack_format` is optional here; if present it must lie between the two majors.
   `supported_formats` is rejected once `min_format` is above `81` (data) or `64`
   (resource).
 - A pack that carries both `data/` and `assets/` and is also installed as a resource
-  pack can declare `"min_format": 88, "max_format": 107` so it is compatible in
+  pack can declare `"min_format": 97, "max_format": 121` so it is compatible in
   both roles.
-- A `pack.mcmeta` the game rejects (for example `"pack_format": 107` with no
+- A `pack.mcmeta` the game rejects (for example `"pack_format": 121` with no
   `min_format` / `max_format`) is logged as "Error reading pack metadata" and the pack
   is listed with unknown compatibility. A 1.21.1 pack that still declares
   `"pack_format": 48` parses, but is flagged as made for an older version.

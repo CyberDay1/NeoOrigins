@@ -3,9 +3,9 @@
     "_comment": [
       "Combined resource + data pack manifest for a NeoOrigins UI theme.",
       "",
-      "Pack formats for 26.2:",
-      "  - 88  resource pack",
-      "  - 107  data pack",
+      "Pack formats for 26.3:",
+      "  - 97  resource pack",
+      "  - 121  data pack",
       "",
       "min_format/max_format cover both, so one zip serves as a resource",
       "pack and a data pack without a version-mismatch warning. Drop this",

@@ -84,8 +84,8 @@ tail after `run` is excluded, so the selectors ahead of it are still repaired.
 | **Ars Nouveau** | `ars_nouveau` | A player whose `neoorigins:entity_group` power uses a group with `invert_instant_effects` (the undead behaviour) is healed rather than harmed by a spell containing Ars Nouveau's Harm effect, mirroring vanilla undead behaviour. Reflection-based. |
 | **FTB Teams** | `ftbteams` | Players on the same or an allied FTB team are treated as trusted for mount consent. A teammate or ally can ride your mountable origin without sending a consent request. Reflection-based. |
 | **Open Parties & Claims** | `openpartiesandclaims` | Same as FTB Teams, but using OPAC party membership. Reflection-based. |
-| **FTB Quests** | `ftbquests` | **No working support on this build.** There is no FTB Quests for 26.2, so the build does not compile against it: no reward type exists, and the only hook left is a reflection listener for the older `ObjectCompletedEvent`, which FTB Quests' 26.x line no longer has, so `neoorigins_loot_pool_grant:<table_id>` quest tags grant nothing. See [FTB Quests](#ftb-quests). |
-| **FTB Ultimine** | `ftbultimine` | Powers the `neoorigins:ultimine` power: NeoOrigins registers a restriction handler so vein-mining is gated to players holding an active `ultimine` power. The integration is completely dormant unless a loaded pack defines a `neoorigins:ultimine` power. While no pack uses it, FTB Ultimine behaves exactly as vanilla. Once at least one `ultimine` power is loaded, vein-mining is restricted to players who hold one. Block count, tool requirement, and shape follow FTB Ultimine's own server config. The restriction API exposes no override for them. Compile-only soft dependency. **Not available on the Minecraft 26.2 build:** FTB publishes no FTB Ultimine for 26.2, so this build contains no FTB Ultimine code. The `neoorigins:ultimine` power still loads but stays an inert marker, and vein-mining is left ungated. |
+| **FTB Quests** | `ftbquests` | **No working support on this build.** There is no FTB Quests for 26.3, so the build does not compile against it: no reward type exists, and the only hook left is a reflection listener for the older `ObjectCompletedEvent`, which FTB Quests' 26.x line no longer has, so `neoorigins_loot_pool_grant:<table_id>` quest tags grant nothing. See [FTB Quests](#ftb-quests). |
+| **FTB Ultimine** | `ftbultimine` | Powers the `neoorigins:ultimine` power: NeoOrigins registers a restriction handler so vein-mining is gated to players holding an active `ultimine` power. The integration is completely dormant unless a loaded pack defines a `neoorigins:ultimine` power. While no pack uses it, FTB Ultimine behaves exactly as vanilla. Once at least one `ultimine` power is loaded, vein-mining is restricted to players who hold one. Block count, tool requirement, and shape follow FTB Ultimine's own server config. The restriction API exposes no override for them. Compile-only soft dependency. **Not available on the Minecraft 26.3 build:** FTB publishes no FTB Ultimine for 26.3, so this build contains no FTB Ultimine code. The `neoorigins:ultimine` power still loads but stays an inert marker, and vein-mining is left ungated. |
 | **Dragon Survival** | `dragonsurvival` | The `neoorigins:become_dragon` power drives Dragon Survival's own dragon state, so an origin can make its holder a DS dragon of a configured species and stage; DS supplies the actual traits, growth, abilities, altar economy and hunters. Ships with three built-in origins (Cave / Forest / Sea Dragon) gated behind `"required_mods": ["dragonsurvival"]`, so they only load and appear in the picker when DS is installed. Reflection-based, no hard dependency. See the [Dragon Survival](#dragon-survival) section and the caveat below. |
 | **Pehkui** | `pehkui` | No live integration: origin body-scale powers set the vanilla `minecraft:scale` attribute and never write Pehkui's scale. What exists is a stand-in for Pehkui's `/scale` command, registered **only when Pehkui is absent**, so Origins packs whose functions call `scale ...` still parse and run their other lines. The stand-in accepts any arguments; `set`, `add` or `reset` with `pehkui:base`, `pehkui:width`, `pehkui:height`, `pehkui:model_width` or `pehkui:model_height` and a numeric value set the executing player's vanilla scale to that value (`add` behaves like `set`); every other form, including a `reset` with no value and types such as `pehkui:flight`, does nothing and still reports success. See the caveat below. |
 | **Epic Fight** | `epicfight` | Origin scaling is applied to Epic Fight's custom entity renderer via a client-side mixin (it scales Epic Fight's pose by the entity's scale), so scaled origins render correctly with Epic Fight installed. The mixin is optional and skipped when Epic Fight is absent. |
@@ -314,10 +314,10 @@ no change on the server or in DS's own config.
 
 What a quest author can use differs by Minecraft version:
 
-| Feature | 1.21.1 | 26.1 | 26.2 |
-|---|---|---|---|
-| "NeoOrigins: Grant Loot Pool" reward type (`neoorigins:loot_pool`) | Yes | No | No |
-| `neoorigins_loot_pool_grant:<table_id>` quest tag | Yes | Yes | No |
+| Feature | 1.21.1 | 26.1 | 26.2 | 26.3 |
+|---|---|---|---|---|
+| "NeoOrigins: Grant Loot Pool" reward type (`neoorigins:loot_pool`) | Yes | No | No | No |
+| `neoorigins_loot_pool_grant:<table_id>` quest tag | Yes | Yes | No | No |
 
 - **1.21.1** registers the reward type at common setup and listens for quest
   completion through FTB Quests' `ObjectCompletedEvent`. Both are wired only
@@ -326,8 +326,8 @@ What a quest author can use differs by Minecraft version:
   FTB Quests 26.1, so no reward type is registered and the quest editor offers
   no NeoOrigins reward. Completion is read from FTB Quests 26.1's
   `FTBQuestsEvent.QuestProgress` (completed quests only).
-- **26.2** has no working FTB Quests support. The build does not compile
-  against FTB Quests, since none exists for 26.2, and keeps only a
+- **26.2** and **26.3** have no working FTB Quests support. Neither build
+  compiles against FTB Quests, since none exists for either, and each keeps only a
   reflection hook for the older `ObjectCompletedEvent`, which FTB Quests' 26.x
   line no longer has. If FTB Quests is installed the hook finds nothing,
   logs that tag-marker rewards are inert, and no reward type exists.
@@ -343,15 +343,15 @@ Not every integration is compiled into every build. "Yes" means the build
 contains the integration's code; the other mod still has to exist for that
 Minecraft version.
 
-| Integration | 1.21.1 | 26.1 | 26.2 |
-|---|---|---|---|
-| Accessories | Yes | No | No |
-| EMI | Yes | No | No |
-| Sable | Yes | No | No |
-| FTB Quests | Reward type and tag marker | Tag marker only | No (see above) |
-| FTB Ultimine | Yes | Yes | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated |
-| KubeJS | Yes | Yes | No: see [KUBEJS.md](KUBEJS.md#availability) |
-| Everything else on this page | Yes | Yes | Yes |
+| Integration | 1.21.1 | 26.1 | 26.2 | 26.3 |
+|---|---|---|---|---|
+| Accessories | Yes | No | No | No |
+| EMI | Yes | No | No | No |
+| Sable | Yes | No | No | No |
+| FTB Quests | Reward type and tag marker | Tag marker only | No (see above) | No (see above) |
+| FTB Ultimine | Yes | Yes | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated |
+| KubeJS | Yes | Yes | No: see [KUBEJS.md](KUBEJS.md#availability) | No: see [KUBEJS.md](KUBEJS.md#availability) |
+| Everything else on this page | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -359,7 +359,7 @@ Minecraft version.
 
 | Mod | Mod id | What it adds |
 |---|---|---|
-| **KubeJS** | `kubejs` | **Not available on this build.** KubeJS publishes no 26.2 artifact, so the integration is not compiled in: no `NeoOrigins` / `NeoOriginsEvents` globals, no `kubejs_callback` action, no `js_custom` / `js_active` power types. See [KUBEJS.md](KUBEJS.md#availability). |
+| **KubeJS** | `kubejs` | **Not available on this build.** KubeJS publishes no 26.3 artifact, so the integration is not compiled in: no `NeoOrigins` / `NeoOriginsEvents` globals, no `kubejs_callback` action, no `js_custom` / `js_active` power types. See [KUBEJS.md](KUBEJS.md#availability). |
 | **KeybindJS** | `keybindjs` | Client-side: when KeybindJS is loaded, a key mapping registered outside NeoOrigins under an active power's declared `key` name is used for that power instead of one of NeoOrigins' numbered hotkey slots, so the key is not bound twice. |
 
 ---

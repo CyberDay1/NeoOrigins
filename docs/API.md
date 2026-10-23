@@ -135,7 +135,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`lava_vision`](POWER_TYPES.md#neooriginslava_vision) | Increase vision distance in lava. |
 | [`modify_lava_speed`](POWER_TYPES.md#neooriginsmodify_lava_speed) | Change movement speed while submerged in lava. |
 | [`overlay`](POWER_TYPES.md#neooriginsoverlay) | Full-screen texture overlay with configurable opacity. |
-| [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. Not drawn on 26.1 or 26.2: the power still loads and syncs, but there is no tint render pass. |
+| [`model_color`](POWER_TYPES.md#neooriginsmodel_color) | RGBA tint on the player model. Not drawn on 26.1, 26.2 or 26.3: the power still loads and syncs, but there is no tint render pass. |
 | [`entity_model`](POWER_TYPES.md#neooriginsentity_model) | Replace the player's model with another entity's: a morph. Changes hitbox and voice with it. |
 | [`invisibility`](POWER_TYPES.md#neooriginsinvisibility) | Turn the player invisible, optionally hiding worn armour too. |
 | [`prevent_entity_render`](POWER_TYPES.md#neooriginsprevent_entity_render) | Hide matching living entities from this player only; they still act and collide. |
@@ -191,7 +191,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`bare_hand_tool`](POWER_TYPES.md#neooriginsbare_hand_tool) | Empty hand mines as a named tool, for both drop eligibility and speed. |
 | [`underwater_mining_speed`](POWER_TYPES.md#neooriginsunderwater_mining_speed) | Remove underwater mining penalty. |
 | [`tree_felling`](POWER_TYPES.md#neooriginstree_felling) | Chop connected logs in one swing. |
-| [`ultimine`](POWER_TYPES.md#neooriginsultimine) | Vein-mining via FTB Ultimine. **Inert on this line:** the type is registered, but the 26.2 build contains no FTB Ultimine integration (`compat/ftbultimine` is absent), so it does nothing even with FTB Ultimine installed. |
+| [`ultimine`](POWER_TYPES.md#neooriginsultimine) | Vein-mining via FTB Ultimine. **Inert on this line:** the type is registered, but the 26.3 build contains no FTB Ultimine integration (`compat/ftbultimine` is absent), so it does nothing even with FTB Ultimine installed. |
 | [`fortune_when_effect`](POWER_TYPES.md#neooriginsfortune_when_effect) | Virtual Fortune level on a block tag (default `#c:ores`) while a named status effect is active. |
 | [`crop_growth_accelerator`](POWER_TYPES.md#neooriginscrop_growth_accelerator) | Periodic tick boost to nearby crops. |
 | [`crop_harvest_bonus`](POWER_TYPES.md#neooriginscrop_harvest_bonus) | +N drops per crop break. |
@@ -251,8 +251,8 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 
 ### Scripting
 
-The KubeJS-backed types (`js_active`, `js_custom`) are **not in the 26.2
-build** — KubeJS publishes no 26.2 artifact, so the types are absent rather
+The KubeJS-backed types (`js_active`, `js_custom`) are **not in the 26.3
+build** — KubeJS publishes no 26.3 artifact, so the types are absent rather
 than inert, and they are not counted above. See
 [KUBEJS.md](KUBEJS.md#availability).
 

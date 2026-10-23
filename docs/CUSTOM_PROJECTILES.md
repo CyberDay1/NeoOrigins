@@ -89,9 +89,9 @@ round from any angle (a cheap faithful approximation, not a tessellated mesh).
 ## Prerequisites
 
 - NeoOrigins 2.0+ (API under `com.cyberday1.neoorigins.api.content.vfx`)
-- **MC 26.2 vs 1.21.1**: the animation-parameter hooks, `resolveColor()`,
+- **MC 26.3 vs 1.21.1**: the animation-parameter hooks, `resolveColor()`,
   `renderType()`, the effect-type registry and the model loaders are the same
-  on both. Renderer plumbing is not: on 26.2 renderers extend
+  on both. Renderer plumbing is not: on 26.3 renderers extend
   `EntityRenderer<T, S>`, use the vanilla `public` `createRenderState()` /
   `extractRenderState(...)` (call `super.extractRenderState(...)` first) and
   draw through `submit()` + `SubmitNodeCollector`. On 1.21.1
@@ -99,7 +99,7 @@ round from any angle (a cheap faithful approximation, not a tessellated mesh).
   its own `protected abstract` hooks (no `super` call), requires
   `getTextureLocation(T)`, and draws in `render()` with a `MultiBufferSource`.
   Renderer subclasses therefore need a per-version source file. The examples
-  below are written for 26.2.
+  below are written for 26.3.
 - A companion mod project: these are Java examples, not datapack JSON.
   For a pure-datapack approach, use the pre-registered `neoorigins:magic_orb`
   with one of the built-in `effect_type` keys (see the

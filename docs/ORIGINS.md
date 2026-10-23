@@ -323,7 +323,7 @@ each with its own switch in `power_overrides.toml`:
 enabled = false
 ```
 
-Those powers are `model_color` tints, and on 26.1 and 26.2 they draw nothing:
+Those powers are `model_color` tints, and on 26.1, 26.2 and 26.3 they draw nothing:
 the render call they relied on is gone from these versions, so the player model
 keeps its usual colours while a meal is running. The powers are still granted
 and the switches still take effect, so anything set here carries forward. Stone

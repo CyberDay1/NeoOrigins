@@ -3051,7 +3051,7 @@ Every one of these powers is `always_edible: false`, so none of them go down on 
 
 The seven tags are built out of NeoForge's `c:` common tags rather than lists of vanilla item ids, so a modded metal or stone that registers itself in the usual places is eaten without the pack doing anything. The six metal and gem tags take the material's `ingots/`, `nuggets/`, `gems/`, `raw_materials/`, `ores/` and `storage_blocks/` entries, which is what pulls in deepslate ore variants, nether gold ore and ancient debris. Three literal ids are left in the set. `netherite_scrap` is one, because NeoForge publishes no common tag for the item itself: its `c:ores/netherite_scrap` covers ancient debris, the ore block. The other two are on `caveborn_eat_stone`, which is `#c:stones` plus `#c:cobblestones` plus basalt and blackstone, and carries no ore at all.
 
-Each material also has a bonus power that fires on finishing the meal, and those are tiered the same way: a nugget grants fifteen seconds, the base form grants the listed duration, and a block grants three times it. Copper is Water Breathing I for sixty seconds, iron Haste I for sixty, gold Speed I for two minutes, diamond Luck II for five, emerald Fire Resistance for five, and netherite Strength I with Resistance I for five. A block is worth twice the food and three times the duration rather than the nine you would get from crafting it apart, since hunger caps at twenty and the extra food would be thrown away. Each meal additionally drives a hidden `model_color` tint for as long as its effect runs, though that tint is not drawn on 26.1 or 26.2 (see [`neoorigins:model_color`](#neooriginsmodel_color)); those six tints are individually switchable from `power_overrides.toml`.
+Each material also has a bonus power that fires on finishing the meal, and those are tiered the same way: a nugget grants fifteen seconds, the base form grants the listed duration, and a block grants three times it. Copper is Water Breathing I for sixty seconds, iron Haste I for sixty, gold Speed I for two minutes, diamond Luck II for five, emerald Fire Resistance for five, and netherite Strength I with Resistance I for five. A block is worth twice the food and three times the duration rather than the nine you would get from crafting it apart, since hunger caps at twenty and the extra food would be thrown away. Each meal additionally drives a hidden `model_color` tint for as long as its effect runs, though that tint is not drawn on 26.1, 26.2 or 26.3 (see [`neoorigins:model_color`](#neooriginsmodel_color)); those six tints are individually switchable from `power_overrides.toml`.
 
 Worth knowing for the ore and stone entries: both are placeable blocks, so aiming at a surface places one as normal. Eating one means aiming where it cannot be placed — the same rule the stone diet has always followed.
 
@@ -4556,7 +4556,7 @@ Naming any fluid of a fluid type ignores the whole type, so `"minecraft:water"` 
 
 Emits the `ignore_fluid` capability tag plus one `ignore_fluid:<id>` tag per entry, so the client and server agree without any extra sync.
 
-**Modded fluids on this version.** The field shape is identical across every branch of the mod, so a datapack naming a modded fluid loads and validates here exactly as it does on 1.21.1. Whether its physics are suppressed depends on the NeoForge build. From NeoForge 26.2.0.50-beta, entity fluid tracking is keyed by fluid type, so a modded fluid is tracked and ignored as on 1.21.1. Older 26.2 builds track only fluids in the `minecraft:water` and `minecraft:lava` fluid tags; there an entry naming another fluid is accepted and syncs its capability tag but drives nothing on the movement side, though the `entityInside` guard still cancels the fluid's own damage or effects.
+**Modded fluids on this version.** The field shape is identical across every branch of the mod, so a datapack naming a modded fluid loads and validates here exactly as it does on 1.21.1. NeoForge 26.3 keys entity fluid tracking by fluid type, so a modded fluid is tracked and its physics suppressed as on 1.21.1.
 
 **Not covered.** A mod that runs its own `level.getFluidState(pos)` check per tick — rather than asking the entity whether it is in a fluid — is doing its own detection and cannot be intercepted from here; it will still see the fluid. The same goes for anything keyed off the block state rather than the fluid state (a mod checking `state.is(Blocks.LAVA)` directly). Fluid **rendering** is untouched: the fluid is still drawn normally, you simply pass through it as if it were air.
 
@@ -4614,7 +4614,7 @@ Origins compat: translates `origins:overlay`.
 
 Tints the player model with an RGBA colour.
 
-The tint is drawn on 1.21.1, where the client applies a colour multiply during the player render pass. It is not drawn on 26.1 or 26.2, because those versions removed `RenderSystem.setShaderColor` and the mod has no replacement pass yet, so nothing paints the model. Everything else about the power is unchanged here: it loads, validates its fields, honours `enabled` and `condition`, and syncs its state to the client. A datapack naming this type is not broken on these versions, it simply shows no colour.
+The tint is drawn on 1.21.1, where the client applies a colour multiply during the player render pass. It is not drawn on 26.1, 26.2 or 26.3, because those versions removed `RenderSystem.setShaderColor` and the mod has no replacement pass yet, so nothing paints the model. Everything else about the power is unchanged here: it loads, validates its fields, honours `enabled` and `condition`, and syncs its state to the client. A datapack naming this type is not broken on these versions, it simply shows no colour.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4625,7 +4625,7 @@ The tint is drawn on 1.21.1, where the client applies a colour multiply during t
 | `condition` | object | no | — | EntityCondition that gates when the tint is applied. When absent, the tint is always active. When present, the colour only shows while the condition evaluates true. |
 | `enabled` | bool | no | `true` | Kill switch: when false the power stays attached but never tints. Lets a server owner drop one tint from `power_overrides.toml` without editing the datapack. |
 
-When two or more `model_color` powers are active at once, the blend rule is to average the channels rather than let one win: two tints produce their midpoint, three their mean. That is what 1.21.1 draws; on 26.1 and 26.2 it stands as the defined rule with no render pass to apply it. A conditioned tint is re-evaluated once a second on every version, so the synced state appears and clears as the condition flips rather than only on login or toggle.
+When two or more `model_color` powers are active at once, the blend rule is to average the channels rather than let one win: two tints produce their midpoint, three their mean. That is what 1.21.1 draws; on 26.1, 26.2 and 26.3 it stands as the defined rule with no render pass to apply it. A conditioned tint is re-evaluated once a second on every version, so the synced state appears and clears as the condition flips rather than only on login or toggle.
 
 Origins compat: translates `origins:model_color`.
 
@@ -5360,7 +5360,7 @@ neoorigins_loot_pool_grant:<loot_table_id>
 
 routes through the same `LootPoolGrantPower#fireLootPoolGrant` pipeline on completion: the completing player receives the rolled stacks, with dedup keyed on `ftbq:<quest_id>:<table_id>`. Authors get vanilla loot-table reuse for both origin powers and quest rewards without any hard FTBQ dependency.
 
-This is a soft-compat layer: it is **not** an FTBQ `RewardType` registration. On 26.2 there is no FTB Quests build to hook into, so in practice the tag marker does nothing on this version; the power itself works without FTBQ.
+This is a soft-compat layer: it is **not** an FTBQ `RewardType` registration. On 26.3 there is no FTB Quests build to hook into, so in practice the tag marker does nothing on this version; the power itself works without FTBQ.
 
 
 ---
@@ -5436,4 +5436,4 @@ The hook is a global loot modifier, so it has to be switched on by a carrier fil
 
 # KubeJS bridge powers
 
-`neoorigins:js_custom` and `neoorigins:js_active` do not exist on this version. KubeJS has no 26.2 release to build against, so the 26.2 build registers neither type, and a power file that names either one is dropped at load. They are available on the 1.21.1 and 26.1 builds; see [KUBEJS.md](KUBEJS.md).
+`neoorigins:js_custom` and `neoorigins:js_active` do not exist on this version. KubeJS has no 26.3 release to build against, so the 26.3 build registers neither type, and a power file that names either one is dropped at load. They are available on the 1.21.1 and 26.1 builds; see [KUBEJS.md](KUBEJS.md).

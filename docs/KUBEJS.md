@@ -7,7 +7,7 @@ nav_order: 1
 # KubeJS Integration
 {: .no_toc }
 
-**Not available on this build.** The Minecraft 26.2 build of NeoOrigins has no
+**Not available on this build.** The Minecraft 26.3 build of NeoOrigins has no
 KubeJS integration, and installing KubeJS alongside it does not add one.
 
 ---
@@ -15,9 +15,9 @@ KubeJS integration, and installing KubeJS alongside it does not add one.
 ## Availability
 
 The KubeJS integration ships in the Minecraft 1.21.1 build (from NeoOrigins
-2.1.2) and the Minecraft 26.1 build (from 2.2.24). This 26.2 build declares no
+2.1.2) and the Minecraft 26.1 build (from 2.2.24). This 26.3 build declares no
 KubeJS dependency and contains none of the integration's classes, because
-KubeJS has published no NeoForge build for Minecraft 26.2. The scripting
+KubeJS has published no NeoForge build for Minecraft 26.3 (nor for 26.2). The scripting
 reference lives in the documentation for the 1.21.1 and 26.1 builds.
 
 Everything the integration provides is absent here:
@@ -31,7 +31,7 @@ Everything the integration provides is absent here:
   step of the action never runs.
 
 A pack that uses any of these should gate those files behind a pack that does
-not ship on 26.2, or keep that behaviour in Java or in the datapack DSL here.
+not ship on 26.3, or keep that behaviour in Java or in the datapack DSL here.
 
 KeybindJS is a separate mod and is unaffected: the hotkey hand-off described
 in [COMPATIBILITY.md](COMPATIBILITY.md#scripting) works on this build.
