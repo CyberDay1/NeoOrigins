@@ -4966,7 +4966,7 @@
 
   neoorigins:entity_glow
     Passive | Shipped powers: 1 | EntityGlowPower
-    Fields: bientity_condition, blue, green, red, use_teams
+    Fields: bientity_condition, blue, entity_condition, green, red, use_teams
     (hand-written parser: the keys it read from an empty object and from 1
     shipped power; a branch those never reach may read more)
 
