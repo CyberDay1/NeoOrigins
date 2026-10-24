@@ -101,7 +101,7 @@ The same mechanism for the built-in classes (`class_warrior`, `class_archer`,
 
 - **Origins:** only Human, Merling, Avian, Blazeborn (`blazeling`), Elytrian, Enderian, Arachnid, Shulk, Phantom and Feline are offered. Every other built-in origin is hidden, the Dragon Survival dragons included.
 - **Classes:** only the fourteen Origins: Classes classes are offered: Archer, Beastmaster, Blacksmith, Cleric, Cook, Explorer, Farmer, Lumberjack, Merchant, Miner, Nitwit, Rancher, Rogue and Warrior. Farmer and Rancher ship for classic mode: they stay registered either way, but outside the mode they are hidden from the picker, the way a class switched off by its own toggle is.
-- **Powers:** each of those origins and classes swaps its NeoOrigins power list for one modelled on the original mod. The classic definitions live in `data/neoorigins/origins/classic_origins/<id>.json`, one full origin body per id, and replace `neoorigins:<id>` while the mode is on. They have no evolution tiers. A datapack can override a classic definition by shipping the same path.
+- **Powers:** each of those origins and classes swaps its NeoOrigins power list for one modelled on the original mod. The classic definitions live in `data/neoorigins/origins/classic_origins/<id>.json`, one full origin body per id, and replace `neoorigins:<id>` while the mode is on: ten origins and twelve classes. Farmer and Rancher have no file there, because their only definition already is the classic one. They have no evolution tiers. A datapack can override a classic definition by shipping the same path.
 
 | Behaviour | Detail |
 |---|---|

@@ -24,7 +24,7 @@ Build requires Java 21 on the `1.21.1` branch and Java 25 on `master`, `26.2` an
 
 ### Data Pipeline (server-side, hot-reloadable via `/reload`)
 
-The data managers extend `SimplePreparableReloadListener`. Each scans two path formats:
+The four data managers below extend `SimplePreparableReloadListener`. Each scans two path formats:
 
 | Manager | NeoOrigins path | Origins-compat path |
 |---|---|---|
