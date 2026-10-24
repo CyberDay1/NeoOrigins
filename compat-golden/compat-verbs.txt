@@ -556,5 +556,5 @@ neoorigins:conditional	fields={condition,inner_power}
 neoorigins:prevent_action	fields={action,active_when,chest,feet,head,legs}
 neoorigins:entity_glow	fields={bientity_condition,blue,entity_condition,green,red,use_teams}
 neoorigins:prevent_entity_render	fields={entity_condition}
-neoorigins:resource	fields={backing,hidden,hud_render{always_render,animated,color,label,should_render,tint,tint_end},max,max_action,min,min_action,regen_condition,regen_interval,regen_rate,start_value}
+neoorigins:resource	fields={backing,hidden,hud_render{always_render,animated,color,dynamic,label,should_render,tint,tint_end},max,max_action,min,min_action,regen_condition,regen_interval,regen_rate,start_value}
 neoorigins:variable	fields={max,min,start}
