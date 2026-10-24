@@ -2,6 +2,78 @@
 
 ---
 
+## v2.2.31
+
+> The headline is classic mode: a new `content.toml` switch that offers only the original Origins mod's ten origins and the fourteen Origins: Classes classes, each with a power set modelled on the original mod. Turn it on before the world is created if you can, because a player who already holds an origin or class it hides keeps it until it is reset. Rebuilding those sets added four power types for pack authors, and Origins packs that use Blazeborn's snowball weakness, the Merling's conduit power, the Arachnid's webs or `entity_glow` now behave as they do in Origins. This release also brings NeoOrigins to Minecraft 26.3. A client running Punchy, or any mod that checks item use animations often, no longer loses about a third of every frame to NeoOrigins when a pack loads Origins-format powers (#136), and flight powers such as Riding the Sword can no longer be switched off by mods that reset player flight every tick, such as Create Buzzy Beez. Each resource bar can now be resized in the origin editor, and a new `dynamic` flag stacks cooldown and timer bars above the permanent ones.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Changes
+
+- **Classic mode.** A new `classic_mode` option in `content.toml`, off by default, offers only the original Origins mod's ten origins and the fourteen Origins: Classes classes, each with a power set modelled on the original mod. The origins are Human, Merling, Avian, Blazeborn, Elytrian, Enderian, Arachnid, Shulk, Phantom and Feline. The classes are Archer, Beastmaster, Blacksmith, Cleric, Cook, Explorer, Farmer, Lumberjack, Merchant, Miner, Nitwit, Rancher, Rogue and Warrior. Farmer and Rancher are new, and only appear in classic mode. While it is on, every other built-in origin and class is hidden whatever its toggle says, and so are the three Dragon Survival dragons. A classic origin or class switched off by its own toggle stays hidden, and origins from datapacks or `originpacks/` are still offered. Switching it while the server runs applies at once: online players holding a classic origin swap power sets, powers both versions share keep their state, and every client's picker is resent. See [CONTENT_CONFIG.md](docs/CONTENT_CONFIG.md#classic-mode).
+
+- **Turn classic mode on before the world is created if you can.** A player who already holds a built-in origin or class that classic mode hides keeps it, powers and all, until it is reset with an Orb of Origin or an Orb of Class, or by an admin running `/neoorigins reset <player>`. Each such player is told this in chat, with how to reset it, every time they join and when the mode is switched on while they are online. The server also logs a warning when a world that already has player data starts with classic mode on, or has it switched on while running.
+
+- **Classic mode turns evolution off in practice.** None of the classic origins has evolution tiers, and every other built-in is hidden while the mode is on, so no origin a player can pick evolves. Kill counts stop mattering until the mode goes off again. Datapack and `originpacks/` origins keep whatever tiers they declare.
+
+- **`/neoorigins list` shows what classic mode hides.** Hidden entries are marked `[disabled]`, and the header says `(classic mode)` while it is on.
+
+- **The classic Arachnid's climbing is a toggle.** As in Origins, climbing starts on and flips with the origin's ability key, with a low note for off and a high one for on. Climbing inside cobweb only works while it is on. The standard Arachnid is unchanged.
+
+- **The classic Arachnid can craft cobwebs.** Two string in any shape makes one cobweb, for a holder of Master of Webs alone. Nobody else can craft it.
+
+- **NeoOrigins now ships for Minecraft 26.3.** The new build runs on NeoForge 26.3 (26.3.0.83 or newer), alongside the 26.1.x, 26.2 and 1.21.1 builds. NeoForge 26.3 moved per-world config overrides from `<world>/serverconfig/` to `<world>/syncedconfig/`, so the first time a world starts on 26.3, NeoOrigins copies its `content.toml` override across and applies it straight away. The 26.2-era file is left where it is, so the world still opens on an older build, and a pre-2.2.2 `neoorigins-server.toml` is renamed once its values have been carried across. [CONTENT_CONFIG.md](docs/CONTENT_CONFIG.md) describes the new layout.
+
+- **Each resource bar can be resized.** The origin editor, opened from the Edit button on the origin info screen, has a new Resource Bar Sizes panel below the powers list, with a slider for every resource bar that has a label, from 50% to 200%. A bar grows from its top-left corner, with its name and value scaling with it, and the HUD behind the editor follows the slider as it moves. Scaled bars keep their spacing in the stack: each bar's slot grows or shrinks with it, so a larger bar never runs into the one above or below it and a smaller one leaves no gap. The HUD editor draws each bar at its size too. Sizes are saved to `config/neoorigins/hud.json` when the editor closes, separately from bar positions, so resizing a bar neither moves it nor takes it out of the stack. The Edit button shows in Creative, or in any game mode with the `show_origin_editor` client option turned on.
+
+### Bug Fixes
+
+- **Punchy no longer causes heavy client lag when a pack loads Origins-format powers (#136).** Punchy, and any mod that checks item use animations often, could spend about a third of each frame rebuilding NeoOrigins' list of edible items. With Origins-format powers loaded, the full power list was rebuilt on every lookup, so the edible-item cache never hit. The power list is now built once per reload, and the edible-item cache also refreshes when the client receives new tags.
+
+- **Flight powers are no longer cancelled by mods that reset player flight every tick.** Riding the Sword, Phantom Form and the other creative-style flight powers granted flight through the player's `mayfly` ability flag, which some mods, such as Create Buzzy Beez, switch off for every survival player each tick. These powers now grant flight through NeoForge's creative flight attribute instead, which those mods leave alone. Turning a flight power off or losing it still drops the player out of flight and clears their fall distance, as before, and creative or spectator flight is never affected. Switching one on while its condition is not yet met, such as drawing the sword after the toggle, now lifts the player off as soon as the condition holds, where before they had to jump to start flying.
+
+- **The slime's bounce keeps the speed you had in the air.** The bounce took its sideways speed from the tick the player landed on, whose sideways movement ground contact had already cut short, so a running slime could still come out of a bounce with almost no forward speed. The sideways speed now comes from the last full tick in the air.
+
+- **The origin info screen lists the powers your evolution tier has given you.** The Powers section only ever showed an origin's base powers, so a power gained at a later tier, such as the Sword Immortal's Heavenly Sword Formation at tier 2, was missing from it along with its keybind, and a power that a tier takes away was still listed. The list and the keybind slots now follow the player's current tier, the same way the server grants the powers. Classes do not evolve, so the class layer still shows its base powers.
+
+- **Origin packs left in the old game-root `originpacks/` folder load again.** 2.0 moved the folder to `config/originpacks/` and read the old one only when the new one was missing, but it also created `config/originpacks/` on every launch, so a single launch left an empty new folder beside a full old one and the packs stopped loading, with no warning that they had been dropped. The old folder is now read whenever it still holds packs and `config/originpacks/` does not, still with the warning asking you to move it across. If both hold packs, only `config/originpacks/` is read, and a warning names the folder being skipped.
+
+- **`exhaustion_filter` cancels the exhaustion it lists.** The power loaded, but nothing read it, so it never filtered anything, including the imported `origins-classes:no_sprint_exhaustion` and `no_mining_exhaustion`. It now cancels the hunger exhaustion vanilla charges for each listed source: `sprint`, `mining`, `jump` and `swim`. Every other source of exhaustion is left alone.
+
+- **`in_block_anywhere` works in entity conditions.** It was only usable in player conditions. A condition tested against a living entity, such as the `entity_condition` of `entity_glow` or `prevent_entity_render`, can now use it.
+
+### Pack Author Features
+
+- **`hud_render.dynamic` stacks a bar above the permanent ones.** Cooldown and timer bars took their slot in the same resource id order as every other bar, so one that appeared partway up the stack pushed every bar above it up, and they all dropped back when it went. A bar with `"dynamic": true` in its `hud_render` now stacks above every bar without it, with each group still in resource id order, so permanent bars hold their places while dynamic ones come and go on top. Cooldown bars from the Origins compatibility layer, both an `origins:cooldown` power and the cooldown bar of an active power, are dynamic by default. Native `neoorigins:resource` bars are not, and opt in with `"hud_render": { "dynamic": true }`. A bar given a saved position in the HUD editor is unaffected.
+
+- **`neoorigins:execute_command` runs when an action targets a mob.** Commands were a player-only verb, so wherever an action ran against a mob, such as the target of `action_on_hit`, `target_action_on_hit` or a projectile hit, a command was skipped, and an `and` containing one was skipped entirely. The command now runs as the mob, so `@s` is the mob, with output suppressed and the same permission level as other power commands. It goes through the same legacy command repair, blocked-command list and unparseable-command log as every other place a power runs a command.
+
+- **`neoorigins:like_air` carries movement speed into the air.** Airborne control speed goes through the player's `movement_speed` modifiers, as it does for Origins' Avian. That includes the sprint modifier, so a sprinting holder gets vanilla's airborne sprint bonus with the modifier's +30% on top, also as in Origins. Creative and ability flight are left alone.
+
+- **`neoorigins:conduit_power_on_land` lets a conduit reach the holder on land.** An active conduit nearby gives the holder Conduit Power out of water or rain too. The power grants nothing by itself: a conduit still has to be built and active.
+
+- **`neoorigins:entity_glow` outlines entities for the holder alone.** Living entities matching `entity_condition`, and `bientity_condition` with the holder as actor, get a glowing outline that only the holder sees, the way a Spectral Arrow marks a target. Nobody is given the Glowing effect. With `use_teams` on, the default, an entity on a coloured team keeps its team colour; otherwise the outline takes `red`, `green` and `blue`. The classic Arachnid uses it to sense non-arthropods stuck in cobweb.
+
+- **`neoorigins:projectile_vulnerability` adds damage from listed projectiles.** The holder takes `amount` extra damage, 3 by default, from each projectile in `projectiles`, given by id or as a `#tag`. The bonus is dealt even when the projectile itself deals none, so a snowball can hurt a Blazeborn. [POWER_TYPES.md](docs/POWER_TYPES.md) documents all four new types.
+
+- **`cobweb_affinity` can climb.** A new `climb` field, off by default, makes a cobweb the player is inside work as a ladder: jump to climb, sneak to hold. [POWER_TYPES.md](docs/POWER_TYPES.md) shows how the classic Arachnid gates wall and web climbing on a toggle, under `wall_climbing`.
+
+### Compatibility (Apoli / Origins)
+
+- **`target_action_on_hit` fires on every hit and acts on the entity that was hit.** The compatibility layer ran its `entity_action` only when the holder killed something, and ran it on the holder rather than the victim. It now fires each time the holder damages an entity and runs on that entity, as in Apoli, honouring the power's `condition` and its `cooldown`. A player that is hit gets the full action set; a mob gets the actions that can apply to any entity, such as effects, damage, fire, knockback and now commands. `damage_condition` and `target_condition` are not read yet, so the action fires on any hit while the power's `condition` holds.
+
+- **An older origin pack's worldgen files can stop a 26.x server from starting.** A pack that ships its own dimension or worldgen files in the 1.21.1 format, such as a `dimension_type` without `has_ender_dragon_fight` or a biome with `"carvers": {}`, is rejected by vanilla Minecraft 26.x, and the server fails to start. NeoOrigins does not read these files, so it cannot load around them: the fix is to update the pack's worldgen files to the 26.x format. Pack authors targeting 26.x should check every `dimension_type`, `dimension` and `worldgen` file they ship. Server admins whose startup log names one of these files should update the pack or remove it.
+
+- **Imported `origins:entity_glow` outlines entities for the holder.** It gave the holder the Glowing effect, so everyone else saw the holder glow and the holder saw nothing new. It now maps onto `neoorigins:entity_glow`, which outlines matching entities for the holder only. Its `bientity_condition` can now check `distance`, so SeerOrigin's sight outlines living things within 25 blocks while astral, where before that sight outlined nothing. `origins:self_glow` is unchanged.
+
+- **Imported `origins:conduit_power_on_land` no longer grants effects Origins never gave.** A power with that id, whether the pack shipped the file or only referenced the bare id, gave permanent Water Breathing, Night Vision and Haste. In Origins it only lets an active conduit reach the holder out of water, and that is now what it does. Written as a power `type`, it now maps the same way.
+
+- **The bare `origins:master_of_webs` id no longer climbs every wall.** A pack referencing it without shipping the file got `wall_climbing`. It now gets `cobweb_affinity` with `climb` on.
+
+- **Imported Blazeborn snowball damage matches Origins.** Origins' `damage_from_snowballs` loaded as a 4x multiplier on all incoming damage, with no snowball check, and the bare id was not recognized at all. Both now map onto `neoorigins:projectile_vulnerability`: a snowball deals a Blazeborn 3 damage, and other damage is unaffected. Any `modify_damage_taken` of the same shape, a positive flat addition from one projectile type, maps the same way.
+
+---
+
 ## v2.2.30
 
 > A small release for the resource bar HUD and for pack commands. Resource bars now stack in a fixed, predictable order instead of one that followed an internal hash, with no empty slot left behind a bar that is hidden or dragged to its own position, and no bar's text printed over another bar's. The bars also get a new look: the built-in ones now draw in a framed style with value ticks, most with a scrolling fill themed to their origin, and packs can use the same eight styles, tint the plain one any colour, and run a bar from one colour into another. For pack authors, a command that does not parse is now written to the log along with the power that ran it, where before it failed in complete silence, and a valid `execute ... run` chain is no longer mistaken for a broken command by the legacy translation layer.
