@@ -275,7 +275,7 @@ public class OriginInfoScreen extends Screen {
         // viewingOwn gates liveProgress, so it must be set before setOrigin()
         // measures the evolution section.
         viewingOwn = tab.viewingOwn();
-        currentVm = OriginDetailViewModel.compute(tab.currentOriginId(), tab.classLayer);
+        currentVm = OriginDetailViewModel.computeForPlayer(tab.currentOriginId(), tab.classLayer);
         detail.setOrigin(currentVm);
     }
 

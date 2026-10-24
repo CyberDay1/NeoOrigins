@@ -38,11 +38,27 @@ public record OriginDetailViewModel(
         new OriginDetailViewModel(null, List.of(), List.of(), List.of());
 
     /**
+     * Base-tier detail: an origin's powers as the pack ships them, ignoring
+     * whatever tier the viewing player has reached. What the pickers want.
+     *
      * @param classLayer true when this origin is being shown on the class
      *                   layer, whose first active power gets the class-skill
      *                   key instead of skill slots 1–6.
      */
     public static OriginDetailViewModel compute(Identifier selectedId, boolean classLayer) {
+        return compute(selectedId, classLayer, 0);
+    }
+
+    /**
+     * Detail at the viewing player's own evolution tier, so tier-granted
+     * powers and their keybinds appear. For the info screen, not the pickers.
+     */
+    public static OriginDetailViewModel computeForPlayer(Identifier selectedId, boolean classLayer) {
+        int tier = classLayer ? 0 : com.cyberday1.neoorigins.client.ClientEvolutionConfig.getCurrentTier();
+        return compute(selectedId, classLayer, tier);
+    }
+
+    private static OriginDetailViewModel compute(Identifier selectedId, boolean classLayer, int tier) {
         if (selectedId == null) return EMPTY;
         Origin origin = OriginDataManager.INSTANCE.getOrigin(selectedId);
         if (origin == null) return EMPTY;
@@ -61,9 +77,8 @@ public record OriginDetailViewModel(
         // Skill-slot assignment, shared with the HUD cluster: actives in
         // powersForTier(tier) order get slots 0–5 (class layer: first active only).
         // Tier-granted actives (e.g. Sword Immortal's Heavenly Sword Formation at
-        // tier 2) need the player's evolution tier so they receive a slot and
-        // display their keybind; without it the info screen only shows base powers.
-        int tier = classLayer ? 0 : com.cyberday1.neoorigins.client.ClientEvolutionConfig.getCurrentTier();
+        // tier 2) only earn a slot and show their keybind at the caller's tier, so
+        // tier 0 lists base powers alone.
         Map<Identifier, Integer> slotMap = AbilitySlotKeys.assignSlots(origin, classLayer, tier);
         List<Identifier> effectivePowers = classLayer
             ? origin.powers()
