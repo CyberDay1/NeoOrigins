@@ -4110,6 +4110,8 @@ NeoOrigins' built-in `neoorigins:tick_action` ships no behaviour at all: it disp
 
 Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag: `EntityMakeStuckInBlockMixin` reads it to suppress the usual slowdown inside cobwebs, and `MovementPowerEvents.onBreakSpeed` reads it to multiply cobweb break speed by 10×. With `climb` on, any block in `#neoorigins:cobwebs` (cobweb and the temporary cobweb) that the player is inside also works as a ladder: jump to climb, sneak to hold, on the ground or off it. That is the climbing half of Origins' Arachnid Master of Webs.
 
+Only `climb` is tag-driven. The slowdown suppression and the 10x break speed both test `minecraft:cobweb` itself, so they apply to vanilla cobweb alone: a modded cobweb, or the mod's own `neoorigins:temporary_cobweb`, still slows a holder down and still breaks at normal speed. There are also **two** cobweb block tags, and they do not hold the same blocks. `#neoorigins:cobwebs` is the one `climb` reads, and it lists `minecraft:cobweb` and `neoorigins:temporary_cobweb`. `#origins:cobwebs` is read separately, by the cobweb passthrough the compat `origins:prevent_block_selection` power installs (a web stops blocking what you aim at), and it lists `origins:temporary_cobweb` as well. Adding a modded cobweb to both tags therefore buys climbing and crosshair passthrough, not slowdown immunity or faster breaking.
+
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `climb` | bool | no | `false` | When true, a cobweb the player is inside works as a ladder. |

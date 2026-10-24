@@ -46,7 +46,7 @@ build/libs/neoorigins-<version>+<mc>.jar  →  <curseforge-instance>/mods/
    Place it under the appropriate section comment (`// --- Passive: combat ---`, etc.).
 
 3. **Handle the event** in the appropriate event class under `event/`:
-   - Use `ActiveOriginService.forEachOfType(player, MyPower.class, (type, config) -> { ... })`
+   - Use `ActiveOriginService.forEachOfType(player, MyPower.class, config -> { ... })`
    - Register with `@SubscribeEvent` in the matching `@EventBusSubscriber` class.
 
 4. **Add a power JSON** at `data/neoorigins/origins/powers/<name>.json`:
@@ -108,7 +108,7 @@ Route A handles Origins power types by rewriting the JSON before codec parsing.
 
 Edit `compat/OriginsPowerTranslator.java`:
 
-1. Add a `case "origins:my_type":` branch in the `translate()` switch.
+1. Add a `case "origins:my_type":` branch in the `doTranslate()` switch (`translate()` is the wrapper).
 2. Build and return a new `JsonObject` with the NeoOrigins `type` and mapped fields.
 3. If the translation is lossy, add a `// [LOSSY] reason` comment.
 4. Add the type to `SKIP_TYPES` in `OriginsCompatPowerLoader` if Route B should not also attempt it.
