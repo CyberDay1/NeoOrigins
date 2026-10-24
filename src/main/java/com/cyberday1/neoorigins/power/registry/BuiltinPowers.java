@@ -1972,8 +1972,9 @@ public final class BuiltinPowers {
                 new FieldSpec("animated", Kind.STRING, false).boundTo("animated").pattern(RESOURCE_LOCATION_PATTERN).def("").doc("Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill."),
                 new FieldSpec("tint", Kind.STRING, false).boundTo("tint").pattern(HEX_COLOR_PATTERN).def("").doc("Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored; any other value falls back to #55AAFF) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color."),
                 new FieldSpec("tint_end", Kind.STRING, false).boundTo("tintEnd").pattern(HEX_COLOR_PATTERN).def("").doc("Optional second hex color for a style that does not scroll, such as neoorigins:tinted: the fill shades from tint (or color, on neoorigins:tinted) at the left edge of the bar to tint_end at the right. Ignored on a scrolling style. Empty = one flat tint."),
-                new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
-                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow components.")));
+                new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."),
+                new FieldSpec("dynamic", Kind.BOOLEAN, false).boundTo("dynamic").def(false).doc("When true, stacks this bar above the non-dynamic ones in the default HUD column."))
+                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic components.")));
 
         // variable — a named, always-hidden, persistent integer counter. Shares
         // the ResourceState keyspace (keyed by its own power id), so it can be

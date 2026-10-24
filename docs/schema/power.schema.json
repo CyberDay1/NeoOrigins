@@ -6229,7 +6229,7 @@
           "default": ""
         },
         "hud_render": {
-          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow components.",
+          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic components.",
           "type": "object",
           "properties": {
             "label": {
@@ -6268,6 +6268,11 @@
             },
             "always_render": {
               "description": "When true, keeps the bar on-screen even at full value (the HUD hides full bars by default).",
+              "type": "boolean",
+              "default": false
+            },
+            "dynamic": {
+              "description": "When true, stacks this bar above the non-dynamic ones in the default HUD column.",
               "type": "boolean",
               "default": false
             }
