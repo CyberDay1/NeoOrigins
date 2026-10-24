@@ -11,6 +11,15 @@ grants new powers and may replace or remove earlier ones. Classes do not evolve.
 
 When you evolve, your health is restored to full.
 
+**Classic mode:** the per-origin tables below describe the default NeoOrigins
+content. While `classic_mode = true` in `config/neoorigins/content.toml`, the ten
+classic origins (Human, Merling, Avian, Blazeborn, Elytrian, Enderian, Arachnid,
+Shulk, Phantom, Feline) load their classic definitions instead, and none of those
+declares `tier_powers`: they have no evolution tiers at all. Every other built-in
+origin is hidden from selection, so no built-in on offer evolves while the mode is
+on. Datapack and originpack origins are unaffected and keep whatever tiers they
+declare. See `CONTENT_CONFIG.md` for the mode's full reach.
+
 ## Kill Thresholds (configurable)
 
 | Tier | Name | Default Kills |
@@ -556,11 +565,11 @@ origin's JSON if you need the exact list.
 
 ## Origins Without Evolution
 
-All **class origins** (20 total) do not evolve. They provide static bonuses:
+All **class origins** (22 total) do not evolve. They provide static bonuses:
 
 Archer, Beastmaster, Berserker, Blacksmith, Cleric, Cook, Explorer,
-Fisher, Herbalist, Lumberjack, Mason, Merchant, Miner, Nitwit, Paladin,
-Rogue, Scout, Sentinel, Titan, Warrior.
+Farmer, Fisher, Herbalist, Lumberjack, Mason, Merchant, Miner, Nitwit,
+Paladin, Rancher, Rogue, Scout, Sentinel, Titan, Warrior.
 
 ---
 
