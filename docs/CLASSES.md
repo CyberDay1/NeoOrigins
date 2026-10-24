@@ -99,8 +99,8 @@ Conventions used by the built-ins:
 - `icon`: item shown in the class picker.
 - `impact`: the built-in classes use `"none"`, except Fisher, Mason and
   Paladin, which use `"medium"`.
-- `order`: position in the class screen (built-ins occupy 1–20; use 21+ to
-  append after them).
+- `order`: position in the class screen (built-ins occupy 1–22, with Farmer at
+  21 and Rancher at 22; use 23+ to append after them).
 - `powers`: passive, condition-gated or attribute powers, plus at most one
   active power, which takes the Class Skill key (see above).
 - `upgrades`: optional advancement-driven promotion to another class; see
@@ -143,7 +143,9 @@ you don't want a resource/language pack: handy for self-contained datapacks.
 - **Disabling built-ins:** the `[classes]` section in
   `config/neoorigins/content.toml` toggles each built-in class. Disabled
   classes stay registered (so `/neoorigins set` can still assign them) but
-  are hidden from the selection screen.
+  are hidden from the selection screen. Farmer and Rancher have **no** toggle
+  there: they are classic-mode-only, hidden unless `classic_mode = true`. See
+  [classic mode](CONTENT_CONFIG.md#classic-mode).
 - **No classes at all:** if *every* class is disabled, the class selection
   screen is skipped entirely and only the origin layer is shown.
 - **Skip initial selection:** the `[skip_initial_selection]` section in
