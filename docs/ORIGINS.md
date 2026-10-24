@@ -7,13 +7,22 @@ nav_order: 1
 # Origin Catalog
 
 A per-origin reference for the default NeoOrigins origins. Class origins
-(Warrior, Cleric, etc.) are documented separately in
-[`CLASSES.md`](CLASSES.md); evolution mechanics live in
+(Warrior, Cleric, etc.) are listed in the README's Built-in Classes table, and
+[`CLASSES.md`](CLASSES.md) covers authoring your own; evolution mechanics live in
 [`EVOLUTION.md`](EVOLUTION.md), and authoring your own evolution tiers
 via the `tier_powers` origin field is covered in the
 [COOKBOOK](COOKBOOK.md#adding-evolution-tiers-to-an-origin).
 
 Origins are listed alphabetically by display name.
+
+**Classic mode:** this page documents the default content. `classic_mode = true`
+in `config/neoorigins/content.toml` replaces ten of the entries below — Human,
+Merling, Avian, Blazeborn, Elytrian, Enderian, Arachnid, Shulk, Phantom and
+Feline — with the original Origins mod's versions, and hides every other
+built-in origin. Those ten run different power lists while the mode is on, and
+five of them a different impact tier: Merling becomes High, Elytrian Low,
+Enderian Medium, Arachnid Low and Shulk Low. See
+[classic mode](CONTENT_CONFIG.md#classic-mode) for what they get instead.
 
 ### Abyssal
 

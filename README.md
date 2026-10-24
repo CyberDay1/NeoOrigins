@@ -27,7 +27,7 @@ Highlights this release:
 ## Features
 
 - **58 built-in origins** (55, plus three Dragon Survival origins that only load with that mod) across two layers: choose an origin *and* a class
-- **20 built-in classes**: Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit, **Fisher**, **Mason**, **Paladin**
+- **22 built-in classes** (20, plus Farmer and Rancher, which only appear while classic mode is on): Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit, **Fisher**, **Mason**, **Paladin**, **Farmer**, **Rancher**
 - **122 power types**: attribute modifiers (with optional environment, condition, or equipment-slot gating), status/persistent effects, creative flight + natural elytra glide (no-item), wall climbing, bare-hand-as-tool (any vanilla tool at any tier), damage modification, on-hit/on-kill actions, active abilities (with hunger gating), biome effects, summon minions, tame hostile mobs, Fortune-from-effect loot multipliers, gravity wells, elemental magic, toggleable passives, HUD-hide powers, and more
 - **Random origin mode**: server config to randomly assign origins on first join or every death
 - **Cooldown HUD overlay**: shows active ability cooldown bars above the hotbar
@@ -43,7 +43,7 @@ Highlights this release:
 - **Data-driven**: all origins and powers defined in JSON; fully overridable via datapacks
 - **Advancement-based origin upgrades**: any origin can declare upgrade paths in its JSON; when the player earns the advancement, their origin swaps automatically (see [examples/](examples/))
 - **Epic Fight compatibility**: sized origins maintain correct scale when Epic Fight takes over rendering in combat mode
-- **Per-origin config toggles**: disable any built-in origin (except the three dragon origins) or class in `config/neoorigins/content.toml`
+- **Per-origin config toggles**: disable any built-in origin (except the three dragon origins) or class (except the two classic-mode-only classes, Farmer and Rancher) in `config/neoorigins/content.toml`
 - **Dimension restrictions**: disable specific powers in specific dimensions via config
 
 ---
@@ -187,8 +187,12 @@ Pack authors can add their own classes. See [docs/CLASSES.md](docs/CLASSES.md).
 | **Fisher** ⭐ | +1 luck in water, +15% speed in water, 0.5× drown damage, starting rod (Luck of the Sea I + Lure I), night vision underwater |
 | **Mason** ⭐ | Bare-hand stone pickaxe, +1 armor, 1.25× break speed, starting stone pickaxe (Efficiency I), +1 block placement reach |
 | **Paladin** ⭐ | Weakness-on-hit vs undead, +2 armor, regen near beacons, starting iron sword (Smite I), wither immunity |
+| **Farmer*** ⭐ | +1 extra drop from mature crops and logs, +1 bonemeal application |
+| **Rancher*** ⭐ | Bred animals produce twins, 2× drops from animals you kill |
 
 ⭐ = new
+
+\* Farmer and Rancher come from the original Origins: Classes set and ship for classic mode alone. They have no `[classes]` toggle in `content.toml`, and appear in the class picker only while `classic_mode = true`. See [docs/CONTENT_CONFIG.md](docs/CONTENT_CONFIG.md#classic-mode).
 
 ---
 
@@ -201,12 +205,15 @@ files are migrated automatically on first launch, values intact):
 - `neoorigins/gameplay.toml`: orb of origins, auto-human, skip initial selection, random assignment, evolution, spawn location teleports, ocean origins, sun damage, mount consent, friendly fire, armor classes, cooldowns
 - `neoorigins/admin.toml`: command blacklist, command access, dimension restrictions, entity exclusions, compat filtering, debug flags
 - `neoorigins/power_overrides.toml`: per-power parameter overrides
-- `neoorigins/content.toml`: origin/class enable toggles + resource-bar, night-vision and enhanced-vision disables (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
+- `neoorigins/content.toml`: classic mode, origin/class enable toggles + resource-bar, night-vision and enhanced-vision disables (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
 - `neoorigins/client.toml`: client-only options (UI theme and picker, HUD, hotkey pool, cross-mod compat)
 - `neoorigins/hud.json`: saved HUD bar/cluster positions
 
 ```toml
-# config/neoorigins/content.toml — disable specific origins or classes
+# config/neoorigins/content.toml — classic mode, and disabling specific origins or classes
+# Offer only the original Origins origins and Origins: Classes classes
+classic_mode = false
+
 [origins]
 human = true
 merling = true
