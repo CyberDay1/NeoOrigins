@@ -260,7 +260,7 @@ tame_scare_entity_blacklist = []
 
 ## Origins Pack Compatibility (`originpacks/`)
 
-NeoOrigins can load content from existing Origins mod packs without any modification. On first launch, a `config/originpacks/` folder is created. A legacy `originpacks/` folder at the game root is still read when `config/originpacks/` does not exist, with a log warning to move it.
+NeoOrigins can load content from existing Origins mod packs without any modification. On first launch, a `config/originpacks/` folder is created. A legacy `originpacks/` folder at the game root is still read whenever `config/originpacks/` is empty or absent, with a log warning to move it. If both hold packs, only `config/originpacks/` is read, and the log says so.
 
 **Supported pack formats:**
 | Format | How to install |

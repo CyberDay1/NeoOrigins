@@ -68,7 +68,7 @@ When a power JSON has an `origins:` or `apace:` type namespace, it goes through 
 
 ### Content Packs (`config/originpacks/`)
 
-`OriginsPackFinder` mounts `config/originpacks/` as both a server-data and client-resources pack source. The old game-directory `originpacks/` folder still loads, with a deprecation warning. Packs can be JARs, ZIPs, or folders. No `pack.mcmeta` required.
+`OriginsPackFinder` mounts `config/originpacks/` as both a server-data and client-resources pack source. If that folder is empty or absent, the old game-directory `originpacks/` folder is read instead, with a deprecation warning; once the config folder holds a pack of its own, the game-root one is ignored, with a warning that names it. The choice lives in `NeoOrigins.chooseOriginpacksDir`, covered by `OriginpacksFolderChoiceTest`. Packs can be JARs, ZIPs, or folders. No `pack.mcmeta` required.
 
 ## JSON Data Formats
 

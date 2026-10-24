@@ -213,6 +213,6 @@ OriginSelectionScreen  (rendering only — init/render/mouseScrolled)
 ## Content Packs (`originpacks/`)
 
 `OriginsPackFinder` mounts `config/originpacks/` (or a legacy game-root `originpacks/` when
-the config one does not exist) as both server-data and client-resources pack source.
+the config one is empty or absent) as both server-data and client-resources pack source.
 Packs can be JARs, ZIPs, or plain folders. No `pack.mcmeta` required.
 `PackItemAutoRegistrar` auto-registers items found in originpack asset models before registry freeze.

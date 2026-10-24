@@ -40,26 +40,60 @@ public class NeoOrigins {
 
     /**
      * Canonical location for origin-packs as of NeoOrigins 2.0: {@code config/originpacks/}.
-     * Legacy installs put the folder at {@code originpacks/} in the game root;
-     * {@link #resolveOriginpacksDir()} falls back to the legacy path when the new one
-     * is absent so existing setups keep loading without manual intervention.
+     * Legacy installs put the folder at {@code originpacks/} in the game root. The canonical
+     * folder wins whenever it holds anything, but an empty one never beats a legacy folder
+     * with packs still in it: 2.0 through 2.2.30 created {@code config/originpacks/} on every
+     * launch, so an upgrading install has the new folder sitting empty beside its real one.
      */
     public static java.nio.file.Path resolveOriginpacksDir() {
-        java.nio.file.Path configDir = FMLPaths.CONFIGDIR.get().resolve("originpacks");
-        if (java.nio.file.Files.exists(configDir)) return configDir;
-        java.nio.file.Path legacy = FMLPaths.GAMEDIR.get().resolve("originpacks");
-        if (java.nio.file.Files.exists(legacy)) {
+        return chooseOriginpacksDir(
+            FMLPaths.CONFIGDIR.get().resolve("originpacks"),
+            FMLPaths.GAMEDIR.get().resolve("originpacks"));
+    }
+
+    /** The choice itself, split out from the FML paths so a test can drive every case. */
+    static java.nio.file.Path chooseOriginpacksDir(java.nio.file.Path configDir, java.nio.file.Path legacy) {
+        boolean legacyHasPacks = holdsEntries(legacy);
+
+        if (holdsEntries(configDir)) {
+            if (legacyHasPacks && LEGACY_IGNORED_WARNED.compareAndSet(false, true)) {
+                LOGGER.warn("[originpacks] Both 'config/originpacks/' and the legacy game-root "
+                    + "'originpacks/' hold packs: only 'config/originpacks/' is loaded. Move the "
+                    + "rest across, as the game-root location is deprecated and will be removed "
+                    + "in a future release.");
+            }
+            return configDir;
+        }
+
+        if (legacyHasPacks) {
             if (LEGACY_WARNED.compareAndSet(false, true)) {
-                LOGGER.warn("[originpacks] Legacy 'originpacks/' folder found at game root. "
-                    + "Please move it to 'config/originpacks/'. The game-root location is deprecated "
-                    + "and will be removed in a future release.");
+                LOGGER.warn("[originpacks] Loading packs from the legacy 'originpacks/' folder at "
+                    + "the game root. Please move it to 'config/originpacks/'. The game-root "
+                    + "location is deprecated and will be removed in a future release.");
             }
             return legacy;
         }
+
         return configDir;
     }
 
+    /** True when {@code dir} is a directory holding at least one entry that is not a dot-file. */
+    private static boolean holdsEntries(java.nio.file.Path dir) {
+        if (!java.nio.file.Files.isDirectory(dir)) return false;
+        try (java.nio.file.DirectoryStream<java.nio.file.Path> entries =
+                 java.nio.file.Files.newDirectoryStream(dir,
+                     entry -> !entry.getFileName().toString().startsWith("."))) {
+            return entries.iterator().hasNext();
+        } catch (java.io.IOException e) {
+            LOGGER.warn("[originpacks] Could not read {}: {}", dir, e.getMessage());
+            return false;
+        }
+    }
+
     private static final java.util.concurrent.atomic.AtomicBoolean LEGACY_WARNED =
+        new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    private static final java.util.concurrent.atomic.AtomicBoolean LEGACY_IGNORED_WARNED =
         new java.util.concurrent.atomic.AtomicBoolean(false);
 
     public NeoOrigins(IEventBus modEventBus, ModContainer modContainer) {
@@ -116,11 +150,13 @@ public class NeoOrigins {
             com.cyberday1.neoorigins.client.NeoOriginsConfigScreen.register(modContainer);
         }
 
-        // Create config/originpacks/ folder on first launch. If a legacy
-        // originpacks/ folder exists at the game root it will still be picked
-        // up by resolveOriginpacksDir() for back-compat.
+        // Create config/originpacks/ on first launch, but not while a legacy
+        // game-root originpacks/ folder still holds the packs: an empty folder
+        // sitting beside a full one only invites confusion about which is read.
         try {
-            java.nio.file.Files.createDirectories(FMLPaths.CONFIGDIR.get().resolve("originpacks"));
+            if (!holdsEntries(FMLPaths.GAMEDIR.get().resolve("originpacks"))) {
+                java.nio.file.Files.createDirectories(FMLPaths.CONFIGDIR.get().resolve("originpacks"));
+            }
         } catch (java.io.IOException e) {
             LOGGER.error("Failed to create config/originpacks/ folder", e);
         }
