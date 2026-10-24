@@ -199,6 +199,7 @@ OriginSelectionScreen  (rendering only — init/render/mouseScrolled)
     ├─ OriginDetailViewModel  (computed detail state — pure data)
     │       origin, powerNames, powerDescs, powerKeyTags
     │       OriginDetailViewModel.compute(Identifier selectedId, boolean classLayer)
+    │       OriginDetailViewModel.computeForPlayer(same, at the viewer's evolution tier)
     │
     └─ OriginListEntry  (list row data class)
             id, displayName, namespace, isSectionHeader
