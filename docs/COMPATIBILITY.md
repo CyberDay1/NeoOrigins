@@ -18,9 +18,11 @@ If a prose doc disagrees with the code, the code wins.
 | **Apugli / Apace** | Legacy power-type vocabularies are remapped to the 2.0 type names. | See [MIGRATION.md](MIGRATION.md) for the remap table and the known DSL gaps. |
 
 You do not need any of these mods installed. NeoOrigins reads their pack format
-natively. Drop an Origins pack into `config/originpacks/` and it loads. A pack in
-the older game-root `originpacks/` folder still loads, but that location is
-deprecated: it warns once at load and will be removed in a future release.
+natively. Drop an Origins pack into `config/originpacks/` and it loads. If that folder is
+empty or absent, the older game-root `originpacks/` folder is read instead, but
+that location is deprecated: it warns once at load and will be removed in a
+future release. Once `config/originpacks/` holds a pack of its own, the game-root
+folder is ignored, and a warning names it so nothing goes missing in silence.
 
 ---
 
