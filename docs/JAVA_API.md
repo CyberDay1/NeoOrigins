@@ -48,6 +48,8 @@ dependencies {
     compileOnly "maven.modrinth:neo-origins:<VERSION>+26.1"
     // For 26.2:
     // compileOnly "maven.modrinth:neo-origins:<VERSION>+26.2"
+    // For 26.3:
+    // compileOnly "maven.modrinth:neo-origins:<VERSION>+26.3"
     // For 1.21.1:
     // compileOnly "maven.modrinth:neo-origins:<VERSION>+1.21.1"
 }
@@ -56,7 +58,7 @@ dependencies {
 > **Version format:** Modrinth Maven uses the exact version string from the
 > [releases page](https://modrinth.com/mod/neo-origins/versions).
 > The format is `v{version}+{mc_version}`, where `{mc_version}` is `1.21.1`,
-> `26.1` or `26.2` (e.g. `v2.2.27+1.21.1`).
+> `26.1`, `26.2` or `26.3` (e.g. `v2.2.27+1.21.1`).
 
 `neoforge.mods.toml`:
 

@@ -2,9 +2,9 @@
 
 A modern, ground-up reimplementation of the Origins experience for **NeoForge**.
 
-Supports **MC 1.21.1** (Java 21), **MC 26.1** and **MC 26.2** (both Java 25).
+Supports **MC 1.21.1** (Java 21), **MC 26.1**, **MC 26.2** and **MC 26.3** (Java 25).
 
-📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) (full reference for all 122 power types, 108 entity conditions, 95 entity actions, and 51 events).
+📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/) (full reference for all 126 power types, 108 entity conditions, 95 entity actions, and 51 events).
 
 ---
 
@@ -18,15 +18,15 @@ Highlights this release:
 - **Mod compat**: `LightTexture` and water-vision mixins now apply at higher priority so they survive other mods (Alex's Caves, etc.) that touch the same vanilla pipelines.
 - **Dedicated-server stable** on both 1.21.1 and 26.1 (singleplayer-tested through alpha.27 hid six classes of dist crash; all fixed).
 - **New `throw_target` action**: raycast the entity under your crosshair and hurl them away + upward.
-- **122 power types, 108 entity conditions, 95 entity actions, 51 events**. The DSL surface has kept growing since 2.0: visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), `near_entity` and friends, and near-complete Origins compat coverage.
+- **126 power types, 108 entity conditions, 95 entity actions, 51 events**. The DSL surface has kept growing since 2.0: visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), `near_entity` and friends, and near-complete Origins compat coverage.
 
 ---
 
 ## Features
 
 - **58 built-in origins** (55, plus three Dragon Survival origins that only load with that mod) across two layers: choose an origin *and* a class
-- **20 built-in classes**: Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit, **Fisher**, **Mason**, **Paladin**
-- **122 power types**: attribute modifiers (with optional environment, condition, or equipment-slot gating), status/persistent effects, creative flight + natural elytra glide (no-item), wall climbing, bare-hand-as-tool (any vanilla tool at any tier), damage modification, on-hit/on-kill actions, active abilities (with hunger gating), biome effects, summon minions, tame hostile mobs, Fortune-from-effect loot multipliers, gravity wells, elemental magic, toggleable passives, HUD-hide powers, and more
+- **22 built-in classes** (20, plus Farmer and Rancher, which only appear while classic mode is on): Warrior, Archer, Miner, Beastmaster, Explorer, Sentinel, Herbalist, Scout, Berserker, Titan, Rogue, Lumberjack, Blacksmith, Cook, Merchant, Cleric, Nitwit, **Fisher**, **Mason**, **Paladin**, **Farmer**, **Rancher**
+- **126 power types**: attribute modifiers (with optional environment, condition, or equipment-slot gating), status/persistent effects, creative flight + natural elytra glide (no-item), wall climbing, bare-hand-as-tool (any vanilla tool at any tier), damage modification, on-hit/on-kill actions, active abilities (with hunger gating), biome effects, summon minions, tame hostile mobs, Fortune-from-effect loot multipliers, gravity wells, elemental magic, toggleable passives, HUD-hide powers, and more
 - **Random origin mode**: server config to randomly assign origins on first join or every death
 - **Cooldown HUD overlay**: shows active ability cooldown bars above the hotbar
 - **Resource bar styles**: a resource power can name a bar style (`"animated": "neoorigins:fire"` in its `hud_render` block) and the bar draws in that style instead of a flat colour. Eight are built in: seven scrolling themed fills and `neoorigins:tinted`, a still fill colored by `tint` or `color`. Presets are resource-pack JSON under `assets/<ns>/bar_fx/`. See [docs/PACK_FORMAT.md](docs/PACK_FORMAT.md#resource-bar-hud)
@@ -41,7 +41,7 @@ Highlights this release:
 - **Data-driven**: all origins and powers defined in JSON; fully overridable via datapacks
 - **Advancement-based origin upgrades**: any origin can declare upgrade paths in its JSON; when the player earns the advancement, their origin swaps automatically (see [examples/](examples/))
 - **Epic Fight compatibility**: sized origins maintain correct scale when Epic Fight takes over rendering in combat mode
-- **Per-origin config toggles**: disable any built-in origin (except the three dragon origins) or class in `config/neoorigins/content.toml`
+- **Per-origin config toggles**: disable any built-in origin (except the three dragon origins) or class (except the two classic-mode-only classes, Farmer and Rancher) in `config/neoorigins/content.toml`
 - **Dimension restrictions**: disable specific powers in specific dimensions via config
 
 ---
@@ -185,8 +185,12 @@ Pack authors can add their own classes. See [docs/CLASSES.md](docs/CLASSES.md).
 | **Fisher** ⭐ | +1 luck in water, +15% speed in water, 0.5× drown damage, starting rod (Luck of the Sea I + Lure I), night vision underwater |
 | **Mason** ⭐ | Bare-hand stone pickaxe, +1 armor, 1.25× break speed, starting stone pickaxe (Efficiency I), +1 block placement reach |
 | **Paladin** ⭐ | Weakness-on-hit vs undead, +2 armor, regen near beacons, starting iron sword (Smite I), wither immunity |
+| **Farmer*** ⭐ | +1 extra drop from mature crops and logs, +1 bonemeal application |
+| **Rancher*** ⭐ | Bred animals produce twins, 2× drops from animals you kill |
 
 ⭐ = new
+
+\* Farmer and Rancher come from the original Origins: Classes set and ship for classic mode alone. They have no `[classes]` toggle in `content.toml`, and appear in the class picker only while `classic_mode = true`. See [docs/CONTENT_CONFIG.md](docs/CONTENT_CONFIG.md#classic-mode).
 
 ---
 
@@ -199,12 +203,15 @@ files are migrated automatically on first launch, values intact):
 - `neoorigins/gameplay.toml`: orb of origins, auto-human, skip initial selection, random assignment, evolution, spawn location teleports, ocean origins, sun damage, mount consent, friendly fire, armor classes, cooldowns
 - `neoorigins/admin.toml`: command blacklist, command access, dimension restrictions, unique origin layers, entity exclusions, compat filtering, debug flags
 - `neoorigins/power_overrides.toml`: per-power parameter overrides
-- `neoorigins/content.toml`: origin/class enable toggles + resource-bar, night-vision and enhanced-vision disables (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
+- `neoorigins/content.toml`: classic mode, origin/class enable toggles + resource-bar, night-vision and enhanced-vision disables (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
 - `neoorigins/client.toml`: client-only options (UI theme and picker, HUD, hotkey pool, cross-mod compat)
-- `neoorigins/hud.json`: saved HUD bar/cluster positions
+- `neoorigins/hud.json`: saved HUD bar/cluster positions and per-bar scales
 
 ```toml
-# config/neoorigins/content.toml — disable specific origins or classes
+# config/neoorigins/content.toml — classic mode, and disabling specific origins or classes
+# Offer only the original Origins origins and Origins: Classes classes
+classic_mode = false
+
 [origins]
 human = true
 merling = true
@@ -243,7 +250,7 @@ tame_scare_entity_blacklist = []
 
 ## Installation
 
-1. Install [NeoForge](https://neoforged.net) for your Minecraft version (1.21.1, 26.1 or 26.2)
+1. Install [NeoForge](https://neoforged.net) for your Minecraft version (1.21.1, 26.1, 26.2 or 26.3)
 2. Drop `neoorigins-<version>.jar` into your `mods/` folder
 3. Launch. The `config/originpacks/` folder is created automatically
 
@@ -251,7 +258,7 @@ tame_scare_entity_blacklist = []
 
 ## Origins Pack Compatibility (`originpacks/`)
 
-NeoOrigins can load content from existing Origins mod packs without any modification. On first launch, a `config/originpacks/` folder is created. A legacy `originpacks/` folder at the game root is still read when `config/originpacks/` does not exist, with a log warning to move it.
+NeoOrigins can load content from existing Origins mod packs without any modification. On first launch, a `config/originpacks/` folder is created. A legacy `originpacks/` folder at the game root is still read whenever `config/originpacks/` is empty or absent, with a log warning to move it. If both hold packs, only `config/originpacks/` is read, and the log says so.
 
 **Supported pack formats:**
 | Format | How to install |
@@ -424,7 +431,7 @@ cd NeoOrigins
 # Output: build/libs/neoorigins-<version>.jar
 ```
 
-Requires Java 21 on the `1.21.1` branch, and Java 25 on `master` (MC 26.1) and `26.2`.
+Requires Java 21 on the `1.21.1` branch, and Java 25 on `master` (MC 26.1), `26.2` and `26.3`.
 
 ---
 

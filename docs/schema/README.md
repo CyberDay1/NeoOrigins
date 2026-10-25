@@ -53,8 +53,8 @@ Machine-readable schemas for pack JSON. Point your IDE or datapack validator at 
 ## Coverage
 
 Schemas enumerate every valid `type` value so autocomplete and
-typo-detection work across the full surface. ~17 power types, ~15
-condition verbs, and ~19 action verbs carry full field constraints
+typo-detection work across the full surface. 168 power-type branches, 75
+condition verbs and 80 action verbs carry full field constraints
 (required/optional, types, enums). The rest fall through to a permissive
 fallback branch that still catches typos in the `type` discriminator.
 

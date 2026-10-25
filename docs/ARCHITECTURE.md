@@ -2,7 +2,7 @@
 
 ## Overview
 
-NeoOrigins is a NeoForge mod (MC 1.21.1, 26.1 and 26.2) that implements an Origins-style ability system.
+NeoOrigins is a NeoForge mod (MC 1.21.1, 26.1, 26.2 and 26.3) that implements an Origins-style ability system.
 Players choose an origin at first login; each origin grants a set of passive and active powers.
 The mod also loads `.origins`-format packs (Route A + Route B compat layer) so that existing
 Origins content packs work without modification.
@@ -193,6 +193,7 @@ OriginSelectionScreen  (rendering only — init/render/mouseScrolled)
     ├─ OriginDetailViewModel  (computed detail state — pure data)
     │       origin, powerNames, powerDescs, powerKeyTags
     │       OriginDetailViewModel.compute(ResourceLocation selectedId, boolean classLayer)
+    │       OriginDetailViewModel.computeForPlayer(same, at the viewer's evolution tier)
     │
     └─ OriginListEntry  (list row data class)
             id, displayName, namespace, isSectionHeader
@@ -206,6 +207,6 @@ OriginSelectionScreen  (rendering only — init/render/mouseScrolled)
 ## Content Packs (`originpacks/`)
 
 `OriginsPackFinder` mounts `config/originpacks/` (or a legacy game-root `originpacks/` when
-the config one does not exist) as both server-data and client-resources pack source.
+the config one is empty or absent) as both server-data and client-resources pack source.
 Packs can be JARs, ZIPs, or plain folders. No `pack.mcmeta` required.
 `PackItemAutoRegistrar` auto-registers items found in originpack asset models before registry freeze.

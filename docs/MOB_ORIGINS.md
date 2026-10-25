@@ -7,6 +7,10 @@ Authored at `data/<ns>/origins/mob_origins/<id>.json`; loaded by `MobOriginDataM
 after the player-origin / layer reload pipeline. NeoOrigins-native concept: no
 Origins-mod legacy format.
 
+`classic_mode` does not affect mob origins. It hides player origins and classes;
+`MobOriginDataManager` has no classic layer, so every mob origin a pack ships
+still loads with the mode on. See [CONTENT_CONFIG.md](CONTENT_CONFIG.md#classic-mode).
+
 > 📖 See [`POWER_TYPES.md`](POWER_TYPES.md) for the power list shared with player
 > origins. The `neoorigins:mob_behavior` power (configurable aggression) is mob-only.
 

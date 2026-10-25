@@ -18,7 +18,11 @@ If a prose doc disagrees with the code, the code wins.
 | **Apugli / Apace** | Legacy power-type vocabularies are remapped to the 2.0 type names. | See [MIGRATION.md](MIGRATION.md) for the remap table and the known DSL gaps. |
 
 You do not need any of these mods installed; NeoOrigins reads their pack format
-natively. Drop an Origins pack into `originpacks/` and it loads.
+natively. Drop an Origins pack into `config/originpacks/` and it loads. If that folder is
+empty or absent, the older game-root `originpacks/` folder is read instead, but
+that location is deprecated: it warns once at load and will be removed in a
+future release. Once `config/originpacks/` holds a pack of its own, the game-root
+folder is ignored, and a warning names it so nothing goes missing in silence.
 
 ---
 
@@ -40,9 +44,18 @@ pass; its remap tables and gaps are in [MIGRATION.md](MIGRATION.md).
 | `minecraft:set_nbt` loot function | Removed in 1.20.5. The whole loot table fails to parse ("Unknown registry key"), and that cascades into every function and advancement referencing the table, so items the pack hands out become unobtainable. | Retargets the function to `minecraft:set_custom_data`, which takes the identical `tag` field. Applied only to JSON under `loot_table/`, `loot_tables/`, `item_modifier/` and `item_modifiers/`, and only when the file text actually contains `set_nbt`. See the fail-safe below. |
 | `origins:starting_equipment` with a singular `stack` | Packs in the wild use both the singular `stack` and the plural `stacks`. NeoOrigins read only `stacks`, so a pack using the singular spelling was skipped and granted nothing. | Reads `stacks` when present, otherwise promotes a single `stack` object to a one-element list. A power carrying neither is still skipped with a warning. |
 | `origins:prevent_entity_render` / `apace:prevent_entity_render` | The type had no NeoOrigins equivalent, so it was logged as unsupported and became a no-op. | Maps onto the native `neoorigins:prevent_entity_render`, carrying `entity_condition` through unchanged. Apoli's `bientity_condition` variant is deliberately not translated: half of the pair it compares is the observer. See [POWER_TYPES.md](POWER_TYPES.md#neooriginsprevent_entity_render) for the native type's behaviour and limits. |
+| `origins:entity_glow` / `apoli:entity_glow` / `apace:entity_glow` | It went to a handler that gave the **holder** the Glowing effect, so everyone saw the holder glow and the holder saw nothing new. In Apoli the holder sees the matching entities outlined, and nobody else does. | Maps onto the native `neoorigins:entity_glow`, carrying `entity_condition`, `bientity_condition`, `use_teams`, `red`, `green` and `blue` through unchanged. Both conditions take only verbs that can be tested against an arbitrary entity (see [POWER_TYPES.md](POWER_TYPES.md#neooriginsentity_glow)); one that uses anything else loads, warns and outlines nothing. `origins:self_glow` still goes to the old handler, which makes the holder glow for everyone and ignores its `entity_condition`, `bientity_condition`, `use_teams` and colour fields. |
+| `origins:conduit_power_on_land` (as a type, or the bare id) | It granted permanent water breathing, night vision and Haste. In Origins it grants no effect: it only lets an active conduit reach the holder out of water. | Maps onto the native `neoorigins:conduit_power_on_land`. The type has no fields to carry. |
+| The bare `origins:master_of_webs` id | A pack referencing Origins' Master of Webs without shipping the file got `wall_climbing`, which climbs every wall. | Now gets `neoorigins:cobweb_affinity` with `climb` on: no cobweb slowdown and climbing inside webs. The bare id can stand for one power only, so the rest of Master of Webs (webbing on hit, sensing creatures in webs, cobweb crafting) is not supplied this way. A pack that ships its own `master_of_webs.json` is translated from that file instead. |
+| Blazeborn's `damage_from_snowballs` (a `modify_damage_taken` add with a `projectile` damage condition, or the bare id) | The translation dropped the projectile check, so the add became a 4x multiplier on all incoming damage, and it still never reached a snowball: a snowball hits a player for 0, and no damage event fires for a 0 hit. The bare id was not recognized. | Maps onto the native `neoorigins:projectile_vulnerability` with the condition's `projectile` and the modifier's value as `amount`. Only that shape is rewritten, and the match is exact: a flat add (`addition`, `add_base_early` or `add_base_late`) of a positive amount on one named projectile type, not `inverted`, with no `target_condition` and no power `condition`, and with `projectile_condition`, `bientity_condition`, `apply_armor_condition`, `damage_armor_condition`, `attacker_action`, `bientity_action` and `self_action` either absent or left at a no-op verb (Apoli's `allow` / `nothing`). Every other `modify_damage_taken` translates as before, an add of `0` or less among them. The bare id gets `+3` from snowballs. |
+| `origins-classes:no_sprint_exhaustion` / `no_mining_exhaustion` | They translate onto `neoorigins:exhaustion_filter`, which loaded but did nothing through 2.2.30. | `exhaustion_filter` now cancels the listed sources, so both work. |
 | `item_condition` on `action_on_block_use` / `action_on_entity_use` | The field is Apoli's "only with this item in hand" gate. The translator never copied it, so the ability fired for whatever the player was holding. | Copies `item_condition` (and Apoli's newer `held_item_condition` spelling, which maps to the same key) onto the translated `action_on_event`, and the gate reads the stack out of the interaction event: the stack in the hand that triggered it. The translator carries no item gate onto `action_on_block_break`, `wake_up` or `bonemeal`. |
+| `origins:target_action_on_hit` / `apace:target_action_on_hit` | It fired only on a **kill**, and it ran its `entity_action` on the holder. In Apoli it fires on every hit and the action runs on the entity that was hit, so a power written to poison what you hit poisoned the holder instead, and only when the hit happened to kill. | Fires on every hit through `onDealDamage` and runs `entity_action` on the entity that was hit. The power's own `condition` and `cooldown` are honoured. A player target gets the full entity-action surface; a mob target gets the generalizable subset (effects, damage, fire, knockback, …) and player-only verbs no-op on it, exactly as under [`target_action`](ACTIONS.md#target_action). |
 | `set_block` as a `block_action` | In Apoli `set_block` is a block action, so it places at the targeted position. NeoOrigins registered only an entity-side form that placed at the player's own feet, so a right-click power aimed at the clicked block modified the ground under the player instead. | `set_block` resolves the block from the dispatch context — a `block_use` or bonemeal interaction, a projectile or raycast block hit, or a `block_action_at` / `offset` wrapper — and falls back to the actor's own block position when no block context is active. It is also a block-target verb now, usable directly inside `block_target_action` alongside `strip`, `till`, `path`, `grow` and `transform_block`. |
 | Pack with no `pack.mcmeta` (or shipped as a `.jar`) | Vanilla's folder repository source rejects `.jar` files outright and refuses folders missing `pack.mcmeta`, and Origins mod JARs ship without one, so the pack never even registers. | `originpacks/` entries are scanned by NeoOrigins' own pack finder: `.jar`, `.zip` and plain folders are all accepted, and when `pack.mcmeta` is absent compatible metadata is synthesized so the pack registers anyway. A real `pack.mcmeta`, when present, is read normally and wins. |
+| `origins:resource` across a login | The power seeded its `start_value` whenever it was applied to a player, and a login applies every power the player already holds. A bar holding progress was therefore reset to its floor on every world join, and a power reading the resource read the floor. | A login keeps whatever value round-tripped, and seeds `start_value` only when the player has none stored, so a save from before the bar existed still gets a bar. A fresh grant, an origin change or an orb re-pick still resets it. |
+| A modifier on `origins:modify_attribute` with a `resource` | Apoli lets the modifier take its value from a resource, which is how an attribute is made to track a counter. A vanilla attribute modifier holds one fixed amount, so the value was taken from the modifier's own `value` and the resource ignored. These powers declare `"value": 0`, because the resource is meant to supply all of it, so the power loaded and did nothing. | The resource id is carried onto the native type's [`resource`](POWER_TYPES.md#neooriginsattribute_modifier) field, which re-reads the value every 5 ticks, so the attribute follows the resource. A modifier with no `value` at all is accepted and defaults to 0. Apoli's nested modifiers over the resource value are not applied: the attribute tracks the raw value, and the load warns when a pack nests them. |
+| The bare `origins:burn_in_daylight`, `origins:hotblooded` and `origins:water_vulnerability` ids | Each stood in with a power that carried no configuration: a `condition_passive` with no condition and no action, and an `effect_immunity` naming no effect. All three loaded and did nothing. | They now stand in with what Origins gives, matching the mod's own classic-mode content: `burn_in_daylight` catches fire for 6 seconds once a second while sun-exposed and not invisible, `hotblooded` blocks Poison and Hunger, and `water_vulnerability` deals 2 damage a second in water or rain. |
 | Item NBT read through `tag` | 1.20.5 deleted the `tag` field from `ItemStack`; a stack serialises as `{id,count,components}`. A path like `SelectedItem.tag.Foo` still parses and still runs; it simply resolves to nothing, so neither a parse check nor a compile error can catch it. | Repoints the step at `components."minecraft:custom_data"`. Both spellings are handled: the dot path (`SelectedItem.tag.Foo`, including subscripts such as `Inventory[0].tag.Foo`) and the brace form inside a selector or NBT literal (`Item:{tag:{Foo:1}}`). This one runs unconditionally rather than behind a parse check, because on 1.21 no item stack carries a `tag` field in any context, so there is no valid path of that shape to break. |
 
 **The `set_nbt` rewrite is not an NBT-to-components converter.**
@@ -79,7 +92,7 @@ tail after `run` is excluded, so the selectors ahead of it are still repaired.
 | Mod | Mod id | What it adds |
 |---|---|---|
 | **Curios API** | `curios` | Lets conditions inspect equipped curio slots: the `equipped_item` condition's `accessory` slot (optionally narrowed by `slot_type`) and umbrella detection both read worn curios, and `neoorigins:keep_inventory` keeps matching curio-slot items through death. Reflection-based, no hard dependency. |
-| **Accessories** | `accessories` | Wisp Forest's accessory system. The `equipped_item` condition's `accessory` slot, umbrella detection and `keep_inventory` also cover worn Accessories, alongside Curios. Compile-only soft dependency; **1.21.1 only** (the 26.1 and 26.2 builds contain no Accessories code). |
+| **Accessories** | `accessories` | Wisp Forest's accessory system. The `equipped_item` condition's `accessory` slot, umbrella detection and `keep_inventory` also cover worn Accessories, alongside Curios. Compile-only soft dependency; **1.21.1 only** (the 26.1, 26.2 and 26.3 builds contain no Accessories code). |
 | **Vampires Need Umbrellas** | `vampiresneedumbrellas` | An equipped umbrella shields the holder from both weather-damage conditions: `exposed_to_sun` (sun-burn origins) and `in_rain` (rain/water-damage origins like Wet Fur and True Hydrophobia). Every item in the `vampiresneedumbrellas` namespace is treated as an umbrella, detected in either hand or any Curios/Accessories slot. |
 | **Artifacts** | `artifacts` | The Artifacts umbrella (`artifacts:umbrella`) shields the holder from `exposed_to_sun` and `in_rain`, the same as a Vampires Need Umbrellas umbrella. Wired through the `neoorigins:umbrellas` item tag as an optional entry — no dependency, and the entry no-ops when Artifacts is absent. Datapacks can add their own umbrellas to that tag; see [Umbrella items](CONDITIONS.md#umbrella-items). |
 | **Ars Nouveau** | `ars_nouveau` | A player whose `neoorigins:entity_group` power uses a group with `invert_instant_effects` (the undead behaviour) is healed rather than harmed by a spell containing Ars Nouveau's Harm effect, mirroring vanilla undead behaviour. Reflection-based. |
@@ -93,7 +106,7 @@ tail after `run` is excluded, so the selectors ahead of it are still repaired.
 | **Build A Spell** | `buildaspell` | The `neoorigins:cast_spell` action casts an inline Build A Spell spell (`delivery` plus an ordered `components` list) from an origin power. Without Build A Spell installed the action logs a warning and does nothing. Compiled against a checked-in API stub, never bundled. See [ACTIONS.md](ACTIONS.md#neooriginscast_spell). |
 | **GeckoLib** | `geckolib` | The `neoorigins:trigger_morph_animation` action starts or stops a triggerable animation on the morph model a player is drawn as, when that model is a GeckoLib entity. Only animation names the mob's own author registered can be triggered. Reflection-based. See [ACTIONS.md](ACTIONS.md#neooriginstrigger_morph_animation). |
 | **Aliens vs Predator** | (targets `com.alien.common.util.AlienPredicates`) | A player holding a `neoorigins:xeno_passive` power is not a viable facehugger host: an optional mixin makes the mod's host check return false for them. Nothing ships that grants the power; pair it with a `mobs_ignore_player` power for the targeting half. The mixin is skipped when the mod is absent. |
-| **Sable** | `sable` | For a player standing on a Sable sub-level (e.g. a Create Aeronautics airship): `neoorigins:active_teleport` converts its ship-space landing spot to real-world space, and `active_teleport`, `active_swap` and the `teleport_to_marker`, `random_teleport` and `swap_positions` actions detach the moved entities from the deck. Compile-only soft dependency; **1.21.1 only** (the 26.1 and 26.2 builds contain no Sable code). |
+| **Sable** | `sable` | For a player standing on a Sable sub-level (e.g. a Create Aeronautics airship): `neoorigins:active_teleport` converts its ship-space landing spot to real-world space, and `active_teleport`, `active_swap` and the `teleport_to_marker`, `random_teleport` and `swap_positions` actions detach the moved entities from the deck. Compile-only soft dependency; **1.21.1 only** (the 26.1, 26.2 and 26.3 builds contain no Sable code). |
 | **Iron's Spells 'n Spellbooks** | `irons_spellbooks` | Three surfaces: the `neoorigins:cast_iron_spell` action casts an Iron's spell from an origin power; a `neoorigins:resource` power can back its bar with the player's Iron's mana pool (`"backing": "irons_spellbooks:mana"`); and `attribute_modifier` powers can modify Iron's custom attributes (max mana, spell power, cooldown reduction, …). Compile-only soft dependency (never bundled). See the full [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section below. |
 | **Modded attributes** | (any) | `attribute_modifier` powers can target attributes added by other mods (e.g. Iron's Spells, Apothic Attributes). Attribute IDs resolve with or without the `generic.`/`player.` prefix. For Iron's specifically, see the [Iron's Spells 'n Spellbooks](#irons-spells-n-spellbooks) section. |
 | **Figura** | `figura` | Exposes a read-only `neoorigins` Lua global to Figura avatars, so a custom-avatar script can react to the wearer's origin, active powers, capabilities, and evolution tier (e.g. swap models per origin or per tier). Origins declare opaque model keys via the `figura_model` / `figura_models` datapack fields. Compile-only soft dependency; Figura only ever reads NeoOrigins state. Full reference: [FIGURA.md](FIGURA.md). |
@@ -316,10 +329,10 @@ no change on the server or in DS's own config.
 
 What a quest author can use differs by Minecraft version:
 
-| Feature | 1.21.1 | 26.1 | 26.2 |
-|---|---|---|---|
-| "NeoOrigins: Grant Loot Pool" reward type (`neoorigins:loot_pool`) | Yes | No | No |
-| `neoorigins_loot_pool_grant:<table_id>` quest tag | Yes | Yes | No |
+| Feature | 1.21.1 | 26.1 | 26.2 | 26.3 |
+|---|---|---|---|---|
+| "NeoOrigins: Grant Loot Pool" reward type (`neoorigins:loot_pool`) | Yes | No | No | No |
+| `neoorigins_loot_pool_grant:<table_id>` quest tag | Yes | Yes | No | No |
 
 - **1.21.1** registers the reward type at common setup and listens for quest
   completion through FTB Quests' `ObjectCompletedEvent`. Both are wired only
@@ -328,8 +341,8 @@ What a quest author can use differs by Minecraft version:
   FTB Quests 26.1, so no reward type is registered and the quest editor offers
   no NeoOrigins reward. Completion is read from FTB Quests 26.1's
   `FTBQuestsEvent.QuestProgress` (completed quests only).
-- **26.2** has no working FTB Quests support. The build does not compile
-  against FTB Quests, since none exists for 26.2, and keeps only a
+- **26.2** and **26.3** have no working FTB Quests support. Neither build
+  compiles against FTB Quests, since none exists for either, and each keeps only a
   reflection hook for the older `ObjectCompletedEvent`, which FTB Quests' 26.x
   line no longer has. If FTB Quests is installed the hook finds nothing,
   logs that tag-marker rewards are inert, and no reward type exists.
@@ -345,15 +358,15 @@ Not every integration is compiled into every build. "Yes" means the build
 contains the integration's code; the other mod still has to exist for that
 Minecraft version.
 
-| Integration | 1.21.1 | 26.1 | 26.2 |
-|---|---|---|---|
-| Accessories | Yes | No | No |
-| EMI | Yes | No | No |
-| Sable | Yes | No | No |
-| FTB Quests | Reward type and tag marker | Tag marker only | No (see above) |
-| FTB Ultimine | Yes | Yes | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated |
-| KubeJS | Yes | Yes | No: see [KUBEJS.md](KUBEJS.md#availability) |
-| Everything else on this page | Yes | Yes | Yes |
+| Integration | 1.21.1 | 26.1 | 26.2 | 26.3 |
+|---|---|---|---|---|
+| Accessories | Yes | No | No | No |
+| EMI | Yes | No | No | No |
+| Sable | Yes | No | No | No |
+| FTB Quests | Reward type and tag marker | Tag marker only | No (see above) | No (see above) |
+| FTB Ultimine | Yes | Yes | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated | No: the `ultimine` power loads but is an inert marker, and vein-mining is left ungated |
+| KubeJS | Yes | Yes | No: see [KUBEJS.md](KUBEJS.md#availability) | No: see [KUBEJS.md](KUBEJS.md#availability) |
+| Everything else on this page | Yes | Yes | Yes | Yes |
 
 ---
 
@@ -361,7 +374,7 @@ Minecraft version.
 
 | Mod | Mod id | What it adds |
 |---|---|---|
-| **KubeJS** | `kubejs` | A scripting plugin exposing NeoOrigins to KubeJS: register custom powers, actions, and conditions, and hook origin lifecycle events from JS. **Not available on the Minecraft 26.2 build:** KubeJS publishes no 26.2 artifact, so the integration is not compiled in there. See [KUBEJS.md](KUBEJS.md#availability). |
+| **KubeJS** | `kubejs` | A scripting plugin exposing NeoOrigins to KubeJS: register custom powers, actions, and conditions, and hook origin lifecycle events from JS. **Not available on the Minecraft 26.2 or 26.3 builds:** KubeJS publishes no artifact for either, so the integration is not compiled in there. See [KUBEJS.md](KUBEJS.md#availability). |
 | **KeybindJS** | `keybindjs` | Client-side: when KeybindJS is loaded, a key mapping registered outside NeoOrigins under an active power's declared `key` name is used for that power instead of one of NeoOrigins' numbered hotkey slots, so the key is not bound twice. |
 
 ---
@@ -372,7 +385,7 @@ Minecraft version.
 |---|---|---|
 | **JEI** | `jei` | Adds an information panel for the Orb of Origin item. |
 | **REI** | `roughlyenoughitems` | Adds the Orb of Origin to the item list. |
-| **EMI** | `emi` | Adds an information panel for the Orb of Origin item (the same copy as the JEI panel). **1.21.1 only**: the 26.1 and 26.2 builds contain no EMI plugin. |
+| **EMI** | `emi` | Adds an information panel for the Orb of Origin item (the same copy as the JEI panel). **1.21.1 only**: the 26.1, 26.2 and 26.3 builds contain no EMI plugin. |
 
 ---
 

@@ -116,11 +116,28 @@ Adds or multiplies a player attribute while the origin is active. Optionally gat
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `attribute` | Identifier | yes | — | Attribute to modify, e.g. `minecraft:generic.movement_speed` |
-| `amount` | double | yes | — | Amount to add or multiply |
+| `amount` | double | yes | — | Amount to add or multiply. Ignored while `resource` is set, which supplies the value instead, so write `0`. |
+| `resource` | Identifier | no | — | Power id of a `resource` power (native or Apoli-format) whose current value becomes this modifier's value. See below. |
 | `operation` | string | no | `add_value` | `add_value`, `add_multiplied_base`, or `add_multiplied_total` (exact lowercase). Any other string, including Apoli's `addition` / `multiply_base`, is treated as `add_value` without a warning. |
 | `condition` | string or EntityCondition | no | — | Environment gate: `in_water`, `on_land`, or `in_lava`, or any entity condition object. Tick-driven apply/remove. An unknown string logs a warning and the modifier stays on unconditionally. See the note below on what `on_land` counts. |
 | `equipment_condition` | object | no | — | Equipment gate (see below). Tick-driven apply/remove. |
 | `location_condition` | object | no | — | Location gate: dimension / biome / structure (see below). Tick-driven apply/remove. |
+
+**`resource`: an attribute that follows a counter.** With `resource` set, the modifier's value is the current value of that resource power rather than `amount`, re-read every 5 ticks and re-applied whenever it has moved, so the attribute tracks the resource in both directions. This is Apoli's resource-driven modifier, and an imported `origins:modify_attribute` carrying a `resource` lands here. A resource nothing has written yet reads `0`, the same floor the [`resource` condition](CONDITIONS.md#neooriginsresource) compares against, so an attribute gains nothing until the counter starts. Name one resource power: a wildcard selector takes no single value, so it logs once and counts as `0`. The gates above still decide whether the modifier is attached at all; while it is, its value follows the resource.
+
+```json
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.max_health",
+  "amount": 0,
+  "resource": "mypack:soul_count",
+  "operation": "add_value",
+  "name": "Soul Vessel",
+  "description": "Each soul you hold is another half heart."
+}
+```
+
+Apoli can nest further modifiers over the resource value before it reaches the attribute. That is not supported: the attribute tracks the raw value, and the load warns when a pack nests them. To scale a counter, keep the scaled number in the resource itself.
 
 **Operations:**
 - `add_value`: flat addition to base value
@@ -695,6 +712,29 @@ No additional fields beyond `name` and `description`.
 }
 ```
 
+**Making climbing a toggle.** Wall climbing is always on. To put it on a key, the way Origins' Arachnid does, gate it on a hidden [`toggle`](#neooriginstoggle) with a top-level `condition`, and flip that toggle from an `active_ability`. The classic-mode Arachnid is built this way (`classic_arachnid_climbing*.json`), and gates `cobweb_affinity`'s `climb` on the same toggle so web climbing also needs climbing switched on.
+
+```json
+{ "type": "neoorigins:toggle", "hidden": true, "default": true }
+```
+```json
+{
+  "type": "neoorigins:wall_climbing",
+  "hidden": true,
+  "condition": { "type": "neoorigins:power_active", "power": "mypack:climbing_toggle" }
+}
+```
+```json
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "cooldown_icon": "minecraft:cobweb",
+  "entity_action": { "type": "neoorigins:toggle", "power": "mypack:climbing_toggle" },
+  "name": "Climbing",
+  "description": "Press your ability key to turn climbing on or off."
+}
+```
+
 ---
 
 ## `neoorigins:elytra_boost`
@@ -843,7 +883,7 @@ The condition is evaluated on the server, which then tells the client which enti
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes becomes invisible to the holder. Omit it to hide every living entity. Because the subject is an arbitrary entity rather than the holder, only entity-general verbs apply: `entity_type`, `in_tag`, `target_group`, `living`, `on_fire`, `health`, `relative_health`, `status_effect` / `has_effect`, `nbt`, `constant`, and `and` / `or` / `not` over those. A condition using anything else is not refused — the power loads, warns, and hides nothing rather than hiding everything. Takes one condition object, or an array of them, which is read as all of them AND-combined. |
+| `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes becomes invisible to the holder. Omit it to hide every living entity. Because the subject is an arbitrary entity rather than the holder, only entity-general verbs apply: `entity_type`, `in_tag`, `target_group`, `living`, `on_fire`, `health`, `relative_health`, `status_effect` / `has_effect`, `nbt`, `in_block_anywhere`, `equipped_item` (any of the six vanilla slots, reading that entity's own equipment; the `accessory` slot is not general), `constant`, and `and` / `or` / `not` over those. A condition using anything else is not refused — the power loads, warns, and hides nothing rather than hiding everything. Takes one condition object, or an array of them, which is read as all of them AND-combined. |
 
 **Refresh rate and scope.** The hidden set is recomputed every 5 ticks, over the living entities within the server's view distance and no further than 256 blocks. An entity that starts or stops matching therefore appears or disappears up to a quarter of a second later. At most 1024 entities are hidden from one player at a time; past that, the remainder stay visible.
 
@@ -1689,6 +1729,37 @@ Filters are combined with AND: every configured filter must match for the action
 }
 ```
 The bare `apply_effect` runs against the victim: hitting a mob poisons it. To affect yourself instead, wrap it in `actor_action`; to be explicit about targeting the victim, wrap it in `target_action`.
+
+---
+
+## `neoorigins:self_action_on_hit`
+
+Fires when the holder deals damage to a living entity. Apoli compat (Route B), riding the same player-as-attacker seam in `CombatPowerEvents.onLivingDamage` that the native [`action_on_hit`](#neooriginsaction_on_hit) uses; the victim is passed straight through, so a paired action resolves against it instead of silently doing nothing.
+
+`entity_action` runs on the holder. `bientity_action` runs with actor = the holder and target = the entity that was hit. Both may be present: the holder's action runs first.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_action` | object / array | no | — | Action run on the holder |
+| `bientity_action` | object / array | no | — | Action run as (actor = holder, target = the entity hit). A bare verb runs against the target; wrap in `actor_action` / `target_action` to route explicitly. See [ACTIONS.md: bientity actions](ACTIONS.md#caster--target-bientity-actions). |
+| `cooldown` | int | no | `0` | Ticks before the power can fire again. `0` fires on every hit. |
+| `condition` | object / array | no | always | Entity condition on the holder, tested at hit time |
+
+Every spelling lands here: `neoorigins:self_action_on_hit` (recognized since 2.2.6), `origins:` / `apace:` / `apoli:` / `apugli:self_action_on_hit`, and `origins:action_on_hit` / `apace:action_on_hit`. Mind the namespace on that last pair: `neoorigins:action_on_hit` is the *native* type with the filter surface, while `origins:action_on_hit` is Apoli's and loads as this one.
+
+The type carries no `min_damage`, `chance` or victim filters: every hit fires it, subject only to `cooldown` and the holder-side `condition`. For a damage threshold, a chance roll or target-group / target-type gates, write the native [`neoorigins:action_on_hit`](#neooriginsaction_on_hit) instead.
+
+**Example: lifesteal that poisons what you hit**
+```json
+{
+  "type": "neoorigins:self_action_on_hit",
+  "cooldown": 20,
+  "entity_action": { "type": "neoorigins:heal", "amount": 1.0 },
+  "bientity_action": { "type": "neoorigins:apply_effect", "effect": "minecraft:poison", "duration": 60 },
+  "name": "Sanguine Edge",
+  "description": "Your blows draw life and leave venom."
+}
+```
 
 ---
 
@@ -3656,11 +3727,11 @@ Active keybind power that raycasts for the living entity in front of the player 
 
 ## `neoorigins:exhaustion_filter`
 
-Meant to filter out specific vanilla exhaustion sources. It currently has no effect: the power loads, but nothing reads it. Imported `origins-classes:no_sprint_exhaustion` / `no_mining_exhaustion` translate onto this type, so they do nothing either. For sprint hunger use `prevent_action` with `sprint_food`, or `action_on_event` with `mod_exhaustion`.
+Cancels the hunger exhaustion vanilla charges for specific actions, leaving every other source alone. `sprint` is sprinting on the ground, `mining` is breaking a block, `jump` is any jump, and `swim` is swimming, walking underwater or wading. Imported `origins-classes:no_sprint_exhaustion` / `no_mining_exhaustion` translate onto this type. In 2.2.30 and earlier the power loaded but nothing read it, so it did nothing.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `sources` | list of string | no | `["sprint"]` | Exhaustion sources to cancel, e.g. `sprint`, `mining` |
+| `sources` | list of string | no | `["sprint"]` | Exhaustion sources to cancel: `sprint`, `mining`, `jump`, `swim` |
 
 **Example:**
 ```json
@@ -4087,7 +4158,60 @@ NeoOrigins' built-in `neoorigins:tick_action` ships no behaviour at all: it disp
 
 ## `neoorigins:cobweb_affinity`
 
-Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag: `EntityMakeStuckInBlockMixin` reads it to suppress the usual slowdown inside cobwebs, and `MovementPowerEvents.onBreakSpeed` reads it to multiply cobweb break speed by 10×.
+Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag: `EntityMakeStuckInBlockMixin` reads it to suppress the usual slowdown inside cobwebs, and `MovementPowerEvents.onBreakSpeed` reads it to multiply cobweb break speed by 10×. Both act on any block in `#neoorigins:cobwebs` (cobweb and the temporary cobweb). With `climb` on, a block in that same tag that the player is inside also works as a ladder: jump to climb, sneak to hold, on the ground or off it. That is the climbing half of Origins' Arachnid Master of Webs.
+
+All three `cobweb_affinity` behaviours read `#neoorigins:cobwebs`: the slowdown suppression, the 10x break speed and `climb`. The tag ships with `minecraft:cobweb` and the mod's own `neoorigins:temporary_cobweb`, so an Arachnid is not caught by their own web, and a pack that adds its own web to the tag gets all three behaviours rather than climbing alone. A second tag, `#origins:cobwebs`, is read separately by the cobweb passthrough that the compat `origins:prevent_block_selection` power installs (a web stops blocking what you aim at), and it lists `origins:temporary_cobweb` as well, so add a modded web there too for crosshair passthrough.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `climb` | bool | no | `false` | When true, a cobweb the player is inside works as a ladder. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:cobweb_affinity",
+  "climb": true,
+  "name": "Spider Affinity",
+  "description": "Move through, break and climb cobwebs easily."
+}
+```
+
+---
+
+## `neoorigins:entity_glow`
+
+Living entities matching `entity_condition` are drawn with the glowing outline for the holder only, the way a Spectral Arrow outlines its target. Nobody else sees the outline and the entity gets no Glowing effect. Origins' Arachnid uses it to sense creatures caught in cobweb. The selection works exactly like [`prevent_entity_render`](#neooriginsprevent_entity_render): evaluated on the server every 5 ticks over the entities in view distance, and sent to the holder alone. The fields are Apoli's, so imported `origins:entity_glow` powers map straight onto this type.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_condition` | [condition](schema/condition.schema.json) | no | — | Tested against each nearby living entity; every one that passes glows for the holder. Omit it to outline every living entity. Takes the same entity-general verbs as `prevent_entity_render`. |
+| `bientity_condition` | [condition](schema/condition.schema.json) | no | — | Pair condition with the holder as actor and the candidate as target; it must pass too. Pair verbs: `can_see`, `distance` (holder to candidate, Apoli's feet-to-feet measure), `constant`, `target_condition` / `actor_condition`, and `and` / `or` / `not` over those. One using anything else loads, warns and outlines nothing. |
+| `use_teams` | bool | no | `true` | An entity on a coloured team is outlined in its team colour. |
+| `red` | float | no | `1.0` | Outline colour, 0.0 to 1.0, used when the team colour does not apply. |
+| `green` | float | no | `1.0` | As `red`. |
+| `blue` | float | no | `1.0` | As `red`. |
+
+**Example: sense anything stuck in a web that is not a spider**
+```json
+{
+  "type": "neoorigins:entity_glow",
+  "entity_condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      { "type": "neoorigins:in_block_anywhere", "block_condition": { "type": "neoorigins:block", "tag": "neoorigins:cobwebs" } },
+      { "type": "neoorigins:in_tag", "tag": "minecraft:arthropod", "inverted": true }
+    ]
+  },
+  "name": "Web Sense",
+  "description": "Non-arthropods stuck in cobweb glow for you."
+}
+```
+
+---
+
+## `neoorigins:conduit_power_on_land`
+
+An active conduit gives the holder Conduit Power on dry land too. Vanilla only grants it to players in water or rain. The power does not grant the effect on its own: a conduit still has to be built and active within its usual range. Origins' Merling power of the same name.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -4096,9 +4220,50 @@ Spider-like mobility through cobwebs. Emits the `cobweb_affinity` capability tag
 **Example:**
 ```json
 {
-  "type": "neoorigins:cobweb_affinity",
-  "name": "Spider Affinity",
-  "description": "Move and break cobwebs easily."
+  "type": "neoorigins:conduit_power_on_land",
+  "name": "Sea Blessed",
+  "description": "Conduits empower you on land as well as in water."
+}
+```
+
+---
+
+## `neoorigins:like_air`
+
+The player's walking-speed modifiers also apply to their speed while airborne. Vanilla airborne control is a flat 0.02 (0.026 while sprinting) that ignores the movement speed attribute, so speed effects and attribute bonuses do nothing mid-jump. With this power that value goes through every `movement_speed` modifier the player has, in vanilla's order, which includes the sprint modifier. Sprint is therefore counted twice while airborne, once by vanilla's sprinting value and once by the modifier, so a sprinting holder moves about 30% faster in the air than vanilla allows. Origins does the same, and this power keeps it on purpose. Creative and ability flight are not changed. Origins' Avian power of the same name.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| (no fields) | — | — | — | Marker power. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:like_air",
+  "name": "Like Air",
+  "description": "Modifiers to your walking speed also apply while you're airborne."
+}
+```
+
+---
+
+## `neoorigins:projectile_vulnerability`
+
+The holder takes extra damage from the listed projectiles, including ones that normally deal a player no damage at all, such as snowballs and eggs. The bonus is added to the projectile's own damage when it has some, and dealt on its own, credited to the projectile's thrower, when it has none. Origins' Blazeborn takes 3 from snowballs this way.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `projectiles` | list of string | yes | — | Projectile entity ids or `#tags`, e.g. `minecraft:snowball`. |
+| `amount` | float | no | `3.0` | Extra damage per hit. |
+
+**Example:**
+```json
+{
+  "type": "neoorigins:projectile_vulnerability",
+  "projectiles": ["minecraft:snowball"],
+  "amount": 3.0,
+  "name": "Melting Point",
+  "description": "Snowballs hurt you."
 }
 ```
 
@@ -5043,6 +5208,7 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 | `animated` | string | no | — | Id of a bar style (an FX preset), e.g. `"neoorigins:fire"`. When set and the preset is loaded, the bar draws in that style instead of the flat `color` fill. See **Bar styles** below for the built-in ones. |
 | `tint` | string | no | — | Hex color (`#RRGGBB` or `#AARRGGBB`) multiplied over the style's art, so one texture can be recolored per power. Ignored when `animated` is unset. On `neoorigins:tinted`, `color` is used when `tint` is not set. |
 | `tint_end` | string | no | — | Second hex color for a framed style that does not scroll, such as `neoorigins:tinted`: the fill shades from `tint` at the left end of the bar to `tint_end` at the right. With no `tint`, it starts from `color` on `neoorigins:tinted` (or any style whose preset sets `tint_from_color`), and from the untinted art otherwise. Ignored on a scrolling style. When unset, the bar is one flat tint. |
+| `dynamic` | bool | no | `false` | Stack this bar above every bar that does not set it. Dynamic bars form their own group on top of the static group, each group still in resource id order, so a bar that comes and goes never shuffles the fixed bars under it. |
 
 **Bar order and stacking.** Bars stack upwards from the hotbar in **resource id order**: sorted by the power id that owns the bar, lowest id nearest the hotbar. The order does not depend on the order the powers were granted, so a pack can predict where its bar will sit and describe that to a player. Adding a resource inserts its bar at the position its id sorts to, moving the bars above it up one slot.
 
@@ -5433,7 +5599,7 @@ The hook is a global loot modifier, so it has to be switched on by a carrier fil
 
 # KubeJS bridge powers
 
-These two types delegate power behavior to JavaScript handlers registered from a KubeJS `startup_scripts/` file. They only function when KubeJS is on the mod list: the power JSON references a `js_id`, and the script registers the matching handler via the `NeoOrigins.*` bindings. If no handler is registered for the id, the power is inert.
+These two types delegate power behavior to JavaScript handlers registered from a KubeJS script, either a `startup_scripts/` file, whose registrations survive a script reload, or a `server_scripts/` one, which has to re-register on each reload (see [KUBEJS.md](KUBEJS.md#reload-behavior)). They only function when KubeJS is on the mod list: the power JSON references a `js_id`, and the script registers the matching handler via the `NeoOrigins.*` bindings. If no handler is registered for the id, the power is inert.
 
 ## `neoorigins:js_custom`
 
@@ -5489,4 +5655,4 @@ NeoOrigins.registerActivePower('mypack:blink', {
 })
 ```
 
-These types are registered on 1.21.1 and, from 2.2.24, on 26.1. They are absent from the 26.2 build because KubeJS itself has no 26.2 release to build against, and a power file naming an unregistered type is dropped whole at load. See [KUBEJS.md](KUBEJS.md).
+These types are registered on 1.21.1 and, from 2.2.24, on 26.1. They are absent from the 26.2 and 26.3 builds because KubeJS itself has no release for either to build against, and a power file naming an unregistered type is dropped whole at load. See [KUBEJS.md](KUBEJS.md).
