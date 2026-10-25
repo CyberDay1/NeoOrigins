@@ -84,7 +84,7 @@ public class MovementPowerEvents {
      */
     @SubscribeEvent
     public static void onBreakSpeed(net.neoforged.neoforge.event.entity.player.PlayerEvent.BreakSpeed event) {
-        if (!event.getState().is(net.minecraft.world.level.block.Blocks.COBWEB)) return;
+        if (!event.getState().is(com.cyberday1.neoorigins.content.ModTags.COBWEBS)) return;
         var player = event.getEntity();
         boolean hasAffinity;
         if (player.level().isClientSide()) {
