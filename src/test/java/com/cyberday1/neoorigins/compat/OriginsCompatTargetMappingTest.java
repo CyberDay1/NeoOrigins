@@ -252,4 +252,49 @@ class OriginsCompatTargetMappingTest {
         assertEquals("minecraft:the_nether",
             out.getAsJsonObject("location").get("dimension").getAsString());
     }
+
+    /**
+     * Origins' burn_in_daylight is Apoli's BURN(20, 6s) gated on being sun-exposed and
+     * not invisible. The stand-in was a bare {@code condition_passive}: no condition, no
+     * action, nothing happening. Reported from a pack running it with Essential.
+     */
+    @Test
+    void burnInDaylightActuallyBurns() {
+        JsonObject out = wellKnown("origins:burn_in_daylight");
+        assertEquals("neoorigins:burn", out.get("type").getAsString());
+        assertEquals(20, out.get("interval").getAsInt());
+        assertEquals(120, out.get("burn_duration").getAsInt(), "Apoli burns for 6 seconds");
+        assertTrue(out.has("condition"), "an unconditional burn would cook the holder indoors");
+        String condition = out.get("condition").toString();
+        assertTrue(condition.contains("exposed_to_sun"), condition);
+        assertTrue(condition.contains("invisible"), "phantomized players do not burn: " + condition);
+    }
+
+    /** Upstream hotblooded is immunity to poison and hunger; a bare effect_immunity lists none. */
+    @Test
+    void hotbloodedNamesTheEffectsItBlocks() {
+        JsonObject out = wellKnown("origins:hotblooded");
+        assertEquals("neoorigins:effect_immunity", out.get("type").getAsString());
+        assertTrue(out.has("effects"), "effect_immunity with no effect list blocks nothing");
+        String effects = out.getAsJsonArray("effects").toString();
+        assertTrue(effects.contains("minecraft:poison") && effects.contains("minecraft:hunger"), effects);
+    }
+
+    /**
+     * Upstream water_vulnerability is 2 damage a second in water or rain. It has to be
+     * emitted in remapped condition_passive form: `neoorigins:damage_in_water` is a
+     * legacy alias, which the injector cannot resolve, so naming it dropped the
+     * stand-in silently (see WellKnownTargetsResolveTest).
+     */
+    @Test
+    void waterVulnerabilityActuallyHurts() {
+        JsonObject out = wellKnown("origins:water_vulnerability");
+        assertEquals("neoorigins:condition_passive", out.get("type").getAsString());
+        assertEquals(20, out.get("interval").getAsInt());
+        String condition = out.get("condition").toString();
+        assertTrue(condition.contains("in_water") && condition.contains("in_rain"), condition);
+        JsonObject action = out.getAsJsonObject("entity_action");
+        assertEquals("neoorigins:damage", action.get("type").getAsString());
+        assertEquals(2.0, action.get("amount").getAsDouble());
+    }
 }
