@@ -1,3 +1,9 @@
+---
+title: Client Config
+parent: "Guides"
+nav_order: 6
+---
+
 # NeoOrigins Client Config Reference
 
 Per-client (not per-world, not server-controlled) options live in the TOML file

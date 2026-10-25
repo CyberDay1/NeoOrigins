@@ -1,3 +1,9 @@
+---
+title: Content Config
+parent: "Guides"
+nav_order: 7
+---
+
 # NeoOrigins Content Config Reference
 
 Server-controlled content toggles live in the TOML file

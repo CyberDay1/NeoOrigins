@@ -1,3 +1,9 @@
+---
+title: Figura Integration
+parent: "Guides"
+nav_order: 9
+---
+
 # NeoOrigins + Figura Integration
 
 [Figura](https://modrinth.com/mod/figura) is a client-side custom-avatar mod: it
