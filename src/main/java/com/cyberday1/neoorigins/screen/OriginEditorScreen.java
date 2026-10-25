@@ -191,7 +191,7 @@ public class OriginEditorScreen extends Screen {
         // Resource bar scales panel
         g.fill(panelX, barsSplitY, panelX + panelW, panelBottom, 0xFF09091A);
         g.outline(panelX - 1, barsSplitY - 1, panelW + 2, panelBottom - barsSplitY + 2, 0xFF252540);
-        g.text(font, Component.literal("Resource Bar Sizes"),
+        g.text(font, Component.translatable("gui.neoorigins.editor.bar_sizes_header"),
             panelX + PAD, barsSplitY + PAD - 2, 0xFFCCCCDD, false);
 
         drawLayerLabels(g);
