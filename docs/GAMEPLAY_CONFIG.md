@@ -1,3 +1,9 @@
+---
+title: Gameplay Config
+parent: "Guides"
+nav_order: 8
+---
+
 # NeoOrigins Gameplay Config Reference
 
 Player-facing gameplay tuning lives in the TOML file

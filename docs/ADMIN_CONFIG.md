@@ -1,3 +1,9 @@
+---
+title: Admin Config
+parent: "Guides"
+nav_order: 5
+---
+
 # NeoOrigins Admin Config Reference
 
 Server-operator policy knobs live in the TOML file
