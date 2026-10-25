@@ -2658,8 +2658,13 @@
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "amount": {
-          "description": "Numeric value applied to the attribute under the chosen operation; required.",
+          "description": "Numeric value applied to the attribute under the chosen operation; required. Ignored while resource is set, which supplies the value instead.",
           "type": "number"
+        },
+        "resource": {
+          "description": "Power id of a resource whose current value becomes this modifier's value, re-applied every 5 ticks as the resource changes (Apoli's resource-driven modifier). A resource never written reads 0.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "operation": {
           "description": "How amount applies: add_value, add_multiplied_base, or add_multiplied_total.",

@@ -4848,7 +4848,7 @@
   neoorigins:attribute_modifier
     Passive | Shipped powers: 314 | AttributeModifierPower
     Fields: amount, attribute, condition, equipment_condition,
-    location_condition, operation
+    location_condition, operation, resource
     (hand-written parser: the keys it read from an empty object and from 359
     shipped powers; a branch those never reach may read more)
 

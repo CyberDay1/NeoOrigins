@@ -1198,7 +1198,10 @@ public final class BuiltinPowers {
                 .doc("Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required.")
                 .pattern(RESOURCE_LOCATION_PATTERN),
             new FieldSpec("amount", Kind.NUMBER, true)
-                .doc("Numeric value applied to the attribute under the chosen operation; required."),
+                .doc("Numeric value applied to the attribute under the chosen operation; required. Ignored while resource is set, which supplies the value instead."),
+            new FieldSpec("resource", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Power id of a resource whose current value becomes this modifier's value, re-applied every 5 ticks as the resource changes (Apoli's resource-driven modifier). A resource never written reads 0."),
             new FieldSpec("operation", Kind.ENUM, false)
                 .options("add_value", "add_multiplied_base", "add_multiplied_total")
                 .doc("How amount applies: add_value, add_multiplied_base, or add_multiplied_total."),
