@@ -40,6 +40,10 @@
 
 - **`exhaustion_filter` cancels the exhaustion it lists.** The power loaded, but nothing read it, so it never filtered anything, including the imported `origins-classes:no_sprint_exhaustion` and `no_mining_exhaustion`. It now cancels the hunger exhaustion vanilla charges for each listed source: `sprint`, `mining`, `jump` and `swim`. Every other source of exhaustion is left alone.
 
+- **Cobweb affinity now covers the mod's own web, not just vanilla's.** Climbing read the `#neoorigins:cobwebs` tag, but the slowdown suppression and the 10x break speed tested `minecraft:cobweb` directly, so a holder inside `neoorigins:temporary_cobweb`, which that tag has always listed, could climb it and still be slowed by it and still break it at normal speed. All three now read the tag, so a pack that adds its own web to it gets the whole of cobweb affinity rather than climbing alone.
+
+- **Three power descriptions now say what their powers actually do.** The Herbalist's Bountiful Harvest promised 50% more crops, the classic Farmer's promised twice the yield, and the classic Rancher's Twin Births promised a chance of two babies. Each was written from the intent rather than the code: both harvest powers add one extra drop, and twin births fires every time. The Herbalist power also carried a `multiplier` field that `crop_harvest_bonus` has never accepted, so it was being dropped in silence and the power fell back to one extra drop anyway; the dead field is gone. No power's behaviour changes here, only the text that described it.
+
 - **`in_block_anywhere` works in entity conditions.** It was only usable in player conditions. A condition tested against a living entity, such as the `entity_condition` of `entity_glow` or `prevent_entity_render`, can now use it.
 
 ### Pack Author Features
