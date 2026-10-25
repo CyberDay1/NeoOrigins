@@ -1,3 +1,9 @@
+---
+title: Mod Compatibility
+parent: "Guides"
+nav_order: 4
+---
+
 # NeoOrigins Mod Compatibility
 
 NeoOrigins ships with built-in support for a number of other mods. Every

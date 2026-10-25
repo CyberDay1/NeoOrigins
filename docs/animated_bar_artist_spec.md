@@ -1,3 +1,9 @@
+---
+title: Animated Bar Artist Spec
+parent: "Project & Internals"
+nav_order: 2
+---
+
 # NeoOrigins: Resource Bar Art Spec
 
 Spec for artists producing fills for NeoOrigins resource bars (mana, stamina, rage
