@@ -478,13 +478,13 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:arthropod",            () -> json("neoorigins:entity_group", "group", "arthropod")),
             Map.entry("origins:fragile",              () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -6.0, "operation", "add_value")),
             Map.entry("origins:phasing",              () -> json("neoorigins:phantom_form")),
-            Map.entry("origins:burn_in_daylight",     () -> json("neoorigins:condition_passive")),
+            Map.entry("origins:burn_in_daylight",     () -> burnInDaylightJson()),
             Map.entry("origins:damage_from_potions",  () -> json("neoorigins:effect_immunity")),
             Map.entry("origins:more_kinetic_damage",  () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.safe_fall_distance", "amount", -2.0, "operation", "add_value")),
             Map.entry("origins:throw_ender_pearl",    () -> json("neoorigins:active_ability")),
             Map.entry("origins:pumpkin_hate",         () -> json("neoorigins:restrict_armor", "armor_class", "pumpkin")),
-            Map.entry("origins:hotblooded",           () -> json("neoorigins:effect_immunity")),
-            Map.entry("origins:water_vulnerability",  () -> json("neoorigins:condition_passive")),
+            Map.entry("origins:hotblooded",           () -> hotbloodedJson()),
+            Map.entry("origins:water_vulnerability",  () -> waterVulnerabilityJson()),
             Map.entry("origins:flame_particles",      () -> json("neoorigins:particle", "particle", "minecraft:flame")),
             Map.entry("origins:damage_from_snowballs", () -> snowballDamageJson()),
             Map.entry("origins:nether_spawn",         () -> netherSpawnJson())
@@ -554,6 +554,79 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
     private static JsonObject json(String type, String k1, double v1) {
         JsonObject o = json(type); o.addProperty(k1, v1); return o;
+    }
+
+    /**
+     * origins:burn_in_daylight — Apoli's BURN(interval 20, 6s) under "exposed to the
+     * sun and not invisible". A bare condition_passive stood in here, which has no
+     * condition and no action and so did nothing at all. This is the same JSON the
+     * mod's own classic Phantom ships as {@code classic_phantom_photoallergic}.
+     */
+    private static com.google.gson.JsonObject burnInDaylightJson() {
+        com.google.gson.JsonObject o = json("neoorigins:burn");
+        o.addProperty("interval", 20);
+        o.addProperty("burn_duration", 120);
+        com.google.gson.JsonObject inSun = new com.google.gson.JsonObject();
+        inSun.addProperty("type", "neoorigins:exposed_to_sun");
+        com.google.gson.JsonObject invisible = new com.google.gson.JsonObject();
+        invisible.addProperty("type", "neoorigins:invisible");
+        com.google.gson.JsonObject notInvisible = new com.google.gson.JsonObject();
+        notInvisible.addProperty("type", "neoorigins:not");
+        notInvisible.add("condition", invisible);
+        com.google.gson.JsonArray conditions = new com.google.gson.JsonArray();
+        conditions.add(inSun);
+        conditions.add(notInvisible);
+        com.google.gson.JsonObject and = new com.google.gson.JsonObject();
+        and.addProperty("type", "neoorigins:and");
+        and.add("conditions", conditions);
+        o.add("condition", and);
+        return o;
+    }
+
+    /**
+     * origins:water_vulnerability — 2 damage a second in water or rain, as upstream's
+     * damage_over_time configures it. Emitted in already-remapped
+     * {@code condition_passive} form on purpose: {@code neoorigins:damage_in_water} is
+     * a legacy alias, and the alias table is only consulted for powers that arrive as
+     * files, so naming it here resolved to no type at all and the stand-in vanished
+     * without a log line. Same reason as {@link #nightVisionJson()}.
+     */
+    private static com.google.gson.JsonObject waterVulnerabilityJson() {
+        com.google.gson.JsonObject o = json("neoorigins:condition_passive");
+        o.addProperty("interval", 20);
+        com.google.gson.JsonObject inWater = new com.google.gson.JsonObject();
+        inWater.addProperty("type", "neoorigins:in_water");
+        com.google.gson.JsonObject inRain = new com.google.gson.JsonObject();
+        inRain.addProperty("type", "neoorigins:in_rain");
+        com.google.gson.JsonArray any = new com.google.gson.JsonArray();
+        any.add(inWater);
+        any.add(inRain);
+        com.google.gson.JsonObject or = new com.google.gson.JsonObject();
+        or.addProperty("type", "neoorigins:or");
+        or.add("conditions", any);
+        o.add("condition", or);
+        com.google.gson.JsonObject damage = new com.google.gson.JsonObject();
+        damage.addProperty("type", "neoorigins:damage");
+        damage.addProperty("amount", 2.0);
+        com.google.gson.JsonObject source = new com.google.gson.JsonObject();
+        source.addProperty("name", "drown");
+        damage.add("source", source);
+        o.add("entity_action", damage);
+        return o;
+    }
+
+    /**
+     * origins:hotblooded — immunity to poison and hunger, as upstream configures it.
+     * The stand-in was a bare effect_immunity, which lists no effect and so blocks
+     * nothing; the mod's own classic Blazeling ships exactly these two.
+     */
+    private static com.google.gson.JsonObject hotbloodedJson() {
+        com.google.gson.JsonObject o = json("neoorigins:effect_immunity");
+        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
+        effects.add("minecraft:poison");
+        effects.add("minecraft:hunger");
+        o.add("effects", effects);
+        return o;
     }
 
     /** Blazeborn's +3 from snowballs; see OriginsPowerTranslator#projectileVulnerability. */
