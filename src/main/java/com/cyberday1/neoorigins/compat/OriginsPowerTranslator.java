@@ -415,7 +415,7 @@ public final class OriginsPowerTranslator {
     private static Optional<JsonObject> doTranslate(Identifier id, String type, JsonObject src) {
         return switch (type) {
             case "origins:attribute",              "apace:attribute"              -> translateAttribute(src);
-            case "origins:modify_attribute",       "apace:modify_attribute"       -> translateModifyAttribute(src);
+            case "origins:modify_attribute",       "apace:modify_attribute"       -> translateModifyAttribute(id, src);
             case "origins:elytra_flight",          "apace:elytra_flight",
                  "apoli:elytra_flight"                                             -> translateElytraFlight(src);
             case "origins:creative_flight",        "apace:creative_flight"        -> translateSimple("neoorigins:creative_flight");
@@ -1022,13 +1022,13 @@ public final class OriginsPowerTranslator {
      * {@code generic.}/{@code player.} prefix variance across 1.21.1 (prefixed) and 26.1
      * (unprefixed) at runtime, so legacy {@code minecraft:generic.max_health} names work as-is.
      *
-     * <p>Route A limitation: when the modifier carries a {@code resource} key the value is
-     * driven by a runtime resource (e.g. health that tracks a counter). A static
-     * attribute_modifier cannot reproduce that — it applies the declared base {@code value}
-     * only. Such powers load (so their origin is no longer hidden) but the dynamic behaviour
-     * is not replicated; a faithful port would need a resource-aware native attribute power.
+     * <p>A modifier carrying a {@code resource} key takes its value from that resource
+     * power, which is how an Apoli pack makes an attribute track a counter. The key is
+     * carried onto the native type's own {@code resource} field, which follows the value
+     * as it changes. Apoli's nested modifiers over that value are not applied, and the
+     * load warns when a pack uses them.
      */
-    private static Optional<JsonObject> translateModifyAttribute(JsonObject src) {
+    private static Optional<JsonObject> translateModifyAttribute(Identifier id, JsonObject src) {
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:attribute_modifier");
 
@@ -1053,6 +1053,26 @@ public final class OriginsPowerTranslator {
                     + "operation '{}' (clamp/set ops have no vanilla modifier equivalent)",
                     mod.get("operation").getAsString());
                 return Optional.empty();
+            }
+            // Apoli's resource-driven modifier: the value comes from a resource power,
+            // which is how a pack makes an attribute track a counter. The native type
+            // follows a resource now, so carry the key across. These powers normally
+            // declare no amount, or 0, because the resource supplies all of it, and the
+            // native codec still wants an amount, so default it.
+            if (mod.has("resource")) {
+                out.addProperty("resource", mod.get("resource").getAsString());
+                if (!mod.has("value") && !mod.has("amount")) out.addProperty("amount", 0.0);
+                // Apoli can run further modifiers over the resource value before it
+                // reaches the attribute. Nothing here does that, so the attribute
+                // tracks the raw value and a pack scaling it gets the unscaled one.
+                if (mod.has("modifier") || mod.has("modifiers")) {
+                    NeoOrigins.LOGGER.warn(
+                        "OriginsCompat: {} modifies {} from the resource '{}' and nests further "
+                        + "modifiers over that value. The attribute tracks the resource's raw "
+                        + "value; the nested modifiers are not applied.",
+                        id, src.has("attribute") ? src.get("attribute").getAsString() : "an attribute",
+                        mod.get("resource").getAsString());
+                }
             }
             extractModifierFields(mod, out);
         }
