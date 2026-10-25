@@ -35,13 +35,21 @@ public class NeoOriginsKubeJSPlugin implements KubeJSPlugin {
 
     @Override
     public void registerBindings(BindingRegistry registry) {
-        registry.add("NeoOrigins", NeoOriginsBindings.INSTANCE);
+        // The startup context gets the bindings whose registrations survive the
+        // script reload KubeJS runs at world load; nothing re-runs a startup script.
+        registry.add("NeoOrigins", registry.type().isStartup()
+            ? NeoOriginsBindings.STARTUP
+            : NeoOriginsBindings.INSTANCE);
     }
 
     /**
-     * Wipes both registries ahead of a script reload, so re-registration on
-     * {@code StartupEvents.init} produces a clean slate rather than stacking
-     * on top of the handlers the previous load left behind.
+     * Drops what a reloadable script registered ahead of a script reload, so
+     * re-registration produces a clean slate rather than stacking on top of the
+     * handlers the previous load left behind, and keeps what a
+     * {@code startup_scripts/} file registered: this runs for every script type, so
+     * the server reload at world load lands here too, and nothing re-runs a startup
+     * script. Clearing those as well made {@code NeoOrigins.registerPower} from a
+     * startup script a silent no-op.
      *
      * <p>This is the KubeJS 8.x spelling of what the 1.21.1 branch does in
      * {@code KubeJSPlugin.clearCaches()}. 8.x dropped that method; the
@@ -56,7 +64,7 @@ public class NeoOriginsKubeJSPlugin implements KubeJSPlugin {
      */
     @Override
     public void beforeScriptsLoaded(ScriptManager manager) {
-        KubeJSCallbacks.clearAll();
-        JsPowerRegistry.clearAll();
+        KubeJSCallbacks.clearReloadable();
+        JsPowerRegistry.clearReloadable();
     }
 }

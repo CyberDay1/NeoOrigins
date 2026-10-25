@@ -20,6 +20,16 @@ import java.util.function.Consumer;
  * the {@code compat/kubejs} root — this class lives under {@code plugin/}
  * so it's only classloaded when KubeJS is present.
  *
+ * <p>One instance per script context: a registration from {@code startup_scripts/}
+ * has to outlive the script reload that KubeJS runs at world load, since nothing
+ * re-runs a startup script, while a registration from {@code server_scripts/} is
+ * replaced on every reload.
+ *
+ * <p>One instance per script context: a registration from {@code startup_scripts/}
+ * has to outlive the script reload that KubeJS runs at world load, since nothing
+ * re-runs a startup script, while a registration from {@code server_scripts/} is
+ * replaced on every reload.
+ *
  * <p>Example use from a {@code startup_scripts/} file:
  * <pre>{@code
  * NeoOrigins.registerCallback('mypack:shout', player => {
@@ -29,17 +39,24 @@ import java.util.function.Consumer;
  */
 public final class NeoOriginsBindings {
 
-    /** Stable singleton — the binding is added once per script context. */
-    public static final NeoOriginsBindings INSTANCE = new NeoOriginsBindings();
+    /** Bindings for the reloadable contexts (server, client). */
+    public static final NeoOriginsBindings INSTANCE = new NeoOriginsBindings(false);
 
-    private NeoOriginsBindings() {}
+    /** Bindings for the startup context, whose registrations survive a reload. */
+    public static final NeoOriginsBindings STARTUP = new NeoOriginsBindings(true);
+
+    private final boolean fromStartup;
+
+    private NeoOriginsBindings(boolean fromStartup) {
+        this.fromStartup = fromStartup;
+    }
 
     /**
      * Registers a JS callback under the given id. Reference the same id from
      * a {@code neoorigins:kubejs_callback} action in JSON to invoke it.
      */
     public void registerCallback(String id, Consumer<ServerPlayer> callback) {
-        KubeJSCallbacks.register(id, callback);
+        KubeJSCallbacks.register(id, callback, fromStartup);
     }
 
     /** Removes a previously-registered callback. */
@@ -65,7 +82,7 @@ public final class NeoOriginsBindings {
      * onTick) the JS object doesn't supply.
      */
     public void registerPower(String id, JsPassivePower handler) {
-        JsPowerRegistry.registerPassive(id, handler);
+        JsPowerRegistry.registerPassive(id, handler, fromStartup);
     }
 
     /**
@@ -75,7 +92,7 @@ public final class NeoOriginsBindings {
      * onRevoked default to no-ops.
      */
     public void registerActivePower(String id, JsActivePower handler) {
-        JsPowerRegistry.registerActive(id, handler);
+        JsPowerRegistry.registerActive(id, handler, fromStartup);
     }
 
     public boolean hasPower(String id) {

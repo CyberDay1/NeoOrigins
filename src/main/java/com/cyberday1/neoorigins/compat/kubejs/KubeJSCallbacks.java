@@ -17,10 +17,11 @@ import java.util.function.Consumer;
  * identically whether KubeJS is present or not. If KubeJS is absent, the map
  * stays empty and every {@link #invoke} is a no-op.
  *
- * <p>The registry is wiped on every KubeJS script reload (via the plugin's
- * {@code clearCaches()} hook) so stale callbacks never accumulate. Pack
- * authors should re-register on {@code StartupEvents.init} or
- * {@code ServerEvents.loaded}.
+ * <p>What a reloadable script (server, client) registers is wiped on every KubeJS
+ * script reload, via the plugin's {@code clearCaches()} hook, so stale callbacks
+ * never accumulate. What a {@code startup_scripts/} file registers is kept, because
+ * nothing re-runs a startup script: the server reload at world load used to drop
+ * those callbacks and leave the id unresolvable for the rest of the session.
  */
 public final class KubeJSCallbacks {
 
@@ -28,16 +29,26 @@ public final class KubeJSCallbacks {
 
     private static final Map<String, Consumer<ServerPlayer>> REGISTRY = new ConcurrentHashMap<>();
 
+    // Ids registered from startup_scripts/, which a reload must not drop.
+    private static final java.util.Set<String> KEPT = ConcurrentHashMap.newKeySet();
+
     /** Registers a JS callback under the given id. A repeat id overwrites. */
     public static void register(String id, Consumer<ServerPlayer> callback) {
+        register(id, callback, false);
+    }
+
+    /** {@code fromStartup} marks a registration a script reload must not drop. */
+    public static void register(String id, Consumer<ServerPlayer> callback, boolean fromStartup) {
         if (id == null || id.isEmpty() || callback == null) return;
         REGISTRY.put(id, callback);
+        if (fromStartup) KEPT.add(id); else KEPT.remove(id);
     }
 
     /** Unregisters a previously-registered callback. */
     public static void unregister(String id) {
         if (id == null) return;
         REGISTRY.remove(id);
+        KEPT.remove(id);
     }
 
     /** Returns true if a callback is registered under the given id. */
@@ -65,8 +76,17 @@ public final class KubeJSCallbacks {
         }
     }
 
-    /** Wipes every callback. Called from the plugin's clearCaches hook on reload. */
+    /**
+     * Drops what a reloadable script registered and keeps what {@code startup_scripts/}
+     * registered. Called from the plugin's clearCaches hook on every script reload.
+     */
+    public static void clearReloadable() {
+        REGISTRY.keySet().removeIf(id -> !KEPT.contains(id));
+    }
+
+    /** Wipes every callback, startup registrations included. */
     public static void clearAll() {
         REGISTRY.clear();
+        KEPT.clear();
     }
 }
