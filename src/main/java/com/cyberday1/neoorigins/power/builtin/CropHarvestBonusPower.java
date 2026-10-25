@@ -8,7 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 /**
  * Grants bonus drops when the player breaks mature crops or logs.
  * The extra items match the block's own loot table drops.
- * Handled via BlockEvent.BreakEvent in OriginEventHandler.
+ * Handled via BlockEvent.BreakEvent in WorldPowerEvents.
  */
 public class CropHarvestBonusPower extends PowerType<CropHarvestBonusPower.Config> {
 
