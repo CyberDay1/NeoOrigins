@@ -1,4 +1,4 @@
 {
   "type": "neoorigins:crop_harvest_bonus",
-  "multiplier": 1.5
+  "extra_drops": 1
 }

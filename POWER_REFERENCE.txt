@@ -4368,7 +4368,7 @@
 
   Bountiful Harvest (neoorigins:class_herbalist_harvest_bonus)
     Type: neoorigins:crop_harvest_bonus
-    Crops yield 50% more when harvested.
+    Harvesting a fully grown crop drops one extra copy.
 
   Blessed Bone Meal (neoorigins:class_herbalist_green_thumb)
     Type: neoorigins:action_on_event
@@ -4744,7 +4744,7 @@
 
   Bountiful Harvest (neoorigins:classic_farmer_bountiful_harvest)
     Type: neoorigins:crop_harvest_bonus
-    Harvesting fully grown crops gives you twice the yield.
+    Harvesting a fully grown crop drops one extra copy.
 
   Blessed Bone Meal (neoorigins:class_herbalist_green_thumb)
     Type: neoorigins:action_on_event
@@ -4759,7 +4759,7 @@
 
   Twin Births (neoorigins:classic_rancher_twin_births)
     Type: neoorigins:twin_breeding
-    Animals bred by you have a chance to produce two babies.
+    Animals you breed always produce two babies.
 
   Scavenging (neoorigins:classic_rancher_scavenging)
     Type: neoorigins:action_on_event

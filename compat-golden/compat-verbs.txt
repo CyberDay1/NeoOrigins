@@ -289,7 +289,7 @@ neoorigins:cooldown	x1	recognized=condition	fields={power}
 neoorigins:craft_amount_bonus	x1	recognized=-	fields={bonus_count,output_item}
 neoorigins:creative_flight	x2	recognized=-	fields={condition,cooldown_icon,description,name}
 neoorigins:crop_growth_accelerator	x4	recognized=-	fields={description,growths_per_interval,name,radius,tick_interval}
-neoorigins:crop_harvest_bonus	x3	recognized=-	fields={description,extra_drops,multiplier,name}
+neoorigins:crop_harvest_bonus	x3	recognized=-	fields={description,extra_drops,name}
 neoorigins:damage	x39	recognized=action,item_action	fields={amount,damage_type,source,weapon_damage_scale}
 neoorigins:damage_attacker	x5	recognized=action	fields={amount_ratio,source}
 neoorigins:damage_in_water	x11	recognized=-	fields={damage_per_second,description,include_rain,name}
