@@ -39,17 +39,13 @@ public abstract class LivingEntityClimbMixin {
         cir.setReturnValue(true);
     }
 
-    private static final net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block> COBWEBS =
-        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BLOCK,
-            net.minecraft.resources.Identifier.fromNamespaceAndPath("neoorigins", "cobwebs"));
-
     /** True when any block the entity's hitbox overlaps is in {@code #neoorigins:cobwebs}. */
     private static boolean overlapsCobweb(LivingEntity self) {
         var box = self.getBoundingBox().deflate(1.0E-3);
         var min = net.minecraft.core.BlockPos.containing(box.minX, box.minY, box.minZ);
         var max = net.minecraft.core.BlockPos.containing(box.maxX, box.maxY, box.maxZ);
         for (var pos : net.minecraft.core.BlockPos.betweenClosed(min, max)) {
-            if (self.level().getBlockState(pos).is(COBWEBS)) return true;
+            if (self.level().getBlockState(pos).is(com.cyberday1.neoorigins.content.ModTags.COBWEBS)) return true;
         }
         return false;
     }

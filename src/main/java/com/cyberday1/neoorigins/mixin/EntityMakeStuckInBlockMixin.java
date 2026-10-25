@@ -2,7 +2,6 @@ package com.cyberday1.neoorigins.mixin;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,7 +32,7 @@ public abstract class EntityMakeStuckInBlockMixin {
     private void neoorigins$skipStuck(BlockState state, Vec3 multiplier, CallbackInfo ci) {
         Entity self = (Entity) (Object) this;
         if (self instanceof ServerPlayer sp) {
-            boolean cobwebAffinity = state.is(Blocks.COBWEB)
+            boolean cobwebAffinity = state.is(com.cyberday1.neoorigins.content.ModTags.COBWEBS)
                 && com.cyberday1.neoorigins.service.ActiveOriginService
                     .hasCapability(sp, "cobweb_affinity");
             if (cobwebAffinity
