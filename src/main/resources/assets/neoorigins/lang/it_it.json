@@ -58,6 +58,7 @@
   "screen.neoorigins.origin_editor": "Editor dell'origine",
   "gui.neoorigins.editor.layers_header": "Livelli di origine",
   "gui.neoorigins.editor.powers_header": "Attiva/disattiva poteri",
+  "gui.neoorigins.editor.bar_sizes_header": "Dimensioni delle barre delle risorse",
   "gui.neoorigins.editor.change": "Cambia",
   "gui.neoorigins.editor.pick": "Scegli",
   "gui.neoorigins.editor.on": "Attivato",

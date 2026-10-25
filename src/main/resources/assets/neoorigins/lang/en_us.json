@@ -136,6 +136,7 @@
   "screen.neoorigins.origin_editor": "Origin Editor",
   "gui.neoorigins.editor.layers_header": "Origin Layers",
   "gui.neoorigins.editor.powers_header": "Toggle Powers",
+  "gui.neoorigins.editor.bar_sizes_header": "Resource Bar Sizes",
   "gui.neoorigins.editor.change": "Change",
   "gui.neoorigins.editor.pick": "Pick",
   "gui.neoorigins.editor.on": "On",
