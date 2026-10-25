@@ -127,6 +127,8 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`wall_climbing`](POWER_TYPES.md#neooriginswall_climbing) | Scale walls like a spider. |
 | [`walk_on_fluid`](POWER_TYPES.md#neooriginswalk_on_fluid) | Walk on water, lava or both (default both), like a Strider. The surface stops being solid once you are submerged. |
 | [`water_breathing`](POWER_TYPES.md#neooriginswater_breathing) | Never loses air underwater. |
+| [`conduit_power_on_land`](POWER_TYPES.md#neooriginsconduit_power_on_land) | Let an active conduit reach the holder out of water or rain. |
+| [`like_air`](POWER_TYPES.md#neooriginslike_air) | Carry walking-speed modifiers into airborne control, as Origins' Avian does. |
 | [`wraith_phase`](POWER_TYPES.md#neooriginswraith_phase) | Toggleable phasing through solid blocks: jump and sneak for vertical control. `always_on` makes it passive. |
 | [`cobweb_affinity`](POWER_TYPES.md#neooriginscobweb_affinity) | Web mobility + 10× cobweb break speed. |
 | [`burn`](POWER_TYPES.md#neooriginsburn) | Set the player on fire at a configurable interval. |
@@ -139,6 +141,7 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`entity_model`](POWER_TYPES.md#neooriginsentity_model) | Replace the player's model with another entity's: a morph. Changes hitbox and voice with it. |
 | [`invisibility`](POWER_TYPES.md#neooriginsinvisibility) | Turn the player invisible, optionally hiding worn armour too. |
 | [`prevent_entity_render`](POWER_TYPES.md#neooriginsprevent_entity_render) | Hide matching living entities from this player only; they still act and collide. |
+| [`entity_glow`](POWER_TYPES.md#neooriginsentity_glow) | Outline matching living entities for the holder alone, as a Spectral Arrow marks a target. |
 | [`pose`](POWER_TYPES.md#neooriginspose) | Hold the player's body in a chosen pose (prone, sneak height, upright) while the power is on. |
 | [`particle`](POWER_TYPES.md#neooriginsparticle) | Emit vanilla particles on the player at a fixed cadence. Server-side. |
 | [`shader`](POWER_TYPES.md#neooriginsshader) | Post-processing shader on the player's view. |
@@ -172,10 +175,12 @@ Each row jumps to its section in [POWER_TYPES.md](POWER_TYPES.md).
 | [`invulnerability`](POWER_TYPES.md#neooriginsinvulnerability) | Filter damage types the player is immune to. |
 | [`prevent_death`](POWER_TYPES.md#neooriginsprevent_death) | Cancel the lethal blow; condition / damage-type / cooldown gated. |
 | [`projectile_immunity`](POWER_TYPES.md#neooriginsprojectile_immunity) | Filter projectile types the player is immune to. |
+| [`projectile_vulnerability`](POWER_TYPES.md#neooriginsprojectile_vulnerability) | Take extra damage from listed projectiles, even ones that deal none. |
 | [`effect_immunity`](POWER_TYPES.md#neooriginseffect_immunity) | Block specific status effects. |
 | [`dodge_chance`](POWER_TYPES.md#neooriginsdodge_chance) | Percentage chance to dodge incoming damage. |
 | [`no_projectile_divergence`](POWER_TYPES.md#neooriginsno_projectile_divergence) | Perfect accuracy on projectiles the player shoots: no random spread. |
 | [`thorns_on_hit`](POWER_TYPES.md#neooriginsthorns_on_hit) | Passive thorns: attacker takes damage back. |
+| [`self_action_on_hit`](POWER_TYPES.md#neooriginsself_action_on_hit) | Apoli-shaped on-hit hook: an action on the holder, a paired action on the victim. Cooldown-gated. |
 | [`light_level_effect`](POWER_TYPES.md#neooriginslight_level_effect) | Apply effect at/below a light level. |
 | [`low_hp_threshold`](POWER_TYPES.md#neooriginslow_hp_threshold) | Apply effects when HP drops below a threshold. |
 | [`ender_gaze_immunity`](POWER_TYPES.md#neooriginsender_gaze_immunity) | Endermen don't aggro on eye contact. |

@@ -1709,6 +1709,37 @@ The bare `apply_effect` runs against the victim: hitting a mob poisons it. To af
 
 ---
 
+## `neoorigins:self_action_on_hit`
+
+Fires when the holder deals damage to a living entity. Apoli compat (Route B), riding the same player-as-attacker seam in `CombatPowerEvents.onLivingDamage` that the native [`action_on_hit`](#neooriginsaction_on_hit) uses; the victim is passed straight through, so a paired action resolves against it instead of silently doing nothing.
+
+`entity_action` runs on the holder. `bientity_action` runs with actor = the holder and target = the entity that was hit. Both may be present: the holder's action runs first.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `entity_action` | object / array | no | — | Action run on the holder |
+| `bientity_action` | object / array | no | — | Action run as (actor = holder, target = the entity hit). A bare verb runs against the target; wrap in `actor_action` / `target_action` to route explicitly. See [ACTIONS.md: bientity actions](ACTIONS.md#caster--target-bientity-actions). |
+| `cooldown` | int | no | `0` | Ticks before the power can fire again. `0` fires on every hit. |
+| `condition` | object / array | no | always | Entity condition on the holder, tested at hit time |
+
+Every spelling lands here: `neoorigins:self_action_on_hit` (recognized since 2.2.6), `origins:` / `apace:` / `apoli:` / `apugli:self_action_on_hit`, and `origins:action_on_hit` / `apace:action_on_hit`. Mind the namespace on that last pair: `neoorigins:action_on_hit` is the *native* type with the filter surface, while `origins:action_on_hit` is Apoli's and loads as this one.
+
+The type carries no `min_damage`, `chance` or victim filters: every hit fires it, subject only to `cooldown` and the holder-side `condition`. For a damage threshold, a chance roll or target-group / target-type gates, write the native [`neoorigins:action_on_hit`](#neooriginsaction_on_hit) instead.
+
+**Example: lifesteal that poisons what you hit**
+```json
+{
+  "type": "neoorigins:self_action_on_hit",
+  "cooldown": 20,
+  "entity_action": { "type": "neoorigins:heal", "amount": 1.0 },
+  "bientity_action": { "type": "neoorigins:apply_effect", "effect": "minecraft:poison", "duration": 60 },
+  "name": "Sanguine Edge",
+  "description": "Your blows draw life and leave venom."
+}
+```
+
+---
+
 ## `neoorigins:regen_in_fluid`
 
 > **Deprecated in 2.0**: this type is now an alias for `neoorigins:condition_passive`. See [MIGRATION.md](MIGRATION.md).
