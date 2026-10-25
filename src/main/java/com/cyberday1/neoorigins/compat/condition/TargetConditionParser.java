@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 
 /**
@@ -33,6 +34,7 @@ import net.minecraft.world.entity.LivingEntity;
  * {@code type_id} forms, with {@code #tag} support), {@code target_group},
  * {@code living}, {@code on_fire}, {@code health}, {@code relative_health},
  * {@code has_effect}/{@code status_effect}, {@code nbt}, {@code in_block_anywhere},
+ * {@code equipped_item} (the six vanilla slots; {@code accessory} is player-typed),
  * {@code constant}, and the boolean
  * combinators {@code and}/{@code all_of}, {@code or}/{@code any_of}, {@code not}
  * (generalizable only when every child is). The Apoli {@code inverted:true} flag
@@ -67,6 +69,7 @@ public final class TargetConditionParser {
             case "neoorigins:has_effect",
                  "neoorigins:status_effect"     -> parseHasEffect(json);
             case "neoorigins:nbt"               -> parseNbt(json);
+            case "neoorigins:equipped_item"     -> parseEquippedItem(json);
             case "neoorigins:in_block_anywhere" -> {
                 var inBlock = ConditionParser.inBlockAnywhere(json, contextId);
                 yield (t, a) -> inBlock.test(t);
@@ -87,6 +90,65 @@ public final class TargetConditionParser {
             return (t, a) -> !b.test(t, a);
         }
         return base;
+    }
+
+    /**
+     * {@code equipped_item} against an arbitrary target. {@link LivingEntity#getItemBySlot}
+     * answers for any entity, so what a mob or another player is wearing is readable here;
+     * this is what "anyone wearing a carved pumpkin is invisible to you" needs, since the
+     * statement is about the entity being hidden and not about the holder.
+     *
+     * <p>Two cases stay non-generalizable, and return null so the caller keeps its own fail
+     * behaviour. The {@code accessory} slot reads Curios/Accessories through a player-typed
+     * inspector. And a nested {@code item_condition} this package does not understand parses
+     * as always-true, which for a prevention would hide every entity rather than none, so an
+     * unsupported item verb refuses here instead.
+     */
+    private static TargetCondition parseEquippedItem(JsonObject json) {
+        String slot = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
+        if ("accessory".equalsIgnoreCase(slot)) return null;
+        EquipmentSlot eqSlot = ConditionParser.mapEquipmentSlot(slot);
+
+        if (!json.has("item_condition") || !json.get("item_condition").isJsonObject()) {
+            // Apoli: a slot with no item_condition is a presence check.
+            return (t, a) -> !t.getItemBySlot(eqSlot).isEmpty();
+        }
+        JsonObject itemCond = json.getAsJsonObject("item_condition");
+        if (!itemConditionIsSupported(itemCond)) return null;
+        ItemCondition predicate = ItemConditionParser.parse(itemCond);
+        return (t, a) -> predicate.test(t.getItemBySlot(eqSlot));
+    }
+
+    /**
+     * True when {@link ItemConditionParser} really implements this condition, rather than
+     * falling through to its always-true default. Combinators are walked, since one
+     * unknown child is enough to open the whole thing up.
+     */
+    private static boolean itemConditionIsSupported(JsonObject json) {
+        String type = json.has("type") ? json.get("type").getAsString() : "";
+        if (type.isEmpty()) {
+            // The typeless id/tag shorthand Origins also accepts.
+            return json.has("item") || json.has("id") || json.has("tag");
+        }
+        String canonical = type.indexOf(':') < 0
+            ? "neoorigins:" + type
+            : "neoorigins:" + type.substring(type.indexOf(':') + 1);
+        if (!ItemConditionParser.KNOWN_TYPES.contains(canonical)) return false;
+        switch (canonical) {
+            case "neoorigins:and", "neoorigins:all_of", "neoorigins:or", "neoorigins:any_of" -> {
+                for (var el : com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "conditions")) {
+                    if (!el.isJsonObject() || !itemConditionIsSupported(el.getAsJsonObject())) return false;
+                }
+                return true;
+            }
+            case "neoorigins:not" -> {
+                return json.has("condition") && json.get("condition").isJsonObject()
+                    && itemConditionIsSupported(json.getAsJsonObject("condition"));
+            }
+            default -> {
+                return true;
+            }
+        }
     }
 
     /** Canonicalise the {@code type} field to the {@code neoorigins:} namespace. */
