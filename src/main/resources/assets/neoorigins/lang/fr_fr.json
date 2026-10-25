@@ -735,7 +735,7 @@
   "power.neoorigins.class_herbalist_poison_immunity.name": "Remède naturel",
   "power.neoorigins.class_herbalist_poison_immunity.description": "Immunisé contre le poison.",
   "power.neoorigins.class_herbalist_harvest_bonus.name": "Récolte abondante",
-  "power.neoorigins.class_herbalist_harvest_bonus.description": "Les cultures rapportent 50 % de plus à la récolte.",
+  "power.neoorigins.class_herbalist_harvest_bonus.description": "Récolter une culture arrivée à maturité fait tomber un exemplaire de plus.",
   "power.neoorigins.class_herbalist_green_thumb.name": "Poudre d'os bénie",
   "power.neoorigins.class_herbalist_green_thumb.description": "Chaque application de poudre d'os fait pousser un stade supplémentaire.",
   "power.neoorigins.class_herbalist_starting_seeds.name": "Graines de départ",
