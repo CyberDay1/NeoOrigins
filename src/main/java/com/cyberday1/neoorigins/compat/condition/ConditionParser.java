@@ -878,7 +878,8 @@ public final class ConditionParser {
         return count;
     }
 
-    private static EquipmentSlot mapEquipmentSlot(String slot) {
+    /** Package-private: {@link TargetConditionParser} maps the same slot names. */
+    static EquipmentSlot mapEquipmentSlot(String slot) {
         return switch (slot.toLowerCase()) {
             case "head"     -> EquipmentSlot.HEAD;
             case "chest"    -> EquipmentSlot.CHEST;
