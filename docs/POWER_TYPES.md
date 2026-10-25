@@ -122,11 +122,28 @@ Adds or multiplies a player attribute while the origin is active. Optionally gat
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `attribute` | Identifier | yes | — | Attribute to modify, e.g. `minecraft:generic.movement_speed` |
-| `amount` | double | yes | — | Amount to add or multiply |
+| `amount` | double | yes | — | Amount to add or multiply. Ignored while `resource` is set, which supplies the value instead, so write `0`. |
+| `resource` | Identifier | no | — | Power id of a `resource` power (native or Apoli-format) whose current value becomes this modifier's value. See below. |
 | `operation` | string | no | `add_value` | `add_value`, `add_multiplied_base`, or `add_multiplied_total` (exact lowercase). Any other string, including Apoli's `addition` / `multiply_base`, is treated as `add_value` without a warning. |
 | `condition` | string or EntityCondition | no | — | Environment gate: `in_water`, `on_land`, or `in_lava`, or any entity condition object. Tick-driven apply/remove. An unknown string logs a warning and the modifier stays on unconditionally. See the note below on what `on_land` counts. |
 | `equipment_condition` | object | no | — | Equipment gate (see below). Tick-driven apply/remove. |
 | `location_condition` | object | no | — | Location gate: dimension / biome / structure (see below). Tick-driven apply/remove. |
+
+**`resource`: an attribute that follows a counter.** With `resource` set, the modifier's value is the current value of that resource power rather than `amount`, re-read every 5 ticks and re-applied whenever it has moved, so the attribute tracks the resource in both directions. This is Apoli's resource-driven modifier, and an imported `origins:modify_attribute` carrying a `resource` lands here. A resource nothing has written yet reads `0`, the same floor the [`resource` condition](CONDITIONS.md#neooriginsresource) compares against, so an attribute gains nothing until the counter starts. Name one resource power: a wildcard selector takes no single value, so it logs once and counts as `0`. The gates above still decide whether the modifier is attached at all; while it is, its value follows the resource.
+
+```json
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:generic.max_health",
+  "amount": 0,
+  "resource": "mypack:soul_count",
+  "operation": "add_value",
+  "name": "Soul Vessel",
+  "description": "Each soul you hold is another half heart."
+}
+```
+
+Apoli can nest further modifiers over the resource value before it reaches the attribute. That is not supported: the attribute tracks the raw value, and the load warns when a pack nests them. To scale a counter, keep the scaled number in the resource itself.
 
 **Operations:**
 - `add_value`: flat addition to base value
