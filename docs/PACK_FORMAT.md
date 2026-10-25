@@ -43,6 +43,7 @@ documented elsewhere:
 | `neoorigins/morphs/` | Reusable morph definitions for `neoorigins:entity_model` | [POWER_TYPES.md](POWER_TYPES.md#morph-definitions) |
 | `neoorigins/entity_groups/` | Entity groups for `neoorigins:entity_group` | [POWER_TYPES.md](POWER_TYPES.md#neooriginsentity_group) |
 | `global_powers/` | Powers granted to every player regardless of origin | [GLOBAL_POWERS.md](GLOBAL_POWERS.md) |
+| `tags/` | Vanilla-format tags. To extend one of the mod's own, author it under *its* namespace: `data/neoorigins/tags/block/cobwebs.json` adds a block to `#neoorigins:cobwebs` | [POWER_TYPES.md](POWER_TYPES.md#neooriginscobweb_affinity) |
 
 **The original Origins mod layout is also accepted**, so a legacy pack loads without
 being rearranged: `data/<namespace>/origins/`, `powers/` and `origin_layers/` are read
