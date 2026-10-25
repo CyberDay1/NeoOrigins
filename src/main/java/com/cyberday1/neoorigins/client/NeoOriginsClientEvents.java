@@ -207,6 +207,7 @@ public class NeoOriginsClientEvents {
         // Entity ids are per-connection, so a surviving hidden set would blank
         // out unrelated entities in the next world.
         com.cyberday1.neoorigins.client.ClientHiddenEntities.clear();
+        com.cyberday1.neoorigins.client.ClientGlowingEntities.clear();
         // Back to default-on so the next world starts bright until its own
         // sync lands; the persisted per-player value re-arrives at login.
         com.cyberday1.neoorigins.client.ClientNightVisionState.clear();

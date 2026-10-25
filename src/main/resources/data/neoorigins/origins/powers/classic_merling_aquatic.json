@@ -1,0 +1,7 @@
+{
+  "type": "neoorigins:entity_group",
+  "hidden": true,
+  "group": "water",
+  "name": "power.neoorigins.classic_merling_aquatic.name",
+  "description": "power.neoorigins.classic_merling_aquatic.description"
+}

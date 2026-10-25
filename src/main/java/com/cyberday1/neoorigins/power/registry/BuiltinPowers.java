@@ -304,7 +304,11 @@ public final class BuiltinPowers {
         // behavior-neutral. The marker set is exactly SchemaFormCheck
         // .auditPowerFormCoverage's "marker-only" list; each Config is
         // `record Config(String type)` (type is internal plumbing, not a field).
-        define("cobweb_affinity",          CobwebAffinityPower.class,         List.of());
+        define("cobweb_affinity", CobwebAffinityPower.class, List.of(
+            new FieldSpec("climb", Kind.BOOLEAN, false)
+                .def(false).doc("If true, any cobweb the player is inside works as a ladder: jump to climb, sneak to hold (default false).")));
+        define("conduit_power_on_land",    ConduitPowerOnLandPower.class,     List.of());
+        define("like_air",                 LikeAirPower.class,                List.of());
         define("simple",                   SimplePower.class,                 List.of());
         // Marker power: grants FTB Ultimine vein-mining to active holders via the
         // ftbultimine soft-compat bridge. The restriction API exposes no setter for
@@ -478,7 +482,13 @@ public final class BuiltinPowers {
         define("exhaustion_filter", ExhaustionFilterPower.class, List.of(
             new FieldSpec("sources", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
-                .doc("Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).")));
+                .doc("Exhaustion sources to cancel: sprint, mining, jump, swim (default [sprint]).")));
+        define("projectile_vulnerability", ProjectileVulnerabilityPower.class, List.of(
+            new FieldSpec("projectiles", Kind.ARRAY, true)
+                .itemPattern(TOKEN_OR_ID_PATTERN)
+                .doc("Projectile entity ids or #entity-type tags that hurt the holder more, e.g. minecraft:snowball."),
+            new FieldSpec("amount", Kind.NUMBER, false)
+                .def(3.0).doc("Extra damage taken per hit, added even when the projectile normally deals none (default 3.0).")));
         define("extra_inventory", ExtraInventoryPower.class, List.of(
             new FieldSpec("size", Kind.INTEGER, false)
                 .def(9).doc("Slot count, rounded to a multiple of 9 (min 9, max 54; default 9)."),
@@ -1213,7 +1223,10 @@ public final class BuiltinPowers {
                 .doc("Attribute id to modify, e.g. minecraft:generic.movement_speed or minecraft:block_interaction_range / entity_interaction_range for reach; required.")
                 .pattern(RESOURCE_LOCATION_PATTERN),
             new FieldSpec("amount", Kind.NUMBER, true)
-                .doc("Numeric value applied to the attribute under the chosen operation; required."),
+                .doc("Numeric value applied to the attribute under the chosen operation; required. Ignored while resource is set, which supplies the value instead."),
+            new FieldSpec("resource", Kind.STRING, false)
+                .pattern(RESOURCE_LOCATION_PATTERN)
+                .doc("Power id of a resource whose current value becomes this modifier's value, re-applied every 5 ticks as the resource changes (Apoli's resource-driven modifier). A resource never written reads 0."),
             new FieldSpec("operation", Kind.ENUM, false)
                 .options("add_value", "add_multiplied_base", "add_multiplied_total")
                 .doc("How amount applies: add_value, add_multiplied_base, or add_multiplied_total."),
@@ -1940,9 +1953,19 @@ public final class BuiltinPowers {
         // The condition is written in the ordinary Apoli condition vocabulary, so
         // it refs condition.schema.json; what narrows it is the evaluation target
         // (an arbitrary entity, not the holder), which the doc string spells out.
+        define("entity_glow", EntityGlowPower.class, List.of(
+            new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json").boundTo("selection")
+                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition."),
+            new FieldSpec("bientity_condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, distance, constant, target_condition/actor_condition, and and/or/not over those."),
+            new FieldSpec("use_teams", Kind.BOOLEAN, false)
+                .def(true).doc("If true, an entity on a coloured team is outlined in its team colour (default true)."),
+            new FieldSpec("red", Kind.NUMBER, false).def(1.0).doc("Outline red channel, 0.0 to 1.0, used when the team colour does not apply (default 1.0)."),
+            new FieldSpec("green", Kind.NUMBER, false).def(1.0).doc("Outline green channel, 0.0 to 1.0 (default 1.0)."),
+            new FieldSpec("blue", Kind.NUMBER, false).def(1.0).doc("Outline blue channel, 0.0 to 1.0 (default 1.0).")));
         define("prevent_entity_render", PreventEntityRenderPower.class, List.of(
             new FieldSpec("entity_condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.")));
+                .doc("Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, in_block_anywhere, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.")));
 
         // ── neoorigins:resource — registered via nested-object (children) support ─
         // Its Codec reads a NESTED `hud_render` JSON object — { label, color,
@@ -1970,8 +1993,9 @@ public final class BuiltinPowers {
                 new FieldSpec("animated", Kind.STRING, false).boundTo("animated").pattern(RESOURCE_LOCATION_PATTERN).def("").doc("Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill."),
                 new FieldSpec("tint", Kind.STRING, false).boundTo("tint").pattern(HEX_COLOR_PATTERN).def("").doc("Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored; any other value falls back to #55AAFF) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color."),
                 new FieldSpec("tint_end", Kind.STRING, false).boundTo("tintEnd").pattern(HEX_COLOR_PATTERN).def("").doc("Optional second hex color for a style that does not scroll, such as neoorigins:tinted: the fill shades from tint (or color, on neoorigins:tinted) at the left edge of the bar to tint_end at the right. Ignored on a scrolling style. Empty = one flat tint."),
-                new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."))
-                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow components.")));
+                new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."),
+                new FieldSpec("dynamic", Kind.BOOLEAN, false).boundTo("dynamic").def(false).doc("When true, stacks this bar above the non-dynamic ones in the default HUD column."))
+                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic components.")));
 
         // ── neoorigins:variable — an always-hidden integer counter ("local variable") ─
         // Same stored keyspace as resource (keyed by its own power id) so it is

@@ -9,6 +9,8 @@ import com.cyberday1.neoorigins.compat.action.EntityAction;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.service.ActionContextHolder;
+import com.cyberday1.neoorigins.service.EventPowerIndex;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -104,7 +106,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         "origins:target_action_on_hit",  "apace:target_action_on_hit",
         "origins:self_action_on_kill",   "apace:self_action_on_kill",
         "origins:launch",               "apace:launch",
-        "origins:entity_glow",          "apace:entity_glow",
         "origins:self_glow",            "apace:self_glow",
         "origins:prevent_death",        "apace:prevent_death",
         "origins:action_when_hit",      "apace:action_when_hit",
@@ -399,7 +400,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:aquatic",             () -> json("neoorigins:entity_group", "group", "water")),
             Map.entry("origins:water_vision",        () -> waterVisionJson()),
             Map.entry("origins:aqua_affinity",       () -> json("neoorigins:underwater_mining_speed")),
-            Map.entry("origins:conduit_power_on_land", () -> conduitPowerJson()),
+            Map.entry("origins:conduit_power_on_land", () -> json("neoorigins:conduit_power_on_land")),
             Map.entry("origins:air_from_potions",    () -> json("neoorigins:water_breathing")),
             Map.entry("origins:water_breathing",     () -> json("neoorigins:water_breathing")),
             Map.entry("origins:swim_speed",          () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:water_movement_efficiency", "amount", 0.5, "operation", "add_value")),
@@ -435,7 +436,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             Map.entry("origins:strong_arms_break_speed", () -> json("neoorigins:break_speed_modifier", "multiplier", 5.0)),
             Map.entry("origins:natural_armor",        () -> naturalArmorJson()),
             Map.entry("origins:more_exhaustion",      () -> moreExhaustionJson()),
-            Map.entry("origins:master_of_webs",       () -> json("neoorigins:wall_climbing")),
+            // master_of_webs is web movement and web climbing, not climbing every
+            // wall; the bare id can only stand for one power, so it takes the movement.
+            Map.entry("origins:master_of_webs",       () -> json("neoorigins:cobweb_affinity", "climb", true)),
             Map.entry("origins:arthropod",            () -> json("neoorigins:entity_group", "group", "arthropod")),
             Map.entry("origins:fragile",              () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.max_health", "amount", -6.0, "operation", "add_value")),
             // origins:phasing is Apoli's noclip-through-walls (gravity intact,
@@ -444,14 +447,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             // was the wrong target: it let phasing players jump-fly. wraith_phase
             // is the velocity-driven, flight-free noclip purpose-built for this.
             Map.entry("origins:phasing",              () -> json("neoorigins:wraith_phase")),
-            Map.entry("origins:burn_in_daylight",     () -> json("neoorigins:condition_passive")),
+            Map.entry("origins:burn_in_daylight",     () -> burnInDaylightJson()),
             Map.entry("origins:damage_from_potions",  () -> json("neoorigins:effect_immunity")),
             Map.entry("origins:more_kinetic_damage",  () -> json("neoorigins:attribute_modifier", "attribute", "minecraft:generic.safe_fall_distance", "amount", -2.0, "operation", "add_value")),
             Map.entry("origins:throw_ender_pearl",    () -> json("neoorigins:active_ability")),
             Map.entry("origins:pumpkin_hate",         () -> json("neoorigins:restrict_armor", "armor_class", "pumpkin")),
-            Map.entry("origins:hotblooded",           () -> json("neoorigins:effect_immunity")),
-            Map.entry("origins:water_vulnerability",  () -> json("neoorigins:condition_passive")),
+            Map.entry("origins:hotblooded",           () -> hotbloodedJson()),
+            Map.entry("origins:water_vulnerability",  () -> waterVulnerabilityJson()),
             Map.entry("origins:flame_particles",      () -> json("neoorigins:particle", "particle", "minecraft:flame")),
+            Map.entry("origins:damage_from_snowballs", () -> snowballDamageJson()),
             Map.entry("origins:nether_spawn",         () -> netherSpawnJson())
         );
 
@@ -517,6 +521,12 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return o;
     }
 
+    private static com.google.gson.JsonObject json(String type, String k1, boolean v1) {
+        com.google.gson.JsonObject o = json(type);
+        o.addProperty(k1, v1);
+        return o;
+    }
+
     private static com.google.gson.JsonObject json(String type, String k1, double v1) {
         com.google.gson.JsonObject o = json(type);
         o.addProperty(k1, v1);
@@ -537,6 +547,88 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
     }
 
     /**
+     * origins:burn_in_daylight — Apoli's BURN(interval 20, 6s) under "exposed to the
+     * sun and not invisible". A bare condition_passive stood in here, which has no
+     * condition and no action and so did nothing at all. This is the same JSON the
+     * mod's own classic Phantom ships as {@code classic_phantom_photoallergic}.
+     */
+    private static com.google.gson.JsonObject burnInDaylightJson() {
+        com.google.gson.JsonObject o = json("neoorigins:burn");
+        o.addProperty("interval", 20);
+        o.addProperty("burn_duration", 120);
+        com.google.gson.JsonObject inSun = new com.google.gson.JsonObject();
+        inSun.addProperty("type", "neoorigins:exposed_to_sun");
+        com.google.gson.JsonObject invisible = new com.google.gson.JsonObject();
+        invisible.addProperty("type", "neoorigins:invisible");
+        com.google.gson.JsonObject notInvisible = new com.google.gson.JsonObject();
+        notInvisible.addProperty("type", "neoorigins:not");
+        notInvisible.add("condition", invisible);
+        com.google.gson.JsonArray conditions = new com.google.gson.JsonArray();
+        conditions.add(inSun);
+        conditions.add(notInvisible);
+        com.google.gson.JsonObject and = new com.google.gson.JsonObject();
+        and.addProperty("type", "neoorigins:and");
+        and.add("conditions", conditions);
+        o.add("condition", and);
+        return o;
+    }
+
+    /**
+     * origins:water_vulnerability — 2 damage a second in water or rain, as upstream's
+     * damage_over_time configures it. Emitted in already-remapped
+     * {@code condition_passive} form on purpose: {@code neoorigins:damage_in_water} is
+     * a legacy alias, and the alias table is only consulted for powers that arrive as
+     * files, so naming it here resolved to no type at all and the stand-in vanished
+     * without a log line. Same reason as {@link #nightVisionJson()}.
+     */
+    private static com.google.gson.JsonObject waterVulnerabilityJson() {
+        com.google.gson.JsonObject o = json("neoorigins:condition_passive");
+        o.addProperty("interval", 20);
+        com.google.gson.JsonObject inWater = new com.google.gson.JsonObject();
+        inWater.addProperty("type", "neoorigins:in_water");
+        com.google.gson.JsonObject inRain = new com.google.gson.JsonObject();
+        inRain.addProperty("type", "neoorigins:in_rain");
+        com.google.gson.JsonArray any = new com.google.gson.JsonArray();
+        any.add(inWater);
+        any.add(inRain);
+        com.google.gson.JsonObject or = new com.google.gson.JsonObject();
+        or.addProperty("type", "neoorigins:or");
+        or.add("conditions", any);
+        o.add("condition", or);
+        com.google.gson.JsonObject damage = new com.google.gson.JsonObject();
+        damage.addProperty("type", "neoorigins:damage");
+        damage.addProperty("amount", 2.0);
+        com.google.gson.JsonObject source = new com.google.gson.JsonObject();
+        source.addProperty("name", "drown");
+        damage.add("source", source);
+        o.add("entity_action", damage);
+        return o;
+    }
+
+    /**
+     * origins:hotblooded — immunity to poison and hunger, as upstream configures it.
+     * The stand-in was a bare effect_immunity, which lists no effect and so blocks
+     * nothing; the mod's own classic Blazeling ships exactly these two.
+     */
+    private static com.google.gson.JsonObject hotbloodedJson() {
+        com.google.gson.JsonObject o = json("neoorigins:effect_immunity");
+        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
+        effects.add("minecraft:poison");
+        effects.add("minecraft:hunger");
+        o.add("effects", effects);
+        return o;
+    }
+
+    /** Blazeborn's +3 from snowballs; see OriginsPowerTranslator#projectileVulnerability. */
+    private static com.google.gson.JsonObject snowballDamageJson() {
+        com.google.gson.JsonObject o = json("neoorigins:projectile_vulnerability", "amount", 3.0);
+        com.google.gson.JsonArray projectiles = new com.google.gson.JsonArray();
+        projectiles.add("minecraft:snowball");
+        o.add("projectiles", projectiles);
+        return o;
+    }
+
+    /**
      * Generates an Origins-format {@code prevent_sleep} JSON with a height
      * block_condition. Vanilla Origins' fresh_air prevents sleep below Y 86.
      * Uses Origins type so it falls through to Route B's parsePreventSleep.
@@ -550,26 +642,6 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         blockCond.addProperty("comparison", "<");
         blockCond.addProperty("compare_to", 86);
         o.add("block_condition", blockCond);
-        return o;
-    }
-
-    /**
-     * origins:conduit_power_on_land — the conduit effect set granted anywhere.
-     * Mirrors the repo's own merling_ascended_conduit.json.
-     */
-    private static com.google.gson.JsonObject conduitPowerJson() {
-        com.google.gson.JsonObject o = json("neoorigins:persistent_effect");
-        o.addProperty("toggleable", false);
-        o.addProperty("show_particles", false);
-        com.google.gson.JsonArray effects = new com.google.gson.JsonArray();
-        for (String id : new String[] {
-                "minecraft:water_breathing", "minecraft:night_vision", "minecraft:haste" }) {
-            com.google.gson.JsonObject e = new com.google.gson.JsonObject();
-            e.addProperty("effect", id);
-            e.addProperty("amplifier", 0);
-            effects.add(e);
-        }
-        o.add("effects", effects);
         return o;
     }
 
@@ -838,8 +910,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             case "origins:self_action_on_kill",        "apace:self_action_on_kill",
                  "origins:action_on_kill",              "apace:action_on_kill"             -> parseSelfActionOnKill(id, json);
             case "origins:launch",                     "apace:launch"                     -> parseLaunch(id, json);
-            case "origins:entity_glow",                "apace:entity_glow",
-                 "origins:self_glow",                  "apace:self_glow"                  -> parseEntityGlow(id, json);
+            case "origins:self_glow",                  "apace:self_glow"                  -> parseEntityGlow(id, json);
             case "origins:prevent_death",              "apace:prevent_death"              -> parsePreventDeath(id, json);
             case "origins:action_on_land",             "apace:action_on_land"             -> parseActionOnLand(id, json);
             // Phase 5: Event-based powers
@@ -1148,7 +1219,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
             final int barMax = cooldown;
             CompatAttachments.registerResourceMeta(idStr,
                 new CompatAttachments.ResourceMeta(0, barMax, prettyLabel(id), 0xFF55AAFF,
-                    barHidden, barIndex, iconIndex, spriteLocation));
+                    barHidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, true));
             barGranted = player -> {
                 int rem = player.getData(OriginAttachments.originData()).remainingCooldown(idStr, player.tickCount);
                 player.getData(CompatAttachments.resourceState()).set(idStr, inverted ? rem : (barMax - rem));
@@ -1379,6 +1450,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (barTick == null) return base;
         return new CompatPower.Config(
             chain(base.onGranted(), barGranted),
+            // The bar has to be re-seeded and re-synced on login as well, and the
+            // base's own onLogin (if any) keeps a stored value the grant would reset.
+            chain(base.onLogin() != null ? base.onLogin() : base.onGranted(), barGranted),
             chain(base.onRevoked(), barRevoked),
             chain(base.onTick(), barTick),
             base.onActivated(),
@@ -1938,7 +2012,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         label = sb.toString();
 
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation));
+            new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, false));
         // Registered here, not on grant: a reload clears it and does not re-grant online players.
         CompatAttachments.registerResourceBacking(key, backing);
         if (renderCondition != null) {
@@ -1953,6 +2027,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // Backed bars have no internal store to seed; the pool is authoritative.
                 if (!CompatAttachments.isManaBacked(key)) {
                     player.getData(CompatAttachments.resourceState()).set(key, startValue);
+                }
+                CompatAttachments.syncResourcesToClient(player);
+            })
+            .onLogin(player -> {
+                // A relog is not a re-grant: the stored value is the player's
+                // progress (levels, stored energy, a kill count), so seed only when
+                // nothing round-tripped. Without this the whole bar went back to
+                // start_value on every world join, which also made any power reading
+                // it read the floor. Mirrors ResourcePower.onLogin (GitHub #90).
+                if (!CompatAttachments.isManaBacked(key)) {
+                    var state = player.getData(CompatAttachments.resourceState());
+                    if (!state.has(key)) state.set(key, startValue);
                 }
                 CompatAttachments.syncResourcesToClient(player);
             })
@@ -2067,7 +2153,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         String label = sb.toString();
 
         CompatAttachments.registerResourceMeta(key,
-            new CompatAttachments.ResourceMeta(0, cooldown, label, 0xFF55AAFF, hidden, barIndex, iconIndex, spriteLocation));
+            new CompatAttachments.ResourceMeta(0, cooldown, label, 0xFF55AAFF, hidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, true));
         CompatAttachments.registerCooldownDuration(key, cooldown);
         if (renderCondition != null) {
             CompatAttachments.registerResourceRenderCondition(key, renderCondition);
@@ -3327,11 +3413,35 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
 
     private CompatPower.Config parseTargetActionOnHit(ResourceLocation id, JsonObject json) {
         String idStr = id.toString();
-        // [LOSSY] target_action_on_hit fires on kill, not on every hit (no hit event for target entity)
-        EntityAction action = parseActionField(json, "entity_action", idStr);
-        return CompatPower.Config.builder()
-            .onKill(action::execute)
-            .build();
+        // Fires on every hit via onDealDamage (actor=holder, target=victim).
+        // The entity_action runs on the TARGET entity, matching Apoli semantics.
+        // When the target is a player the full EntityAction set runs; for mobs
+        // TargetActionParser provides the generalizable verb subset (effects,
+        // damage, fire, knockback, …) — player-only verbs silently no-op.
+        EntityAction playerAction = parseActionField(json, "entity_action", idStr);
+        com.cyberday1.neoorigins.compat.action.TargetAction mobAction =
+            com.cyberday1.neoorigins.compat.action.TargetActionParser.parse(
+                json.has("entity_action") && json.get("entity_action").isJsonObject()
+                    ? json.getAsJsonObject("entity_action") : null, idStr);
+        EntityCondition condition = parseConditionField(json, "condition", idStr);
+        int cooldown = json.has("cooldown") ? json.get("cooldown").getAsInt() : 0;
+        var builder = CompatPower.Config.builder().cooldownTicks(cooldown);
+        builder.onDealDamage((player, target) -> {
+            if (!condition.test(player)) return;
+            if (cooldown > 0) {
+                PlayerOriginData data = player.getData(OriginAttachments.originData());
+                if (data.isOnCooldown(player, idStr)) return;
+                data.setCooldown(idStr, player.tickCount, cooldown);
+            }
+            if (target instanceof ServerPlayer sp) {
+                Object prev = ActionContextHolder.set(new EventPowerIndex.EntityInteractContext(player));
+                try { playerAction.execute(sp); }
+                finally { ActionContextHolder.restore(prev); }
+            } else if (mobAction != null) {
+                mobAction.execute(target, player);
+            }
+        });
+        return builder.build();
     }
 
     private CompatPower.Config parseSelfActionOnKill(ResourceLocation id, JsonObject json) {

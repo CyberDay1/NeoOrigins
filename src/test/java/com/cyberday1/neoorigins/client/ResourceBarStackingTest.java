@@ -144,4 +144,71 @@ class ResourceBarStackingTest {
         assertArrayEquals(new int[] { 0, NO_SLOT, NO_SLOT, 26 },
             offsets(text("a", Box.PLAIN), tallHidden, tallPlaced, text("d", Box.PLAIN)));
     }
+    // ---- per-bar scale ----
+
+    private static Bar text(String key, Box box, float scale) {
+        return new Bar(key, true, false, box, true, true, scale);
+    }
+
+    @Test
+    void scaledSlotsFollowTheScale() {
+        // PLAIN with text: 9 above, 16 below. At 200% that is 18 and 32.
+        assertArrayEquals(new int[] { 0, 51, 102 },
+            offsets(text("a", Box.PLAIN, 2f), text("b", Box.PLAIN, 2f), text("c", Box.PLAIN, 2f)));
+        // At 50%: 5 above and 8 below (rounded up), so no 26 px gap is left.
+        assertArrayEquals(new int[] { 0, 14, 28 },
+            offsets(text("a", Box.PLAIN, 0.5f), text("b", Box.PLAIN, 0.5f), text("c", Box.PLAIN, 0.5f)));
+    }
+
+    @Test
+    void mixedScalesTakeEachBarsOwnExtent() {
+        // lower 100% top 9 + upper 200% bottom 32 + 1, then lower 200% top 18 + upper 50% bottom 8 + 1
+        assertArrayEquals(new int[] { 0, 42, 69 },
+            offsets(text("a", Box.PLAIN), text("b", Box.PLAIN, 2f), text("c", Box.PLAIN, 0.5f)));
+    }
+
+    @Test
+    void unscaledStrideIsUnchanged() {
+        assertEquals(26, ResourceBarStacking.stride(text("a", Box.PLAIN, 1f), text("b", Box.PLAIN, 1f)));
+        // float noise at a slider step must not add a row
+        assertEquals(11, new Bar("a", true, false, Box.framed(10), false, false, 1.1f).scaledBottom());
+    }
+
+    @Test
+    void scaledBarsWithoutTextScaleTheFloor() {
+        Bar big = new Bar("a", true, false, Box.PLAIN, false, false, 2f);
+        Bar small = new Bar("b", true, false, Box.PLAIN, false, false, 0.5f);
+        assertEquals(32, ResourceBarStacking.stride(big, big));
+        assertEquals(8, ResourceBarStacking.stride(small, small));
+        assertEquals(20, ResourceBarStacking.stride(big, small));
+    }
+
+    @Test
+    void dynamicBarsAboveStaticOnesClearAtAnyScale() {
+        // Static bars first, dynamic ones stacked on top (ClientResourceState order).
+        float[] scales = { 0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f };
+        List<Box> boxes = List.of(Box.PLAIN, Box.SPRITE, Box.ANIMATED, Box.framed(8), Box.framed(12));
+        for (Box lo : boxes) {
+            for (Box hi : boxes) {
+                for (float sl : scales) {
+                    for (float su : scales) {
+                        Bar staticBar = text("static", lo, sl);
+                        Bar dynamicBar = text("dynamic", hi, su);
+                        int[] off = offsets(staticBar, dynamicBar);
+                        // Real drawn extents, unrounded.
+                        double clear = off[1] - dynamicBar.bottom() * (double) su - staticBar.top() * (double) sl;
+                        assertTrue(clear >= ResourceBarStacking.GAP - 1e-3,
+                            lo + "@" + sl + " / " + hi + "@" + su + " clear " + clear);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    void savedPositionIgnoresScale() {
+        Bar placedBig = new Bar("b", true, true, Box.PLAIN, true, true, 2f);
+        assertArrayEquals(new int[] { 0, NO_SLOT, 26 },
+            offsets(text("a", Box.PLAIN), placedBig, text("c", Box.PLAIN)));
+    }
 }

@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "sprint_food",
+  "name": "power.neoorigins.classic_explorer_fit.name",
+  "description": "power.neoorigins.classic_explorer_fit.description"
+}

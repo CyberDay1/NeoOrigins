@@ -183,39 +183,45 @@ public class CompatAttachments {
      */
     public record ResourceMeta(int min, int max, String label, int color, boolean hidden,
                                int barIndex, int iconIndex, String spriteLocation,
-                               String animated, int tint, int tintEnd, boolean alwaysShow) {
+                               String animated, int tint, int tintEnd, boolean alwaysShow,
+                               boolean dynamic) {
         /** Convenience constructor — visible, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color) {
-            this(min, max, label, color, false, -1, -1, null, "", 0, 0, false);
+            this(min, max, label, color, false, -1, -1, null, "", 0, 0, false, false);
         }
         /** Convenience constructor — explicit visibility, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden) {
-            this(min, max, label, color, hidden, -1, -1, null, "", 0, 0, false);
+            this(min, max, label, color, hidden, -1, -1, null, "", 0, 0, false, false);
         }
         /** Convenience constructor — explicit visibility + animated FX preset (native bar). */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             String animated, int tint) {
-            this(min, max, label, color, hidden, -1, -1, null, animated, tint, 0, false);
+            this(min, max, label, color, hidden, -1, -1, null, animated, tint, 0, false, false);
         }
         /** Convenience constructor — native bar with explicit always-render opt-in. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             String animated, int tint, boolean alwaysShow) {
-            this(min, max, label, color, hidden, -1, -1, null, animated, tint, 0, alwaysShow);
+            this(min, max, label, color, hidden, -1, -1, null, animated, tint, 0, alwaysShow, false);
+        }
+        /** Convenience constructor — native bar with always-render + dynamic flag (cooldown/timer bars). */
+        public ResourceMeta(int min, int max, String label, int color, boolean hidden,
+                            String animated, int tint, int tintEnd, boolean alwaysShow, boolean dynamic) {
+            this(min, max, label, color, hidden, -1, -1, null, animated, tint, tintEnd, alwaysShow, dynamic);
         }
         /** Convenience constructor — native bar with a gradient end for the static fill. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             String animated, int tint, int tintEnd, boolean alwaysShow) {
-            this(min, max, label, color, hidden, -1, -1, null, animated, tint, tintEnd, alwaysShow);
+            this(min, max, label, color, hidden, -1, -1, null, animated, tint, tintEnd, alwaysShow, false);
         }
         /** Convenience constructor — Apoli sprite indices against the default sheet. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             int barIndex, int iconIndex) {
-            this(min, max, label, color, hidden, barIndex, iconIndex, null, "", 0, 0, false);
+            this(min, max, label, color, hidden, barIndex, iconIndex, null, "", 0, 0, false, false);
         }
         /** Convenience constructor — Apoli sprite indices against a pack-declared sheet. */
         public ResourceMeta(int min, int max, String label, int color, boolean hidden,
                             int barIndex, int iconIndex, String spriteLocation) {
-            this(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false);
+            this(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, false);
         }
     }
 
@@ -404,7 +410,7 @@ public class CompatAttachments {
                 e.getValue(), meta.min(), meta.max(), meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
                 meta.spriteLocation() == null ? "" : meta.spriteLocation(),
-                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow()));
+                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow(), meta.dynamic()));
         }
         // Externally-backed bars (e.g. irons_spellbooks:mana) have no entry in
         // the ResourceState store — their value lives in the backing pool. Emit
@@ -427,7 +433,7 @@ public class CompatAttachments {
                 val, min, max, meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
                 meta.spriteLocation() == null ? "" : meta.spriteLocation(),
-                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow()));
+                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow(), meta.dynamic()));
         }
         return entries;
     }

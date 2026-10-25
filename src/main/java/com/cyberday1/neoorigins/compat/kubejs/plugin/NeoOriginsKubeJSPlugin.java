@@ -33,14 +33,20 @@ public class NeoOriginsKubeJSPlugin implements KubeJSPlugin {
 
     @Override
     public void registerBindings(BindingRegistry registry) {
-        registry.add("NeoOrigins", NeoOriginsBindings.INSTANCE);
+        // The startup context gets the bindings whose registrations survive the
+        // script reload KubeJS runs at world load; nothing re-runs a startup script.
+        registry.add("NeoOrigins", registry.type().isStartup()
+            ? NeoOriginsBindings.STARTUP
+            : NeoOriginsBindings.INSTANCE);
     }
 
     @Override
     public void clearCaches() {
-        // KubeJS reloads scripts on /kubejs reload — wipe stale handlers so
-        // re-registration on StartupEvents.init produces a clean slate.
-        KubeJSCallbacks.clearAll();
-        JsPowerRegistry.clearAll();
+        // Fired at the top of every script reload, for every script type — so the
+        // server reload at world load lands here too. Drop what a reloadable script
+        // registered, keep what startup_scripts/ did: those scripts are not re-run,
+        // so clearing them made NeoOrigins.registerPower from startup a no-op.
+        KubeJSCallbacks.clearReloadable();
+        JsPowerRegistry.clearReloadable();
     }
 }

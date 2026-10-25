@@ -11,6 +11,10 @@ import java.util.List;
  * above it and the value line below it, so one bar's text never runs into the
  * next bar's. A bar with no text keeps the old fixed 16 px stride.
  *
+ * <p>A bar drawn at a scale (the origin editor's per-bar slider) is scaled
+ * about its anchor, so its rows above and below the anchor scale with it and
+ * its slot grows or shrinks to match.
+ *
  * <p>Deliberately free of Minecraft types so the rule is unit-testable.
  */
 // hub: neoorigins/resource-bar-first-spend.md
@@ -49,13 +53,25 @@ public final class ResourceBarStacking {
     }
 
     public record Bar(String key, boolean drawn, boolean hasSavedPosition,
-                      Box box, boolean label, boolean readout) {
+                      Box box, boolean label, boolean readout, float scale) {
 
-        /** Rows the bar covers above its anchor. */
+        /** An unscaled bar. */
+        public Bar(String key, boolean drawn, boolean hasSavedPosition,
+                   Box box, boolean label, boolean readout) {
+            this(key, drawn, hasSavedPosition, box, label, readout, 1.0f);
+        }
+
+        /** Rows the bar covers above its anchor, at 100%. */
         public int top() { return label ? Math.max(box.above(), LINE) : box.above(); }
 
-        /** Rows the bar covers from its anchor down. */
+        /** Rows the bar covers from its anchor down, at 100%. */
         public int bottom() { return readout ? Math.max(box.below(), box.readoutY() + LINE) : box.below(); }
+
+        /** Screen rows above the anchor at the bar's scale, rounded up. */
+        public int scaledTop() { return scaled(top(), scale); }
+
+        /** Screen rows from the anchor down at the bar's scale, rounded up. */
+        public int scaledBottom() { return scaled(bottom(), scale); }
     }
 
     private ResourceBarStacking() {}
@@ -81,9 +97,19 @@ public final class ResourceBarStacking {
         return offsets;
     }
 
-    /** Distance between two neighbouring anchors: the lower bar's top plus the upper bar's bottom. */
+    /**
+     * Distance between two neighbouring anchors: the lower bar's top plus the
+     * upper bar's bottom, each at its own scale. The 16 px floor scales by the
+     * mean of the two.
+     */
     public static int stride(Bar lower, Bar upper) {
-        return Math.max(MIN_STRIDE, lower.top() + upper.bottom() + GAP);
+        int floor = Math.round(MIN_STRIDE * (lower.scale() + upper.scale()) / 2.0f);
+        return Math.max(floor, lower.scaledTop() + upper.scaledBottom() + GAP);
+    }
+
+    // The epsilon keeps float noise (1.1f * 10 = 11.0000002) from adding a row.
+    private static int scaled(int rows, float scale) {
+        return (int) Math.ceil(rows * (double) scale - 1e-4);
     }
 
     private static boolean stacked(Bar b) {

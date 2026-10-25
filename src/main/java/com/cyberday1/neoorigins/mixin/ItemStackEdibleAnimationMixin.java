@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.mixin;
 
+import com.cyberday1.neoorigins.client.ClientTagEpoch;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.builtin.EdibleItemPower;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -32,8 +33,9 @@ import java.util.Set;
  * {@link ItemStack#getUseDuration} stays at 0 (gated by
  * {@link ItemStackEdibleDurationMixin} on the server side).
  *
- * <p>Cache invalidates when the powers map identity changes (datapack reload)
- * so the iteration cost is paid once per reload rather than per render frame.
+ * <p>Cache is keyed on the power-set version plus the client tag epoch, so
+ * the iteration cost is paid once per reload or tag sync rather than per
+ * render frame (#136: Punchy calls this several times a frame).
  *
  * <p>{@code require = 0} so the mixin no-ops if a future MC version refactors
  * the method.
@@ -41,13 +43,14 @@ import java.util.Set;
 @Mixin(ItemStack.class)
 public abstract class ItemStackEdibleAnimationMixin {
 
-    private static volatile Set<Item> NEOORIGINS$CACHED_EDIBLE_ITEMS = null;
-    private static volatile Map<?, ?> NEOORIGINS$CACHED_FOR_MAP = null;
+    // One volatile pair so a reader never sees a set built for a different key.
+    private static volatile Map.Entry<Long, Set<Item>> NEOORIGINS$CACHE = null;
 
     private static Set<Item> neoorigins$ediblesItems() {
-        Map<?, ?> currentMap = PowerDataManager.INSTANCE.getAllPowers();
-        if (NEOORIGINS$CACHED_EDIBLE_ITEMS != null && NEOORIGINS$CACHED_FOR_MAP == currentMap) {
-            return NEOORIGINS$CACHED_EDIBLE_ITEMS;
+        long key = ((long) PowerDataManager.INSTANCE.version() << 32) | (ClientTagEpoch.get() & 0xFFFFFFFFL);
+        Map.Entry<Long, Set<Item>> cached = NEOORIGINS$CACHE;
+        if (cached != null && cached.getKey() == key) {
+            return cached.getValue();
         }
         Set<Item> items = new HashSet<>();
         for (var holder : PowerDataManager.INSTANCE.getAllPowers().values()) {
@@ -62,8 +65,7 @@ public abstract class ItemStackEdibleAnimationMixin {
                 }
             }
         }
-        NEOORIGINS$CACHED_EDIBLE_ITEMS = items;
-        NEOORIGINS$CACHED_FOR_MAP = currentMap;
+        NEOORIGINS$CACHE = Map.entry(key, items);
         return items;
     }
 

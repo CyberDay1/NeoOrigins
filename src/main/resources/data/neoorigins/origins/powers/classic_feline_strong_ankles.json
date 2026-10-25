@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:jump_strength",
+  "amount": 0.5,
+  "operation": "add_multiplied_base",
+  "condition": {
+    "type": "neoorigins:sprinting"
+  },
+  "name": "power.neoorigins.classic_feline_strong_ankles.name",
+  "description": "power.neoorigins.classic_feline_strong_ankles.description"
+}

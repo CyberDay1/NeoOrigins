@@ -58,6 +58,10 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ItemMagnetismPower>       ITEM_MAGNETISM       = reg("item_magnetism",       new ItemMagnetismPower());
     public static final DeferredHolder<PowerType<?>, HideHudBarPower>          HIDE_HUD_BAR         = reg("hide_hud_bar",         new HideHudBarPower());
     public static final DeferredHolder<PowerType<?>, CobwebAffinityPower>      COBWEB_AFFINITY      = reg("cobweb_affinity",      new CobwebAffinityPower());
+    public static final DeferredHolder<PowerType<?>, ConduitPowerOnLandPower>  CONDUIT_POWER_ON_LAND = reg("conduit_power_on_land", new ConduitPowerOnLandPower());
+    public static final DeferredHolder<PowerType<?>, LikeAirPower>             LIKE_AIR             = reg("like_air",             new LikeAirPower());
+    public static final DeferredHolder<PowerType<?>, EntityGlowPower>          ENTITY_GLOW          = reg("entity_glow",          new EntityGlowPower());
+    public static final DeferredHolder<PowerType<?>, ProjectileVulnerabilityPower> PROJECTILE_VULNERABILITY = reg("projectile_vulnerability", new ProjectileVulnerabilityPower());
     // food_restriction retired in 2.0; aliased to action_on_event.
     public static final DeferredHolder<PowerType<?>, BreakSpeedModifierPower>  BREAK_SPEED_MODIFIER = reg("break_speed_modifier", new BreakSpeedModifierPower());
     public static final DeferredHolder<PowerType<?>, UnderwaterMiningSpeedPower> UNDERWATER_MINING_SPEED = reg("underwater_mining_speed", new UnderwaterMiningSpeedPower());

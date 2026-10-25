@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:particle",
+  "hidden": true,
+  "particle": "minecraft:flame",
+  "frequency": 4,
+  "name": "power.neoorigins.classic_blazeling_flame_particles.name",
+  "description": "power.neoorigins.classic_blazeling_flame_particles.description"
+}

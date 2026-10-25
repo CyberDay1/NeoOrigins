@@ -1,0 +1,9 @@
+{
+  "name": "origins.neoorigins.classic.human.name",
+  "description": "origins.neoorigins.classic.human.description",
+  "icon": "minecraft:apple",
+  "impact": "none",
+  "order": 1,
+  "powers": [],
+  "upgrades": []
+}

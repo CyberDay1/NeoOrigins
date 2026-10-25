@@ -104,6 +104,17 @@ public class ResourceHudOverlay {
                 y = defaultBaseY - offsets[i];
             }
 
+            // Per-bar scale set in the origin editor, anchored at the bar's
+            // top-left corner so the label and readout scale with the bar.
+            float scale = bars.get(i).scale();
+            boolean scaled = scale != 1.0f;
+            if (scaled) {
+                g.pose().pushPose();
+                g.pose().translate(x, y, 0.0f);
+                g.pose().scale(scale, scale, 1.0f);
+                g.pose().translate(-x, -y, 0.0f);
+            }
+
             BarFxManager.BarFx fx = BarFxManager.get(res.animated());
             boolean framed = fx != null && fx.frame() != null;
             // Unframed animated bars use a slightly narrower box than native/Apoli
@@ -148,7 +159,7 @@ public class ResourceHudOverlay {
             }
 
             // Label above bar, value readout below it. The stack measured both
-            // lines (stackBar), so this is where its slot left room for them.
+            // lines at this scale (stackBar), so this is where its slot left room.
             var bar = bars.get(i);
             if (bar.label()) {
                 String label = res.label();
@@ -158,7 +169,23 @@ public class ResourceHudOverlay {
             String readout = res.value() + "/" + res.max();
             int readoutW = mc.font.width(readout);
             g.drawString(mc.font, readout, x + (barW - readoutW) / 2, y + bar.box().readoutY(), LABEL_COLOR, false);
+
+            if (scaled) {
+                g.pose().popPose();
+            }
         }
+    }
+
+    /**
+     * {@code enableScissor} through the current pose: on 1.21.1 it takes raw
+     * screen coordinates, so a bar drawn under a scale would clip unscaled.
+     */
+    private static void scissor(GuiGraphics g, int x0, int y0, int x1, int y1) {
+        org.joml.Matrix4f m = g.pose().last().pose();
+        org.joml.Vector3f a = m.transformPosition(x0, y0, 0.0f, new org.joml.Vector3f());
+        org.joml.Vector3f b = m.transformPosition(x1, y1, 0.0f, new org.joml.Vector3f());
+        g.enableScissor((int) Math.floor(Math.min(a.x, b.x)), (int) Math.floor(Math.min(a.y, b.y)),
+            (int) Math.ceil(Math.max(a.x, b.x)), (int) Math.ceil(Math.max(a.y, b.y)));
     }
 
     /**
@@ -175,7 +202,7 @@ public class ResourceHudOverlay {
         else box = ResourceBarStacking.Box.PLAIN;
         boolean label = res.label() != null && !res.label().isEmpty();
         return new ResourceBarStacking.Bar(key, drawn, ResourceHudPositions.get(key) != null,
-            box, label, true);
+            box, label, true, ResourceHudPositions.getBarScale(key));
     }
 
     /**
@@ -215,7 +242,7 @@ public class ResourceHudOverlay {
             }
 
             // Clip to the filled window AND the box so the wisps stay inside the edges.
-            g.enableScissor(x, top, x + fillW, top + h);
+            scissor(g, x, top, x + fillW, top + h);
             g.setColor(tr, tg, tb, 1f);
             // Tile copies across the filled window; start one tile left of the window
             // so the scroll never reveals a gap at the leading edge.
@@ -275,7 +302,7 @@ public class ResourceHudOverlay {
                 int whole = (int) off;
                 float part = (float) (off - whole);
 
-                g.enableScissor(winX, winY, winX + fillW, winY + winH);
+                scissor(g, winX, winY, winX + fillW, winY + winH);
                 g.pose().pushPose();
                 g.pose().translate(-part, 0.0f, 0.0f);
                 for (int dx = -whole; dx <= fillW; dx += loopW) {

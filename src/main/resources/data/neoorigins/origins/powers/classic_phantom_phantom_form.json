@@ -1,0 +1,25 @@
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "cooldown_icon": "minecraft:phantom_membrane",
+  "condition": {
+    "type": "neoorigins:or",
+    "conditions": [
+      {
+        "type": "neoorigins:power_active",
+        "power": "neoorigins:classic_phantom_form_state"
+      },
+      {
+        "type": "neoorigins:food_level",
+        "comparison": ">",
+        "compare_to": 6
+      }
+    ]
+  },
+  "entity_action": {
+    "type": "neoorigins:toggle",
+    "power": "neoorigins:classic_phantom_form_state"
+  },
+  "name": "power.neoorigins.classic_phantom_phantom_form.name",
+  "description": "power.neoorigins.classic_phantom_phantom_form.description"
+}

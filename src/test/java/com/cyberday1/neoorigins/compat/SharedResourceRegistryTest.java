@@ -197,7 +197,7 @@ class SharedResourceRegistryTest {
         EntityCondition always = p -> true;
         EntityAction none = p -> {};
         var config = new ResourcePower.Config(ENERGY, 0, 80, 80, 0, 20, always, none, none,
-            "Energy", 0xFFAADD33, false, null, 0, 0, false, "neoorigins:resource", "");
+            "Energy", 0xFFAADD33, false, null, 0, 0, false, false, "neoorigins:resource", "");
         return new PowerHolder<>(ResourceLocation.parse(ENERGY), new ResourcePower(), config,
             Component.empty(), Component.empty());
     }
@@ -224,7 +224,7 @@ class SharedResourceRegistryTest {
         EntityCondition always = p -> true;
         EntityAction none = p -> {};
         var config = new ResourcePower.Config(MANA, 0, 100, 0, 0, 20, always, none, none,
-            "Mana", 0xFF55AAFF, false, null, 0, 0, false, "neoorigins:resource", CompatAttachments.BACKING_IRONS_MANA);
+            "Mana", 0xFF55AAFF, false, null, 0, 0, false, false, "neoorigins:resource", CompatAttachments.BACKING_IRONS_MANA);
         return new PowerHolder<>(ResourceLocation.parse(MANA), new ResourcePower(), config,
             Component.empty(), Component.empty());
     }

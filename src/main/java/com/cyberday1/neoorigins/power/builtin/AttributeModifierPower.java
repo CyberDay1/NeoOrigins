@@ -59,6 +59,9 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     public record Config(
         ResourceLocation attribute,
         double amount,
+        // Apoli's resource-driven modifier: the value is read from this resource
+        // power every few ticks instead of staying at `amount`.
+        Optional<String> resource,
         AttributeModifier.Operation operation,
         Optional<EntityCondition> condition,
         Optional<EquipmentCondition> equipmentCondition,
@@ -145,11 +148,15 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
                     ? parseOp(obj.get("operation").getAsString())
                     : AttributeModifier.Operation.ADD_VALUE;
                 String t = obj.has("type") ? obj.get("type").getAsString() : "";
+                Optional<String> resource = obj.has("resource")
+                    && obj.get("resource").isJsonPrimitive()
+                    ? Optional.of(obj.get("resource").getAsString())
+                    : Optional.empty();
                 Optional<EntityCondition> cond = parseCondition(obj.get("condition"), t);
                 Optional<EquipmentCondition> eq = parseEquipment(obj);
                 Optional<LocationCondition> loc = parseLocation(obj);
                 return DataResult.success(Pair.of(
-                    new Config(attr, amount, op, cond, eq, loc, t),
+                    new Config(attr, amount, resource, op, cond, eq, loc, t),
                     ops.empty()));
             }
 
@@ -177,12 +184,69 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
 
     @Override
     public void onTick(ServerPlayer player, Config config) {
-        if (isUnconditional(config)) return;
         if (player.tickCount % 5 != 0) return;
-        boolean shouldBeActive = evaluateAll(player, config);
+        if (config.resource().isEmpty()) {
+            if (isUnconditional(config)) return;
+            boolean shouldBeActive = evaluateAll(player, config);
+            boolean isActive = hasActiveModifier(player, config);
+            if (shouldBeActive && !isActive) applyModifier(player, config, true);
+            else if (!shouldBeActive && isActive) applyModifier(player, config, false);
+            return;
+        }
+        // Resource-driven: the gates still decide whether the modifier is attached,
+        // and an ungated one is simply always attached, but either way the attached
+        // value has to follow the resource rather than stay at whatever it was when
+        // the power was granted.
+        boolean shouldBeActive = isUnconditional(config) || evaluateAll(player, config);
         boolean isActive = hasActiveModifier(player, config);
         if (shouldBeActive && !isActive) applyModifier(player, config, true);
         else if (!shouldBeActive && isActive) applyModifier(player, config, false);
+        else if (shouldBeActive) resyncResourceValue(player, config);
+    }
+
+    /**
+     * Re-attaches the modifier when the resource has moved. A vanilla
+     * {@link AttributeModifier} is immutable, so following a value means removing and
+     * re-adding it under the same id; the id hashes the declared {@code amount}, not
+     * the live one, so it stays stable while the value changes.
+     */
+    private void resyncResourceValue(ServerPlayer player, Config config) {
+        ResolvedAttribute resolved = resolveAttribute(config);
+        if (resolved == null) return;
+        AttributeInstance instance = player.getAttribute(resolved.holder);
+        if (instance == null) return;
+        ResourceLocation modId = modIdFor(resolved.id, config);
+        AttributeModifier current = instance.getModifier(modId);
+        if (current == null) return;
+        double want = amountFor(player, config);
+        if (current.amount() == want) return;
+        instance.removeModifier(modId);
+        instance.addPermanentModifier(new AttributeModifier(modId, want, config.operation()));
+    }
+
+    /**
+     * The value the modifier should carry right now: the resource's current value for
+     * a resource-driven modifier, otherwise the declared {@code amount}.
+     *
+     * <p>A resource that has never been written reads 0, the same floor the
+     * {@code resource} condition compares against, so a power whose counter has not
+     * started yet contributes nothing rather than its declared amount.
+     */
+    private static double amountFor(ServerPlayer player, Config config) {
+        if (config.resource().isEmpty()) return config.amount();
+        String key = config.resource().get();
+        if (com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState.isWildcard(key)) {
+            if (warnOnce(config.attribute(), "wildcard_resource")) {
+                NeoOrigins.LOGGER.warn(
+                    "attribute_modifier on '{}' names the resource '{}', which is a wildcard "
+                    + "selector. An attribute takes one value, so name a single resource power "
+                    + "id. Treating it as 0. Further reports for this attribute are suppressed.",
+                    config.attribute(), key);
+            }
+            return 0.0;
+        }
+        return player.getData(
+            com.cyberday1.neoorigins.compat.CompatAttachments.resourceState()).get(key, 0);
     }
 
     private static boolean isUnconditional(Config config) {
@@ -270,7 +334,8 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         if (add) {
             purgeStaleModifiers(instance, resolved.id, modId);
             if (instance.getModifier(modId) == null) {
-                instance.addPermanentModifier(new AttributeModifier(modId, config.amount(), config.operation()));
+                instance.addPermanentModifier(
+                    new AttributeModifier(modId, amountFor(player, config), config.operation()));
             }
         } else {
             instance.removeModifier(modId);

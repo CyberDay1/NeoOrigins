@@ -269,7 +269,11 @@ public class OriginInfoScreen extends Screen {
         // viewingOwn gates liveProgress, so it must be set before setOrigin()
         // measures the evolution section.
         viewingOwn = tab.viewingOwn();
-        currentVm = OriginDetailViewModel.compute(tab.currentOriginId(), tab.classLayer);
+        // Only the origin the player holds is drawn at their tier: a browsed one
+        // shows its base powers, as the selection screens do.
+        currentVm = viewingOwn
+            ? OriginDetailViewModel.computeForPlayer(tab.currentOriginId(), tab.classLayer)
+            : OriginDetailViewModel.compute(tab.currentOriginId(), tab.classLayer);
         detail.setOrigin(currentVm);
     }
 

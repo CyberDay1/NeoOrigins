@@ -36,6 +36,7 @@
         "apace:conditioned_attribute",
         "apace:conditioned_restrict_armor",
         "apace:conditioned_status_effect",
+        "apace:conduit_power_on_land",
         "apace:cooldown",
         "apace:creative_flight",
         "apace:damage_over_time",
@@ -140,6 +141,7 @@
         "apoli:conditioned_attribute",
         "apoli:conditioned_restrict_armor",
         "apoli:conditioned_status_effect",
+        "apoli:conduit_power_on_land",
         "apoli:cooldown",
         "apoli:creative_flight",
         "apoli:damage_over_time",
@@ -248,6 +250,7 @@
         "apugli:conditioned_attribute",
         "apugli:conditioned_restrict_armor",
         "apugli:conditioned_status_effect",
+        "apugli:conduit_power_on_land",
         "apugli:cooldown",
         "apugli:creative_flight",
         "apugli:damage_over_time",
@@ -364,6 +367,7 @@
         "neoorigins:command_pack",
         "neoorigins:condition_passive",
         "neoorigins:conditional",
+        "neoorigins:conduit_power_on_land",
         "neoorigins:craft_amount_bonus",
         "neoorigins:creative_flight",
         "neoorigins:crop_growth_accelerator",
@@ -380,6 +384,7 @@
         "neoorigins:elytra_flight",
         "neoorigins:ender_gaze_immunity",
         "neoorigins:enhanced_vision",
+        "neoorigins:entity_glow",
         "neoorigins:entity_group",
         "neoorigins:entity_model",
         "neoorigins:entity_set",
@@ -407,6 +412,7 @@
         "neoorigins:lava_vision",
         "neoorigins:less_item_use_slowdown",
         "neoorigins:light_level_effect",
+        "neoorigins:like_air",
         "neoorigins:longer_potions",
         "neoorigins:loot_pool_grant",
         "neoorigins:low_hp_threshold",
@@ -441,6 +447,7 @@
         "neoorigins:prevent_entity_render",
         "neoorigins:prevent_item_damage",
         "neoorigins:projectile_immunity",
+        "neoorigins:projectile_vulnerability",
         "neoorigins:quality_equipment",
         "neoorigins:rare_wandering_loot",
         "neoorigins:regen_in_fluid",
@@ -507,6 +514,7 @@
         "origins:conditioned_attribute",
         "origins:conditioned_restrict_armor",
         "origins:conditioned_status_effect",
+        "origins:conduit_power_on_land",
         "origins:cooldown",
         "origins:creative_flight",
         "origins:damage_over_time",
@@ -2652,8 +2660,13 @@
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "amount": {
-          "description": "Numeric value applied to the attribute under the chosen operation; required.",
+          "description": "Numeric value applied to the attribute under the chosen operation; required. Ignored while resource is set, which supplies the value instead.",
           "type": "number"
+        },
+        "resource": {
+          "description": "Power id of a resource whose current value becomes this modifier's value, re-applied every 5 ticks as the resource changes (Apoli's resource-driven modifier). A resource never written reads 0.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
         },
         "operation": {
           "description": "How amount applies: add_value, add_multiplied_base, or add_multiplied_total.",
@@ -3054,6 +3067,11 @@
       "properties": {
         "type": {
           "const": "neoorigins:cobweb_affinity"
+        },
+        "climb": {
+          "description": "If true, any cobweb the player is inside works as a ladder: jump to climb, sneak to hold (default false).",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -3205,6 +3223,17 @@
       "required": [
         "type",
         "inner_power"
+      ]
+    },
+    {
+      "$comment": "neoorigins:conduit_power_on_land",
+      "properties": {
+        "type": {
+          "const": "neoorigins:conduit_power_on_land"
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -3731,6 +3760,65 @@
       ]
     },
     {
+      "$comment": "neoorigins:entity_glow",
+      "properties": {
+        "type": {
+          "const": "neoorigins:entity_glow"
+        },
+        "entity_condition": {
+          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it is drawn with the glowing outline for the holder only. Omit it to outline every living entity. Takes the same entity-general verbs as prevent_entity_render's entity_condition.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "bientity_condition": {
+          "description": "Optional pair condition with the holder as actor and the candidate entity as target; both conditions must pass. Pair verbs: can_see, distance, constant, target_condition/actor_condition, and and/or/not over those.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "use_teams": {
+          "description": "If true, an entity on a coloured team is outlined in its team colour (default true).",
+          "type": "boolean",
+          "default": true
+        },
+        "red": {
+          "description": "Outline red channel, 0.0 to 1.0, used when the team colour does not apply (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "green": {
+          "description": "Outline green channel, 0.0 to 1.0 (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        },
+        "blue": {
+          "description": "Outline blue channel, 0.0 to 1.0 (default 1.0).",
+          "type": "number",
+          "default": 1.0
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:entity_group",
       "properties": {
         "type": {
@@ -3902,7 +3990,7 @@
           "const": "neoorigins:exhaustion_filter"
         },
         "sources": {
-          "description": "Exhaustion sources to suppress, e.g. sprint, mining (default [sprint]).",
+          "description": "Exhaustion sources to cancel: sprint, mining, jump, swim (default [sprint]).",
           "type": "array",
           "items": {
             "type": "string",
@@ -4652,6 +4740,17 @@
       "required": [
         "type",
         "effect"
+      ]
+    },
+    {
+      "$comment": "neoorigins:like_air",
+      "properties": {
+        "type": {
+          "const": "neoorigins:like_air"
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -5777,7 +5876,7 @@
           "const": "neoorigins:prevent_entity_render"
         },
         "entity_condition": {
-          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.",
+          "description": "Condition evaluated against each nearby LIVING entity: every one that satisfies it becomes invisible to the holder. Only living entities are candidates, so boats, minecarts, item frames, dropped items and projectiles are never hidden. Omit it to hide every living entity. An array is read as its members AND-combined. Because it is tested against an arbitrary entity rather than the holder, only entity-general verbs apply — entity_type, in_tag, target_group, living, on_fire, health, relative_health, status_effect/has_effect, nbt, in_block_anywhere, constant, and and/or/not over those. A condition using any other verb still loads, but warns and hides nothing rather than hiding everything.",
           "oneOf": [
             {
               "$ref": "condition.schema.json"
@@ -5848,6 +5947,31 @@
       },
       "required": [
         "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:projectile_vulnerability",
+      "properties": {
+        "type": {
+          "const": "neoorigins:projectile_vulnerability"
+        },
+        "projectiles": {
+          "description": "Projectile entity ids or #entity-type tags that hurt the holder more, e.g. minecraft:snowball.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^#?[A-Za-z0-9_.:/-]+$"
+          }
+        },
+        "amount": {
+          "description": "Extra damage taken per hit, added even when the projectile normally deals none (default 3.0).",
+          "type": "number",
+          "default": 3.0
+        }
+      },
+      "required": [
+        "type",
+        "projectiles"
       ]
     },
     {
@@ -6125,7 +6249,7 @@
           "default": ""
         },
         "hud_render": {
-          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow components.",
+          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic components.",
           "type": "object",
           "properties": {
             "label": {
@@ -6164,6 +6288,11 @@
             },
             "always_render": {
               "description": "When true, keeps the bar on-screen even at full value (the HUD hides full bars by default).",
+              "type": "boolean",
+              "default": false
+            },
+            "dynamic": {
+              "description": "When true, stacks this bar above the non-dynamic ones in the default HUD column.",
               "type": "boolean",
               "default": false
             }
@@ -7731,6 +7860,7 @@
               "neoorigins:command_pack",
               "neoorigins:condition_passive",
               "neoorigins:conditional",
+              "neoorigins:conduit_power_on_land",
               "neoorigins:craft_amount_bonus",
               "neoorigins:creative_flight",
               "neoorigins:crop_growth_accelerator",
@@ -7747,6 +7877,7 @@
               "neoorigins:elytra_flight",
               "neoorigins:ender_gaze_immunity",
               "neoorigins:enhanced_vision",
+              "neoorigins:entity_glow",
               "neoorigins:entity_group",
               "neoorigins:entity_model",
               "neoorigins:entity_set",
@@ -7774,6 +7905,7 @@
               "neoorigins:lava_vision",
               "neoorigins:less_item_use_slowdown",
               "neoorigins:light_level_effect",
+              "neoorigins:like_air",
               "neoorigins:longer_potions",
               "neoorigins:loot_pool_grant",
               "neoorigins:low_hp_threshold",
@@ -7807,6 +7939,7 @@
               "neoorigins:prevent_entity_render",
               "neoorigins:prevent_item_damage",
               "neoorigins:projectile_immunity",
+              "neoorigins:projectile_vulnerability",
               "neoorigins:quality_equipment",
               "neoorigins:rare_wandering_loot",
               "neoorigins:regen_in_fluid",

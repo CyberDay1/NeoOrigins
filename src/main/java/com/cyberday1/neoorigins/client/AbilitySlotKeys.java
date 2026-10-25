@@ -7,6 +7,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,10 +50,24 @@ public final class AbilitySlotKeys {
      * one-origin-plus-class setup this matches the live roster exactly.
      */
     public static Map<ResourceLocation, Integer> assignSlots(Origin origin, boolean classLayer) {
+        return assignSlots(origin, classLayer, 0);
+    }
+
+    /**
+     * Tier-aware overload: uses {@link Origin#powersForTier(int)} so tier-granted
+     * active abilities (e.g. Sword Immortal's Heavenly Sword Formation at tier 2)
+     * receive a slot and display their keybind in the origin info screen. The
+     * no-tier overload defaults to tier 0 (base powers only) for callers that
+     * don't have the player's evolution state.
+     */
+    public static Map<ResourceLocation, Integer> assignSlots(Origin origin, boolean classLayer, int evolutionTier) {
         Map<ResourceLocation, Integer> out = new LinkedHashMap<>();
         if (origin == null) return out;
+        List<ResourceLocation> effectivePowers = classLayer
+            ? origin.powers()
+            : origin.powersForTier(evolutionTier);
         int slot = 0;
-        for (ResourceLocation powerId : origin.powers()) {
+        for (ResourceLocation powerId : effectivePowers) {
             if (!isPowerActive(powerId)) continue;
             if (classLayer) {
                 out.put(powerId, CLASS_SLOT);

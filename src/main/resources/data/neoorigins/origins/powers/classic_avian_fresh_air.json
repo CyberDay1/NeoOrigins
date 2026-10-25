@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:prevent_action",
+  "action": "sleep",
+  "condition": {
+    "type": "neoorigins:height",
+    "comparison": "<",
+    "compare_to": 86
+  },
+  "name": "power.neoorigins.classic_avian_fresh_air.name",
+  "description": "power.neoorigins.classic_avian_fresh_air.description"
+}

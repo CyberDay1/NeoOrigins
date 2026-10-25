@@ -43,7 +43,6 @@ public final class OriginsPowerTranslator {
         "origins:target_action_on_hit",  "apace:target_action_on_hit",
         "origins:self_action_on_kill",   "apace:self_action_on_kill",
         "origins:launch",               "apace:launch",
-        "origins:entity_glow",          "apace:entity_glow",
         "origins:self_glow",            "apace:self_glow",
         // prevent_death is now Route A (translatePreventDeath); it falls back
         // to Route B only when a damage_condition is present (see that method).
@@ -170,7 +169,7 @@ public final class OriginsPowerTranslator {
         Map.entry("origins:aquatic",            () -> simpleType("neoorigins:entity_group", "group", "water")),
         Map.entry("origins:water_vision",       () -> waterVisionJson()),
         Map.entry("origins:aqua_affinity",      () -> simpleType("neoorigins:underwater_mining_speed")),
-        Map.entry("origins:conduit_power_on_land", () -> conduitPowerJson()),
+        Map.entry("origins:conduit_power_on_land", () -> simpleType("neoorigins:conduit_power_on_land")),
         Map.entry("origins:air_from_potions",   () -> simpleType("neoorigins:water_breathing"))
     );
 
@@ -196,27 +195,6 @@ public final class OriginsPowerTranslator {
         cond.addProperty("type", "neoorigins:submerged_in");
         cond.addProperty("fluid", "minecraft:water");
         out.add("condition", cond);
-        return out;
-    }
-
-    /**
-     * Upstream {@code origins:conduit_power_on_land} grants the conduit effect set
-     * anywhere. Mirrors the repo's own {@code merling_ascended_conduit.json}.
-     */
-    private static JsonObject conduitPowerJson() {
-        JsonObject out = new JsonObject();
-        out.addProperty("type", "neoorigins:persistent_effect");
-        out.addProperty("toggleable", false);
-        out.addProperty("show_particles", false);
-        JsonArray effects = new JsonArray();
-        for (String id : new String[] {
-                "minecraft:water_breathing", "minecraft:night_vision", "minecraft:haste" }) {
-            JsonObject e = new JsonObject();
-            e.addProperty("effect", id);
-            e.addProperty("amplifier", 0);
-            effects.add(e);
-        }
-        out.add("effects", effects);
         return out;
     }
 
@@ -412,12 +390,14 @@ public final class OriginsPowerTranslator {
         "origins:exhaust", "apace:exhaust",
         "origins:starting_equipment", "apace:starting_equipment",
         "origins:walk_on_fluid", "apace:walk_on_fluid",
-        "origins:inventory", "apace:inventory");
+        "origins:inventory", "apace:inventory",
+        "origins:entity_glow", "apace:entity_glow",
+        "origins:conduit_power_on_land", "apace:conduit_power_on_land");
 
     private static Optional<JsonObject> doTranslate(ResourceLocation id, String type, JsonObject src) {
         return switch (type) {
             case "origins:attribute",              "apace:attribute"              -> translateAttribute(src);
-            case "origins:modify_attribute",       "apace:modify_attribute"       -> translateModifyAttribute(src);
+            case "origins:modify_attribute",       "apace:modify_attribute"       -> translateModifyAttribute(id, src);
             case "origins:elytra_flight",          "apace:elytra_flight",
                  "apoli:elytra_flight"                                             -> translateElytraFlight(src);
             case "origins:creative_flight",        "apace:creative_flight"        -> translateSimple("neoorigins:creative_flight");
@@ -426,7 +406,7 @@ public final class OriginsPowerTranslator {
             case "origins:stacking_status_effect", "apace:stacking_status_effect" -> translateStackingStatusEffect(src);
             case "origins:status_effect",          "apace:status_effect"          -> translateStatusEffect(src);
             case "origins:effect_immunity",        "apace:effect_immunity"        -> translateEffectImmunity(src);
-            case "origins:modify_damage_taken"                                    -> translateModifyDamage(src, "in");
+            case "origins:modify_damage_taken"                                    -> translateModifyDamageTaken(src);
             case "origins:modify_damage_dealt"                                    -> translateModifyDamage(src, "out");
             case "origins:invulnerability"                                        -> translateInvulnerability(src);
             case "origins:prevent_death",          "apace:prevent_death"          -> translatePreventDeath(src);
@@ -488,6 +468,8 @@ public final class OriginsPowerTranslator {
             case "origins:starting_equipment",      "apace:starting_equipment"      -> translateStartingEquipment(id, src);
             case "origins:walk_on_fluid",           "apace:walk_on_fluid"           -> translateWalkOnFluid(src);
             case "origins:inventory",              "apace:inventory"              -> translateInventory(src);
+            case "origins:entity_glow",            "apace:entity_glow"            -> translateEntityGlow(src);
+            case "origins:conduit_power_on_land",  "apace:conduit_power_on_land"  -> translateSimple("neoorigins:conduit_power_on_land");
             default -> {
                 CompatTranslationLog.skip(id, type, "no Route A translation for this type");
                 yield Optional.empty();
@@ -496,6 +478,19 @@ public final class OriginsPowerTranslator {
     }
 
     // ---- Helpers ----
+
+    /**
+     * {@code origins:entity_glow}: matching entities glow for the holder only.
+     * The native type reads Apoli's fields as they are (entity_condition,
+     * bientity_condition, use_teams, red, green, blue), and its condition readers
+     * accept the origins:/apoli: verb spellings, so only the type changes. It was
+     * once routed to a Route B handler that put Glowing on the holder instead.
+     */
+    private static Optional<JsonObject> translateEntityGlow(JsonObject src) {
+        JsonObject out = src.deepCopy();
+        out.addProperty("type", "neoorigins:entity_glow");
+        return Optional.of(out);
+    }
 
     private static Optional<JsonObject> translateSimple(String neoType) {
         JsonObject out = new JsonObject();
@@ -1009,13 +1004,13 @@ public final class OriginsPowerTranslator {
      * {@code generic.}/{@code player.} prefix variance across 1.21.1 (prefixed) and 26.1
      * (unprefixed) at runtime, so legacy {@code minecraft:generic.max_health} names work as-is.
      *
-     * <p>Route A limitation: when the modifier carries a {@code resource} key the value is
-     * driven by a runtime resource (e.g. health that tracks a counter). A static
-     * attribute_modifier cannot reproduce that — it applies the declared base {@code value}
-     * only. Such powers load (so their origin is no longer hidden) but the dynamic behaviour
-     * is not replicated; a faithful port would need a resource-aware native attribute power.
+     * <p>A modifier carrying a {@code resource} key takes its value from that resource
+     * power, which is how an Apoli pack makes an attribute track a counter. The key is
+     * carried onto the native type's own {@code resource} field, which follows the value
+     * as it changes. Apoli's nested modifiers over that value are not applied, and the
+     * load warns when a pack uses them.
      */
-    private static Optional<JsonObject> translateModifyAttribute(JsonObject src) {
+    private static Optional<JsonObject> translateModifyAttribute(ResourceLocation id, JsonObject src) {
         JsonObject out = new JsonObject();
         out.addProperty("type", "neoorigins:attribute_modifier");
 
@@ -1040,6 +1035,26 @@ public final class OriginsPowerTranslator {
                     + "operation '{}' (clamp/set ops have no vanilla modifier equivalent)",
                     mod.get("operation").getAsString());
                 return Optional.empty();
+            }
+            // Apoli's resource-driven modifier: the value comes from a resource power,
+            // which is how a pack makes an attribute track a counter. The native type
+            // follows a resource now, so carry the key across. These powers normally
+            // declare no amount, or 0, because the resource supplies all of it, and the
+            // native codec still wants an amount, so default it.
+            if (mod.has("resource")) {
+                out.addProperty("resource", mod.get("resource").getAsString());
+                if (!mod.has("value") && !mod.has("amount")) out.addProperty("amount", 0.0);
+                // Apoli can run further modifiers over the resource value before it
+                // reaches the attribute. Nothing here does that, so the attribute
+                // tracks the raw value and a pack scaling it gets the unscaled one.
+                if (mod.has("modifier") || mod.has("modifiers")) {
+                    NeoOrigins.LOGGER.warn(
+                        "OriginsCompat: {} modifies {} from the resource '{}' and nests further "
+                        + "modifiers over that value. The attribute tracks the resource's raw "
+                        + "value; the nested modifiers are not applied.",
+                        id, src.has("attribute") ? src.get("attribute").getAsString() : "an attribute",
+                        mod.get("resource").getAsString());
+                }
             }
             extractModifierFields(mod, out);
         }
@@ -1239,6 +1254,65 @@ public final class OriginsPowerTranslator {
     private static String canonicalizeEffectId(String raw) {
         if (raw == null || raw.isEmpty() || raw.contains(":")) return raw;
         return "minecraft:" + raw;
+    }
+
+    /**
+     * {@code modify_damage_taken} with a lone projectile-type damage_condition and
+     * a flat add (Blazeborn's damage_from_snowballs) goes to the native
+     * {@code projectile_vulnerability}: a snowball hit deals 0, so no damage event
+     * fires for {@code modify_damage} to change. Every other shape is unchanged.
+     */
+    private static Optional<JsonObject> translateModifyDamageTaken(JsonObject src) {
+        Optional<JsonObject> projectile = projectileVulnerability(src);
+        return projectile.isPresent() ? projectile : translateModifyDamage(src, "in");
+    }
+
+    static Optional<JsonObject> projectileVulnerability(JsonObject src) {
+        if (src.has("condition") || src.has("target_condition")) return Optional.empty();
+        for (String key : new String[] {"bientity_condition", "apply_armor_condition",
+                "damage_armor_condition", "attacker_action", "bientity_action", "self_action"}) {
+            if (src.has(key) && !isNoopVerb(src.get(key))) return Optional.empty();
+        }
+        if (!(src.get("damage_condition") instanceof JsonObject dc)) return Optional.empty();
+        if (!verbIs(dc.get("type"), "projectile") || !dc.has("projectile")) return Optional.empty();
+        if (dc.has("inverted") && dc.get("inverted").getAsBoolean()) return Optional.empty();
+        if (dc.has("projectile_condition") && !isNoopVerb(dc.get("projectile_condition"))) return Optional.empty();
+        if (!dc.get("projectile").isJsonPrimitive()) return Optional.empty();
+        if (!(src.get("modifier") instanceof JsonObject mod)) return Optional.empty();
+        String op = mod.has("operation") ? mod.get("operation").getAsString() : "addition";
+        op = op.substring(op.indexOf(':') + 1);
+        if (!op.equals("addition") && !op.equals("add_base_early") && !op.equals("add_base_late")) {
+            return Optional.empty();
+        }
+        JsonElement value = mod.has("value") ? mod.get("value") : mod.get("amount");
+        if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) return Optional.empty();
+        float amount = value.getAsFloat();
+        if (amount <= 0F) return Optional.empty();
+
+        JsonObject out = new JsonObject();
+        out.addProperty("type", "neoorigins:projectile_vulnerability");
+        JsonArray projectiles = new JsonArray();
+        projectiles.add(dc.get("projectile").getAsString());
+        out.add("projectiles", projectiles);
+        out.addProperty("amount", amount);
+        return Optional.of(out);
+    }
+
+    /** Apoli's {@code allow}/{@code nothing} defaults, as a bare id or a typed object. */
+    private static boolean isNoopVerb(JsonElement el) {
+        return verbIs(el, "allow") || verbIs(el, "nothing")
+            || (el instanceof JsonObject o && (verbIs(o.get("type"), "allow") || verbIs(o.get("type"), "nothing")));
+    }
+
+    /** True when {@code el} is a legacy-namespace id whose path is {@code path}. */
+    private static boolean verbIs(JsonElement el, String path) {
+        if (el == null || !el.isJsonPrimitive()) return false;
+        String id = el.getAsString();
+        int colon = id.indexOf(':');
+        if (colon < 0) return false;
+        String ns = id.substring(0, colon);
+        return id.substring(colon + 1).equals(path)
+            && (ns.equals("origins") || ns.equals("apace") || OriginsFormatDetector.isApoliFamily(ns));
     }
 
     private static Optional<JsonObject> translateModifyDamage(JsonObject src, String direction) {

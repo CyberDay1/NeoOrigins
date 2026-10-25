@@ -1,0 +1,17 @@
+{
+  "name": "origins.neoorigins.classic.feline.name",
+  "description": "origins.neoorigins.classic.feline.description",
+  "icon": "minecraft:salmon",
+  "impact": "medium",
+  "order": 10,
+  "powers": [
+    "neoorigins:feline_no_fall_damage",
+    "neoorigins:classic_feline_strong_ankles",
+    "neoorigins:classic_feline_velvet_paws",
+    "neoorigins:classic_feline_nine_lives",
+    "neoorigins:classic_feline_weak_arms",
+    "neoorigins:classic_feline_catlike_appearance",
+    "neoorigins:classic_feline_nocturnal"
+  ],
+  "upgrades": []
+}

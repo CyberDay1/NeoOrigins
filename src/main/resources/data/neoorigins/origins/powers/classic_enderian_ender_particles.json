@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:particle",
+  "hidden": true,
+  "particle": "minecraft:portal",
+  "frequency": 4,
+  "name": "power.neoorigins.classic_enderian_ender_particles.name",
+  "description": "power.neoorigins.classic_enderian_ender_particles.description"
+}

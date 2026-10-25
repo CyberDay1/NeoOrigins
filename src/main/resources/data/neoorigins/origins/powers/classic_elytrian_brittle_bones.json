@@ -1,0 +1,8 @@
+{
+  "type": "neoorigins:modify_damage",
+  "direction": "in",
+  "multiplier": 1.5,
+  "damage_type": "#neoorigins:kinetic",
+  "name": "power.neoorigins.classic_elytrian_brittle_bones.name",
+  "description": "power.neoorigins.classic_elytrian_brittle_bones.description"
+}

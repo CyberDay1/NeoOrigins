@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.power.builtin;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.cyberday1.neoorigins.power.builtin.base.HudIconConfig;
+import com.cyberday1.neoorigins.power.util.PowerFlight;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
@@ -191,10 +192,10 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         // power may have latched on — both server and client side — so an
         // in-progress test session recovers without relogging. We never grant
         // mayfly/flying anymore; vertical control is pure velocity. Respect the
-        // legitimate flight owners: creative/spectator and an active
-        // PhantomFormPower (which re-grants flight every tick).
+        // legitimate flight owners: creative/spectator and any power granting
+        // flight through the attribute (phantom form, creative flight).
         if (!player.isCreative() && !player.isSpectator()
-                && !PhantomFormPower.isActive(player)) {
+                && !PhantomFormPower.isActive(player) && !PowerFlight.hasAny(player)) {
             var abilities = player.getAbilities();
             if (abilities.flying || abilities.mayfly) {
                 abilities.mayfly = false;
@@ -254,7 +255,7 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         player.noPhysics = false;
         var abilities = player.getAbilities();
         if (!player.isCreative() && !player.isSpectator()
-                && !PhantomFormPower.isActive(player)) {
+                && !PhantomFormPower.isActive(player) && !PowerFlight.hasAny(player)) {
             abilities.mayfly = false;
             abilities.flying = false;
         }

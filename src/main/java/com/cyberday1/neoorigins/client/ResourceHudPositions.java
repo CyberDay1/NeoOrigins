@@ -40,7 +40,7 @@ import java.util.Map;
  */
 public final class ResourceHudPositions {
 
-    /** Lower/upper bounds for the ability cluster / slot scale. */
+    /** Lower/upper bounds for bar / cluster scale. */
     public static final float MIN_SCALE = 0.5f;
     public static final float MAX_SCALE = 2.0f;
 
@@ -64,7 +64,10 @@ public final class ResourceHudPositions {
     private static final Path CONFIG_PATH = FMLPaths.CONFIGDIR.get().resolve("neoorigins").resolve("hud.json");
     private static final Type MAP_TYPE = new TypeToken<Map<String, Pos>>() {}.getType();
 
+    private static final Type SCALE_MAP_TYPE = new TypeToken<Map<String, Float>>() {}.getType();
+
     private static Map<String, Pos> positions = new HashMap<>();
+    private static Map<String, Float> barScales = new HashMap<>();
     private static boolean splitCooldown = false;
     private static boolean loaded = false;
 
@@ -85,6 +88,24 @@ public final class ResourceHudPositions {
     public static void set(String resourceId, Pos pos) {
         ensureLoaded();
         positions.put(resourceId, pos);
+    }
+
+    /** Stored scale for a resource bar id, 1.0 when unset or out of range. */
+    public static float getBarScale(String resourceId) {
+        ensureLoaded();
+        Float s = barScales.get(resourceId);
+        return s != null && s >= MIN_SCALE && s <= MAX_SCALE ? s : 1.0f;
+    }
+
+    /**
+     * Sets a resource bar's scale. Kept apart from {@link #positions}: an entry
+     * there means "saved position", so a scale alone must not pin the bar.
+     */
+    public static void setBarScale(String resourceId, float scale) {
+        ensureLoaded();
+        float clamped = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+        if (clamped == 1.0f) barScales.remove(resourceId);
+        else barScales.put(resourceId, clamped);
     }
 
     public static void remove(String resourceId) {
@@ -116,6 +137,7 @@ public final class ResourceHudPositions {
                 JsonObject root = new JsonObject();
                 root.addProperty("split_cooldown", splitCooldown);
                 root.add("positions", GSON.toJsonTree(positions, MAP_TYPE));
+                if (!barScales.isEmpty()) root.add("bar_scales", GSON.toJsonTree(barScales, SCALE_MAP_TYPE));
                 GSON.toJson(root, w);
             }
         } catch (IOException e) {
@@ -136,6 +158,10 @@ public final class ResourceHudPositions {
                 // v2 — wrapper object with layout flags.
                 splitCooldown = obj.has("split_cooldown") && obj.get("split_cooldown").getAsBoolean();
                 read = GSON.fromJson(obj.get("positions"), MAP_TYPE);
+                if (obj.has("bar_scales")) {
+                    Map<String, Float> scales = GSON.fromJson(obj.get("bar_scales"), SCALE_MAP_TYPE);
+                    if (scales != null) barScales = new HashMap<>(scales);
+                }
             } else {
                 // legacy v1 — the whole file is the position map.
                 read = GSON.fromJson(obj, MAP_TYPE);

@@ -251,7 +251,7 @@ public final class PowerReferenceGenerator {
             } else {
                 stats.handWrittenTypes++;
                 int[] samples = {0};
-                fields = observedFields(codec, e.getKey(), powerJson, samples);
+                fields = observedFields(probeCodecs(e.getValue(), codec), e.getKey(), powerJson, samples);
                 wrap(out, "    ", "Fields: " + (fields.isEmpty() ? "none observed" : String.join(", ", fields)));
                 wrap(out, "    ", "(hand-written parser: the keys it read from an empty object and from "
                     + samples[0] + " shipped power" + (samples[0] == 1 ? "" : "s") + "; a branch those never reach may read more)");
@@ -282,8 +282,36 @@ public final class PowerReferenceGenerator {
         }
     };
 
+    /**
+     * The codecs to probe for one hand-written type: its own, plus every
+     * {@code Codec}/{@code MapCodec} the power class holds in a static field.
+     * Those are sub-readers the decoder hands the same power object to, and one
+     * invoked with a hardcoded {@code JsonOps.INSTANCE} is invisible to the spy:
+     * {@code JsonOps#convertTo} has no identity shortcut, so a JsonObject always
+     * goes through {@code convertMap} and the sub-reader ends up reading a plain
+     * copy. Probing the field directly puts the keys it reads back on the list.
+     */
+    private static List<Codec<?>> probeCodecs(Class<?> powerClass, Codec<?> own) {
+        List<Codec<?>> out = new ArrayList<>();
+        out.add(own);
+        for (var field : powerClass.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers())
+                    || !(Codec.class.isAssignableFrom(field.getType())
+                        || MapCodec.class.isAssignableFrom(field.getType()))) continue;
+            try {
+                field.setAccessible(true);
+                Object value = field.get(null);
+                if (value instanceof MapCodec<?> map) out.add(map.codec());
+                else if (value instanceof Codec<?> codec && codec != own) out.add(codec);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                throw new IllegalStateException("cannot read " + field + " off " + powerClass, e);
+            }
+        }
+        return out;
+    }
+
     /** Keys a hand-written decoder reads, recorded off a spy of its input. */
-    private static Set<String> observedFields(Codec<?> codec, ResourceLocation typeId,
+    private static Set<String> observedFields(List<Codec<?>> codecs, ResourceLocation typeId,
             Map<ResourceLocation, JsonObject> powerJson, int[] samples) {
         Set<String> seen = new TreeSet<>();
         List<JsonObject> inputs = new ArrayList<>();
@@ -299,10 +327,12 @@ public final class PowerReferenceGenerator {
         });
         for (JsonObject input : inputs) {
             JsonObject spy = Mockito.spy(input);
-            try {
-                codec.parse(PASS_THROUGH, spy);
-            } catch (RuntimeException ignored) {
-                // a throw part-way still leaves the reads made before it
+            for (Codec<?> codec : codecs) {
+                try {
+                    codec.parse(PASS_THROUGH, spy);
+                } catch (RuntimeException ignored) {
+                    // a throw part-way still leaves the reads made before it
+                }
             }
             for (Invocation call : Mockito.mockingDetails(spy).getInvocations()) {
                 String method = call.getMethod().getName();

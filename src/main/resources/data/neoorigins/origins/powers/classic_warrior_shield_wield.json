@@ -1,0 +1,6 @@
+{
+  "type": "neoorigins:less_item_use_slowdown",
+  "item_type": "shield",
+  "name": "power.neoorigins.classic_warrior_shield_wield.name",
+  "description": "power.neoorigins.classic_warrior_shield_wield.description"
+}

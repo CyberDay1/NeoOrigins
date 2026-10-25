@@ -1,8 +1,10 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower;
 import com.cyberday1.neoorigins.power.builtin.base.HudIconConfig;
+import com.cyberday1.neoorigins.power.util.PowerFlight;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,11 +18,11 @@ import net.minecraft.world.effect.MobEffects;
  * direction with jump/sneak, and lands without taking impact damage when
  * revoked mid-flight.
  *
- * <p>The movement abilities ({@code mayfly}, {@code flying}) are toggled via
- * {@code Player.getAbilities()} and pushed to the client via
- * {@code onUpdateAbilities()} on each tick — this avoids a sync race where a
- * survival player rejoining with the power on lands without the flight flag
- * set client-side.
+ * <p>Flight comes from the {@code creative_flight} attribute ({@link PowerFlight})
+ * rather than {@code mayfly}, so mods that reset {@code mayfly} every tick can't
+ * cancel it. {@code flying} is still forced on each tick and pushed via
+ * {@code onUpdateAbilities()} — this avoids a sync race where a survival player
+ * rejoining with the power on lands without the flight flag set client-side.
  */
 public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Config> {
 
@@ -65,12 +67,11 @@ public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Confi
         if (config.noGravity()) {
             player.setNoGravity(true);
         }
-        // Flight — mayfly grants the capability, flying forces it on. Jump goes
-        // up, shift (descend) goes down. Setting both each tick is cheap and
-        // avoids drift if another mod clears them.
+        // Flight — the attribute grants the capability, flying forces it on. Jump
+        // goes up, shift (descend) goes down. Re-checked each tick so another
+        // mod clearing flying can't drop the player.
+        boolean abilitiesChanged = PowerFlight.grant(player, PowerHolder.currentDispatchId());
         var abilities = player.getAbilities();
-        boolean abilitiesChanged = false;
-        if (!abilities.mayfly)  { abilities.mayfly  = true;  abilitiesChanged = true; }
         if (!abilities.flying)  { abilities.flying  = true;  abilitiesChanged = true; }
         if (abilitiesChanged) player.onUpdateAbilities();
 
@@ -88,13 +89,8 @@ public class PhantomFormPower extends AbstractTogglePower<PhantomFormPower.Confi
         }
         player.setNoGravity(false);
         player.noPhysics = false;
-        var abilities = player.getAbilities();
-        // Restore survival defaults — do NOT set mayfly/flying false if the
-        // player is in creative (would lock them out of their own mode).
-        if (!player.isCreative() && !player.isSpectator()) {
-            abilities.mayfly = false;
-            abilities.flying = false;
-        }
+        // Drops flight only if nothing else (creative, another power) still grants it.
+        PowerFlight.revoke(player, PowerHolder.currentDispatchId());
         player.onUpdateAbilities();
         player.fallDistance = 0.0F;
     }

@@ -20,7 +20,8 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
 
     public record Entry(int value, int min, int max, String label, int color,
                         int barIndex, int iconIndex, String spriteLocation,
-                        String animated, int tint, int tintEnd, boolean alwaysShow) {}
+                        String animated, int tint, int tintEnd, boolean alwaysShow,
+                        boolean dynamic) {}
 
     public static final Type<SyncResourcePayload> TYPE =
         new Type<>(ResourceLocation.fromNamespaceAndPath("neoorigins", "sync_resource"));
@@ -44,6 +45,7 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
             buf.writeInt(e.getValue().tint());
             buf.writeInt(e.getValue().tintEnd());
             buf.writeBoolean(e.getValue().alwaysShow());
+            buf.writeBoolean(e.getValue().dynamic());
         }
     }
 
@@ -64,7 +66,8 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
             int tint = buf.readInt();
             int tintEnd = buf.readInt();
             boolean alwaysShow = buf.readBoolean();
-            map.put(key, new Entry(value, min, max, label, color, barIndex, iconIndex, spriteLocation, animated, tint, tintEnd, alwaysShow));
+            boolean dynamic = buf.readBoolean();
+            map.put(key, new Entry(value, min, max, label, color, barIndex, iconIndex, spriteLocation, animated, tint, tintEnd, alwaysShow, dynamic));
         }
         return new SyncResourcePayload(map);
     }

@@ -27,6 +27,8 @@ public class CompatPower extends PowerType<CompatPower.Config> {
 
     public record Config(
         Consumer<ServerPlayer> onGranted,
+        // Only the powers that store per-player state need this; see onLogin below.
+        Consumer<ServerPlayer> onLogin,
         Consumer<ServerPlayer> onRevoked,
         Consumer<ServerPlayer> onTick,
         Consumer<ServerPlayer> onActivated,
@@ -49,7 +51,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
         public static Builder builder() { return new Builder(); }
 
         public static final class Builder {
-            private Consumer<ServerPlayer> onGranted, onRevoked, onTick, onActivated, onRespawn, onHit, onKill;
+            private Consumer<ServerPlayer> onGranted, onLogin, onRevoked, onTick, onActivated, onRespawn, onHit, onKill;
             private Consumer<LivingIncomingDamageEvent> onIncomingDamage;
             private BiConsumer<ServerPlayer, LivingEntity> onDealDamage;
             private int cooldownTicks;
@@ -58,6 +60,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
             private Predicate<ServerPlayer> capabilityCondition;
 
             public Builder onGranted(Consumer<ServerPlayer> c)   { onGranted   = c; return this; }
+            public Builder onLogin(Consumer<ServerPlayer> c)     { onLogin     = c; return this; }
             public Builder onRevoked(Consumer<ServerPlayer> c)   { onRevoked   = c; return this; }
             public Builder onTick(Consumer<ServerPlayer> c)      { onTick      = c; return this; }
             public Builder onActivated(Consumer<ServerPlayer> c) { onActivated = c; return this; }
@@ -85,7 +88,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
             }
 
             public Config build() {
-                return new Config(onGranted, onRevoked, onTick, onActivated, onRespawn,
+                return new Config(onGranted, onLogin, onRevoked, onTick, onActivated, onRespawn,
                     onHit, onKill, onIncomingDamage, onDealDamage, cooldownTicks, hotkeyless,
                     capabilities, capabilityCondition);
             }
@@ -95,7 +98,7 @@ public class CompatPower extends PowerType<CompatPower.Config> {
     @Override
     public Codec<Config> codec() {
         // Never called for Route B powers — they are injected directly, not codec-decoded.
-        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null, null, 0, false, null, null)).codec();
+        return MapCodec.unit(() -> new Config(null, null, null, null, null, null, null, null, null, null, 0, false, null, null)).codec();
     }
 
     /** Active only when this specific config has an onActivated consumer. */
@@ -137,6 +140,20 @@ public class CompatPower extends PowerType<CompatPower.Config> {
     @Override
     public void onGranted(ServerPlayer player, Config config) {
         if (config.onGranted() != null) config.onGranted().accept(player);
+    }
+
+    /**
+     * A login is not a fresh grant. {@link PowerType#onLogin} defaults to re-running
+     * onGranted, which is right for a power that only (re)applies an effect and wrong
+     * for one that seeds stored state: {@code origins:resource} sets the bar to its
+     * {@code start_value} there, so a returning player's resource was wiped on every
+     * relog. The powers that keep a value supply their own onLogin; everything else
+     * keeps the re-grant default.
+     */
+    @Override
+    public void onLogin(ServerPlayer player, Config config) {
+        if (config.onLogin() != null) config.onLogin().accept(player);
+        else onGranted(player, config);
     }
 
     @Override

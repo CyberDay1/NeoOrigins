@@ -1,0 +1,9 @@
+{
+  "type": "neoorigins:effect_immunity",
+  "effects": [
+    "minecraft:poison",
+    "minecraft:hunger"
+  ],
+  "name": "power.neoorigins.classic_blazeling_hotblooded.name",
+  "description": "power.neoorigins.classic_blazeling_hotblooded.description"
+}

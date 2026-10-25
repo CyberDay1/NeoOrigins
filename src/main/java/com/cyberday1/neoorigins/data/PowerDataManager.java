@@ -522,11 +522,24 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     /** Returns all powers including Route B injected ones (used for registry sync). */
     public Map<ResourceLocation, PowerHolder<?>> getAllPowers() {
-        if (injectedPowers.isEmpty()) return powers;
-        Map<ResourceLocation, PowerHolder<?>> all = new HashMap<>(powers);
-        all.putAll(injectedPowers);
-        return Collections.unmodifiableMap(all);
+        int v = version;
+        AllPowersView cached = allPowersView;
+        if (cached != null && cached.version() == v) return cached.map();
+        Map<ResourceLocation, PowerHolder<?>> map;
+        if (injectedPowers.isEmpty()) {
+            map = powers;
+        } else {
+            Map<ResourceLocation, PowerHolder<?>> all = new HashMap<>(powers);
+            all.putAll(injectedPowers);
+            map = Collections.unmodifiableMap(all);
+        }
+        allPowersView = new AllPowersView(v, map);
+        return map;
     }
+
+    // Memoized per version so hot callers do not rebuild the merged map on every call (#136).
+    private record AllPowersView(int version, Map<ResourceLocation, PowerHolder<?>> map) {}
+    private volatile AllPowersView allPowersView = null;
 
     public Map<ResourceLocation, PowerHolder<?>> getPowers() { return powers; }
 

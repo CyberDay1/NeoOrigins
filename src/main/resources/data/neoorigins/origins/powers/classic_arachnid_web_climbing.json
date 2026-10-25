@@ -1,0 +1,11 @@
+{
+  "type": "neoorigins:cobweb_affinity",
+  "hidden": true,
+  "climb": true,
+  "condition": {
+    "type": "neoorigins:power_active",
+    "power": "neoorigins:classic_arachnid_climbing_toggle"
+  },
+  "name": "power.neoorigins.classic_arachnid_web_climbing.name",
+  "description": "power.neoorigins.classic_arachnid_web_climbing.description"
+}

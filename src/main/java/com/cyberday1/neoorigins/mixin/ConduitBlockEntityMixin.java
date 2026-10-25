@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.power.builtin.BreathOutOfFluidPower;
+import com.cyberday1.neoorigins.power.builtin.ConduitPowerOnLandPower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -39,7 +40,9 @@ import org.spongepowered.asm.mixin.injection.At;
  * renewal has a wide margin and this adds no scan of its own.
  *
  * <p>Scoped to players carrying the power: everyone else keeps vanilla
- * behaviour and still has to be in water or rain.
+ * behaviour and still has to be in water or rain. The same gate serves
+ * {@link ConduitPowerOnLandPower}, Origins' Merling power of that name, which
+ * Origins implements with the identical hook on this call.
  */
 @Mixin(ConduitBlockEntity.class)
 public abstract class ConduitBlockEntityMixin {
@@ -56,6 +59,7 @@ public abstract class ConduitBlockEntityMixin {
         // applyEffects runs from serverTick only, so every player in the list is
         // a ServerPlayer; the pattern check is a guard, not a real branch.
         return player instanceof ServerPlayer sp
-            && ActiveOriginService.hasCapability(sp, BreathOutOfFluidPower.DRIES_OUT_CAPABILITY);
+            && (ActiveOriginService.hasCapability(sp, BreathOutOfFluidPower.DRIES_OUT_CAPABILITY)
+                || ActiveOriginService.hasCapability(sp, ConduitPowerOnLandPower.CAPABILITY));
     }
 }

@@ -1,0 +1,23 @@
+{
+  "type": "neoorigins:entity_glow",
+  "hidden": true,
+  "entity_condition": {
+    "type": "neoorigins:and",
+    "conditions": [
+      {
+        "type": "neoorigins:in_block_anywhere",
+        "block_condition": {
+          "type": "neoorigins:block",
+          "tag": "neoorigins:cobwebs"
+        }
+      },
+      {
+        "type": "neoorigins:in_tag",
+        "tag": "minecraft:arthropod",
+        "inverted": true
+      }
+    ]
+  },
+  "name": "power.neoorigins.classic_arachnid_web_sense.name",
+  "description": "power.neoorigins.classic_arachnid_web_sense.description"
+}
