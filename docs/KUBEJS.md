@@ -60,11 +60,19 @@ When KubeJS is absent the whole subsystem short-circuits on a single cached
 check, so there is no overhead and no class-loading risk for packs that don't
 use it.
 
-All scripts here are **server-side**: origin, power, and mob state only changes
-on the logical server. Put them in `server_scripts/` (or register from a server
-lifecycle event). Everything is cleared and must be re-registered on
-`/kubejs reload`; register inside a startup or server-loaded handler so stale
-handlers don't pile up.
+Everything here acts **server-side**: origin, power and mob state only changes on
+the logical server. Registration itself can happen in either place.
+`startup_scripts/` is the simplest: those scripts run once per game session and
+their registrations are kept across a script reload. `server_scripts/` works too,
+and is the right home when the registration depends on server state; those
+registrations are dropped and replaced on each reload, so register from
+`ServerEvents.loaded` or another handler that runs on load.
+
+Through 2.2.30, registering from `startup_scripts/` silently did nothing. KubeJS
+clears each plugin's caches at the top of every script reload, including the
+server reload that runs when a world loads, and nothing re-runs a startup script,
+so the handler was gone before any power looked it up. That is fixed: a startup
+registration now survives the reload.
 
 ---
 
@@ -312,8 +320,13 @@ Hooks: `onUse(player) -> boolean` (required), `onGranted(player)` and
 
 ## Reload behavior
 
-`/kubejs reload` wipes every registered callback and JS power handler. Register
-from a handler that runs on (re)load so your registrations come back:
+A script reload, whether `/kubejs reload` or the server-script reload that a world
+load runs, drops the callbacks and JS power handlers registered from a
+**reloadable** script (`server_scripts/`, `client_scripts/`) and keeps the ones
+registered from `startup_scripts/`. Registering the same id from a server script
+takes the id over, and that registration goes with the reload like any other.
+
+So from a reloadable script, register from a handler that runs on (re)load:
 
 ```js
 ServerEvents.loaded(event => {
