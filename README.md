@@ -207,7 +207,7 @@ files are migrated automatically on first launch, values intact):
 - `neoorigins/power_overrides.toml`: per-power parameter overrides
 - `neoorigins/content.toml`: classic mode, origin/class enable toggles + resource-bar, night-vision and enhanced-vision disables (SERVER config, auto-synced to clients; per-world override via `<world>/serverconfig/neoorigins/content.toml`)
 - `neoorigins/client.toml`: client-only options (UI theme and picker, HUD, hotkey pool, cross-mod compat)
-- `neoorigins/hud.json`: saved HUD bar/cluster positions
+- `neoorigins/hud.json`: saved HUD bar/cluster positions and per-bar scales
 
 ```toml
 # config/neoorigins/content.toml — classic mode, and disabling specific origins or classes

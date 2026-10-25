@@ -10,7 +10,7 @@ Reference for pack authors updating JSON from pre-2.0 types to the 2.0 generic /
 
 ## What changed
 
-Pre-2.0 NeoOrigins had **88 hardcoded PowerType classes**, one per behaviour. 2.0 collapses many of these into **generic types** that compose via DSL (condition + action + event). The collapse is partial: the alias table covers 35 legacy `neoorigins:` type IDs, and `PowerTypes.java` still registers 122 power types, including the legacy types that have no DSL equivalent yet.
+Pre-2.0 NeoOrigins had **88 hardcoded PowerType classes**, one per behaviour. 2.0 collapses many of these into **generic types** that compose via DSL (condition + action + event). The collapse is partial: the alias table covers 35 legacy `neoorigins:` type IDs, and `PowerTypes.java` still registers 126 power types, including the legacy types that have no DSL equivalent yet.
 
 For **existing packs**: nothing to change. Legacy type IDs still work, either via the alias table or, for the six legacy types that are still registered (see [the deprecation log line](#the-deprecation-log-line)), through their own class. On first load of an aliased legacy type, the log prints a one-time `[2.0-legacy] power type '<old>' is deprecated, remap to '<new>' (first seen on power '<id>')` warning so you know where to migrate when you next touch the pack.
 
