@@ -13,8 +13,9 @@ import net.minecraft.world.InteractionHand;
  * Parses an entity-action JSON into a {@link TargetAction} for the subset of
  * verbs whose effect is <em>entity-general</em> — they call only
  * {@link net.minecraft.world.entity.LivingEntity}/{@code Entity} methods and
- * never a player-only subsystem (powers, xp, resources, food, inventory,
- * commands). These can therefore run against a non-player mob target.
+ * never a player-only subsystem (powers, xp, resources, food, inventory).
+ * Commands are generalizable: they run as the mob. These can therefore run
+ * against a non-player mob target.
  *
  * <p>Returns {@code null} for any verb that is NOT generalizable. The caller
  * ({@link BiEntityActionParser}) then keeps the existing player-only behaviour

@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Cancels application of specific mob effects to the player.
- * Event handling is performed in OriginEventHandler (MobEffectEvent.Applicable).
+ * Event handling is performed in CombatPowerEvents (MobEffectEvent.Applicable).
  *
  * <p>{@code inverted} flips the list into an exception list (Apoli semantics):
  * the player is immune to every effect EXCEPT those listed — so
@@ -35,7 +35,7 @@ public class EffectImmunityPower extends PowerType<EffectImmunityPower.Config> {
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
-    // Effect cancellation is handled via MobEffectEvent.Applicable in OriginEventHandler
+    // Effect cancellation is handled via MobEffectEvent.Applicable in CombatPowerEvents
     @Override public void onGranted(ServerPlayer player, Config config) {}
     @Override public void onRevoked(ServerPlayer player, Config config) {}
 }
