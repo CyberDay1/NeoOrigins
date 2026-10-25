@@ -58,6 +58,7 @@
   "screen.neoorigins.origin_editor": "Ursprungs-Editor",
   "gui.neoorigins.editor.layers_header": "Ursprungsebenen",
   "gui.neoorigins.editor.powers_header": "Kräfte umschalten",
+  "gui.neoorigins.editor.bar_sizes_header": "Größen der Ressourcenleisten",
   "gui.neoorigins.editor.change": "Ändern",
   "gui.neoorigins.editor.pick": "Wählen",
   "gui.neoorigins.editor.on": "An",

@@ -58,6 +58,7 @@
   "screen.neoorigins.origin_editor": "Editor de Orígenes",
   "gui.neoorigins.editor.layers_header": "Capas de Origen",
   "gui.neoorigins.editor.powers_header": "Alternar Poderes",
+  "gui.neoorigins.editor.bar_sizes_header": "Tamaños de las Barras de Recursos",
   "gui.neoorigins.editor.change": "Cambiar",
   "gui.neoorigins.editor.pick": "Elegir",
   "gui.neoorigins.editor.on": "Sí",
