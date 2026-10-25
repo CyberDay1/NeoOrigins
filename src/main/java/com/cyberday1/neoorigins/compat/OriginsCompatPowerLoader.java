@@ -1301,6 +1301,9 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         if (barTick == null) return base;
         return new CompatPower.Config(
             chain(base.onGranted(), barGranted),
+            // The bar has to be re-seeded and re-synced on login as well, and the
+            // base's own onLogin (if any) keeps a stored value the grant would reset.
+            chain(base.onLogin() != null ? base.onLogin() : base.onGranted(), barGranted),
             chain(base.onRevoked(), barRevoked),
             chain(base.onTick(), barTick),
             base.onActivated(),
@@ -1713,6 +1716,18 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // Backed bars have no internal store to seed; the pool is authoritative.
                 if (!CompatAttachments.isManaBacked(key)) {
                     player.getData(CompatAttachments.resourceState()).set(key, startValue);
+                }
+                CompatAttachments.syncResourcesToClient(player);
+            })
+            .onLogin(player -> {
+                // A relog is not a re-grant: the stored value is the player's
+                // progress (levels, stored energy, a kill count), so seed only when
+                // nothing round-tripped. Without this the whole bar went back to
+                // start_value on every world join, which also made any power reading
+                // it read the floor. Mirrors ResourcePower.onLogin (GitHub #90).
+                if (!CompatAttachments.isManaBacked(key)) {
+                    var state = player.getData(CompatAttachments.resourceState());
+                    if (!state.has(key)) state.set(key, startValue);
                 }
                 CompatAttachments.syncResourcesToClient(player);
             })
