@@ -855,7 +855,7 @@
   "power.neoorigins.class_fisher_waters_luck.name": "水の幸運",
   "power.neoorigins.class_fisher_waters_luck.description": "水中にいる間、幸運+1 — 潮があなたに味方する。",
   "power.neoorigins.class_fisher_swim_speed.name": "アザラシの泳ぎ",
-  "power.neoorigins.class_fisher_swim_speed.description": "水中にいる間、移動速度+15%。",
+  "power.neoorigins.class_fisher_swim_speed.description": "泳ぐ速度+15%。",
   "power.neoorigins.class_fisher_sea_legs.name": "海の足腰",
   "power.neoorigins.class_fisher_sea_legs.description": "溺れによるダメージが半分 — 深みに慣れた肺。",
   "power.neoorigins.class_fisher_starting_rod.name": "祝福の釣竿",
