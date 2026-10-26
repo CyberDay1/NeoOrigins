@@ -320,6 +320,15 @@ public class WorldPowerEvents {
         // TwinBreeding power below. Dispatched first so action_on_event powers
         // see every breed event, not just twin-eligible ones.
         if (child != null) {
+            // BabyEntitySpawnEvent fires before vanilla positions the offspring,
+            // so at this point the child still sits at the entity-creation
+            // default (0,0,0). Pre-position it at parent A — vanilla snapTo's it
+            // to the same parent right after the event — so distance / can_see
+            // conditions and positional target_actions on BREED powers evaluate
+            // against the real location instead of the world origin.
+            var parentA = event.getParentA();
+            child.snapTo(parentA.getX(), parentA.getY(), parentA.getZ(),
+                parentA.getYRot(), 0.0F);
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
                 com.cyberday1.neoorigins.service.EventPowerIndex.Event.BREED,
                 new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(child, event));
@@ -333,7 +342,13 @@ public class WorldPowerEvents {
                 var twin = (AgeableMob) child.getType().create(child.level(), EntitySpawnReason.BREEDING);
                 if (twin != null) {
                     twin.setBaby(true);
-                    twin.setPos(child.getX(), child.getY(), child.getZ());
+                    // Position at the PARENT, not the child: BabyEntitySpawnEvent
+                    // fires before vanilla snapTo's the offspring to the parent's
+                    // position, so copying the child's pos dropped every twin at
+                    // the world origin.
+                    var parent = event.getParentA();
+                    twin.snapTo(parent.getX(), parent.getY(), parent.getZ(),
+                        parent.getYRot(), 0.0F);
                     child.level().addFreshEntity(twin);
                 }
             }
