@@ -32,6 +32,7 @@
     "EntitySwimSoundInvoker",
     "LivingEntityUndeadPotionMixin",
     "LivingEntityTotemGateMixin",
+    "LivingEntityLootTableDropsMixin",
     "EntityMountPositionMixin",
     "EntityMountEndMixin",
     "AbstractVillagerTradePriceMixin",

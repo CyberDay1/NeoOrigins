@@ -671,19 +671,30 @@ public class CombatPowerEvents {
         float mult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_HARVEST_DROPS, killed, 1.0f);
 
-        // Duplicate existing drops based on multiplier
         int extraCopies = Math.max(0, Math.round(mult) - 1);
         if (extraCopies <= 0) return;
 
-        var originalDrops = new java.util.ArrayList<>(event.getDrops());
-        for (var drop : originalDrops) {
-            for (int i = 0; i < extraCopies; i++) {
-                var copy = drop.getItem().copy();
-                var newDrop = new net.minecraft.world.entity.item.ItemEntity(
-                    killed.level(), killed.getX(), killed.getY(), killed.getZ(), copy);
-                event.getDrops().add(newDrop);
-            }
+        for (var copy : scavengedCopies(event.getDrops(),
+                com.cyberday1.neoorigins.service.LootTableDrops.of(killed), extraCopies)) {
+            event.getDrops().add(new net.minecraft.world.entity.item.ItemEntity(
+                killed.level(), killed.getX(), killed.getY(), killed.getZ(), copy));
         }
+    }
+
+    /**
+     * The extra stacks a MOD_HARVEST_DROPS multiplier adds: {@code extraCopies} of each
+     * drop that came from the loot table. Equipment, saddles, horse armor and chest
+     * contents share the drops list but are not loot, so copying them was a dupe.
+     */
+    static java.util.List<net.minecraft.world.item.ItemStack> scavengedCopies(
+            java.util.Collection<net.minecraft.world.entity.item.ItemEntity> drops,
+            java.util.Set<net.minecraft.world.entity.item.ItemEntity> lootTableDrops, int extraCopies) {
+        var copies = new java.util.ArrayList<net.minecraft.world.item.ItemStack>();
+        for (var drop : drops) {
+            if (!lootTableDrops.contains(drop)) continue;
+            for (int i = 0; i < extraCopies; i++) copies.add(drop.getItem().copy());
+        }
+        return copies;
     }
 
     @SubscribeEvent
