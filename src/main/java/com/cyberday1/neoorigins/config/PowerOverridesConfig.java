@@ -15,6 +15,10 @@ import java.util.Map;
  * BEFORE {@code LegacyPowerTypeAliases.apply} — that ordering is load-bearing
  * (override values must be visible to the alias remap step).
  *
+ * <p>A field lands at the JSON root unless {@code at(...)} routes it to a nested
+ * path, which is how an {@code action_on_event} power's {@code modifier.value}
+ * is reached under a friendly key such as {@code multiplier}.
+ *
  * <p>Part of the 2.2.2 config split — see {@link GameplayConfig},
  * {@link AdminConfig} and {@link ContentTogglesConfig}. The file keeps the
  * {@code [power_overrides.*]} table prefix so legacy values migrate 1:1.
@@ -38,16 +42,29 @@ public final class PowerOverridesConfig {
      * render sliders/clamp inputs for codec-only powers. Populated alongside
      * {@link #POWER_OVERRIDES} at registration. */
     static final Map<String, Map<String, NumericRange>> POWER_RANGES = new LinkedHashMap<>();
+
+    /**
+     * power-id &rarr; field-name &rarr; dotted JSON path the value is written to, for
+     * fields whose real parameter is nested ({@code modifier.value},
+     * {@code entity_action.amount_ratio}). Fields absent here are written at the
+     * JSON root. The TOML key keeps its published name either way.
+     */
+    static final Map<String, Map<String, String>> POWER_TARGETS = new LinkedHashMap<>();
     private static String _cp; // current power being registered
+    private static String _cf; // last field registered on _cp
 
     private static void p(String power) {
         _cp = power; BUILDER.push(power);
         POWER_OVERRIDES.put("neoorigins:" + power, new LinkedHashMap<>());
         POWER_RANGES.put("neoorigins:" + power, new LinkedHashMap<>());
     }
-    private static void f(String field, double def, double min, double max)   { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
-    private static void fi(String field, int def, int min, int max)           { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
-    private static void fb(String field, boolean def)                          { POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.define(field, def)); }
+    private static void f(String field, double def, double min, double max)   { _cf = field; POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
+    private static void fi(String field, int def, int min, int max)           { _cf = field; POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
+    private static void fb(String field, boolean def)                          { _cf = field; POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.define(field, def)); }
+    /** Routes the field just registered to a nested JSON path instead of the root. */
+    private static void at(String jsonPath) {
+        POWER_TARGETS.computeIfAbsent("neoorigins:" + _cp, k -> new LinkedHashMap<>()).put(_cf, jsonPath);
+    }
     private static void ep() { BUILDER.pop(); }
 
     static {
@@ -58,7 +75,7 @@ public final class PowerOverridesConfig {
         ).push("power_overrides");
 
         // ── Abyssal ──
-        p("abyssal_thorns_aura");       f("return_ratio", 0.3, 0, 10); ep();
+        p("abyssal_thorns_aura");       f("return_ratio", 0.3, 0, 10); at("entity_action.amount_ratio"); ep();
         p("abyssal_aquatic_speed");     f("amount", 0.8, -1, 10); ep();
         p("abyssal_land_speed_penalty");f("amount", -0.1, -1, 1); ep();
         p("abyssal_summon_guardian");   fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 5, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
@@ -264,7 +281,7 @@ public final class PowerOverridesConfig {
         p("sporeling_daylight_damage"); f("damage_per_second", 1.0, 0, 100); ep();
 
         // ── Stoneguard ──
-        p("stoneguard_thorns_aura");    f("return_ratio", 0.2, 0, 10); ep();
+        p("stoneguard_thorns_aura");    f("return_ratio", 0.2, 0, 10); at("entity_action.amount_ratio"); ep();
         p("stoneguard_natural_armor");  f("amount", 6.0, -100, 100); ep();
         p("stoneguard_knockback_resist");f("amount", 0.5, -1, 1); ep();
         p("stoneguard_active_glowstone");f("max_distance", 5.0, 1, 64); fi("cooldown_ticks", 100, 0, 72000); ep();
@@ -427,18 +444,20 @@ public final class PowerOverridesConfig {
         p("class_warrior_knockback_resist");f("amount", 0.3, -1, 1); ep();
         p("class_archer_agility");      f("amount", 0.15, -1, 10); ep();
         p("class_miner_speed");         f("multiplier", 1.5, 0, 100); ep();
-        p("class_miner_efficiency");    f("multiplier", 0.7, 0, 10); ep();
+        p("class_miner_efficiency");    f("multiplier", 0.7, 0, 10); at("modifier.value"); ep();
         p("class_beastmaster_diffusal");f("radius", 16.0, 0, 128); ep();
-        p("class_beastmaster_potions"); f("multiplier", 1.5, 0, 10); ep();
-        p("class_explorer_stamina");    f("multiplier", 0.6, 0, 10); ep();
+        p("class_beastmaster_potions"); f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
+        p("class_explorer_stamina");    f("multiplier", 0.6, 0, 10); at("modifier.value"); ep();
         p("class_sentinel_armor");      f("amount", 4.0, -100, 100); ep();
-        p("class_sentinel_knockback_resist");f("amount", 0.2, -1, 1); ep();
-        p("class_sentinel_thorns");     f("return_ratio", 0.25, 0, 10); ep();
+        p("class_sentinel_knockback_resist");f("amount", 0.4, -1, 1); ep();
+        p("class_sentinel_thorns");     f("return_ratio", 0.25, 0, 10); at("entity_action.amount_ratio"); ep();
+        // Ids predate the names: class_herbalist_growth is "Green Thumb" (crop aura),
+        // class_herbalist_green_thumb is "Blessed Bone Meal".
         p("class_herbalist_growth");    fi("radius", 5, 1, 64); fi("tick_interval", 40, 1, 72000); fi("growths_per_interval", 2, 1, 100); ep();
         p("class_herbalist_harvest_bonus");fi("extra_drops", 1, 0, 100); ep();
         p("class_scout_speed");         f("amount", 0.2, -1, 10); ep();
         p("class_berserker_damage");    f("amount", 3.0, -100, 100); ep();
-        p("class_berserker_hunger");    f("multiplier", 1.5, 0, 10); ep();
+        p("class_berserker_hunger");    f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
         p("class_titan_size");          f("scale", 1.25, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("class_titan_health");        f("amount", 4.0, -100, 100); ep();
         p("class_titan_reach");         f("amount", 0.5, -10, 10); ep();
@@ -447,12 +466,11 @@ public final class PowerOverridesConfig {
         p("class_lumberjack_tree_felling");fi("max_blocks", 64, 1, 1024); ep();
         p("class_lumberjack_bonus_planks");fi("bonus_count", 2, 0, 100); ep();
         p("class_merchant_trades");     fi("scan_interval", 40, 1, 72000); f("radius", 8.0, 0, 128); ep();
-        p("class_cleric_enchanting");   fi("bonus_levels", 5, 0, 100); ep();
-        p("class_cleric_potions");      f("multiplier", 2.0, 0, 10); ep();
-        p("class_cook_food");           f("saturation_bonus", 0.4, 0, 10); ep();
+        p("class_cleric_enchanting");   fi("bonus_levels", 5, 0, 100); at("modifier.value"); ep();
+        p("class_cleric_potions");      f("multiplier", 2.0, 0, 10); at("modifier.value"); ep();
+        p("class_cook_food");           f("saturation_bonus", 0.5, 0, 10); at("modifier.value"); ep();
         p("class_cook_smoker_xp");      f("multiplier", 2.0, 0, 100); ep();
-        p("class_blacksmith_quality");  fi("unbreaking_level", 1, 0, 10); ep();
-        p("class_blacksmith_repairs");  f("cost_multiplier", 0.5, 0, 10); ep();
+        p("class_blacksmith_repairs");  f("cost_multiplier", 0.5, 0, 10); at("modifier.value"); ep();
 
         // ── Fisher ──
         p("class_fisher_swim_speed");   f("amount", 0.15, -1, 10); ep();
@@ -467,7 +485,7 @@ public final class PowerOverridesConfig {
         // ── Paladin ──
         p("class_paladin_holy_armor");  f("amount", 2.0, -100, 100); ep();
         p("class_paladin_turn_undead"); fi("duration", 80, 0, 72000); fi("amplifier", 0, 0, 255); ep();
-        p("class_paladin_beacon_regen");f("radius", 8.0, 0, 128); ep();
+        p("class_paladin_beacon_regen");f("radius", 8.0, 1, 16); at("condition.radius"); ep();
 
         // ── Mount ──
         p("mount"); f("range", 5.0, 1, 64); fi("cooldown_ticks", 100, 0, 72000); fi("hunger_cost", 0, 0, 100); fb("allow_players", true); fb("allow_mobs", true); fb("block_bosses", true); ep();
@@ -497,6 +515,16 @@ public final class PowerOverridesConfig {
             }
         }
         return changed.isEmpty() ? null : changed;
+    }
+
+    /**
+     * The dotted JSON path {@code field} is written to for {@code powerId}: the
+     * nested target registered with {@code at(...)}, else {@code field} itself (root).
+     */
+    public static String getOverrideTarget(String powerId, String field) {
+        Map<String, String> targets = POWER_TARGETS.get(powerId);
+        String path = targets == null ? null : targets.get(field);
+        return path == null ? field : path;
     }
 
     /**
