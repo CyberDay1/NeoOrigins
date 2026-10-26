@@ -2941,6 +2941,11 @@
         "block_tag": {
           "description": "Restrict the multiplier to blocks in this block tag, or matching this block id; a leading # forces tag-only. Omit to speed up every block.",
           "type": "string"
+        },
+        "effective_tool_only": {
+          "description": "Only apply while the main-hand item is a correct tool for the block (a pickaxe on stone). Default false.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [

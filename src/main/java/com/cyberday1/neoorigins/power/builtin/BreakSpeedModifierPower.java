@@ -26,16 +26,27 @@ import java.util.Set;
  *
  * <p>Multiple active break_speed_modifier powers whose filters match the same block
  * stack multiplicatively (1.5x * 2.0x = 3.0x).
+ *
+ * <p>{@code effective_tool_only} limits the multiplier to blocks the held item is the
+ * correct tool for. It is checked inside the break-speed event on both sides, not as
+ * a power condition: a condition is only true while a block is being mined, so the
+ * capability tag the client predicts from would almost never be published.
  */
 public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.Config> {
 
-    /** Capability-tag prefix; payload is {@code <multiplier>|<block_tag>} (tag may be empty). */
+    /**
+     * Capability-tag prefix; payload is {@code <multiplier>|<block_tag>} (tag may be
+     * empty), plus {@code |}{@link #EFFECTIVE_TOOL_FLAG} when {@code effective_tool_only} is set.
+     */
     public static final String CAPABILITY_PREFIX = "break_speed_modifier|";
+    public static final String EFFECTIVE_TOOL_FLAG = "effective_tool";
 
-    public record Config(float multiplier, String blockTag, String type) implements PowerConfiguration {
+    public record Config(float multiplier, String blockTag, boolean effectiveToolOnly, String type)
+            implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.FLOAT.optionalFieldOf("multiplier", 2.0f).forGetter(Config::multiplier),
             Codec.STRING.optionalFieldOf("block_tag", "").forGetter(Config::blockTag),
+            Codec.BOOL.optionalFieldOf("effective_tool_only", false).forGetter(Config::effectiveToolOnly),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -45,6 +56,7 @@ public class BreakSpeedModifierPower extends PowerType<BreakSpeedModifierPower.C
 
     @Override
     public Set<String> capabilities(Config config) {
-        return Set.of(CAPABILITY_PREFIX + config.multiplier() + "|" + config.blockTag());
+        return Set.of(CAPABILITY_PREFIX + config.multiplier() + "|" + config.blockTag()
+            + (config.effectiveToolOnly() ? "|" + EFFECTIVE_TOOL_FLAG : ""));
     }
 }
