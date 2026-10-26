@@ -32,6 +32,7 @@
     "PlayerSoundMixin",
     "LivingEntitySoundInvoker",
     "EntitySwimSoundInvoker",
+    "LivingEntityLootTableDropsMixin",
     "EntityMountPositionMixin",
     "EntityMountEndMixin",
     "AbstractVillagerTradePriceMixin",
