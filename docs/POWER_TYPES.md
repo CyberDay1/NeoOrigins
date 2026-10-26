@@ -1532,6 +1532,7 @@ Multiplies the player's mining speed when breaking blocks in the specified tag. 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `block_tag` | Identifier | no | _(all blocks)_ | Block tag to restrict the modifier to, e.g. `#minecraft:base_stone_overworld`. A bare id is tried as a tag first, then as a single block; a leading `#` forces a tag. |
+| `effective_tool_only` | boolean | no | `false` | Only apply while the main-hand item is a correct tool for the block (a pickaxe on stone) |
 | `multiplier` | float | no | `2.0` | Speed multiplier (`2.0` = double speed) |
 
 **Example: 2× speed on stone and deepslate**
