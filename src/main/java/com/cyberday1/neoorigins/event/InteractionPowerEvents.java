@@ -22,9 +22,7 @@ import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,15 +32,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
 public class InteractionPowerEvents {
-
-    // Tracks (traderEntityId + playerUUID) pairs to avoid double-injecting
-    // charisma trades on repeated interactions with the same trader.
-    // Wandering traders despawn, so this set stays bounded naturally.
-    private static final Set<Long> CHARISMA_INJECTED = Collections.newSetFromMap(new ConcurrentHashMap<>());
-
-    private static long charismaKey(int traderId, java.util.UUID playerId) {
-        return ((long) traderId << 32) ^ playerId.getLeastSignificantBits();
-    }
 
     // Pre-eat food/saturation snapshot for modify_food_nutrition. Captured at
     // use-Start so the Finish handler can recompute the bar from the real
@@ -63,8 +52,9 @@ public class InteractionPowerEvents {
         if (!(event.getTarget() instanceof WanderingTrader trader)) return;
         if (!ActiveOriginService.has(sp, RareWanderingLootPower.class, cfg -> true)) return;
 
-        long key = charismaKey(trader.getId(), sp.getUUID());
-        if (!CHARISMA_INJECTED.add(key)) return; // already injected for this pair
+        // Recorded on the trader itself, not in memory: entity ids restart with the
+        // server while the injected offers persist in the trader's NBT.
+        if (!RareWanderingLootPower.claimInjection(trader, sp.getUUID())) return;
 
         RareWanderingLootPower.injectTrades(sp, trader);
     }
