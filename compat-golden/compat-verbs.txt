@@ -3,7 +3,7 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 1001   typed-objects: 1624   distinct-types: 192
+# files-scanned: 1001   typed-objects: 1623   distinct-types: 191
 
 == RECOGNIZED VERBS ==
 [action] (95)
@@ -272,7 +272,7 @@ neoorigins:block	x11	recognized=condition	fields={block,tag}
 neoorigins:block_action_at	x1	recognized=action	fields={block_action}
 neoorigins:block_collision	x1	recognized=condition	fields={offset_x,offset_y,offset_z}
 neoorigins:bounce_on_land	x1	recognized=-	fields={hidden,restitution}
-neoorigins:break_speed_modifier	x8	recognized=-	fields={block_tag,condition,description,multiplier,name}
+neoorigins:break_speed_modifier	x8	recognized=-	fields={block_tag,description,effective_tool_only,multiplier,name}
 neoorigins:breath_out_of_fluid	x4	recognized=-	fields={fluid}
 neoorigins:burn	x1	recognized=-	fields={burn_duration,condition,description,interval,name}
 neoorigins:cancel_event	x5	recognized=action	fields={}
@@ -417,7 +417,6 @@ neoorigins:tree_felling	x1	recognized=-	fields={}
 neoorigins:trigger_cooldown	x1	recognized=action	fields={cooldown,power}
 neoorigins:twin_breeding	x1	recognized=-	fields={description,name}
 neoorigins:underwater_mining_speed	x2	recognized=-	fields={}
-neoorigins:using_effective_tool	x1	recognized=condition	fields={}
 neoorigins:variable	x1	recognized=-	fields={max,min,start}
 neoorigins:wall_climbing	x6	recognized=-	fields={condition,description,hidden,name}
 neoorigins:water_breathing	x14	recognized=-	fields={description,name}
@@ -454,7 +453,7 @@ neoorigins:no_projectile_divergence	fields={}
 neoorigins:underwater_mining_speed	fields={}
 neoorigins:wall_climbing	fields={}
 neoorigins:water_breathing	fields={enabled}
-neoorigins:break_speed_modifier	fields={block_tag,multiplier}
+neoorigins:break_speed_modifier	fields={block_tag,effective_tool_only,multiplier}
 neoorigins:crop_harvest_bonus	fields={extra_drops}
 neoorigins:dodge_chance	fields={chance}
 neoorigins:entity_group	fields={group}

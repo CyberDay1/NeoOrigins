@@ -50,7 +50,7 @@ public final class BreakSpeedModifierEvents {
         float[] product = {1.0f};
         if (player instanceof ServerPlayer sp) {
             ActiveOriginService.forEachOfType(sp, BreakSpeedModifierPower.class, cfg -> {
-                if (matches(state, cfg.blockTag())) {
+                if (matches(state, cfg.blockTag()) && toolAllows(player, state, cfg.effectiveToolOnly())) {
                     float m = cfg.multiplier();
                     if (Float.isFinite(m) && m >= 0f) product[0] *= m;
                 }
@@ -59,8 +59,8 @@ public final class BreakSpeedModifierEvents {
             for (String cap : ClientActivePowers.activeCapabilities()) {
                 if (!cap.startsWith(BreakSpeedModifierPower.CAPABILITY_PREFIX)) continue;
                 String payload = cap.substring(BreakSpeedModifierPower.CAPABILITY_PREFIX.length());
-                // payload = "<multiplier>|<block_tag>"; tag may be empty (all blocks).
-                String[] parts = payload.split("\\|", 2);
+                // payload = "<multiplier>|<block_tag>[|effective_tool]"; tag may be empty (all blocks).
+                String[] parts = payload.split("\\|", 3);
                 float m;
                 try {
                     m = Float.parseFloat(parts[0]);
@@ -68,10 +68,18 @@ public final class BreakSpeedModifierEvents {
                     continue;
                 }
                 String tag = parts.length > 1 ? parts[1] : "";
-                if (matches(state, tag) && Float.isFinite(m) && m >= 0f) product[0] *= m;
+                boolean toolOnly = parts.length > 2
+                    && BreakSpeedModifierPower.EFFECTIVE_TOOL_FLAG.equals(parts[2]);
+                if (matches(state, tag) && toolAllows(player, state, toolOnly)
+                        && Float.isFinite(m) && m >= 0f) product[0] *= m;
             }
         }
         return product[0];
+    }
+
+    /** {@code effective_tool_only}: the main-hand item must be a correct tool for the block. */
+    static boolean toolAllows(Player player, BlockState state, boolean effectiveToolOnly) {
+        return !effectiveToolOnly || player.getMainHandItem().isCorrectToolForDrops(state);
     }
 
     /**

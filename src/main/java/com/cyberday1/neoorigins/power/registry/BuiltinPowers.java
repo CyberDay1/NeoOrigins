@@ -370,7 +370,9 @@ public final class BuiltinPowers {
             new FieldSpec("multiplier", Kind.NUMBER, false)
                 .def(2.0).doc("Mining-speed multiplier; stacks multiplicatively with other instances; default 2.0."),
             new FieldSpec("block_tag", Kind.STRING, false)
-                .doc("Restrict the multiplier to blocks in this block tag, or matching this block id; a leading # forces tag-only. Omit to speed up every block.")));
+                .doc("Restrict the multiplier to blocks in this block tag, or matching this block id; a leading # forces tag-only. Omit to speed up every block."),
+            new FieldSpec("effective_tool_only", Kind.BOOLEAN, false)
+                .def(false).doc("Only apply while the main-hand item is a correct tool for the block (a pickaxe on stone). Default false.")));
         define("crop_harvest_bonus", CropHarvestBonusPower.class, List.of(
             new FieldSpec("extra_drops", Kind.INTEGER, false)
                 .def(1).doc("Extra copies of the block's own loot when breaking crops/logs (default 1).")));
