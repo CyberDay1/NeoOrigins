@@ -4193,9 +4193,9 @@
     Type: neoorigins:attribute_modifier
     30% knockback resistance.
 
-  Battle Stance (neoorigins:class_warrior_battle_stance)
+  Battle-Hardened (neoorigins:class_warrior_battle_stance)
     Type: neoorigins:attribute_modifier
-    +2 natural armor — a fighter's poise turns lesser blows.
+    +2 armor: a fighter's poise turns lesser blows.
 
   Warrior's Endurance (neoorigins:class_warrior_endurance)
     Type: neoorigins:attribute_modifier
@@ -4491,8 +4491,7 @@
 
   Hidden Presence (neoorigins:class_rogue_sneaky)
     Type: neoorigins:sneaky
-    Your nameplate is never visible through walls and mobs have a much harder
-    time detecting you.
+    Mobs only notice you from within 30% of their usual range.
 
   neoorigins:step_assist_toggle
     Type: neoorigins:toggle
@@ -4557,7 +4556,7 @@
 
   Efficient Repairs (neoorigins:class_blacksmith_repairs)
     Type: neoorigins:action_on_event
-    Anvil repairs cost less and restore more durability.
+    Anvil work costs half the experience levels (minimum 1).
 
   Forge Hands (neoorigins:class_blacksmith_forge_hands)
     Type: neoorigins:bare_hand_tool
@@ -4576,8 +4575,7 @@
   COOK
   ID: neoorigins:class_cook | Impact: NONE | Order: 15 | Icon: minecraft:bread
 --------------------------------------------------------------------------------
-  A culinary expert whose crafted food is more nourishing and who gains bonus
-  XP from smoking.
+  A culinary expert whose crafted and cooked food is more nourishing.
 
   Good Meals (neoorigins:class_cook_food)
     Type: neoorigins:action_on_event
@@ -4667,7 +4665,7 @@
 
   Seal's Grace (neoorigins:class_fisher_swim_speed)
     Type: neoorigins:attribute_modifier
-    +15% movement speed while in water.
+    +15% swim speed.
 
   Sea Legs (neoorigins:class_fisher_sea_legs)
     Type: neoorigins:modify_damage
@@ -4866,7 +4864,7 @@
 
   neoorigins:break_speed_modifier
     Passive | Shipped powers: 8 | BreakSpeedModifierPower
-    Fields: block_tag, multiplier
+    Fields: block_tag, effective_tool_only, multiplier
 
   neoorigins:breath_in_fluid
     Passive | Shipped powers: 0 | BreathInFluidPower
