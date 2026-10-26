@@ -332,9 +332,13 @@ public class CraftingPowerEvents {
         float mult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_ANVIL_COST, event, 1.0f);
         if (mult != 1.0f) {
-            int cost = Math.max(1, (int)(event.getXpCost() * mult));
-            event.setXpCost(cost);
+            event.setXpCost(scaledAnvilCost(event.getXpCost(), mult));
         }
+    }
+
+    /** MOD_ANVIL_COST: rounded to nearest, minimum 1, the same rule as 1.21.1's AnvilMenuCostMixin. */
+    static int scaledAnvilCost(long cost, float mult) {
+        return Math.max(1, Math.round(cost * mult));
     }
 
     /**
