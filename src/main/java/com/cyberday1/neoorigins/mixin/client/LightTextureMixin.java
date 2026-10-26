@@ -41,8 +41,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = LightmapRenderStateExtractor.class, priority = 1500)
 public abstract class LightTextureMixin {
 
-    /** Darkness-compensation factor; 0 = no boost, 1 = full night-vision-equivalent. */
-    private static final float EXPOSURE = 0.7F;
+    /** Darkness-compensation factor; 0 = no boost, 1 = full night-vision-equivalent. Matches 1.21.1. */
+    private static final float EXPOSURE = 1.0F;
 
     @Inject(
         method = "extract(Lnet/minecraft/client/renderer/state/LightmapRenderState;F)V",
