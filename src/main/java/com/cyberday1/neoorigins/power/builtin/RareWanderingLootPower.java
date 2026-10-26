@@ -5,11 +5,15 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntArrayTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -20,15 +24,16 @@ import net.minecraft.world.item.trading.MerchantOffers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Charisma — wandering traders offer the player master-tier villager trades
  * and a chance at a rare treasure item.
  *
  * <p>Trades are injected per-player when the player opens the trader's UI.
- * Each wandering trader instance remembers which players it has already
- * generated charisma trades for (keyed by trader entity ID stored in the
- * player's transient data, since traders despawn anyway).
+ * Each trader records the players it has generated charisma trades for in its
+ * own saved data ({@link #claimInjection}), so the offers, which persist in the
+ * trader's NBT, are not added again after a server restart.
  *
  * <p>26.1 note: villager trades are data-driven in this MC version, so
  * master-tier offers are defined inline rather than pulled from
@@ -121,6 +126,24 @@ public class RareWanderingLootPower extends PowerType<RareWanderingLootPower.Con
     private static final int TREASURE_EMERALD_MAX = 64;
     private static final int TREASURE_NETHERITE_MIN = 1;
     private static final int TREASURE_NETHERITE_MAX = 6;
+
+    /** Key in the trader's persistent data listing the players it has served. */
+    static final String SERVED_PLAYERS_KEY = "neoorigins:charisma_players";
+
+    /**
+     * Marks {@code player} as served by {@code trader}; false if it already was.
+     * Stored in the trader's persistent data, which saves with the entity, so the
+     * record survives a restart exactly as long as the injected offers do.
+     */
+    public static boolean claimInjection(Entity trader, UUID player) {
+        CompoundTag data = trader.getPersistentData();
+        ListTag served = data.getListOrEmpty(SERVED_PLAYERS_KEY);
+        IntArrayTag id = new IntArrayTag(UUIDUtil.uuidToIntArray(player));
+        if (served.contains(id)) return false;
+        served.add(id);
+        data.put(SERVED_PLAYERS_KEY, served);
+        return true;
+    }
 
     /**
      * Injects charisma trades into a wandering trader's offer list for the
