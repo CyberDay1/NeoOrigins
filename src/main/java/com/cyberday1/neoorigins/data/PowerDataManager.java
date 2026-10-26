@@ -487,14 +487,28 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         if (overrides == null) return;
 
         for (var entry : overrides.entrySet()) {
-            String field = entry.getKey();
+            String path = PowerOverridesConfig.getOverrideTarget(id.toString(), entry.getKey());
+            JsonObject target = json;
+            String[] parts = path.split("\\.");
+            for (int i = 0; i < parts.length - 1 && target != null; i++) {
+                JsonElement next = target.get(parts[i]);
+                target = next != null && next.isJsonObject() ? next.getAsJsonObject() : null;
+            }
+            if (target == null) {
+                // The pack replaced the power with a shape that lacks the nested
+                // object; writing a fresh one would invent structure it never had.
+                NeoOrigins.LOGGER.warn("Config override {} for power {} skipped: no '{}' in its JSON",
+                    entry.getKey(), id, path);
+                continue;
+            }
+            String field = parts[parts.length - 1];
             Object value = entry.getValue();
             if (value instanceof Number n) {
-                json.addProperty(field, n);
+                target.addProperty(field, n);
             } else if (value instanceof Boolean b) {
-                json.addProperty(field, b);
+                target.addProperty(field, b);
             } else {
-                json.addProperty(field, value.toString());
+                target.addProperty(field, value.toString());
             }
         }
         NeoOrigins.LOGGER.info("Applied {} config override(s) to power {}: {}",
