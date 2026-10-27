@@ -179,8 +179,9 @@ public final class GameplayConfig {
         ).push("evolution");
 
         EVOLUTION_ENABLED = BUILDER
-            .comment("Enable the evolution system. When false, kills are not tracked",
-                     "and evolution prompts never appear.")
+            .comment("Enable the evolution system. When false, kills are not tracked,",
+                     "evolution prompts never appear, and the origin screens hide the",
+                     "Evolution Path section. Classic mode (content.toml) also turns it off.")
             .define("enabled", true);
 
         EVOLUTION_TIER_1_KILLS = BUILDER
@@ -202,7 +203,15 @@ public final class GameplayConfig {
         BUILDER.pop();
     }
 
-    public static boolean isEvolutionEnabled() { return EVOLUTION_ENABLED.get(); }
+    /** Off when {@code enabled} is false, and always off in classic mode: classic origins have no tiers. */
+    public static boolean isEvolutionEnabled() {
+        return evolutionEnabled(EVOLUTION_ENABLED.get(), ContentTogglesConfig.isClassicMode());
+    }
+
+    /** The rule itself, apart from the loaded config. */
+    static boolean evolutionEnabled(boolean configEnabled, boolean classicMode) {
+        return configEnabled && !classicMode;
+    }
     public static int evolutionTier1Kills()    { return EVOLUTION_TIER_1_KILLS.get(); }
     public static int evolutionTier2Kills()    { return EVOLUTION_TIER_2_KILLS.get(); }
     public static int evolutionTier3Kills()    { return EVOLUTION_TIER_3_KILLS.get(); }

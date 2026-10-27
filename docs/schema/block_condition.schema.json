@@ -10,11 +10,33 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Block-condition verb (adjacent / all_of / and / any_of / block / block_state / exposed_to_sky / fluid / height / in_tag / light_level / movement_blocking / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:adjacent|all_of|and|any_of|block|block_state|exposed_to_sky|fluid|height|in_tag|light_level|movement_blocking|offset|or)$"
+      "description": "Block-condition verb (active_beacon / adjacent / all_of / and / any_of / block / block_state / exposed_to_sky / fluid / height / in_tag / light_level / movement_blocking / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:active_beacon|adjacent|all_of|and|any_of|block|block_state|exposed_to_sky|fluid|height|in_tag|light_level|movement_blocking|offset|or)$"
     }
   },
   "oneOf": [
+    {
+      "$comment": "neoorigins:active_beacon",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:active_beacon",
+            "apace:active_beacon",
+            "origins:active_beacon",
+            "apoli:active_beacon",
+            "apugli:active_beacon"
+          ]
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
     {
       "$comment": "neoorigins:adjacent",
       "properties": {
@@ -449,6 +471,7 @@
         "type": {
           "not": {
             "enum": [
+              "apace:active_beacon",
               "apace:adjacent",
               "apace:all_of",
               "apace:and",
@@ -463,6 +486,7 @@
               "apace:movement_blocking",
               "apace:offset",
               "apace:or",
+              "apoli:active_beacon",
               "apoli:adjacent",
               "apoli:all_of",
               "apoli:and",
@@ -477,6 +501,7 @@
               "apoli:movement_blocking",
               "apoli:offset",
               "apoli:or",
+              "apugli:active_beacon",
               "apugli:adjacent",
               "apugli:all_of",
               "apugli:and",
@@ -491,6 +516,7 @@
               "apugli:movement_blocking",
               "apugli:offset",
               "apugli:or",
+              "neoorigins:active_beacon",
               "neoorigins:adjacent",
               "neoorigins:all_of",
               "neoorigins:and",
@@ -505,6 +531,7 @@
               "neoorigins:movement_blocking",
               "neoorigins:offset",
               "neoorigins:or",
+              "origins:active_beacon",
               "origins:adjacent",
               "origins:all_of",
               "origins:and",

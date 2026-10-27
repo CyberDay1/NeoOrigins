@@ -156,6 +156,11 @@ public final class EssenceEvolutionManager {
      * Called when the player accepts an evolution via command.
      */
     public static void acceptEvolution(ServerPlayer player) {
+        if (!GameplayConfig.isEvolutionEnabled()) {
+            player.sendSystemMessage(Component.literal("Evolution is turned off on this server.")
+                .withStyle(ChatFormatting.RED));
+            return;
+        }
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         int currentTier = data.getEvolutionTier();
         int nextTier = currentTier + 1;
@@ -204,6 +209,11 @@ public final class EssenceEvolutionManager {
      * mute the next prompt before it was ever shown.
      */
     public static void declineEvolution(ServerPlayer player) {
+        if (!GameplayConfig.isEvolutionEnabled()) {
+            player.sendSystemMessage(Component.literal("Evolution is turned off on this server.")
+                .withStyle(ChatFormatting.RED));
+            return;
+        }
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         int nextTier = data.getEvolutionTier() + 1;
 

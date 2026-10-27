@@ -16,4 +16,16 @@ public interface OffFlagToggle<C extends PowerConfiguration> {
     boolean hasToggle(C config);
 
     String legacyToggleKey(C config);
+
+    /**
+     * True when this type reads the shared toggle-upkeep fields into
+     * {@link com.cyberday1.neoorigins.power.util.PowerUpkeep}'s table at load.
+     * {@code effect_over_time} carries its own cost fields and answers false.
+     */
+    default boolean readsSharedUpkeep() { return true; }
+
+    /** True when this power charges an upkeep while it is on. */
+    default boolean hasUpkeep(C config, Identifier id) {
+        return !com.cyberday1.neoorigins.power.util.PowerUpkeep.forPower(id).isFree();
+    }
 }

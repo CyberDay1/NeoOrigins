@@ -21,7 +21,17 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
     public record Entry(int value, int min, int max, String label, int color,
                         int barIndex, int iconIndex, String spriteLocation,
                         String animated, int tint, int tintEnd, boolean alwaysShow,
-                        boolean dynamic) {}
+                        boolean dynamic, int textColor, boolean textOutline) {
+        /** Default text styling: the stock grey label, no outline. */
+        public Entry(int value, int min, int max, String label, int color,
+                     int barIndex, int iconIndex, String spriteLocation,
+                     String animated, int tint, int tintEnd, boolean alwaysShow,
+                     boolean dynamic) {
+            this(value, min, max, label, color, barIndex, iconIndex, spriteLocation,
+                animated, tint, tintEnd, alwaysShow, dynamic,
+                com.cyberday1.neoorigins.compat.CompatAttachments.ResourceMeta.DEFAULT_TEXT_COLOR, false);
+        }
+    }
 
     public static final Type<SyncResourcePayload> TYPE =
         new Type<>(Identifier.fromNamespaceAndPath("neoorigins", "sync_resource"));
@@ -46,6 +56,8 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
             buf.writeInt(e.getValue().tintEnd());
             buf.writeBoolean(e.getValue().alwaysShow());
             buf.writeBoolean(e.getValue().dynamic());
+            buf.writeInt(e.getValue().textColor());
+            buf.writeBoolean(e.getValue().textOutline());
         }
     }
 
@@ -67,7 +79,9 @@ public record SyncResourcePayload(Map<String, Entry> resources) implements Custo
             int tintEnd = buf.readInt();
             boolean alwaysShow = buf.readBoolean();
             boolean dynamic = buf.readBoolean();
-            map.put(key, new Entry(value, min, max, label, color, barIndex, iconIndex, spriteLocation, animated, tint, tintEnd, alwaysShow, dynamic));
+            int textColor = buf.readInt();
+            boolean textOutline = buf.readBoolean();
+            map.put(key, new Entry(value, min, max, label, color, barIndex, iconIndex, spriteLocation, animated, tint, tintEnd, alwaysShow, dynamic, textColor, textOutline));
         }
         return new SyncResourcePayload(map);
     }

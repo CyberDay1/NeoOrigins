@@ -8,11 +8,10 @@ import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.power.builtin.base.HudIconConfig;
 import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
 import com.cyberday1.neoorigins.power.util.EnabledGate;
+import com.cyberday1.neoorigins.power.util.PowerUpkeep;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
@@ -176,8 +175,33 @@ public class PosePower extends PowerType<PosePower.Config> implements OffFlagTog
     @Override
     public Set<String> capabilities(ServerPlayer player, Config config) {
         if (!config.enabled()) return Set.of();
-        if (isToggledOff(player, config, PowerHolder.currentDispatchId())) return Set.of();
+        Identifier id = PowerHolder.currentDispatchId();
+        if (isToggledOff(player, config, id)) return Set.of();
+        if (PowerUpkeep.isLapsed(player, id)) return Set.of();
         return config.pose().tags();
+    }
+
+    /**
+     * Upkeep only: the pose itself is published through {@link #capabilities}.
+     * A toggle that can't pay switches off; a pose with no toggle is released
+     * until a later charge is paid. Either change is pushed to the client, since
+     * the client's capability set only moves on a sync.
+     */
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (!config.enabled()) return;
+        if (isToggledOff(player, config)) return;
+        Identifier id = PowerHolder.currentDispatchId();
+        PowerUpkeep.Verdict verdict = PowerUpkeep.tick(player, id, PowerUpkeep.forPower(id), config.toggleable());
+        switch (verdict) {
+            case SHUT_OFF -> {
+                player.getData(OriginAttachments.originData())
+                    .setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
+                PowerUpkeep.announceShutOff(player);
+            }
+            case LAPSED, RESUMED -> PowerUpkeep.resyncClient(player);
+            default -> { }
+        }
     }
 
     /**
@@ -236,9 +260,7 @@ public class PosePower extends PowerType<PosePower.Config> implements OffFlagTog
         String legacy = legacyToggleKey(config);
         boolean wasOff = data.isPowerToggledOff(key, legacy);
         data.setPowerToggledOff(key, legacy, !wasOff);
-        player.sendSystemMessage(Component.translatable(
-                wasOff ? "neoorigins.toggle.on" : "neoorigins.toggle.off")
-            .withStyle(wasOff ? ChatFormatting.GREEN : ChatFormatting.RED));
+        PowerUpkeep.announceToggle(player, PowerHolder.currentDispatchId(), wasOff);
         // Nothing to tear down here: the pose is released by ForcedPoseEvents on
         // the next tick, when the capability it reads stops being published.
     }
@@ -250,5 +272,6 @@ public class PosePower extends PowerType<PosePower.Config> implements OffFlagTog
         // key was left on.
         player.getData(OriginAttachments.originData())
             .setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
+        PowerUpkeep.clearLapse(player, PowerHolder.currentDispatchId());
     }
 }

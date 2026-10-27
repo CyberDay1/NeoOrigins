@@ -37,6 +37,11 @@ public class MovementPowerEvents {
         // distance, which nothing consumed and which made cancel_event a no-op.
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LAND, event);
+        // Stamp this tick so the PlayerTickEvent.Post onGround detector (which
+        // also fires LAND, the only source in creative/flight) skips this same
+        // landing in survival and we don't double-fire. LivingFallEvent and the
+        // Post tick handler both observe tickCount = N+1, so the stamps match.
+        com.cyberday1.neoorigins.service.EventPowerIndex.markLandDispatched(sp.getUUID(), sp.tickCount);
         // MOD_FALL_DAMAGE scales the fall-damage multiplier. Chains on the
         // event's current multiplier so it stacks with feather-falling etc.
         float fallMult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(

@@ -204,7 +204,18 @@ public class CompatAttachments {
     public record ResourceMeta(int min, int max, String label, int color, boolean hidden,
                                int barIndex, int iconIndex, String spriteLocation,
                                String animated, int tint, int tintEnd, boolean alwaysShow,
-                               boolean dynamic) {
+                               boolean dynamic, int textColor, boolean textOutline) {
+        /** The HUD's label/readout colour when hud_render.text_color is not set. */
+        public static final int DEFAULT_TEXT_COLOR = 0xFFCCCCCC;
+
+        /** Default text styling: the stock grey, no outline. */
+        public ResourceMeta(int min, int max, String label, int color, boolean hidden,
+                            int barIndex, int iconIndex, String spriteLocation,
+                            String animated, int tint, int tintEnd, boolean alwaysShow,
+                            boolean dynamic) {
+            this(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation,
+                animated, tint, tintEnd, alwaysShow, dynamic, DEFAULT_TEXT_COLOR, false);
+        }
         /** Convenience constructor — visible, no Apoli sprite indices. */
         public ResourceMeta(int min, int max, String label, int color) {
             this(min, max, label, color, false, -1, -1, null, "", 0, 0, false, false);
@@ -429,7 +440,8 @@ public class CompatAttachments {
                 e.getValue(), meta.min(), meta.max(), meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
                 meta.spriteLocation() == null ? "" : meta.spriteLocation(),
-                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow(), meta.dynamic()));
+                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow(), meta.dynamic(),
+                meta.textColor(), meta.textOutline()));
         }
         // Externally-backed bars (e.g. irons_spellbooks:mana) have no entry in
         // the ResourceState store — their value lives in the backing pool. Emit
@@ -452,7 +464,8 @@ public class CompatAttachments {
                 val, min, max, meta.label(), meta.color(),
                 meta.barIndex(), meta.iconIndex(),
                 meta.spriteLocation() == null ? "" : meta.spriteLocation(),
-                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow(), meta.dynamic()));
+                meta.animated() == null ? "" : meta.animated(), meta.tint(), meta.tintEnd(), meta.alwaysShow(), meta.dynamic(),
+                meta.textColor(), meta.textOutline()));
         }
         return entries;
     }

@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.event;
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.power.builtin.*;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.service.PersonalSpace;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -135,6 +136,14 @@ public class WorldPowerEvents {
 
     @SubscribeEvent
     public static void onFinalizeSpawn(FinalizeSpawnEvent event) {
+        // The personal dimension refuses every spawn the world makes on its own;
+        // spawners, eggs, breeding, buckets, commands and the rest go through.
+        // getLevel().getLevel() also resolves chunk-generation regions.
+        if (PersonalSpace.isPersonalSpace(event.getLevel().getLevel())
+                && PersonalSpace.deniesSpawn(event.getSpawnType())) {
+            event.setSpawnCancelled(true);
+            return;
+        }
         if (!(event.getLevel() instanceof ServerLevel sl)) return;
         Mob mob = event.getEntity();
         if (!anyWardingPlayer(sl)) return;
@@ -263,15 +272,36 @@ public class WorldPowerEvents {
             }
         }
 
-        // TreeFellingPower — BFS upward from broken log
+        // TreeFellingPower — BFS upward from broken log. A require_axe power (the
+        // default) only fells when the swing was an axe; Axe Hands counts while the
+        // main hand is empty.
         if (state.is(BlockTags.LOGS) && !sp.isShiftKeyDown()) {
             if (ActiveOriginService.has(sp, TreeFellingPower.class, c -> true)) {
-                final int[] maxBlocks = {64};
-                ActiveOriginService.forEachOfType(sp, TreeFellingPower.class, cfg ->
-                    maxBlocks[0] = Math.max(maxBlocks[0], cfg.maxBlocks()));
-                fellTree(sl, pos, maxBlocks[0]);
+                boolean axe = fellsTrees(sp.getMainHandItem(), BareHandToolEvents.virtualToolFor(sp));
+                final int[] maxBlocks = {0};
+                ActiveOriginService.forEachOfType(sp, TreeFellingPower.class, cfg -> {
+                    if (axe || !cfg.requireAxe()) maxBlocks[0] = Math.max(Math.max(maxBlocks[0], 64), cfg.maxBlocks());
+                });
+                if (maxBlocks[0] > 0) fellTree(sl, pos, maxBlocks[0]);
             }
         }
+    }
+
+    /**
+     * Whether the swing that broke the log was an axe: the held item, or with an
+     * empty main hand the bare-hand tool ({@code bare_hand_tool}) standing in for it.
+     * Tested by the {@code #minecraft:axes} item tag, which modded axes join to get
+     * axe enchantments; 26.x has no {@code axe_dig} item ability to test instead.
+     */
+    static boolean fellsTrees(ItemStack mainHand, ItemStack bareHandTool) {
+        return fellsTrees(mainHand, bareHandTool, s -> s.is(net.minecraft.tags.ItemTags.AXES));
+    }
+
+    /** {@link #fellsTrees(ItemStack, ItemStack)} with the axe test injected (unit tests load no tags). */
+    static boolean fellsTrees(ItemStack mainHand, ItemStack bareHandTool,
+                              java.util.function.Predicate<ItemStack> isAxe) {
+        ItemStack tool = mainHand.isEmpty() ? bareHandTool : mainHand;
+        return !tool.isEmpty() && isAxe.test(tool);
     }
 
     private static void fellTree(ServerLevel level, BlockPos origin, int maxBlocks) {

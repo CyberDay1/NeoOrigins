@@ -98,10 +98,8 @@ public final class ItemActionParser {
     // reset_repair_cost the pack put on the equipped_item_action above it.
     private static ItemAction parseAnd(JsonObject json, JsonObject enclosing) {
         List<ItemAction> list = new ArrayList<>();
-        if (json.has("actions")) {
-            for (JsonElement el : json.getAsJsonArray("actions")) {
-                if (el.isJsonObject()) list.add(parse(el.getAsJsonObject(), enclosing));
-            }
+        for (JsonElement el : com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions")) {
+            if (el.isJsonObject()) list.add(parse(el.getAsJsonObject(), enclosing));
         }
         return s -> { for (ItemAction a : list) a.execute(s); };
     }

@@ -211,8 +211,46 @@ public final class BuiltinPowers {
      */
     private static final String TOKEN_OR_ID_PATTERN = "^#?[A-Za-z0-9_.:/-]+$";
 
+    /**
+     * The shared toggle-upkeep fields. Toggle types do not carry them on their
+     * Config records: {@code PowerDataManager.registerUpkeep} reads them off the
+     * raw power JSON into {@code PowerUpkeep}'s table, hence {@code readBy}.
+     * {@code effect_over_time} declares its own cost fields instead.
+     */
+    private static final String UPKEEP_READER = "com.cyberday1.neoorigins.power.util.PowerUpkeep#parse";
+    private static final List<FieldSpec> TOGGLE_UPKEEP_SPECS = List.of(
+        new FieldSpec("hunger_cost", Kind.INTEGER, false)
+            .def(0).range(0.0, null).readBy(UPKEEP_READER)
+            .doc("Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free."),
+        new FieldSpec("resource_cost", Kind.STRING, false)
+            .def("").readBy(UPKEEP_READER)
+            .doc("Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled."),
+        new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+            .def(0).range(0.0, null).readBy(UPKEEP_READER)
+            .doc("Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid."),
+        new FieldSpec("upkeep_interval", Kind.INTEGER, false)
+            .def(20).range(1.0, null).readBy(UPKEEP_READER)
+            .doc("Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set."),
+        new FieldSpec("upkeep_condition", Kind.REF, false).ref("condition.schema.json").readBy(UPKEEP_READER)
+            .doc("Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying."));
+
+    /** Shared by every toggle type, effect_over_time included; read into PowerUpkeep's table. */
+    private static final FieldSpec TOGGLE_MESSAGES_SPEC =
+        new FieldSpec("toggle_messages", Kind.BOOLEAN, false)
+            .def(true).readBy("com.cyberday1.neoorigins.power.util.PowerUpkeep#parseToggleMessages")
+            .doc("Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.");
+
     private static void define(String path, Class<?> powerClass, List<FieldSpec> fields) {
         Identifier id = Identifier.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
+        // Every toggle type except effect_over_time reads the shared upkeep fields
+        // (OffFlagToggle#readsSharedUpkeep), so they are appended here rather than
+        // repeated per type, and a new toggle type picks them up by construction.
+        if (com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle.class.isAssignableFrom(powerClass)) {
+            List<FieldSpec> shared = new java.util.ArrayList<>(fields);
+            if (powerClass != EffectOverTimePower.class) shared.addAll(TOGGLE_UPKEEP_SPECS);
+            shared.add(TOGGLE_MESSAGES_SPEC);
+            fields = shared;
+        }
         PowerSpec spec = new PowerSpec(id, powerClass, fields);
         DESCRIPTORS.put(id, spec);
         BY_KEY.put(id.toString(), spec);
@@ -406,7 +444,9 @@ public final class BuiltinPowers {
                 .def(16.0).doc("Block radius for sharing positive potion effects with tamed animals.")));
         define("tree_felling", TreeFellingPower.class, List.of(
             new FieldSpec("max_blocks", Kind.INTEGER, false)
-                .def(64).doc("Maximum connected log blocks broken in one chop (default 64).")));
+                .def(64).doc("Maximum connected log blocks broken in one chop (default 64)."),
+            new FieldSpec("require_axe", Kind.BOOLEAN, false)
+                .def(true).doc("Fell only when the log is broken with an axe: an item in #minecraft:axes, or an empty hand with an axe bare_hand_tool (default true). false fells with any tool or none.")));
         define("twin_breeding", TwinBreedingPower.class, List.of(
             new FieldSpec("chance", Kind.NUMBER, false)
                 .def(1.0).doc("Probability 0.0-1.0 of an extra baby when animals breed (default 1.0).")));
@@ -492,7 +532,15 @@ public final class BuiltinPowers {
             new FieldSpec("drop_on_death", Kind.BOOLEAN, false)
                 .def(false).doc("If true the extra inventory drops on death instead of persisting (default false)."),
             new FieldSpec("title", Kind.STRING, false)
-                .def("").doc("Optional literal title shown on the container screen when the inventory is opened. Blank/absent (default) uses the translatable 'container.neoorigins.extra_inventory'. Plain text, not a JSON text component.")));
+                .def("").doc("Optional literal title shown on the container screen when the inventory is opened. Blank/absent (default) uses the translatable 'container.neoorigins.extra_inventory'. Plain text, not a JSON text component."),
+            new FieldSpec("hunger_cost", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Food points charged every upkeep_interval while the inventory is open (saturation first). The key does nothing while the player can't pay one charge, and the menu closes at the first charge they can't pay. Default 0 = free."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Id of a neoorigins:resource power drained every upkeep_interval while the inventory is open; empty = no resource cost. Falls back to hunger_cost when resource bars are globally disabled."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid."),
+            new FieldSpec("upkeep_interval", Kind.INTEGER, false)
+                .def(20).range(1.0, null).doc("Ticks between charges while the inventory is open (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.")));
         define("fortune_when_effect", FortuneWhenEffectPower.class, List.of(
             new FieldSpec("effect", Kind.STRING, false)
                 .def("minecraft:luck").doc("Mob effect that must be active on the player for the Fortune bonus."),
@@ -529,7 +577,7 @@ public final class BuiltinPowers {
         // collapse onto the specs.
         define("enhanced_vision", EnhancedVisionPower.class, List.of(
             new FieldSpec("exposure", Kind.NUMBER, false)
-                .def(0.7).range(0.0, 1.0).doc("Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7).")));
+                .def(0.7).range(0.0, 1.0).doc("Brightness 0-1 in darkness. Advisory: the client currently applies full brightness (1.0) whatever this is set to (default 0.7).")));
         define("keep_inventory", KeepInventoryPower.class, List.of(
             new FieldSpec("slots", Kind.ARRAY, false)
                 .doc("Slot categories kept: hotbar, main, armor, offhand, or * for all (default *). "
@@ -850,6 +898,10 @@ public final class BuiltinPowers {
                 .def(0.15).doc("Food exhaustion added each tick while phasing in solids (default 0.15)."),
             new FieldSpec("always_on", Kind.BOOLEAN, false)
                 .def(false).doc("If true phasing is always-active instead of a toggle key (default false)."),
+            new FieldSpec("obscured_vision", Kind.BOOLEAN, false)
+                .def(false).doc("If true, the player can't see through terrain while phasing: whenever the camera is inside a solid block, thick dark fog closes in at phase_view_distance (default false = clear sight through walls)."),
+            new FieldSpec("phase_view_distance", Kind.NUMBER, false)
+                .def(1.5).range(0.0, null).doc("With obscured_vision, how far the player can see, in blocks, while the camera is inside a solid block (default 1.5)."),
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         // ── Group R (cont.) — batch D ───────────────────────────────────────
@@ -991,6 +1043,16 @@ public final class BuiltinPowers {
         define("active_recall", ActiveRecallPower.class, List.of(
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(600).doc("Cooldown in ticks (20 = 1s) between recalls to bed/spawn; default 600."),
+            COOLDOWN_ICON_SPEC,
+            COOLDOWN_COUNTDOWN_SPEC,
+            ALWAYS_SHOW_ICON_SPEC));
+        define("personal_dimension", PersonalDimensionPower.class, List.of(
+            new FieldSpec("size", Kind.INTEGER, false)
+                .def(12).range(1.0, 64.0).doc("Usable interior of the player's box in the neoorigins:personal_space dimension: size x size wide and size tall, inside a bedrock floor and barrier walls and ceiling (1 to 64; default 12). A larger size grows the box on the next entry and keeps its contents; a smaller one never shrinks it."),
+            new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
+                .def(1200).doc("Cooldown in ticks (20 = 1s) after entering the box; default 1200 (1 minute). Leaving has no cooldown."),
+            new FieldSpec("xp_levels_cost", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Experience levels taken on each entry (not charged in creative); default 0 = free. A player with fewer levels stays put and no cooldown starts. Leaving is always free."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -1592,7 +1654,7 @@ public final class BuiltinPowers {
                     new FieldSpec("count", Kind.INTEGER, false)
                         .def(1).range(1.0, null)
                         .doc("How many to drop; clamped to at least 1 (default 1)."))
-                .doc("List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry must set EXACTLY ONE target form — entity_type, entity_tag or entity_types — and entries with no valid target are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.")));
+                .doc("List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry must set EXACTLY ONE target form — entity_type, entity_tag or entity_types — and entries with no valid target are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/powers/work.md (kill_loot_drops).")));
 
         // ── Group C — shape-mismatch (nested object/array): schema STRUCTURE drifted ─
         // For these the power.schema.json branch's nested shape (objects/arrays)
@@ -1776,10 +1838,10 @@ public final class BuiltinPowers {
 
         //   • effect_over_time: sustained aura type, one entity_action tree pulsed
         //     on an interval behind an `activation` selector. passive (default) =
-        //     always-on, no upkeep; with toggleable:true it gains a free on/off
-        //     keybind and starts ON. active = keybind-toggled with a per-interval
-        //     upkeep (hunger/resource) that auto-disables the aura when unaffordable,
-        //     and starts OFF ("toggle" is an accepted alias for active). The codec
+        //     always-on; with toggleable:true it gains an on/off keybind and starts
+        //     ON. active = keybind-toggled, starts OFF ("toggle" is an accepted
+        //     alias for active). Any mode may carry a per-pulse upkeep: toggleable
+        //     auras switch off when they can't pay, plain passives skip the pulse. The codec
         //     reads entity_action under the `entity_action` JSON key (bound to the
         //     `action` component), defaulting to noop; condition defaults to
         //     always-true. Every field defaults — nothing required. One-shot
@@ -1787,26 +1849,28 @@ public final class BuiltinPowers {
         define("effect_over_time", EffectOverTimePower.class, List.of(
             new FieldSpec("activation", Kind.STRING, false)
                 .def("passive").options("passive", "active")
-                .doc("Aura mode (default passive). 'passive' pulses entity_action every interval while granted, no upkeep (add toggleable:true for a free on/off keybind). 'active' binds a keybind that toggles the aura on/off; while on it pulses every interval AND pays the upkeep cost (hunger_cost/resource_cost), switching itself off when it can no longer pay. ('toggle' is accepted as an alias for active.)"),
+                .doc("Aura mode (default passive). 'passive' pulses entity_action every interval while granted (add toggleable:true for an on/off keybind). 'active' binds a keybind that toggles the aura on/off and starts off. Either mode may pay an upkeep (hunger_cost/resource_cost) each pulse: a toggleable aura that can't pay switches itself off, a plain passive one skips the pulse. ('toggle' is accepted as an alias for active.)"),
             new FieldSpec("toggleable", Kind.BOOLEAN, false)
                 .def(false)
-                .doc("Passive mode only: when true the aura gains an on/off keybind (still free, no upkeep) and starts ON by default. Active auras are always toggleable and start OFF; this flag is ignored for them. Default false (plain always-on passive)."),
+                .doc("Passive mode only: when true the aura gains an on/off keybind and starts ON by default. Active auras are always toggleable and start OFF; this flag is ignored for them. Default false (plain always-on passive)."),
             new FieldSpec("interval", Kind.INTEGER, false)
                 .def(20).range(1.0, null)
-                .doc("Ticks between aura pulses — and, in active mode, between upkeep charges (min 1; default 20 = 1s)."),
+                .doc("Ticks between aura pulses, and so between upkeep charges (min 1; default 20 = 1s)."),
             new FieldSpec("condition", Kind.REF, false).ref("condition.schema.json")
-                .doc("Optional EntityCondition gate: entity_action pulses each interval only while it passes; else_action runs while it does not (default always-true). In active mode upkeep is still charged while the aura is on, regardless of the condition."),
+                .doc("Optional EntityCondition gate: entity_action pulses each interval only while it passes; else_action runs while it does not (default always-true). Upkeep is charged regardless of this condition; use upkeep_condition to gate the cost."),
             new FieldSpec("entity_action", Kind.REF, false).boundTo("action").ref("action.schema.json")
                 .doc("EntityAction tree pulsed on the player each interval — typically an origins:area_of_effect applying damage/effects to nearby entities. Inside an area_of_effect, spawn_particles/apply_effect/damage/heal/clear_effect now run on each AFFECTED entity, so you can paint custom particles (and remove a potion's default ones via apply_effect show_particles:false) on everyone the aura touches (defaults to noop)."),
             new FieldSpec("else_action", Kind.REF, false).ref("action.schema.json")
                 .doc("EntityAction pulsed on the player each interval while the condition does NOT pass (defaults to noop)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).range(0.0, null)
-                .doc("Active mode upkeep: food points drained each interval to keep the aura up; the aura auto-disables when the holder can't pay. Default 0 = a free on/off toggle. Ignored in passive mode."),
+                .doc("Upkeep: food points drained each pulse. A toggleable aura (active, or passive with toggleable:true) switches itself off when the holder can't pay; a plain passive aura skips that pulse. Default 0 = free."),
             new FieldSpec("resource_cost", Kind.STRING, false)
-                .def("").doc("Active mode upkeep: optional resource power id drained each interval; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled. Ignored in passive mode."),
+                .def("").doc("Upkeep: optional resource power id drained each pulse, in any mode; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled."),
             new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
-                .def(0).doc("Active mode upkeep: amount of the resource_cost resource drained each interval; default 0."),
+                .def(0).doc("Upkeep: amount of the resource_cost resource drained each pulse; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid."),
+            new FieldSpec("upkeep_condition", Kind.REF, false).ref("condition.schema.json")
+                .doc("Optional EntityCondition: upkeep is charged only on pulses where it passes (default always-true). A pulse whose upkeep is waived still runs."),
             new FieldSpec("default_off", Kind.BOOLEAN, false)
                 .doc("Override the initial on/off state of a toggleable aura. By default an active aura starts OFF (opt-in) and a toggleable passive starts ON; set this to force either. Ignored for plain (non-toggleable) passive auras."),
             COOLDOWN_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
@@ -1960,19 +2024,21 @@ public final class BuiltinPowers {
             new FieldSpec("regen_condition", Kind.REF, false).ref("condition.schema.json").doc("Optional EntityCondition gating regen; defaults always-true."),
             new FieldSpec("min_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches min."),
             new FieldSpec("max_action", Kind.REF, false).ref("action.schema.json").doc("Optional EntityAction fired when the value reaches max."),
-            new FieldSpec("hidden", Kind.BOOLEAN, false).def(false).doc("When true, hides the bar from the HUD (mechanics still apply)."),
+            new FieldSpec("hidden", Kind.BOOLEAN, false).def(false).doc("When true, hides the power from the origin menu and the bar from the HUD (mechanics still apply). Set hud_render.should_render to true to keep the bar on the HUD while the menu row stays hidden."),
             new FieldSpec("backing", Kind.STRING, false).def("")
                 .doc("Optional external pool that backs this bar's value instead of the internal store. Only `irons_spellbooks:mana` is supported: the bar reads the player's Iron's Spells mana pool and all writes ADD a delta to it (additive-only — absolute set_resource / operation:\"set\" are ignored). min and max are ignored: the bar runs from 0 to the player's live max mana, falling back to the declared max only while that cannot be read. Requires Iron's Spells 'n Spellbooks; without it the bar reads empty and writes no-op. Empty = internally stored (default)."),
             new FieldSpec("hud_render", Kind.OBJECT, false).virtualObject(
                 new FieldSpec("label", Kind.STRING, false).boundTo("label").def("Resource").doc("Bar label shown on the HUD."),
                 new FieldSpec("color", Kind.STRING, false).boundTo("color").pattern(HEX_COLOR_PATTERN).def("#55AAFF").doc("Bar color, as #RRGGBB or #AARRGGBB hex, e.g. #55AAFF; any other value falls back to #55AAFF. With animated set, the fill shown when the style is not loaded."),
-                new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar (stored inverted as hidden=true)."),
+                new FieldSpec("should_render", Kind.BOOLEAN, false).boundTo("hidden").def(true).doc("When false, hides the bar. When set to true, shows the bar even if the power is hidden, so a resource can stay out of the origin menu and still have a HUD bar. Left unset, the bar follows hidden (stored inverted as hidden)."),
                 new FieldSpec("animated", Kind.STRING, false).boundTo("animated").pattern(RESOURCE_LOCATION_PATTERN).def("").doc("Bar style (FX preset id): neoorigins:fire, water, wind, earth, soul, void or sculk for a scrolling themed fill, or neoorigins:tinted for a grey fill colored by tint (or by color when tint is empty). Empty = flat color fill."),
                 new FieldSpec("tint", Kind.STRING, false).boundTo("tint").pattern(HEX_COLOR_PATTERN).def("").doc("Optional hex tint (#RRGGBB or #AARRGGBB, alpha ignored; any other value falls back to #55AAFF) multiplied over the bar style's art, e.g. #FF8800. Empty = untinted, except neoorigins:tinted, which then uses color."),
                 new FieldSpec("tint_end", Kind.STRING, false).boundTo("tintEnd").pattern(HEX_COLOR_PATTERN).def("").doc("Optional second hex color for a style that does not scroll, such as neoorigins:tinted: the fill shades from tint (or color, on neoorigins:tinted) at the left edge of the bar to tint_end at the right. Ignored on a scrolling style. Empty = one flat tint."),
                 new FieldSpec("always_render", Kind.BOOLEAN, false).boundTo("alwaysShow").def(false).doc("When true, keeps the bar on-screen even at full value (the HUD hides full bars by default)."),
-                new FieldSpec("dynamic", Kind.BOOLEAN, false).boundTo("dynamic").def(false).doc("When true, stacks this bar above the non-dynamic ones in the default HUD column."))
-                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic components.")));
+                new FieldSpec("dynamic", Kind.BOOLEAN, false).boundTo("dynamic").def(false).doc("When true, stacks this bar above the non-dynamic ones in the default HUD column."),
+                new FieldSpec("text_color", Kind.STRING, false).boundTo("textColor").pattern(HEX_COLOR_PATTERN).def("#CCCCCC").doc("Colour of the bar's label and value readout, as #RRGGBB or #AARRGGBB hex; any other value falls back to #CCCCCC (the default light grey)."),
+                new FieldSpec("text_outline", Kind.BOOLEAN, false).boundTo("textOutline").def(false).doc("When true, draws a 1px dark outline around the label and value readout so they read on any background."))
+                .doc("Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic/textColor/textOutline components.")));
 
         // variable — a named, always-hidden, persistent integer counter. Shares
         // the ResourceState keyspace (keyed by its own power id), so it can be

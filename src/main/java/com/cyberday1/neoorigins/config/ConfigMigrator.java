@@ -109,6 +109,7 @@ public final class ConfigMigrator {
         // Runs last: migrateCommon may have only just created gameplay.toml out
         // of the legacy monolithic file, stale value and all.
         healGameplayConfig(newDir.resolve("gameplay.toml"));
+        healPowerOverridesConfig(newDir.resolve("power_overrides.toml"));
     }
 
     // ── One-time value heals (gameplay.toml) ────────────────────────────
@@ -324,6 +325,79 @@ public final class ConfigMigrator {
         } catch (Exception e) {
             NeoOrigins.LOGGER.error("[config] Failed to write migrated config {}", target, e);
             return false;
+        }
+    }
+
+    // ── One-time value heals (power_overrides.toml) ─────────────────────
+
+    /** A default that changed in 2.2.32: {@code stale} is what older files hold. */
+    record DefaultChange(String power, String field, Number stale, Number current) {
+        List<String> path() { return List.of(POWER_OVERRIDES_SECTION, power, field); }
+    }
+
+    /**
+     * Every power-override default corrected in 2.2.32. Up to 2.2.31 these keys
+     * reached no field, so their declared defaults were never compared with the
+     * shipped power JSON and drifted from it; the powers ran on the JSON value.
+     * 2.2.32 wires the keys and sets each default to the JSON value. NeoForge
+     * writes every default into the file on first launch, so an older file holds
+     * the stale value, which now differs from the default and would be applied,
+     * changing the power. Each {@code current} must equal the spec default
+     * (PowerOverridesHealTest checks).
+     */
+    static final List<DefaultChange> CHANGED_POWER_DEFAULTS = List.of(
+        new DefaultChange("abyssal_summon_guardian", "hunger_cost", 5, 4),
+        new DefaultChange("hiveling_sting", "speed", 1.0, 1.8),
+        new DefaultChange("hiveling_sting", "cooldown_ticks", 100, 120),
+        new DefaultChange("kraken_ink_shot", "speed", 1.2, 1.4),
+        new DefaultChange("kraken_summon_guardian", "hunger_cost", 5, 4),
+        new DefaultChange("necromancer_summon_wither", "hunger_cost", 6, 4),
+        new DefaultChange("piglin_soul_fire_damage", "damage_per_second", 1.0, 0.5),
+        new DefaultChange("revenant_active_bolt", "speed", 1.2, 1.6),
+        new DefaultChange("sculkborn_sonic_bolt", "speed", 1.5, 1.8),
+        new DefaultChange("stoneguard_no_mob_spawns", "radius", 24, 36),
+        new DefaultChange("wraith_daylight_damage", "damage_per_second", 1.0, 2.0),
+        new DefaultChange("voidwalker_active_phase", "hunger_cost", 3, 0),
+        new DefaultChange("warden_sonic_boom", "speed", 1.0, 2.0),
+        new DefaultChange("class_sentinel_knockback_resist", "amount", 0.2, 0.4),
+        new DefaultChange("class_cook_food", "saturation_bonus", 0.4, 0.5));
+
+    /**
+     * Moves each {@link #CHANGED_POWER_DEFAULTS} entry still on its stale value to
+     * the current default, then stamps the file. Same rules as
+     * {@link #healGameplayConfig}: a stamped file is the admin's and is never
+     * touched again, only an exact stale value moves (any other was typed by
+     * hand), and every failure logs and leaves the file alone.
+     */
+    static void healPowerOverridesConfig(Path powerOverrides) {
+        if (!Files.exists(powerOverrides)) return;
+
+        try {
+            CommentedConfig parsed = parseToml(powerOverrides);
+            if (parsed == null) return;
+            if (parsed.contains(CONFIG_VERSION_PATH)) return;
+
+            List<String> moved = new java.util.ArrayList<>();
+            for (DefaultChange change : CHANGED_POWER_DEFAULTS) {
+                if (!(parsed.get(change.path()) instanceof Number value)) continue;
+                if (value.doubleValue() != change.stale().doubleValue()) continue;
+                parsed.set(change.path(), change.current());
+                moved.add(change.power() + "." + change.field() + " " + change.stale() + " -> " + change.current());
+            }
+            if (!moved.isEmpty()) {
+                NeoOrigins.LOGGER.info(
+                    "[config] One-time fix: {} value(s) in config/neoorigins/power_overrides.toml were still on "
+                        + "a default from before 2.2.32 and now take that version's default, which is what the "
+                        + "power already used: {}. If you chose one of the old values deliberately, set it back "
+                        + "and it will be left alone from now on.",
+                    moved.size(), String.join(", ", moved));
+            }
+
+            parsed.set(CONFIG_VERSION_PATH, PowerOverridesConfig.CURRENT_CONFIG_VERSION);
+            writeInPlace(parsed, powerOverrides);
+        } catch (Exception e) {
+            NeoOrigins.LOGGER.error("[config] Failed to check {} for one-time migrations — leaving it untouched",
+                powerOverrides, e);
         }
     }
 

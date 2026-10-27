@@ -289,7 +289,7 @@ public final class TargetConditionParser {
             final boolean v = matchAll;
             return (actor, target) -> v;
         }
-        JsonArray arr = json.getAsJsonArray("conditions");
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "conditions");
         java.util.List<java.util.function.BiPredicate<ServerPlayer, Entity>> children =
             new java.util.ArrayList<>(arr.size());
         for (var el : arr) {
@@ -425,7 +425,7 @@ public final class TargetConditionParser {
             final boolean v = matchAll;
             return (t, a) -> v;
         }
-        JsonArray arr = json.getAsJsonArray("conditions");
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "conditions");
         java.util.List<TargetCondition> children = new java.util.ArrayList<>(arr.size());
         for (var el : arr) {
             if (!el.isJsonObject()) return null;

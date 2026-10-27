@@ -73,8 +73,20 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         boolean alwaysShow,
         boolean dynamic,
         String type,
-        String backing
+        String backing,
+        int textColor,
+        boolean textOutline
     ) implements PowerConfiguration {
+
+        /** Default text styling: the stock grey label and readout, no outline. */
+        public Config(String powerId, int min, int max, int startValue, int regenRate, int regenInterval,
+                      EntityCondition regenCondition, EntityAction minAction, EntityAction maxAction,
+                      String label, int color, boolean hidden, String animated, int tint, int tintEnd,
+                      boolean alwaysShow, boolean dynamic, String type, String backing) {
+            this(powerId, min, max, startValue, regenRate, regenInterval, regenCondition, minAction, maxAction,
+                label, color, hidden, animated, tint, tintEnd, alwaysShow, dynamic, type, backing,
+                CompatAttachments.ResourceMeta.DEFAULT_TEXT_COLOR, false);
+        }
 
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
@@ -115,6 +127,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 boolean hidden = obj.has("hidden") && obj.get("hidden").getAsBoolean();
                 boolean alwaysShow = false;
                 boolean dynamic = false;
+                int textColor = CompatAttachments.ResourceMeta.DEFAULT_TEXT_COLOR;
+                boolean textOutline = false;
                 if (obj.has("hud_render") && obj.get("hud_render").isJsonObject()) {
                     JsonObject hud = obj.getAsJsonObject("hud_render");
                     if (hud.has("label")) label = hud.get("label").getAsString();
@@ -129,10 +143,16 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                     // Optional gradient end: the static fill runs from tint at the left edge
                     // of the track to tint_end at the right.
                     if (hud.has("tint_end")) tintEnd = parseOptionalColor(powerId, "tint_end", hud.get("tint_end").getAsString());
-                    // Origins compat: should_render=false hides the bar
-                    if (hud.has("should_render") && !hud.get("should_render").getAsBoolean()) {
-                        hidden = true;
+                    // should_render decides the bar when it is set: false hides it
+                    // (Origins compat), and an explicit true shows it even on a
+                    // power whose top-level hidden keeps it out of the origin menu.
+                    if (hud.has("should_render")) {
+                        hidden = !hud.get("should_render").getAsBoolean();
                     }
+                    if (hud.has("text_color")) {
+                        textColor = parseTextColor(powerId, hud.get("text_color").getAsString());
+                    }
+                    if (hud.has("text_outline")) textOutline = hud.get("text_outline").getAsBoolean();
                     // Opt-in: keep the bar on-screen even at full value. By default the
                     // HUD hides a full bar (Apoli convention); a regenerating meter that
                     // sits at max is then invisible, so authors can force it visible.
@@ -142,7 +162,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
                 return DataResult.success(Pair.of(new Config(
                     powerId, min, max, startValue, regenRate, regenInterval,
-                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, tintEnd, alwaysShow, dynamic, t, backing
+                    regenCond, minAction, maxAction, label, color, hidden, animated, tint, tintEnd, alwaysShow, dynamic, t, backing,
+                    textColor, textOutline
                 ), ops.empty()));
             }
 
@@ -155,6 +176,15 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         /** As {@link #parseColor}, but a blank value means "not set" (0), as the schema documents. */
         private static int parseOptionalColor(String powerId, String field, String s) {
             return s.isBlank() ? 0 : parseColor(powerId, field, s);
+        }
+
+        /** As {@link #parseColor}, but falls back to the stock text grey (#CCCCCC). */
+        private static int parseTextColor(String powerId, String s) {
+            Integer c = HexColor.parse(s);
+            if (c != null) return c;
+            NeoOrigins.LOGGER.warn("[resource] {}: hud_render.text_color \"{}\" is not a 6- or 8-digit hex colour, using #CCCCCC",
+                powerId, s);
+            return CompatAttachments.ResourceMeta.DEFAULT_TEXT_COLOR;
         }
 
         /** RRGGBB or AARRGGBB; anything else logs a warning and falls back to #55AAFF. */
@@ -232,7 +262,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         CompatAttachments.registerResourceBacking(key, config.backing());
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
-                config.hidden(), config.animated(), config.tint(), config.tintEnd(), config.alwaysShow(), config.dynamic()));
+                config.hidden(), -1, -1, null, config.animated(), config.tint(), config.tintEnd(),
+                config.alwaysShow(), config.dynamic(), config.textColor(), config.textOutline()));
     }
 
     /**

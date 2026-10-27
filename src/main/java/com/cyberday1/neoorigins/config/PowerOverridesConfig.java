@@ -3,6 +3,7 @@ package com.cyberday1.neoorigins.config;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -15,9 +16,13 @@ import java.util.Map;
  * BEFORE {@code LegacyPowerTypeAliases.apply} — that ordering is load-bearing
  * (override values must be visible to the alias remap step).
  *
- * <p>A field lands at the JSON root unless {@code at(...)} routes it to a nested
- * path, which is how an {@code action_on_event} power's {@code modifier.value}
- * is reached under a friendly key such as {@code multiplier}.
+ * <p>A field lands at the JSON root unless {@code at(...)} routes it to one or
+ * more nested paths, which is how an {@code action_on_event} power's
+ * {@code modifier.value} is reached under a friendly key such as
+ * {@code multiplier}. A numeric path segment indexes an array
+ * ({@code entity_action.actions.0.amount}); a key with several paths writes the
+ * same value to each, for numbers a power repeats (four fireballs, one radius on
+ * both the lingering cloud and its area effect).
  *
  * <p>Part of the 2.2.2 config split — see {@link GameplayConfig},
  * {@link AdminConfig} and {@link ContentTogglesConfig}. The file keeps the
@@ -44,12 +49,22 @@ public final class PowerOverridesConfig {
     static final Map<String, Map<String, NumericRange>> POWER_RANGES = new LinkedHashMap<>();
 
     /**
-     * power-id &rarr; field-name &rarr; dotted JSON path the value is written to, for
+     * power-id &rarr; field-name &rarr; dotted JSON paths the value is written to, for
      * fields whose real parameter is nested ({@code modifier.value},
      * {@code entity_action.amount_ratio}). Fields absent here are written at the
      * JSON root. The TOML key keeps its published name either way.
      */
-    static final Map<String, Map<String, String>> POWER_TARGETS = new LinkedHashMap<>();
+    static final Map<String, Map<String, List<String>>> POWER_TARGETS = new LinkedHashMap<>();
+
+    /**
+     * Slider bounds and defaults for power TYPES the in-game creator renders
+     * ({@code mount}, {@code js_active}). They used to be registered as override
+     * tables, which put {@code [power_overrides.mount]} sections in the file that
+     * configured no power. Read only by {@link #getPowerRange} and
+     * {@link #getPowerDefault}.
+     */
+    static final Map<String, Map<String, NumericRange>> TYPE_RANGES = new LinkedHashMap<>();
+    static final Map<String, Map<String, Object>> TYPE_DEFAULTS = new LinkedHashMap<>();
     private static String _cp; // current power being registered
     private static String _cf; // last field registered on _cp
 
@@ -61,13 +76,28 @@ public final class PowerOverridesConfig {
     private static void f(String field, double def, double min, double max)   { _cf = field; POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
     private static void fi(String field, int def, int min, int max)           { _cf = field; POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.defineInRange(field, def, min, max)); POWER_RANGES.get("neoorigins:" + _cp).put(field, new NumericRange(min, max)); }
     private static void fb(String field, boolean def)                          { _cf = field; POWER_OVERRIDES.get("neoorigins:" + _cp).put(field, BUILDER.define(field, def)); }
-    /** Routes the field just registered to a nested JSON path instead of the root. */
-    private static void at(String jsonPath) {
-        POWER_TARGETS.computeIfAbsent("neoorigins:" + _cp, k -> new LinkedHashMap<>()).put(_cf, jsonPath);
+    /** Routes the field just registered to nested JSON paths instead of the root. */
+    private static void at(String... jsonPaths) {
+        POWER_TARGETS.computeIfAbsent("neoorigins:" + _cp, k -> new LinkedHashMap<>()).put(_cf, List.of(jsonPaths));
+    }
+    /** Editor-only numeric bounds for a power type; not part of the config file. */
+    private static void typeRange(String type, String field, Number def, double min, double max) {
+        TYPE_RANGES.computeIfAbsent("neoorigins:" + type, k -> new LinkedHashMap<>()).put(field, new NumericRange(min, max));
+        TYPE_DEFAULTS.computeIfAbsent("neoorigins:" + type, k -> new LinkedHashMap<>()).put(field, def);
     }
     private static void ep() { BUILDER.pop(); }
 
+    /**
+     * Version stamp for {@code power_overrides.toml}. A file without it predates
+     * 2.2.32, whose corrected defaults {@link ConfigMigrator#healPowerOverridesConfig}
+     * carries into files still holding the old ones.
+     */
+    public static final int CURRENT_CONFIG_VERSION = 1;
+
     static {
+        BUILDER.comment("Internal: lets one-time fixes tell an old file from a new one. Do not edit.")
+            .defineInRange("config_version", CURRENT_CONFIG_VERSION, 0, Integer.MAX_VALUE);
+
         BUILDER.comment(
             "Per-power parameter overrides.",
             "Edit any value below to override it. Only values changed from their default are applied.",
@@ -78,30 +108,30 @@ public final class PowerOverridesConfig {
         p("abyssal_thorns_aura");       f("return_ratio", 0.3, 0, 10); at("entity_action.amount_ratio"); ep();
         p("abyssal_aquatic_speed");     f("amount", 0.8, -1, 10); ep();
         p("abyssal_land_speed_penalty");f("amount", -0.1, -1, 1); ep();
-        p("abyssal_summon_guardian");   fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 5, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
+        p("abyssal_summon_guardian");   fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
 
         // ── Automaton ──
         p("automaton_iron_frame");      fi("amplifier", 0, 0, 4); ep();
         p("automaton_heavy_chassis");   f("amount", -0.15, -1, 1); ep();
         p("automaton_knockback_resist");f("amount", 0.4, -1, 1); ep();
-        p("automaton_no_hunger");       f("multiplier", 0.0, 0, 10); ep();
-        p("automaton_rigid_joints");    f("multiplier", 0.25, 0, 10); ep();
+        p("automaton_no_hunger");       f("multiplier", 0.0, 0, 10); at("modifier.value"); ep();
+        p("automaton_rigid_joints");    f("multiplier", 0.25, 0, 10); at("modifier.value"); ep();
 
         // ── Avian ──
-        p("avian_no_hunger_sprint");    f("multiplier", 0.25, 0, 10); ep();
+        p("avian_no_hunger_sprint");    f("multiplier", 0.25, 0, 10); at("modifier.value"); ep();
 
         // ── Blazeling ──
         p("blazeling_water_damage");    f("multiplier", 1.0, 0, 100); ep();
 
         // ── Breeze ──
-        p("breeze_wind_charge");        f("speed", 2.0, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
+        p("breeze_wind_charge");        f("speed", 2.0, 0, 10); at("entity_action.speed"); fi("cooldown_ticks", 100, 0, 72000); ep();
         p("breeze_wind_dash");          f("power", 2.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("breeze_light_frame");        f("scale", 0.9, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("breeze_reduced_health");     f("amount", -8.0, -100, 100); ep();
         p("breeze_speed_boost");        f("amount", 0.15, -1, 10); ep();
 
         // ── Caveborn ──
-        p("caveborn_daylight_damage");  f("damage_per_second", 1.0, 0, 100); fb("ignite", false); ep();
+        p("caveborn_daylight_damage");  f("damage_per_second", 1.0, 0, 100); at("entity_action.actions.0.amount"); ep();
         p("caveborn_mining_speed");     f("multiplier", 2.0, 0, 100); ep();
         p("caveborn_small_frame");      f("scale", 0.85, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         // The diet tints are cosmetic: the model is washed in the colour of the ore
@@ -115,17 +145,17 @@ public final class PowerOverridesConfig {
         p("caveborn_netherite_tint");   fb("enabled", true); ep();
 
         // ── Cinderborn ──
-        p("cinderborn_fireball");       f("speed", 1.2, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
+        p("cinderborn_fireball");       f("speed", 1.2, 0, 10); at("entity_action.actions.0.speed", "entity_action.actions.1.speed", "entity_action.actions.2.speed", "entity_action.actions.3.speed"); fi("cooldown_ticks", 100, 0, 72000); ep();
         // (cinderborn_lava_regen heal amount is nested in entity_action;
         // shallow power_overrides can't reach it. Edit JSON directly to retune.)
         p("cinderborn_natural_armor");  fi("amplifier", 0, 0, 4); ep();
         p("cinderborn_water_weakness"); f("multiplier", 1.0, 0, 100); ep();
 
         // ── Draconic ──
-        p("draconic_active_fireball");  f("speed", 1.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
+        p("draconic_active_fireball");  f("speed", 1.5, 0, 10); at("entity_action.actions.0.speed", "entity_action.actions.1.speed", "entity_action.actions.2.speed", "entity_action.actions.3.speed"); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("draconic_size");             f("scale", 1.2, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("draconic_attack_bonus");     f("amount", 2.0, -100, 100); ep();
-        p("draconic_hunger_drain");     f("multiplier", 1.5, 0, 10); ep();
+        p("draconic_hunger_drain");     f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
         p("draconic_water_weakness");   f("multiplier", 1.0, 0, 100); ep();
 
         // ── Dwarf ──
@@ -134,7 +164,7 @@ public final class PowerOverridesConfig {
         p("dwarf_sturdy_legs");         f("amount", -0.15, -1, 1); ep();
         p("dwarf_short_reach");         f("amount", -0.5, -10, 10); ep();
         p("dwarf_stonecunning");        f("multiplier", 1.25, 0, 100); ep();
-        p("dwarf_mining_hunger");       f("multiplier", 0.75, 0, 10); ep();
+        p("dwarf_mining_hunger");       f("multiplier", 0.75, 0, 10); at("modifier.value"); ep();
 
         // ── Elytrian ──
         p("elytrian_elytra_boost");     f("strength", 1.5, 0, 10); fi("cooldown_ticks", 40, 0, 72000); ep();
@@ -151,17 +181,17 @@ public final class PowerOverridesConfig {
         p("enderite_daylight_weakness");f("multiplier", 1.5, 0, 100); ep();
 
         // ── Feline ──
-        p("feline_active_launch");      f("power", 2.2, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
+        p("feline_active_launch");      f("power", 2.2, 0, 10); at("entity_action.strength"); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("feline_speed_boost");        f("amount", 0.1, -1, 10); ep();
-        p("feline_hunger_drain");       f("multiplier", 1.3, 0, 10); ep();
+        p("feline_hunger_drain");       f("multiplier", 1.3, 0, 10); at("modifier.value"); ep();
         p("feline_water_weakness");     f("multiplier", 1.0, 0, 100); ep();
 
         // ── Frostborn ──
-        p("frostborn_freeze_aura");     fi("amplifier", 3, 0, 255); fi("duration_ticks", 100, 1, 72000); f("radius", 6.0, 0, 64); fi("cooldown_ticks", 200, 0, 72000); ep();
+        p("frostborn_freeze_aura");     fi("amplifier", 3, 0, 255); at("entity_action.on_hit_action.entity_action.entity_action.amplifier"); fi("duration_ticks", 100, 1, 72000); at("entity_action.on_hit_action.entity_action.entity_action.duration", "entity_action.on_hit_action.duration_ticks"); f("radius", 6.0, 0, 64); at("entity_action.on_hit_action.radius", "entity_action.on_hit_action.entity_action.radius"); fi("cooldown_ticks", 200, 0, 72000); ep();
         p("frostborn_ice_walk");        f("max_distance", 5.0, 1, 64); fi("cooldown_ticks", 20, 0, 72000); ep();
         p("frostborn_natural_armor");   fi("amplifier", 0, 0, 4); ep();
         p("frostborn_fire_weakness");   f("multiplier", 2.0, 0, 100); ep();
-        p("frostborn_nether_damage");   f("damage_per_second", 2.0, 0, 100); ep();
+        p("frostborn_nether_damage");   f("damage_per_second", 2.0, 0, 100); at("entity_action.amount"); ep();
 
         // ── Golem ──
         p("golem_natural_armor");       fi("amplifier", 0, 0, 4); ep();
@@ -171,36 +201,36 @@ public final class PowerOverridesConfig {
         p("golem_fire_weakness");       f("multiplier", 1.8, 0, 100); ep();
 
         // ── Gorgon ──
-        p("gorgon_petrifying_gaze");    fi("amplifier", 4, 0, 255); fi("duration_ticks", 100, 1, 72000); f("radius", 6.0, 0, 64); fi("cooldown_ticks", 300, 0, 72000); ep();
+        p("gorgon_petrifying_gaze");    fi("amplifier", 4, 0, 255); at("entity_action.on_hit_action.entity_action.entity_action.amplifier"); fi("duration_ticks", 100, 1, 72000); at("entity_action.on_hit_action.entity_action.entity_action.duration", "entity_action.on_hit_action.duration_ticks"); f("radius", 6.0, 0, 64); at("entity_action.on_hit_action.radius", "entity_action.on_hit_action.entity_action.radius"); fi("cooldown_ticks", 300, 0, 72000); ep();
         p("gorgon_stone_fists");        f("amount", 4.0, -100, 100); ep();
         p("gorgon_granite_hide");       fi("amplifier", 0, 0, 4); ep();
         p("gorgon_knockback_resist");   f("amount", 0.5, -1, 1); ep();
         p("gorgon_size");               f("scale", 1.15, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("gorgon_heavy_frame");        f("amount", -0.2, -1, 1); ep();
-        p("gorgon_hunger_drain");       f("multiplier", 1.5, 0, 10); ep();
+        p("gorgon_hunger_drain");       f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
 
         // ── Hiveling ──
-        p("hiveling_sting");            f("speed", 1.0, 0, 10); fi("cooldown_ticks", 100, 0, 72000); ep();
+        p("hiveling_sting");            f("speed", 1.8, 0, 10); at("entity_action.speed"); fi("cooldown_ticks", 120, 0, 72000); ep();
         p("hiveling_crop_growth");      fi("radius", 6, 1, 64); fi("tick_interval", 30, 1, 72000); fi("growths_per_interval", 3, 1, 100); ep();
         p("hiveling_size");             f("scale", 0.6, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("hiveling_reduced_health");   f("amount", -6.0, -100, 100); ep();
-        p("hiveling_hunger_drain");     f("multiplier", 1.5, 0, 10); ep();
+        p("hiveling_hunger_drain");     f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
 
         // ── Inchling ──
         p("inchling_size");             f("scale", 0.25, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 1.0, -10, 10); ep();
         p("inchling_speed_boost");      f("amount", 0.15, -1, 10); ep();
         p("inchling_reduced_health");   f("amount", -10.0, -100, 100); ep();
-        p("inchling_hunger_efficiency");f("multiplier", 0.5, 0, 10); ep();
+        p("inchling_hunger_efficiency");f("multiplier", 0.5, 0, 10); at("modifier.value"); ep();
 
         // ── Kraken ──
-        p("kraken_tentacle_lash");      fi("amplifier", 2, 0, 255); fi("duration_ticks", 80, 1, 72000); f("radius", 5.0, 0, 64); fi("cooldown_ticks", 160, 0, 72000); ep();
-        p("kraken_ink_shot");           f("speed", 1.2, 0, 10); fi("cooldown_ticks", 120, 0, 72000); ep();
+        p("kraken_tentacle_lash");      fi("amplifier", 2, 0, 255); at("entity_action.on_hit_action.entity_action.amplifier"); fi("duration_ticks", 80, 1, 72000); at("entity_action.on_hit_action.entity_action.duration"); f("radius", 5.0, 0, 64); at("entity_action.on_hit_action.radius"); fi("cooldown_ticks", 160, 0, 72000); ep();
+        p("kraken_ink_shot");           f("speed", 1.4, 0, 10); at("entity_action.speed"); fi("cooldown_ticks", 120, 0, 72000); ep();
         p("kraken_massive");            f("scale", 1.3, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("kraken_pressure_armor");     fi("amplifier", 0, 0, 4); ep();
         p("kraken_deep_current");       f("amount", 0.8, -1, 10); ep();
-        p("kraken_summon_guardian");    fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 5, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
+        p("kraken_summon_guardian");    fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
         p("kraken_beached");            f("amount", -0.3, -1, 1); ep();
-        p("kraken_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
+        p("kraken_daylight_damage");    f("damage_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
 
         // ── Merling ──
         p("merling_aquatic_speed");     f("amount", 0.6, -1, 10); ep();
@@ -212,10 +242,10 @@ public final class PowerOverridesConfig {
 
         // ── Necromancer ──
         p("necromancer_summon_skeleton");fi("max_count", 3, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
-        p("necromancer_summon_wither"); fi("max_count", 2, 1, 100); fi("cooldown_ticks", 600, 0, 72000); fi("hunger_cost", 6, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
+        p("necromancer_summon_wither"); fi("max_count", 2, 1, 100); fi("cooldown_ticks", 600, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
         p("necromancer_reduced_health");f("amount", -6.0, -100, 100); ep();
         p("necromancer_slow_regen");    f("multiplier", 0.4, 0, 10); ep();
-        p("necromancer_daylight_damage");f("damage_per_second", 1.5, 0, 100); ep();
+        p("necromancer_daylight_damage");f("damage_per_second", 1.5, 0, 100); at("entity_action.amount"); ep();
         p("necromancer_water_breathing");fb("enabled", true); ep();
 
         // ── Phantom ──
@@ -224,23 +254,23 @@ public final class PowerOverridesConfig {
 
         // ── Piglin ──
         p("piglin_attack_bonus");       f("amount", 2.0, -100, 100); ep();
-        p("piglin_soul_fire_damage");   f("damage_per_second", 1.0, 0, 100); ep();
+        p("piglin_soul_fire_damage");   f("damage_per_second", 0.5, 0, 100); at("entity_action.amount"); ep();
 
         // ── Revenant ──
-        p("revenant_active_bolt");      f("speed", 1.2, 0, 10); fi("cooldown_ticks", 80, 0, 72000); ep();
+        p("revenant_active_bolt");      f("speed", 1.6, 0, 10); at("entity_action.speed"); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("revenant_active_phase");     fi("max_depth", 8, 1, 256); fi("cooldown_ticks", 60, 0, 72000); fi("hunger_cost", 0, 0, 100); ep();
         p("revenant_slow_regen");       f("multiplier", 0.4, 0, 10); ep();
-        p("revenant_daylight_damage");  f("damage_per_second", 2.0, 0, 100); ep();
+        p("revenant_daylight_damage");  f("damage_per_second", 2.0, 0, 100); at("entity_action.actions.0.amount"); ep();
         p("revenant_water_breathing");  fb("enabled", true); ep();
 
         // ── Sculkborn ──
-        p("sculkborn_sonic_bolt");      f("speed", 1.5, 0, 10); fi("cooldown_ticks", 120, 0, 72000); ep();
-        p("sculkborn_darkness_aura");   fi("amplifier", 0, 0, 255); fi("duration_ticks", 200, 1, 72000); f("radius", 8.0, 0, 64); fi("cooldown_ticks", 300, 0, 72000); ep();
+        p("sculkborn_sonic_bolt");      f("speed", 1.8, 0, 10); at("entity_action.speed"); fi("cooldown_ticks", 120, 0, 72000); ep();
+        p("sculkborn_darkness_aura");   fi("amplifier", 0, 0, 255); at("entity_action.on_hit_action.entity_action.entity_action.amplifier"); fi("duration_ticks", 200, 1, 72000); at("entity_action.on_hit_action.entity_action.entity_action.duration", "entity_action.on_hit_action.duration_ticks"); f("radius", 8.0, 0, 64); at("entity_action.on_hit_action.radius", "entity_action.on_hit_action.entity_action.radius"); fi("cooldown_ticks", 300, 0, 72000); ep();
         p("sculkborn_natural_armor");   fi("amplifier", 0, 0, 4); ep();
         p("sculkborn_knockback_resist");f("amount", 0.5, -1, 1); ep();
         p("sculkborn_reduced_health");  f("amount", -4.0, -100, 100); ep();
         p("sculkborn_slow_movement");   f("amount", -0.15, -1, 1); ep();
-        p("sculkborn_daylight_damage"); f("damage_per_second", 2.0, 0, 100); ep();
+        p("sculkborn_daylight_damage"); f("damage_per_second", 2.0, 0, 100); at("entity_action.amount"); ep();
 
         // ── Shulk ──
         p("shulk_natural_armor");       fi("amplifier", 0, 0, 4); ep();
@@ -275,10 +305,10 @@ public final class PowerOverridesConfig {
         p("slime_apex_hp");             f("amount", 6.0, -100, 100); ep();
 
         // ── Sporeling ──
-        p("sporeling_spore_cloud");     fi("amplifier", 1, 0, 255); fi("duration_ticks", 100, 1, 72000); f("radius", 5.0, 0, 64); fi("cooldown_ticks", 240, 0, 72000); ep();
+        p("sporeling_spore_cloud");     fi("amplifier", 1, 0, 255); at("entity_action.on_hit_action.entity_action.entity_action.amplifier"); fi("duration_ticks", 100, 1, 72000); at("entity_action.on_hit_action.entity_action.entity_action.duration", "entity_action.on_hit_action.duration_ticks"); f("radius", 5.0, 0, 64); at("entity_action.on_hit_action.radius", "entity_action.on_hit_action.entity_action.radius"); fi("cooldown_ticks", 240, 0, 72000); ep();
         p("sporeling_natural_armor");   fi("amplifier", 0, 0, 4); ep();
         p("sporeling_slow_movement");   f("amount", -0.1, -1, 1); ep();
-        p("sporeling_daylight_damage"); f("damage_per_second", 1.0, 0, 100); ep();
+        p("sporeling_daylight_damage"); f("damage_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
 
         // ── Stoneguard ──
         p("stoneguard_thorns_aura");    f("return_ratio", 0.2, 0, 10); at("entity_action.amount_ratio"); ep();
@@ -287,7 +317,7 @@ public final class PowerOverridesConfig {
         p("stoneguard_active_glowstone");f("max_distance", 5.0, 1, 64); fi("cooldown_ticks", 100, 0, 72000); ep();
         p("stoneguard_stone_mining");   f("multiplier", 2.0, 0, 100); ep();
         p("stoneguard_slow_movement");  f("amount", -0.1, -1, 1); ep();
-        p("stoneguard_no_mob_spawns");  fi("radius", 24, 1, 256); ep();
+        p("stoneguard_no_mob_spawns");  fi("radius", 36, 1, 256); ep();
 
         // ── Strider ──
         // (strider_lava_regen heal amount is nested in entity_action;
@@ -296,24 +326,24 @@ public final class PowerOverridesConfig {
         p("strider_water_weakness");    f("multiplier", 1.0, 0, 100); ep();
 
         // ── Sylvan ──
-        p("sylvan_active_root");        fi("amplifier", 5, 0, 255); fi("duration_ticks", 80, 1, 72000); f("radius", 6.0, 0, 64); fi("cooldown_ticks", 200, 0, 72000); ep();
+        p("sylvan_active_root");        fi("amplifier", 5, 0, 255); at("entity_action.on_hit_action.entity_action.entity_action.amplifier"); fi("duration_ticks", 80, 1, 72000); at("entity_action.on_hit_action.entity_action.entity_action.duration", "entity_action.on_hit_action.duration_ticks"); f("radius", 6.0, 0, 64); at("entity_action.on_hit_action.radius", "entity_action.on_hit_action.entity_action.radius"); fi("cooldown_ticks", 200, 0, 72000); ep();
         p("sylvan_crop_growth");        fi("radius", 4, 1, 64); fi("tick_interval", 40, 1, 72000); fi("growths_per_interval", 2, 1, 100); ep();
-        p("sylvan_regen_in_water");     f("amount_per_second", 1.0, 0, 100); ep();
-        p("sylvan_nether_damage");      f("damage_per_second", 1.0, 0, 100); ep();
+        p("sylvan_regen_in_water");     f("amount_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
+        p("sylvan_nether_damage");      f("damage_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
 
         // ── Tiny ──
         p("tiny_size");                 f("scale", 0.5, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.5, -10, 10); ep();
         p("tiny_speed_boost");          f("amount", 0.2, -1, 10); ep();
         p("tiny_item_magnetism");       f("radius", 4.0, 0, 64); ep();
         p("tiny_attack_penalty");       f("amount", -2.0, -100, 100); ep();
-        p("tiny_hunger_drain");         f("multiplier", 1.8, 0, 10); ep();
+        p("tiny_hunger_drain");         f("multiplier", 1.8, 0, 10); at("modifier.value"); ep();
 
         // ── Umbral ──
         p("umbral_shadow_orb");         fi("max_orbs", 4, 1, 100); f("radius", 28.0, 1, 128); fi("cooldown_ticks", 60, 0, 72000); fi("tick_interval", 20, 1, 72000); ep();
         // umbral_active_dash strength is nested in entity_action.dash; cooldown
         // is at the top level on this active_ability JSON so it CAN be overridden.
         p("umbral_active_dash");        fi("cooldown_ticks", 60, 0, 72000); ep();
-        p("umbral_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
+        p("umbral_daylight_damage");    f("damage_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
 
         // ── Wraith ──
         // (wraith_ascended_daylight_damage and wraith_ascended_weakness_aura
@@ -322,35 +352,35 @@ public final class PowerOverridesConfig {
         p("wraith_phase");              fb("always_on", false); f("exhaustion_per_tick", 0.15, 0, 1.0); ep();
         p("wraith_evolved_phase");      fb("always_on", false); f("exhaustion_per_tick", 0.1125, 0, 1.0); ep();
         p("wraith_apex_phase");         fb("always_on", false); f("exhaustion_per_tick", 0.075, 0, 1.0); ep();
-        p("wraith_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
-        p("wraith_hunger_drain");       f("value", 1.75, 0, 100); ep();
-        p("wraith_apex_hunger_drain");  f("value", 1.25, 0, 100); ep();
+        p("wraith_daylight_damage");    f("damage_per_second", 2.0, 0, 100); at("entity_action.actions.0.amount"); ep();
+        p("wraith_hunger_drain");       f("value", 1.75, 0, 100); at("modifier.value"); ep();
+        p("wraith_apex_hunger_drain");  f("value", 1.25, 0, 100); at("modifier.value"); ep();
         p("wraith_water_breathing");    fb("enabled", true); ep();
 
         // ── Vampire ──
         p("vampire_attack_bonus");      f("amount", 2.0, -100, 100); ep();
         p("vampire_speed_boost");       f("amount", 0.15, -1, 10); ep();
-        p("vampire_daylight_damage");   f("damage_per_second", 2.0, 0, 100); ep();
+        p("vampire_daylight_damage");   f("damage_per_second", 2.0, 0, 100); at("entity_action.actions.0.amount"); ep();
         p("vampire_slow_regen");        f("multiplier", 0.4, 0, 10); ep();
         p("vampire_water_weakness");    f("multiplier", 1.0, 0, 100); ep();
         p("vampire_water_breathing");   fb("enabled", true); ep();
 
         // ── Verdant ──
         p("verdant_harvest_bonus");     fi("extra_drops", 1, 0, 100); ep();
-        p("verdant_nether_damage");     f("damage_per_second", 2.0, 0, 100); ep();
+        p("verdant_nether_damage");     f("damage_per_second", 2.0, 0, 100); at("entity_action.amount"); ep();
 
         // ── Voidwalker ──
         p("voidwalker_active_teleport");f("range", 24.0, 1, 256); fi("cooldown_ticks", 80, 0, 72000); ep();
-        p("voidwalker_active_phase");   fi("max_depth", 10, 1, 256); fi("cooldown_ticks", 80, 0, 72000); fi("hunger_cost", 3, 0, 100); ep();
+        p("voidwalker_active_phase");   fi("max_depth", 10, 1, 256); fi("cooldown_ticks", 80, 0, 72000); fi("hunger_cost", 0, 0, 100); ep();
         p("voidwalker_water_damage");   f("multiplier", 1.0, 0, 100); ep();
 
         // ── Warden ──
-        p("warden_sonic_boom");         f("speed", 1.0, 0, 10); fi("cooldown_ticks", 400, 0, 72000); ep();
+        p("warden_sonic_boom");         f("speed", 2.0, 0, 10); at("entity_action.speed"); fi("cooldown_ticks", 400, 0, 72000); ep();
         p("warden_strength");           f("amount", 4.0, -100, 100); ep();
         p("warden_ancient_hide");       fi("amplifier", 1, 0, 4); ep();
         p("warden_hulking_frame");      f("scale", 1.15, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("warden_lumbering");          f("amount", -0.30, -1, 1); ep();
-        p("warden_daylight_damage");    f("damage_per_second", 1.0, 0, 100); ep();
+        p("warden_daylight_damage");    f("damage_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
         // Dark-vision powers (issue #101): players can toggle these in-game via the
         // skill keybind; admins set enabled:false here to remove them entirely.
         p("warden_night_vision");       fb("enabled", true); ep();
@@ -431,7 +461,7 @@ public final class PowerOverridesConfig {
         p("jianxian_sword_heart");      f("amount", 4, -100, 100); ep();
         p("jianxian_keen_edge");        f("amount", 1, -100, 100); ep();
         p("jianxian_sword_qi");         fi("cooldown_ticks", 25, 0, 72000); ep();
-        p("jianxian_riding_sword");     fb("enabled", true); ep();
+        p("jianxian_riding_sword");     fb("enabled", true); fi("hunger_cost", 1, 0, 20); fi("upkeep_interval", 60, 1, 72000); ep();
         p("jianxian_flickering_slash"); f("power", 2.5, 0, 10); fi("cooldown_ticks", 80, 0, 72000); f("damage", 6.0, 0, 100); f("damage_radius", 2.5, 0, 64); f("weapon_damage_scale", 0.5, 0, 10); ep();
         // (jianxian_immortal_body is a prevent_action with no numeric tunables.)
         p("jianxian_ten_thousand_swords");fi("cooldown_ticks", 600, 0, 72000); ep();
@@ -487,10 +517,12 @@ public final class PowerOverridesConfig {
         p("class_paladin_turn_undead"); fi("duration", 80, 0, 72000); fi("amplifier", 0, 0, 255); ep();
         p("class_paladin_beacon_regen");f("radius", 8.0, 1, 16); at("condition.radius"); ep();
 
-        // ── Mount ──
-        p("mount"); f("range", 5.0, 1, 64); fi("cooldown_ticks", 100, 0, 72000); fi("hunger_cost", 0, 0, 100); fb("allow_players", true); fb("allow_mobs", true); fb("block_bosses", true); ep();
-
         BUILDER.pop(); // power_overrides
+
+        // Creator slider bounds for power types (not config: no power has these ids).
+        typeRange("mount", "range", 5.0, 1, 64);
+        typeRange("mount", "cooldown_ticks", 100, 0, 72000);
+        typeRange("mount", "hunger_cost", 0, 0, 100);
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
@@ -518,13 +550,18 @@ public final class PowerOverridesConfig {
     }
 
     /**
-     * The dotted JSON path {@code field} is written to for {@code powerId}: the
-     * nested target registered with {@code at(...)}, else {@code field} itself (root).
+     * The dotted JSON paths {@code field} is written to for {@code powerId}: the
+     * nested targets registered with {@code at(...)}, else {@code field} itself (root).
      */
+    public static List<String> getOverrideTargets(String powerId, String field) {
+        Map<String, List<String>> targets = POWER_TARGETS.get(powerId);
+        List<String> paths = targets == null ? null : targets.get(field);
+        return paths == null ? List.of(field) : paths;
+    }
+
+    /** The first of {@link #getOverrideTargets}. */
     public static String getOverrideTarget(String powerId, String field) {
-        Map<String, String> targets = POWER_TARGETS.get(powerId);
-        String path = targets == null ? null : targets.get(field);
-        return path == null ? field : path;
+        return getOverrideTargets(powerId, field).get(0);
     }
 
     /**
@@ -534,7 +571,10 @@ public final class PowerOverridesConfig {
      */
     public static NumericRange getPowerRange(String powerId, String field) {
         Map<String, NumericRange> fields = POWER_RANGES.get(powerId);
-        return fields == null ? null : fields.get(field);
+        NumericRange r = fields == null ? null : fields.get(field);
+        if (r != null) return r;
+        Map<String, NumericRange> type = TYPE_RANGES.get(powerId);
+        return type == null ? null : type.get(field);
     }
 
     /** The default value a numeric/bool override field was registered with, or
@@ -542,8 +582,9 @@ public final class PowerOverridesConfig {
      *  codec {@code optionalFieldOf} lambdas hide from record reflection. */
     public static Object getPowerDefault(String powerId, String field) {
         Map<String, ModConfigSpec.ConfigValue<?>> fields = POWER_OVERRIDES.get(powerId);
-        if (fields == null) return null;
-        ModConfigSpec.ConfigValue<?> cv = fields.get(field);
-        return cv == null ? null : cv.getDefault();
+        ModConfigSpec.ConfigValue<?> cv = fields == null ? null : fields.get(field);
+        if (cv != null) return cv.getDefault();
+        Map<String, Object> type = TYPE_DEFAULTS.get(powerId);
+        return type == null ? null : type.get(field);
     }
 }
