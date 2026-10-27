@@ -1,6 +1,10 @@
 {
   "type": "neoorigins:condition_passive",
-  "condition": { "type": "neoorigins:near_block", "block": "minecraft:beacon", "radius": 8 },
+  "condition": {
+    "type": "neoorigins:near_block",
+    "block_condition": { "type": "neoorigins:active_beacon" },
+    "radius": 8
+  },
   "entity_action": {
     "type": "neoorigins:apply_effect",
     "effect": "minecraft:regeneration",

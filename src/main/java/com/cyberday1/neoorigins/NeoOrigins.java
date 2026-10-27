@@ -246,6 +246,7 @@ public class NeoOrigins {
         // The One Probe soft-compat. TOP takes providers over IMC, and the send is
         // guarded by a ModList check with every TOP type confined to compat.top.
         modEventBus.addListener(NeoOrigins::onInterModEnqueue);
+        modEventBus.addListener(NeoOrigins::onCommonSetup);
 
         // Optional mod compat — only loads if the target mod is present
         if (net.neoforged.fml.ModList.get().isLoaded("ars_nouveau")) {
@@ -253,9 +254,8 @@ public class NeoOrigins {
         }
         // FTB Quests soft-compat (v2.1.6 backlog #3) — wires the
         // `neoorigins_loot_pool_grant:<table_id>` quest tag to the
-        // loot_pool_grant power's grant pipeline. Tag-marker path is the
-        // chosen integration; a future Provider-API-based RewardType is
-        // stubbed in FtbQuestsCompat#registerRewardType.
+        // loot_pool_grant power's grant pipeline. The neoorigins:loot_pool
+        // reward type is registered later, from common setup.
         if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
             com.cyberday1.neoorigins.compat.FtbQuestsCompat.register();
         }
@@ -278,6 +278,15 @@ public class NeoOrigins {
         if (FMLEnvironment.getDist() == Dist.CLIENT
                 && net.neoforged.fml.ModList.get().isLoaded("appleskin")) {
             com.cyberday1.neoorigins.compat.appleskin.AppleSkinBridge.register();
+        }
+    }
+
+    private static void onCommonSetup(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
+        // FTB Quests reward type — registered after FTBQ has filled its
+        // RewardTypes map. Gated so a pack without FTBQ loads normally; the
+        // FTBQ-typed reward classes only classload inside registerRewardType().
+        if (net.neoforged.fml.ModList.get().isLoaded("ftbquests")) {
+            event.enqueueWork(com.cyberday1.neoorigins.compat.FtbQuestsCompat::registerRewardType);
         }
     }
 

@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The execute_command examples in docs/ACTIONS.md are copied by pack authors, so
+ * The execute_command examples in docs/actions/effects.md are copied by pack authors, so
  * each one must parse against the real dispatcher once its JSON string is decoded,
  * and the shape the page names as broken must not.
  */
@@ -37,7 +37,7 @@ class DocumentedCommandExamplesTest {
     }
 
     private static List<String> documentedCommands() throws IOException {
-        String page = Files.readString(RealDatapack.projectPath("docs/ACTIONS.md")).replace("\r\n", "\n");
+        String page = Files.readString(RealDatapack.projectPath("docs/actions/effects.md")).replace("\r\n", "\n");
         List<String> out = new ArrayList<>();
         Matcher m = EXAMPLE.matcher(page);
         while (m.find()) {
@@ -51,7 +51,7 @@ class DocumentedCommandExamplesTest {
     void everyDocumentedExampleParses() throws IOException {
         List<String> commands = documentedCommands();
         assertTrue(commands.contains("tellraw @s {\"text\":\"Triggered\"}"),
-            "the escaped tellraw example is missing from ACTIONS.md: " + commands);
+            "the escaped tellraw example is missing from actions/effects.md: " + commands);
         for (String command : commands) {
             assertNull(OriginsCompatCommands.parseFailure(source, command), command);
         }

@@ -1,0 +1,13 @@
+{
+  "type": "neoorigins:personal_space",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "neoorigins:personal_space",
+      "features": false,
+      "lakes": false,
+      "layers": [],
+      "structure_overrides": []
+    }
+  }
+}

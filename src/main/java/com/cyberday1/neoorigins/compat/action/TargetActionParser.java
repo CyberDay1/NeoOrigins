@@ -175,8 +175,8 @@ public final class TargetActionParser {
      * (the caller then runs the full list on players and skips mobs, as before).
      */
     private static TargetAction parseAnd(JsonObject json, String contextId) {
-        if (!json.has("actions") || !json.get("actions").isJsonArray()) return null;
-        JsonArray arr = json.getAsJsonArray("actions");
+        if (!json.has("actions")) return null;
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions");
         java.util.List<TargetAction> children = new java.util.ArrayList<>(arr.size());
         for (var el : arr) {
             if (!el.isJsonObject()) return null;
@@ -290,6 +290,10 @@ public final class TargetActionParser {
     /** Mirrors {@code BuiltinActions.damage}, dealt to the target via its own level's sources. */
     private static TargetAction parseDamage(JsonObject json) {
         float amount = json.has("amount") ? json.get("amount").getAsFloat() : 1.0f;
+        // Fraction of the actor's attack-damage attribute (folds in the held
+        // weapon) added on top of `amount` when the actor is a player, so a
+        // sharper sword makes the hit harder. 0 (default) = flat damage.
+        final float weaponScale = json.has("weapon_damage_scale") ? json.get("weapon_damage_scale").getAsFloat() : 0f;
         String sourceType = "";
         if (json.has("source") && json.get("source").isJsonObject()) {
             var src = json.getAsJsonObject("source");
@@ -298,6 +302,11 @@ public final class TargetActionParser {
         final String fSrc = sourceType;
         return (t, a) -> {
             var sources = t.level().damageSources();
+            float dealt = amount;
+            if (weaponScale > 0f && a instanceof net.minecraft.world.entity.LivingEntity la) {
+                double atk = la.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+                dealt += (float) (weaponScale * atk);
+            }
             var dmgSrc = switch (fSrc) {
                 case "fire", "on_fire", "in_fire" -> sources.onFire();
                 case "lava"   -> sources.lava();
@@ -314,7 +323,7 @@ public final class TargetActionParser {
                     ? t.level().damageSources().playerAttack(sp)
                     : sources.generic();
             };
-            t.hurt(dmgSrc, amount);
+            t.hurt(dmgSrc, dealt);
         };
     }
 }

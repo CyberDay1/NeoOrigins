@@ -183,7 +183,7 @@ public class OriginGridSelectionScreen extends Screen implements PickerScreen {
             }
         }
         page = Math.min(page, pageCount() - 1);
-        if (confirmButton != null) confirmButton.active = presenter.selectedOriginId() != null;
+        updateConfirm();
     }
 
     /** Point the presenter and the detail panel at one origin. */
@@ -192,7 +192,22 @@ public class OriginGridSelectionScreen extends Screen implements PickerScreen {
         var layer = presenter.currentLayer();
         detail.setOrigin(OriginDetailViewModel.compute(id,
             PickerCloseBehaviour.CLASS_LAYER_ID.equals(layer != null ? layer.id() : null)));
-        if (confirmButton != null) confirmButton.active = true;
+        updateConfirm();
+    }
+
+    /** Confirm is live only for a pick the server would take; a claimed one says so. */
+    private void updateConfirm() {
+        if (confirmButton == null) return;
+        String owner = presenter.claimedBy(presenter.selectedOriginId());
+        confirmButton.active = presenter.canConfirm();
+        confirmButton.setMessage(Component.translatable(
+            owner == null ? "gui.neoorigins.button.confirm" : "gui.neoorigins.picker.claimed"));
+        confirmButton.setTooltip(OriginButton.claimTooltip(owner));
+    }
+
+    @Override
+    public void onClaimsChanged() {
+        if (!presenter.isDone()) refreshWidgets();
     }
 
     private void turnPage(int delta) {
@@ -311,6 +326,7 @@ public class OriginGridSelectionScreen extends Screen implements PickerScreen {
                 refreshWidgets();
             });
             card.setSelected(id.equals(selected));
+            card.setClaimedBy(presenter.claimedBy(id));
             addRenderableWidget(card);
         }
     }
@@ -359,7 +375,7 @@ public class OriginGridSelectionScreen extends Screen implements PickerScreen {
         confirmButton = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.confirm"),
                 b -> confirmSelection())
             .bounds(cx + 12, cy, 80, 28).build();
-        confirmButton.active = presenter.selectedOriginId() != null;
+        updateConfirm();
         addRenderableWidget(confirmButton);
     }
 

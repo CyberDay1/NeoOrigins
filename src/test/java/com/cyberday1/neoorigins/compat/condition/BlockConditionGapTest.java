@@ -47,6 +47,7 @@ class BlockConditionGapTest {
         bodies.put("light_level", "{\"comparison\": \">=\", \"compare_to\": 8}");
         bodies.put("exposed_to_sky", "{}");
         bodies.put("movement_blocking", "{}");
+        bodies.put("active_beacon", "{}");
         bodies.put("and", "{\"conditions\": [{\"type\": \"origins:movement_blocking\"}]}");
         bodies.put("or", "{\"conditions\": [{\"type\": \"origins:movement_blocking\"}]}");
         bodies.put("all_of", "{\"conditions\": [{\"type\": \"origins:movement_blocking\"}]}");

@@ -7,6 +7,7 @@ import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
 import com.cyberday1.neoorigins.data.MobOriginDataManager;
+import com.cyberday1.neoorigins.data.OriginClaimsData;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
@@ -145,6 +146,20 @@ public class OriginCommand {
                     .then(Commands.argument("layer", IdentifierArgument.id())
                         .suggests(SUGGEST_LAYERS)
                         .executes(ctx -> executeList(ctx, IdentifierArgument.getId(ctx, "layer")))))
+                // ── Unique-origin claim management (permission 2) ──────────────
+                .then(Commands.literal("claims")
+                    .requires(REQUIRE_GM)
+                    .executes(ctx -> executeClaims(ctx, null))
+                    .then(Commands.argument("layer", IdentifierArgument.id())
+                        .suggests(SUGGEST_LAYERS)
+                        .executes(ctx -> executeClaims(ctx, IdentifierArgument.getId(ctx, "layer")))))
+                .then(Commands.literal("unlock")
+                    .requires(REQUIRE_GM)
+                    .then(Commands.argument("layer", IdentifierArgument.id())
+                        .suggests(SUGGEST_LAYERS)
+                        .then(Commands.argument("origin", IdentifierArgument.id())
+                            .suggests(SUGGEST_ORIGINS)
+                            .executes(OriginCommand::executeUnlock))))
                 .then(Commands.literal("has")
                     .requires(REQUIRE_GM)
                     .then(Commands.argument("player", EntityArgument.player())
@@ -360,6 +375,17 @@ public class OriginCommand {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         Identifier oldOrigin = data.getOrigin(layerId);
         data.setOrigin(layerId, originId);
+        // Admin override: /set takes over the claim in a unique layer —
+        // release whatever this player previously held there, then claim the
+        // newly-assigned origin for them (overwriting any prior holder).
+        if (AdminConfig.isUniqueLayer(layerId)) {
+            var claims = OriginClaimsData.get(ctx.getSource().getServer());
+            if (oldOrigin != null && !oldOrigin.equals(originId)) {
+                claims.releaseIfOwner(layerId, oldOrigin, player.getUUID());
+            }
+            claims.claim(layerId, originId, player.getUUID());
+            NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
+        }
         ActiveOriginService.applyOriginPowers(player, layerId, oldOrigin, originId);
         NeoOriginsNetwork.syncToPlayer(player);
 
@@ -374,12 +400,23 @@ public class OriginCommand {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
         PlayerOriginData data = player.getData(OriginAttachments.originData());
 
+        // Releasing a player's origin also frees any unique-origin claims they
+        // held in the affected layer(s). Capture before the data is cleared.
+        java.util.Map<Identifier, Identifier> releasing = layerId != null
+            ? java.util.Collections.singletonMap(layerId, data.getOrigin(layerId))
+            : new java.util.HashMap<>(data.getOrigins());
+
         ActiveOriginService.revokeAllPowers(player);
         if (layerId != null) {
             data.removeOrigin(layerId);
         } else {
             data.clear();
         }
+        var claims = OriginClaimsData.get(ctx.getSource().getServer());
+        releasing.forEach((l, o) -> {
+            if (o != null && AdminConfig.isUniqueLayer(l)) claims.releaseIfOwner(l, o, player.getUUID());
+        });
+        NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
         // revokeAllPowers cleared the global-power ledger; re-grant any matching
         // global power sets so a reset doesn't strip apoli:global powers.
         com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(player);
@@ -392,6 +429,62 @@ public class OriginCommand {
         ctx.getSource().sendSuccess(() -> Component.literal(
             "Reset " + player.getName().getString() + "'s origin for " + scope), true);
         return 1;
+    }
+
+    // ── Unique-origin claim management ──────────────────────────────────────
+
+    /** /neoorigins claims [layer] — list currently claimed origins and owners. */
+    private static int executeClaims(CommandContext<CommandSourceStack> ctx, Identifier layerFilter) {
+        net.minecraft.server.MinecraftServer server = ctx.getSource().getServer();
+        var view = OriginClaimsData.get(server).view();
+
+        if (layerFilter != null) {
+            var m = view.get(layerFilter);
+            if (m == null || m.isEmpty()) {
+                ctx.getSource().sendSuccess(() -> Component.literal(
+                    "No origin claims in layer " + layerFilter), false);
+                return 0;
+            }
+            StringBuilder sb = new StringBuilder("Origin claims in layer " + layerFilter + ":\n");
+            new TreeMap<>(m).forEach((origin, uuid) ->
+                sb.append("  ").append(origin).append(" \u2192 ")
+                    .append(NeoOriginsNetwork.ownerName(server, uuid)).append("\n"));
+            ctx.getSource().sendSuccess(() -> Component.literal(sb.toString().stripTrailing()), false);
+            return m.size();
+        }
+
+        if (view.isEmpty()) {
+            ctx.getSource().sendSuccess(() -> Component.literal("No origins are currently claimed."), false);
+            return 0;
+        }
+        StringBuilder sb = new StringBuilder("Claimed origins:\n");
+        int[] count = {0};
+        new TreeMap<>(view).forEach((layer, m) -> {
+            sb.append(layer).append(":\n");
+            new TreeMap<>(m).forEach((origin, uuid) -> {
+                sb.append("  ").append(origin).append(" \u2192 ")
+                    .append(NeoOriginsNetwork.ownerName(server, uuid)).append("\n");
+                count[0]++;
+            });
+        });
+        ctx.getSource().sendSuccess(() -> Component.literal(sb.toString().stripTrailing()), false);
+        return count[0];
+    }
+
+    /** /neoorigins unlock &lt;layer&gt; &lt;origin&gt; — release a claim so it can be picked again. */
+    private static int executeUnlock(CommandContext<CommandSourceStack> ctx) {
+        Identifier layerId = IdentifierArgument.getId(ctx, "layer");
+        Identifier originId = IdentifierArgument.getId(ctx, "origin");
+        boolean released = OriginClaimsData.get(ctx.getSource().getServer()).release(layerId, originId);
+        if (released) {
+            NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
+            ctx.getSource().sendSuccess(() -> Component.literal(
+                "Unlocked origin " + originId + " in layer " + layerId + " — it can be claimed again."), true);
+            return 1;
+        }
+        ctx.getSource().sendFailure(Component.literal(
+            "No active claim for origin " + originId + " in layer " + layerId + "."));
+        return 0;
     }
 
     private static int executeList(CommandContext<CommandSourceStack> ctx, Identifier layerId) {

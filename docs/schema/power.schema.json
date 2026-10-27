@@ -440,6 +440,7 @@
         "neoorigins:overlay",
         "neoorigins:particle",
         "neoorigins:persistent_effect",
+        "neoorigins:personal_dimension",
         "neoorigins:phantom_form",
         "neoorigins:pose",
         "neoorigins:prevent_action",
@@ -1915,6 +1916,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -3197,6 +3240,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -3296,6 +3381,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -3557,23 +3684,23 @@
           "const": "neoorigins:effect_over_time"
         },
         "activation": {
-          "description": "Aura mode (default passive). 'passive' pulses entity_action every interval while granted, no upkeep (add toggleable:true for a free on/off keybind). 'active' binds a keybind that toggles the aura on/off; while on it pulses every interval AND pays the upkeep cost (hunger_cost/resource_cost), switching itself off when it can no longer pay. ('toggle' is accepted as an alias for active.)",
+          "description": "Aura mode (default passive). 'passive' pulses entity_action every interval while granted (add toggleable:true for an on/off keybind). 'active' binds a keybind that toggles the aura on/off and starts off. Either mode may pay an upkeep (hunger_cost/resource_cost) each pulse: a toggleable aura that can't pay switches itself off, a plain passive one skips the pulse. ('toggle' is accepted as an alias for active.)",
           "type": "string",
           "default": "passive"
         },
         "toggleable": {
-          "description": "Passive mode only: when true the aura gains an on/off keybind (still free, no upkeep) and starts ON by default. Active auras are always toggleable and start OFF; this flag is ignored for them. Default false (plain always-on passive).",
+          "description": "Passive mode only: when true the aura gains an on/off keybind and starts ON by default. Active auras are always toggleable and start OFF; this flag is ignored for them. Default false (plain always-on passive).",
           "type": "boolean",
           "default": false
         },
         "interval": {
-          "description": "Ticks between aura pulses — and, in active mode, between upkeep charges (min 1; default 20 = 1s).",
+          "description": "Ticks between aura pulses, and so between upkeep charges (min 1; default 20 = 1s).",
           "type": "integer",
           "default": 20,
           "minimum": 1
         },
         "condition": {
-          "description": "Optional EntityCondition gate: entity_action pulses each interval only while it passes; else_action runs while it does not (default always-true). In active mode upkeep is still charged while the aura is on, regardless of the condition.",
+          "description": "Optional EntityCondition gate: entity_action pulses each interval only while it passes; else_action runs while it does not (default always-true). Upkeep is charged regardless of this condition; use upkeep_condition to gate the cost.",
           "oneOf": [
             {
               "$ref": "condition.schema.json"
@@ -3615,20 +3742,34 @@
           ]
         },
         "hunger_cost": {
-          "description": "Active mode upkeep: food points drained each interval to keep the aura up; the aura auto-disables when the holder can't pay. Default 0 = a free on/off toggle. Ignored in passive mode.",
+          "description": "Upkeep: food points drained each pulse. A toggleable aura (active, or passive with toggleable:true) switches itself off when the holder can't pay; a plain passive aura skips that pulse. Default 0 = free.",
           "type": "integer",
           "default": 0,
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Active mode upkeep: optional resource power id drained each interval; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled. Ignored in passive mode.",
+          "description": "Upkeep: optional resource power id drained each pulse, in any mode; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
         "resource_cost_amount": {
-          "description": "Active mode upkeep: amount of the resource_cost resource drained each interval; default 0.",
+          "description": "Upkeep: amount of the resource_cost resource drained each pulse; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
           "type": "integer",
           "default": 0
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on pulses where it passes (default always-true). A pulse whose upkeep is waived still runs.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
         },
         "default_off": {
           "description": "Override the initial on/off state of a toggleable aura. By default an active aura starts OFF (opt-in) and a toggleable passive starts ON; set this to force either. Ignored for plain (non-toggleable) passive auras.",
@@ -3643,6 +3784,11 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -3753,7 +3899,7 @@
           "const": "neoorigins:enhanced_vision"
         },
         "exposure": {
-          "description": "Brightness 0-1 in darkness; client currently uses ~0.7 (default 0.7).",
+          "description": "Brightness 0-1 in darkness. Advisory: the client currently applies full brightness (1.0) whatever this is set to (default 0.7).",
           "type": "number",
           "default": 0.7,
           "minimum": 0.0,
@@ -4027,6 +4173,29 @@
           "description": "Optional literal title shown on the container screen when the inventory is opened. Blank/absent (default) uses the translatable 'container.neoorigins.extra_inventory'. Plain text, not a JSON text component.",
           "type": "string",
           "default": ""
+        },
+        "hunger_cost": {
+          "description": "Food points charged every upkeep_interval while the inventory is open (saturation first). The key does nothing while the player can't pay one charge, and the menu closes at the first charge they can't pay. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Id of a neoorigins:resource power drained every upkeep_interval while the inventory is open; empty = no resource cost. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between charges while the inventory is open (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
         }
       },
       "required": [
@@ -4070,6 +4239,48 @@
           "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra draws wings at all; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
           "type": "string",
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -4490,6 +4701,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -4515,6 +4768,21 @@
           "description": "Hunger consumed per successful activation.",
           "type": "integer",
           "default": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -4577,7 +4845,7 @@
           "const": "neoorigins:kill_loot_drops"
         },
         "drops": {
-          "description": "List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry must set EXACTLY ONE target form — entity_type, entity_tag or entity_types — and entries with no valid target are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/POWER_TYPES.md.",
+          "description": "List of kill->drop rules layered onto the vanilla loot of mobs the holder kills. Each entry must set EXACTLY ONE target form — entity_type, entity_tag or entity_types — and entries with no valid target are skipped with a load-time warning. Empty/absent (default) = the power drops nothing. Requires the global-loot-modifier carrier files described in docs/powers/work.md (kill_loot_drops).",
           "type": "array",
           "items": {
             "type": "object",
@@ -5425,6 +5693,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -5632,6 +5942,92 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:personal_dimension",
+      "properties": {
+        "type": {
+          "const": "neoorigins:personal_dimension"
+        },
+        "size": {
+          "description": "Usable interior of the player's box in the neoorigins:personal_space dimension: size x size wide and size tall, inside a bedrock floor and barrier walls and ceiling (1 to 64; default 12). A larger size grows the box on the next entry and keeps its contents; a smaller one never shrinks it.",
+          "type": "integer",
+          "default": 12,
+          "minimum": 1,
+          "maximum": 64
+        },
+        "cooldown_ticks": {
+          "description": "Cooldown in ticks (20 = 1s) after entering the box; default 1200 (1 minute). Leaving has no cooldown.",
+          "type": "integer",
+          "default": 1200
+        },
+        "xp_levels_cost": {
+          "description": "Experience levels taken on each entry (not charged in creative); default 0 = free. A player with fewer levels stays put and no cooldown starts. Leaving is always free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "cooldown_icon": {
+          "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
+          "type": "string",
+          "default": ""
+        },
+        "cooldown_countdown": {
+          "description": "If true, the remaining cooldown in whole seconds is drawn translucently on the cooldown_icon (default true). Only applies when cooldown_icon is set; players can suppress all countdown numbers via the show_cooldown_countdown client config and tune the text opacity via the cooldown_countdown_opacity client config.",
+          "type": "boolean",
+          "default": true
+        },
+        "always_show_icon": {
+          "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
+          "type": "boolean",
+          "default": false
         }
       },
       "required": [
@@ -5663,6 +6059,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -5711,6 +6149,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -6229,7 +6709,7 @@
           ]
         },
         "hidden": {
-          "description": "When true, hides the bar from the HUD (mechanics still apply).",
+          "description": "When true, hides the power from the origin menu and the bar from the HUD (mechanics still apply). Set hud_render.should_render to true to keep the bar on the HUD while the menu row stays hidden.",
           "type": "boolean",
           "default": false
         },
@@ -6239,7 +6719,7 @@
           "default": ""
         },
         "hud_render": {
-          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic components.",
+          "description": "Nested HUD-render block; its keys map to flat label/color/hidden/animated/tint/tintEnd/alwaysShow/dynamic/textColor/textOutline components.",
           "type": "object",
           "properties": {
             "label": {
@@ -6254,7 +6734,7 @@
               "default": "#55AAFF"
             },
             "should_render": {
-              "description": "When false, hides the bar (stored inverted as hidden=true).",
+              "description": "When false, hides the bar. When set to true, shows the bar even if the power is hidden, so a resource can stay out of the origin menu and still have a HUD bar. Left unset, the bar follows hidden (stored inverted as hidden).",
               "type": "boolean",
               "default": true
             },
@@ -6283,6 +6763,17 @@
             },
             "dynamic": {
               "description": "When true, stacks this bar above the non-dynamic ones in the default HUD column.",
+              "type": "boolean",
+              "default": false
+            },
+            "text_color": {
+              "description": "Colour of the bar's label and value readout, as #RRGGBB or #AARRGGBB hex; any other value falls back to #CCCCCC (the default light grey).",
+              "type": "string",
+              "pattern": "^#?([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$",
+              "default": "#CCCCCC"
+            },
+            "text_outline": {
+              "description": "When true, draws a 1px dark outline around the label and value readout so they read on any background.",
               "type": "boolean",
               "default": false
             }
@@ -6686,6 +7177,48 @@
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
           "type": "boolean",
           "default": true
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -6877,6 +7410,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -6903,6 +7478,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -7371,6 +7988,11 @@
           "description": "Maximum connected log blocks broken in one chop (default 64).",
           "type": "integer",
           "default": 64
+        },
+        "require_axe": {
+          "description": "Fell only when the log is broken with an axe: an item in #minecraft:axes, or an empty hand with an axe bare_hand_tool (default true). false fells with any tool or none.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -7511,6 +8133,17 @@
           "type": "boolean",
           "default": false
         },
+        "obscured_vision": {
+          "description": "If true, the player can't see through terrain while phasing: whenever the camera is inside a solid block, thick dark fog closes in at phase_view_distance (default false = clear sight through walls).",
+          "type": "boolean",
+          "default": false
+        },
+        "phase_view_distance": {
+          "description": "With obscured_vision, how far the player can see, in blocks, while the camera is inside a solid block (default 1.5).",
+          "type": "number",
+          "default": 1.5,
+          "minimum": 0.0
+        },
         "cooldown_icon": {
           "description": "Optional HUD icon: an item id (e.g. 'minecraft:elytra') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, this toggleable power joins the ability HUD cluster: full-bright while toggled on, dimmed while off. Empty (default) keeps it off the HUD.",
           "type": "string",
@@ -7520,6 +8153,48 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -7922,6 +8597,7 @@
               "neoorigins:overlay",
               "neoorigins:particle",
               "neoorigins:persistent_effect",
+              "neoorigins:personal_dimension",
               "neoorigins:phantom_form",
               "neoorigins:pose",
               "neoorigins:prevent_action",

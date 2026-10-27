@@ -5,6 +5,7 @@ import com.cyberday1.neoorigins.client.theme.UITheme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -18,6 +19,7 @@ public class OriginButton extends Button {
 
     private final Origin origin;
     private boolean selected;
+    private String claimedBy;
 
     public OriginButton(int x, int y, int width, int height, Origin origin, OnPress onPress) {
         super(x, y, width, height, origin.name(), onPress, DEFAULT_NARRATION);
@@ -27,6 +29,18 @@ public class OriginButton extends Button {
     public Origin getOrigin()                    { return origin; }
     public boolean isSelected()                  { return selected; }
     public void setSelected(boolean selected)    { this.selected = selected; }
+
+    /** Marks the origin as held by {@code owner} (null = free): muted name and a tooltip. */
+    public void setClaimedBy(String owner) {
+        this.claimedBy = owner;
+        setTooltip(claimTooltip(owner));
+    }
+
+    /** "Claimed by X", or null for a free origin. */
+    public static Tooltip claimTooltip(String owner) {
+        return owner == null ? null
+            : Tooltip.create(Component.translatable("gui.neoorigins.picker.claimed_by", owner));
+    }
 
     @Override
     public void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
@@ -43,7 +57,8 @@ public class OriginButton extends Button {
         renderIcon(g, origin.icon(), getX() + 3, getY() + (getHeight() - 16) / 2);
 
         // Name — themed font, theme text colors.
-        int nameColor = isSelected() ? theme.nameColor() : theme.descriptionColor();
+        int nameColor = claimedBy != null ? theme.mutedColor()
+            : isSelected() ? theme.nameColor() : theme.descriptionColor();
         Minecraft mc = Minecraft.getInstance();
         Identifier fid = theme.font();
         Component label = fid != null

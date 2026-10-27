@@ -51,4 +51,14 @@ final class TeleportEffects {
         }
         playAt(targetLevel, new Vec3(x, y, z));
     }
+
+    /** Cross-level teleport arriving with the given facing, with the same effects. */
+    static void teleportWithEffects(ServerPlayer player, ServerLevel targetLevel, double x, double y, double z,
+                                    float yRot, float xRot) {
+        playAt(player, player.position());
+        player.teleport(new net.minecraft.world.level.portal.TeleportTransition(
+            targetLevel, new Vec3(x, y, z), Vec3.ZERO, yRot, xRot,
+            net.minecraft.world.level.portal.TeleportTransition.DO_NOTHING));
+        playAt(targetLevel, new Vec3(x, y, z));
+    }
 }

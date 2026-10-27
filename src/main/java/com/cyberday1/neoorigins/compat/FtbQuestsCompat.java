@@ -29,17 +29,11 @@ import java.util.Collection;
  * the quest's id so dedup tracking lines up with the player's existing
  * grant-equipment attachment.
  *
- * <p>Why tag-marker (not a registered RewardType): FTBQ's
- * {@code RewardType} registry requires implementing a {@code RewardType.Provider}
- * with config-GUI hooks (icon, NBT round-trip, type id registration on
- * {@code ftbquests:types}). Doing that safely via reflection across FTBQ
- * versions is brittle — the public RewardType API has shifted between minor
- * versions, and a registration mistake silently breaks every FTBQ quest book.
- * Tag-markers go through FTBQ's stable {@code ObjectCompletedEvent.QUEST}
- * contract (Architectury event) and require pack authors to add one tag string
- * — trading reward-GUI integration for soft-dep robustness, which is the right
- * call for a backlog item that explicitly permits "ship the standalone power"
- * if the reward route is too unstable.
+ * <p>Why tag-marker (not only a registered RewardType): the tag route goes
+ * through the completion event and needs nothing from the reward GUI, so it is
+ * the robust soft-dep path. The first-class reward type
+ * ({@link #registerRewardType()}) is wired separately, typed against FTBQ in
+ * {@code compat.ftbquests}, and shares the same grant pipeline.
  *
  * <p>FTBQ 26.1.2.x dropped {@code ObjectCompletedEvent} and Architectury and posts
  * {@code FTBQuestsEvent.QuestProgress} on the NeoForge bus; the typed
@@ -58,10 +52,6 @@ public final class FtbQuestsCompat {
 
     public static void register() {
         boolean eventOk = tryRegisterProgressListener() || tryRegisterCompletedEventListener();
-        // TODO(v2.2): FTBQ soft-compat reward registration —
-        // wire registerRewardType() once FTBQ's RewardType.Provider API
-        // stabilises across versions. Tag-marker path covers the same use
-        // case in the meantime.
         if (eventOk) {
             NeoOrigins.LOGGER.info("[Compat] FTB Quests loot_pool_grant tag-marker listener active "
                 + "(use tag '{}<table_id>' on a quest to grant)", TAG_PREFIX);
@@ -184,18 +174,17 @@ public final class FtbQuestsCompat {
     }
 
     /**
-     * Reserved hook for the eventual {@code RewardType} registration path —
-     * intentionally a no-op today (see class doc). Pack authors who want
-     * book-integrated rewards can use the tag-marker path now and migrate
-     * trivially once this lights up.
+     * Registers the first-class {@code neoorigins:loot_pool} reward type with
+     * FTBQ's {@code RewardTypes} registry so pack authors can add a
+     * "NeoOrigins: grant loot pool" reward directly in the quest editor.
      *
-     * TODO(v2.2): implement registration against
-     * {@code dev.ftb.mods.ftbquests.quest.reward.RewardType} once the
-     * Provider API stabilises across FTBQ minor versions.
+     * <p>Must run after FTBQ has registered its own types; {@link NeoOrigins}
+     * drives it from common setup. Indirected through
+     * {@link com.cyberday1.neoorigins.compat.ftbquests.FtbQuestsRewardRegistration}
+     * so the FTBQ-typed reward classes only classload behind this gated call.
      */
-    @SuppressWarnings("unused")
-    private static void registerRewardType() {
-        // No-op — see TODO above.
+    public static void registerRewardType() {
+        com.cyberday1.neoorigins.compat.ftbquests.FtbQuestsRewardRegistration.register();
     }
 
     // ── Reflection helpers ─────────────────────────────────────────────

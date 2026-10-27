@@ -36,8 +36,9 @@ import java.util.Set;
  * and no skill slot is consumed by any of it.
  *
  * <p>The {@code exposure} field is retained in the schema for forward-compat but
- * is currently advisory — the client mixin hardcodes 0.7. Wire through a synced
- * payload if runtime playtest shows per-origin variance is needed.
+ * is currently advisory: the client mixin applies full brightness
+ * ({@code LightTextureMixin#EXPOSURE} = 1.0), whatever the JSON says. Wire it
+ * through a synced payload if per-origin variance is ever needed.
  */
 public class EnhancedVisionPower extends PowerType<EnhancedVisionPower.Config> {
 

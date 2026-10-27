@@ -263,7 +263,7 @@
 
   Firebolt (neoorigins:blazeling_firebolt)
     Type: neoorigins:active_ability
-    Hurl a small fireball in the direction you're looking. Costs 2 energy.
+    Hurl a small fireball in the direction you're looking. Costs 20 energy.
     4-second cooldown.
 
   Brimstone Fists (neoorigins:blazeling_stone_fists)
@@ -386,7 +386,7 @@
 
   Ender Warp (neoorigins:enderian_teleport)
     Type: neoorigins:active_teleport
-    Teleport to where you're looking — up to 50 blocks. Costs 2 energy.
+    Teleport to where you're looking — up to 50 blocks. Costs 20 energy.
     3-second cooldown.
 
   Energy (neoorigins:enderian_energy)
@@ -443,7 +443,7 @@
   Web Shot (neoorigins:arachnid_cobweb_projectile)
     Type: neoorigins:active_ability
     Throws a cobweb that places itself on impact, tangling anything it lands
-    on. Costs 2 energy.
+    on. Costs 20 energy.
 
   Energy (neoorigins:arachnid_energy)
     Type: neoorigins:resource
@@ -495,11 +495,11 @@
   Bullet Release (neoorigins:shulk_levitation_burst)
     Type: neoorigins:active_ability
     Active: release a burst of levitation shells — nearby enemies float upward
-    for 3 seconds. Costs 2 stamina. 8-second cooldown.
+    for 3 seconds. Costs 20 stamina. 8-second cooldown.
 
   Shell Retreat (neoorigins:shulk_shell_retreat)
     Type: neoorigins:active_ability
-    Active: vanish into your shell and reappear up to 12 blocks away. Costs 3
+    Active: vanish into your shell and reappear up to 12 blocks away. Costs 30
     stamina. 10-second cooldown.
 
   Grounded (neoorigins:shulk_levitation_immunity)
@@ -643,7 +643,7 @@
 
   Pounce (neoorigins:feline_active_launch)
     Type: neoorigins:active_ability
-    Pounces you powerfully in the direction you're looking. Costs 2 energy.
+    Pounces you powerfully in the direction you're looking. Costs 20 energy.
     4-second cooldown.
 
   Hates Water (neoorigins:feline_water_weakness)
@@ -728,7 +728,7 @@
   Ground Slam (neoorigins:golem_ground_slam)
     Type: neoorigins:active_ability
     Slam the earth with iron fists — 4 damage and Slowness II for 4 seconds to
-    all nearby enemies in a 5-block radius. Costs 3 stamina. 7-second
+    all nearby enemies in a 5-block radius. Costs 30 stamina. 7-second
     cooldown.
 
   Stamina (neoorigins:golem_stamina)
@@ -953,7 +953,7 @@
   Entangle (neoorigins:sylvan_active_root)
     Type: neoorigins:active_ability
     Roots all nearby creatures in place with powerful Slowness VI for 4
-    seconds. Costs 2 vitality. 200-tick cooldown.
+    seconds. Costs 20 vitality. 200-tick cooldown.
 
   Corruption Bane (neoorigins:sylvan_nether_damage)
     Type: neoorigins:condition_passive
@@ -1021,7 +1021,7 @@
   Flame Breath (neoorigins:draconic_active_fireball)
     Type: neoorigins:active_ability
     Breathes a burst of 4 small fireballs in the direction you're looking.
-    Costs 3 stamina. 4-second cooldown.
+    Costs 30 stamina. 4-second cooldown.
 
   Apex Presence (neoorigins:draconic_scare_mobs)
     Type: neoorigins:scare_entities
@@ -1108,7 +1108,7 @@
   Void Bolt (neoorigins:revenant_active_bolt)
     Type: neoorigins:active_ability
     Fires a bolt of withering energy that explodes into an area of harmful
-    mist. Costs 1 energy. 4-second cooldown.
+    mist. Costs 10 energy. 4-second cooldown.
 
   Sunlight's Curse (neoorigins:revenant_daylight_damage)
     Type: neoorigins:condition_passive
@@ -1268,7 +1268,7 @@
 
   Abyssal Command (neoorigins:abyssal_summon_guardian)
     Type: neoorigins:summon_minion
-    Summons a guardian to fight for you. Max 2 at once. Costs 5 essence.
+    Summons a guardian to fight for you. Max 2 at once. Costs 50 essence.
     20-second cooldown. You take 1 damage if it dies in combat.
 
   Pescivore (neoorigins:aquatic_fish_diet)
@@ -1371,13 +1371,13 @@
 
   Phase Walk (neoorigins:voidwalker_active_phase)
     Type: neoorigins:active_phase
-    Phase through a solid wall in the direction you're looking. Costs 3
+    Phase through a solid wall in the direction you're looking. Costs 30
     energy. 80-tick cooldown.
 
   Void Step (neoorigins:voidwalker_active_teleport)
     Type: neoorigins:active_teleport
-    Blinks to where you are looking (up to 24 blocks). Costs 2 energy. 80-tick
-    cooldown.
+    Blinks to where you are looking (up to 24 blocks). Costs 20 energy.
+    80-tick cooldown.
 
   Void Sight (neoorigins:voidwalker_night_vision)
     Type: neoorigins:persistent_effect (written as neoorigins:night_vision)
@@ -1481,7 +1481,7 @@
   Stone Light (neoorigins:stoneguard_active_glowstone)
     Type: neoorigins:active_place_block
     Places a glowstone block at the surface you're looking at. 100-tick
-    cooldown.
+    cooldown. Costs 10 stamina.
 
   Stone-Footed (neoorigins:stoneguard_slow_movement)
     Type: neoorigins:attribute_modifier
@@ -1590,7 +1590,8 @@
 
   Bountiful Harvest (neoorigins:verdant_harvest_bonus)
     Type: neoorigins:crop_harvest_bonus
-    Breaking mature crops or logs yields one additional set of drops.
+    Breaking a fully grown crop or a naturally grown log yields one additional
+    set of drops.
 
   Forest Heart (neoorigins:verdant_forest_regen)
     Type: neoorigins:condition_passive
@@ -1642,12 +1643,12 @@
   Shadow Orb (neoorigins:umbral_shadow_orb)
     Type: neoorigins:shadow_orb
     Place an invisible orb that plunges a 28-block radius into Darkness. Up to
-    4 orbs active at once; placing a new one removes the oldest. Costs 2
+    4 orbs active at once; placing a new one removes the oldest. Costs 20
     energy. 60-tick cooldown.
 
   Shadow Dash (neoorigins:umbral_active_dash)
     Type: neoorigins:active_ability
-    Bursts forward at high speed in the direction you're moving. Costs 2
+    Bursts forward at high speed in the direction you're moving. Costs 20
     energy. 60-tick cooldown.
 
   Light Aversion (neoorigins:umbral_daylight_damage)
@@ -1759,7 +1760,7 @@
   Spore Cloud (neoorigins:sporeling_spore_cloud)
     Type: neoorigins:active_ability
     Fires a spore projectile that erupts into a lingering cloud of poisonous
-    spores. Costs 3 vitality. 12-second cooldown.
+    spores. Costs 30 vitality. 12-second cooldown.
 
   Toxic Resilience (neoorigins:sporeling_poison_immunity)
     Type: neoorigins:effect_immunity
@@ -1834,7 +1835,7 @@
 
   Frost Nova (neoorigins:frostborn_freeze_aura)
     Type: neoorigins:active_ability
-    Blasts nearby enemies with extreme slowness. Costs 2 stamina. 10-second
+    Blasts nearby enemies with extreme slowness. Costs 20 stamina. 10-second
     cooldown.
 
   Cold Blooded (neoorigins:frostborn_cold_buff)
@@ -1933,7 +1934,7 @@
 
   Stampede (neoorigins:strider_stampede)
     Type: neoorigins:active_ability
-    Charge forward on thick legs. Costs 2 stamina. 4-second cooldown.
+    Charge forward on thick legs. Costs 20 stamina. 4-second cooldown.
 
   Fungal Diet (neoorigins:nether_fungus_diet)
     Type: neoorigins:edible_item
@@ -2152,7 +2153,7 @@
 
   Venomous Sting (neoorigins:hiveling_sting)
     Type: neoorigins:active_ability
-    Fires a venomous bolt at your target. Costs 1 energy. 6-second cooldown.
+    Fires a venomous bolt at your target. Costs 10 energy. 6-second cooldown.
 
   Pollinator (neoorigins:hiveling_crop_growth)
     Type: neoorigins:crop_growth_accelerator
@@ -2227,7 +2228,7 @@
   Eruption (neoorigins:cinderborn_fireball)
     Type: neoorigins:active_ability
     Hurls a burst of 4 small fireballs in the direction you're looking. Costs
-    3 stamina. 5-second cooldown.
+    30 stamina. 5-second cooldown.
 
   Basalt Skin (neoorigins:cinderborn_natural_armor)
     Type: neoorigins:persistent_effect
@@ -2299,13 +2300,13 @@
 
   Sonic Shriek (neoorigins:sculkborn_sonic_bolt)
     Type: neoorigins:active_ability
-    Fires a devastating sonic bolt that hits in a 7-block radius. Costs 2
+    Fires a devastating sonic bolt that hits in a 7-block radius. Costs 20
     stamina. 6-second cooldown.
 
   Sculk Pulse (neoorigins:sculkborn_darkness_aura)
     Type: neoorigins:active_ability
     Fires a sonic pulse that leaves a lingering field of Darkness in its wake.
-    Costs 3 stamina. 15-second cooldown.
+    Costs 30 stamina. 15-second cooldown.
 
   Echolocation (neoorigins:sculkborn_night_vision)
     Type: neoorigins:persistent_effect (written as neoorigins:night_vision)
@@ -2383,12 +2384,12 @@
 
   Warp Step (neoorigins:enderite_teleport)
     Type: neoorigins:active_teleport
-    Teleports up to 32 blocks in the direction you're looking. Costs 2 energy.
-    3-second cooldown.
+    Teleports up to 32 blocks in the direction you're looking. Costs 20
+    energy. 3-second cooldown.
 
   Void Phase (neoorigins:enderite_phase)
     Type: neoorigins:active_phase
-    Phases through solid walls. Costs 3 energy. 10-second cooldown.
+    Phases through solid walls. Costs 30 energy. 10-second cooldown.
 
   Ender Drift (neoorigins:enderite_slow_fall)
     Type: neoorigins:persistent_effect
@@ -2454,12 +2455,12 @@
 
   Raise Wither Skeleton (neoorigins:necromancer_summon_wither)
     Type: neoorigins:summon_minion
-    Summons a wither skeleton to fight for you. Max 2 at once. Costs 6
+    Summons a wither skeleton to fight for you. Max 2 at once. Costs 60
     essence. 30-second cooldown. You take 1 damage if it dies in combat.
 
   Raise Skeleton Archer (neoorigins:necromancer_summon_skeleton)
     Type: neoorigins:summon_minion
-    Summons a skeleton archer to fight for you. Max 3 at once. Costs 4
+    Summons a skeleton archer to fight for you. Max 3 at once. Costs 40
     essence. 20-second cooldown. You take 1 damage if it dies in combat.
 
   Undead Nature (neoorigins:necromancer_entity_group)
@@ -2537,7 +2538,7 @@
 
   Petrifying Gaze (neoorigins:gorgon_petrifying_gaze)
     Type: neoorigins:active_ability
-    Freezes all nearby enemies with Slowness V. Costs 3 stamina. 15-second
+    Freezes all nearby enemies with Slowness V. Costs 30 stamina. 15-second
     cooldown.
 
   Stone Fists (neoorigins:gorgon_stone_fists)
@@ -2684,12 +2685,12 @@
   Tentacle Lash (neoorigins:kraken_tentacle_lash)
     Type: neoorigins:active_ability
     Fires a shadow bolt that blinds and slows all enemies in a 6-block radius.
-    Costs 2 essence. 6-second cooldown.
+    Costs 20 essence. 6-second cooldown.
 
   Ink Shot (neoorigins:kraken_ink_shot)
     Type: neoorigins:active_ability
     Fires a bolt of concentrated ink that heavily slows enemies in a 5-block
-    radius. Costs 2 essence. 8-second cooldown.
+    radius. Costs 20 essence. 8-second cooldown.
 
   Deep Lungs (neoorigins:kraken_water_breathing)
     Type: neoorigins:water_breathing
@@ -2724,7 +2725,7 @@
 
   Call of the Deep (neoorigins:kraken_summon_guardian)
     Type: neoorigins:summon_minion
-    Summons a guardian to fight for you. Max 2 at once. Costs 5 essence.
+    Summons a guardian to fight for you. Max 2 at once. Costs 50 essence.
     20-second cooldown. You take 1 damage if it dies in combat.
 
   Beached (neoorigins:kraken_beached)
@@ -2799,7 +2800,7 @@
   Sonic Boom (neoorigins:warden_sonic_boom)
     Type: neoorigins:active_ability
     Fires a devastating sonic blast (8 magic damage + Slowness III in a
-    10-block area). Costs 4 stamina. 20-second cooldown.
+    10-block area). Costs 40 stamina. 20-second cooldown.
 
   Echolocation (neoorigins:warden_echolocation)
     Type: neoorigins:condition_passive
@@ -3006,7 +3007,8 @@
   Dominate (neoorigins:tamer_tame_mob)
     Type: neoorigins:tame_mob
     Look at a hostile mob and activate to bend it to your will. It will follow
-    you and defend you. Max 4 tamed mobs. Costs 3 essence. 10-second cooldown.
+    you and defend you. Max 4 tamed mobs. Costs 30 essence. 10-second
+    cooldown.
 
   Sic 'Em (neoorigins:tamer_command_pack)
     Type: neoorigins:command_pack
@@ -3142,7 +3144,7 @@
   Ground Slam (neoorigins:earth_mage_ground_slam)
     Type: neoorigins:ground_slam
     Slam the earth, dealing 6 damage and knocking back all nearby entities.
-    Costs 3 mana. 6-second cooldown.
+    Costs 30 mana. 6-second cooldown.
 
   Stone Wall (neoorigins:earth_mage_stone_wall)
     Type: neoorigins:active_place_block
@@ -3222,12 +3224,12 @@
   Tidal Wave (neoorigins:water_mage_tidal_wave)
     Type: neoorigins:tidal_wave
     Blast a cone of water forward, dealing 4 damage and pushing enemies away.
-    5-second cooldown.
+    5-second cooldown. Costs 30 mana.
 
   Healing Mist (neoorigins:water_mage_healing_mist)
     Type: neoorigins:active_ability
     Release a healing wave that restores 6 HP to you and nearby players. Costs
-    3 mana. 10-second cooldown.
+    30 mana. 10-second cooldown.
 
   Aquatic (neoorigins:water_mage_aquatic)
     Type: neoorigins:water_breathing
@@ -3313,11 +3315,11 @@
   Fireball (neoorigins:fire_mage_fireball)
     Type: neoorigins:active_ability
     Hurl a volley of four small fireballs in the direction you're looking.
-    Costs 3 mana. 4-second cooldown.
+    Costs 30 mana. 4-second cooldown.
 
   Inferno Burst (neoorigins:fire_mage_inferno_burst)
     Type: neoorigins:active_ability
-    Release a burst of flame that damages all nearby enemies. Costs 3 mana.
+    Release a burst of flame that damages all nearby enemies. Costs 30 mana.
     8-second cooldown.
 
   Flame Cloak (neoorigins:fire_mage_flame_cloak)
@@ -3390,8 +3392,8 @@
 
   Whirlwind (neoorigins:air_mage_whirlwind)
     Type: neoorigins:active_ability
-    Hurl an air bolt that spawns a tornado on impact — pulls, lifts, and spins
-    nearby entities for four seconds. Costs 4 mana.
+    Hurl an air bolt that spawns a tornado on impact: it pulls, lifts, and
+    spins nearby entities for four seconds. Costs 40 mana.
 
   Updraft (neoorigins:air_mage_updraft)
     Type: neoorigins:active_ability
@@ -3474,12 +3476,12 @@
     Type: neoorigins:active_ability
     Fire a dark orb that collapses into a black hole on impact. Nearby
     entities are pulled toward its center and take damage for four seconds.
-    Costs 4 mana. 20-second cooldown.
+    Costs 40 mana. 20-second cooldown.
 
   Repulse (neoorigins:gravity_mage_repulse)
     Type: neoorigins:active_ability (written as neoorigins:repulse)
     Release a gravitational shockwave that blasts all nearby entities away.
-    Costs 3 mana. 4-second cooldown.
+    Costs 30 mana. 4-second cooldown.
 
   Levitation (neoorigins:gravity_mage_levitation)
     Type: neoorigins:persistent_effect
@@ -3548,12 +3550,12 @@
   Shadow Orb (neoorigins:darkness_mage_shadow_orb)
     Type: neoorigins:shadow_orb
     Place a shadow orb at your location that inflicts Darkness and Blindness
-    on nearby enemies. Up to 3 orbs active at once. Costs 3 mana. 5-second
+    on nearby enemies. Up to 3 orbs active at once. Costs 30 mana. 5-second
     cooldown.
 
   Shadow Step (neoorigins:darkness_mage_shadow_step)
     Type: neoorigins:active_teleport
-    Teleport to where you're looking, up to 24 blocks away. Costs 2 mana.
+    Teleport to where you're looking, up to 24 blocks away. Costs 20 mana.
     4-second cooldown.
 
   Dark Vision (neoorigins:darkness_mage_night_vision)
@@ -4138,7 +4140,8 @@
     Type: neoorigins:creative_flight
     Step onto your blade and take to the sky. Toggle the art on, then
     double-tap jump to fly freely; jump to rise, sneak to descend. Sheathe the
-    blade and the sky lets go of you.
+    blade and the sky lets go of you. Flying costs 1 hunger point every 3
+    seconds; when you can no longer pay, the art ends.
 
   Flickering Slash (neoorigins:jianxian_flickering_slash)
     Type: neoorigins:active_dash
@@ -4187,7 +4190,7 @@
 
   Weapon Mastery (neoorigins:class_warrior_damage)
     Type: neoorigins:attribute_modifier
-    +1 attack damage with all weapons.
+    +1 melee attack damage.
 
   Battle Stance (neoorigins:class_warrior_knockback_resist)
     Type: neoorigins:attribute_modifier
@@ -4247,7 +4250,7 @@
 
   Efficient Digger (neoorigins:class_miner_efficiency)
     Type: neoorigins:action_on_event
-    Uses 30% less hunger while mining and exploring.
+    Uses 30% less hunger from every source.
 
   Stone Fists (neoorigins:class_miner_stone_fists)
     Type: neoorigins:bare_hand_tool
@@ -4270,11 +4273,12 @@
 
   Empathic Bond (neoorigins:class_beastmaster_diffusal)
     Type: neoorigins:tamed_potion_diffusal
-    Potion effects you receive are shared with nearby tamed animals.
+    Beneficial effects you receive are shared with your tamed animals within
+    16 blocks.
 
   Alchemist's Touch (neoorigins:class_beastmaster_potions)
     Type: neoorigins:action_on_event
-    All potion effects last 50% longer.
+    Every effect on you lasts 50% longer, harmful ones included.
 
 --------------------------------------------------------------------------------
   EXPLORER
@@ -4368,15 +4372,16 @@
 
   Bountiful Harvest (neoorigins:class_herbalist_harvest_bonus)
     Type: neoorigins:crop_harvest_bonus
-    Harvesting a fully grown crop drops one extra copy.
+    Breaking a fully grown crop or a naturally grown log drops its loot one
+    extra time.
 
   Blessed Bone Meal (neoorigins:class_herbalist_green_thumb)
     Type: neoorigins:action_on_event
-    Bone meal applications grow an extra stage.
+    Each use of bone meal applies twice.
 
   Starting Seeds (neoorigins:class_herbalist_starting_seeds)
     Type: neoorigins:starting_equipment
-    Spawn with wheat seeds to start your garden.
+    Start with a wheat seed to begin your garden.
 
   Starting Bone Meal (neoorigins:class_herbalist_starting_bone_meal)
     Type: neoorigins:starting_equipment
@@ -4415,7 +4420,8 @@
 
   Trail Rations (neoorigins:class_scout_trail_rations)
     Type: neoorigins:starting_equipment
-    Spawn with a loaf of bread for the road.
+    Start with a loaf of bread for the road, given once when you pick this
+    class.
 
 --------------------------------------------------------------------------------
   BERSERKER
@@ -4425,7 +4431,7 @@
 
   Frenzy (neoorigins:class_berserker_damage)
     Type: neoorigins:attribute_modifier
-    +3 attack damage with all weapons.
+    +3 melee attack damage.
 
   Ravenous (neoorigins:class_berserker_hunger)
     Type: neoorigins:action_on_event
@@ -4437,7 +4443,7 @@
 
   Reckless (neoorigins:class_berserker_reckless)
     Type: neoorigins:attribute_modifier
-    -2 natural armor — the rage forgets to guard.
+    -2 armor: the rage forgets to guard.
 
   Thick Skin (neoorigins:class_berserker_thick_skin)
     Type: neoorigins:attribute_modifier
@@ -4551,8 +4557,9 @@
 
   Quality Craftsmanship (neoorigins:class_blacksmith_quality)
     Type: neoorigins:quality_equipment
-    Equipment you craft receives bonus attributes — toughness, damage, or
-    mining speed.
+    Equipment you craft is superior: weapons gain +20% attack damage, each
+    armor piece +1 armor toughness, tools +25% mining efficiency (boosts the
+    Efficiency enchantment), and everything +10% durability.
 
   Efficient Repairs (neoorigins:class_blacksmith_repairs)
     Type: neoorigins:action_on_event
@@ -4579,11 +4586,13 @@
 
   Good Meals (neoorigins:class_cook_food)
     Type: neoorigins:action_on_event
-    Food you craft provides bonus hunger and saturation.
+    Food you craft or take out of a furnace or smoker gives +1 hunger point
+    and +0.5 saturation.
 
   Smoking Expert (neoorigins:class_cook_smoker_xp)
     Type: neoorigins:more_smoker_xp
-    Gains double XP from cooking food in a smoker.
+    Food you take out of a furnace or smoker gives an extra +2 hunger points
+    and +0.5 saturation.
 
   Iron Stomach (neoorigins:class_cook_iron_stomach)
     Type: neoorigins:effect_immunity
@@ -4591,7 +4600,7 @@
 
   Seasoned Palate (neoorigins:class_cook_seasoned_palate)
     Type: neoorigins:action_on_event
-    Potion effects on you last 25% longer.
+    Every effect on you lasts 25% longer, harmful ones included.
 
   Cook's Knife (neoorigins:class_cook_knife)
     Type: neoorigins:starting_equipment
@@ -4606,12 +4615,13 @@
 
   Restocking (neoorigins:class_merchant_trades)
     Type: neoorigins:trade_availability
-    Villager trades never deplete for you.
+    Every 2 seconds, villagers within 8 blocks of you restock their trades,
+    for anyone trading with them.
 
   Charisma (neoorigins:class_merchant_rare_loot)
     Type: neoorigins:rare_wandering_loot
-    Wandering traders offer you master-tier villager trades and a chance at
-    rare treasure.
+    Each wandering trader you meet adds 3 trades for you from a set list of
+    unenchanted master-tier goods, with a 25% chance of a rare treasure trade.
 
   Starting Emeralds (neoorigins:class_merchant_starting_emeralds)
     Type: neoorigins:starting_equipment
@@ -4619,11 +4629,15 @@
 
   Silver Tongue (neoorigins:class_merchant_silver_tongue)
     Type: neoorigins:action_on_event
-    Potion effects on you last 15% longer — hospitality lingers.
+    Every effect on you lasts 15% longer, harmful ones included: hospitality
+    lingers.
 
   Lucky Trader (neoorigins:class_merchant_lucky_trader)
-    Type: neoorigins:attribute_modifier
-    +1 Luck — good fortune finds a good haggler.
+    Type: neoorigins:multiple (2 parts)
+      - neoorigins:class_merchant_lucky_trader_luck: neoorigins:attribute_modifier
+      - neoorigins:class_merchant_lucky_trader_discount: neoorigins:action_on_event
+    +1 Luck for better fishing catches, and trades cost about 10% less: at
+    least 1 off anything costing 2 or more.
 
 --------------------------------------------------------------------------------
   CLERIC
@@ -4638,7 +4652,7 @@
 
   Extended Potions (neoorigins:class_cleric_potions)
     Type: neoorigins:action_on_event
-    All potion effects last twice as long.
+    Every effect on you lasts twice as long, harmful ones included.
 
   Turn Undead (neoorigins:class_cleric_turn_undead)
     Type: neoorigins:action_on_hit
@@ -4704,7 +4718,8 @@
 
   Mason's Reach (neoorigins:class_mason_block_reach)
     Type: neoorigins:attribute_modifier
-    +1 block placement reach — a mason's arm knows where the wall ends.
+    +1 block reach for breaking, placing and using blocks: a mason's arm knows
+    where the wall ends.
 
 --------------------------------------------------------------------------------
   PALADIN
@@ -4723,7 +4738,7 @@
 
   Beacon Regeneration (neoorigins:class_paladin_beacon_regen)
     Type: neoorigins:condition_passive
-    Slowly regenerates while within 8 blocks of a beacon.
+    Slowly regenerates while within 8 blocks of an active beacon.
 
   Consecrated Blade (neoorigins:class_paladin_starting_sword)
     Type: neoorigins:starting_equipment
@@ -4742,11 +4757,12 @@
 
   Bountiful Harvest (neoorigins:classic_farmer_bountiful_harvest)
     Type: neoorigins:crop_harvest_bonus
-    Harvesting a fully grown crop drops one extra copy.
+    Breaking a fully grown crop or a naturally grown log drops its loot one
+    extra time.
 
   Blessed Bone Meal (neoorigins:class_herbalist_green_thumb)
     Type: neoorigins:action_on_event
-    Bone meal applications grow an extra stage.
+    Each use of bone meal applies twice.
 
 --------------------------------------------------------------------------------
   RANCHER
@@ -4774,7 +4790,7 @@
   powers" counts the built-in powers that load as this type.
 
   neoorigins:action_on_event
-    Passive | Shipped powers: 61 | ActionOnEventPower
+    Passive | Shipped powers: 62 | ActionOnEventPower
     Fields: block_condition, condition, cooldown_ticks, effect, effect_tag,
     entity_action, event, hand, hands, immunity_ticks, item_condition,
     modifier, power
@@ -4847,7 +4863,7 @@
     Passive | Shipped powers: 314 | AttributeModifierPower
     Fields: amount, attribute, condition, equipment_condition,
     location_condition, operation, resource
-    (hand-written parser: the keys it read from an empty object and from 359
+    (hand-written parser: the keys it read from an empty object and from 358
     shipped powers; a branch those never reach may read more)
 
   neoorigins:bare_hand_tool
@@ -4941,7 +4957,7 @@
     Passive | Shipped powers: 0 | EffectOverTimePower
     Fields: activation, always_show_icon, condition, cooldown_icon,
     default_off, else_action, entity_action, hunger_cost, interval,
-    resource_cost, resource_cost_amount, toggleable
+    resource_cost, resource_cost_amount, toggleable, upkeep_condition
     (hand-written parser: the keys it read from an empty object and from 0
     shipped powers; a branch those never reach may read more)
 
@@ -4987,7 +5003,8 @@
 
   neoorigins:extra_inventory
     Passive | Shipped powers: 1 | ExtraInventoryPower
-    Fields: drop_on_death, size, title
+    Fields: drop_on_death, hunger_cost, resource_cost, resource_cost_amount,
+    size, title, upkeep_interval
 
   neoorigins:flight
     Active | Shipped powers: 1 | FlightPower
@@ -5032,7 +5049,8 @@
 
   neoorigins:js_active
     Active | Shipped powers: 0 | JsCustomActivePower
-    Fields: cooldown_ticks, hunger_cost, js_id
+    Fields: always_show_icon, cooldown_countdown, cooldown_icon,
+    cooldown_ticks, hunger_cost, js_id
 
   neoorigins:js_custom
     Passive | Shipped powers: 0 | JsCustomPower
@@ -5169,6 +5187,11 @@
     toggleable
     (hand-written parser: the keys it read from an empty object and from 70
     shipped powers; a branch those never reach may read more)
+
+  neoorigins:personal_dimension
+    Active | Shipped powers: 0 | PersonalDimensionPower
+    Fields: always_show_icon, cooldown_countdown, cooldown_icon,
+    cooldown_ticks, size, xp_levels_cost
 
   neoorigins:phantom_form
     Active | Shipped powers: 1 | PhantomFormPower
@@ -5330,7 +5353,7 @@
 
   neoorigins:tree_felling
     Passive | Shipped powers: 1 | TreeFellingPower
-    Fields: max_blocks
+    Fields: max_blocks, require_axe
 
   neoorigins:twin_breeding
     Passive | Shipped powers: 1 | TwinBreedingPower
@@ -5365,7 +5388,7 @@
   neoorigins:wraith_phase
     Active | Shipped powers: 4 | WraithPhasePower
     Fields: always_on, always_show_icon, blocked_blocks, cooldown_icon,
-    exhaustion_per_tick
+    exhaustion_per_tick, obscured_vision, phase_view_distance
 
   neoorigins:xeno_passive
     Passive | Shipped powers: 0 | XenoPassivePower
@@ -5425,12 +5448,12 @@
     needing another mod:   3
     by impact:             {HIGH=34, LOW=4, MEDIUM=22, NONE=20}
   Power files shipped:     955
-    load with no other mod: 907
+    load with no other mod: 906
     needing another mod:   48
     do not load:           0
     referenced, not shipped: 0
-  Power types registered:  126
-    codec parsers:         103
+  Power types registered:  127
+    codec parsers:         104
     hand-written parsers:  23
   Older type ids aliased:  39
 

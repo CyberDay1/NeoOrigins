@@ -117,7 +117,22 @@ public class OriginCarouselSelectionScreen extends Screen implements PickerScree
         var layer = presenter.currentLayer();
         detail.setOrigin(OriginDetailViewModel.compute(id,
             PickerCloseBehaviour.CLASS_LAYER_ID.equals(layer != null ? layer.id() : null)));
-        if (confirmButton != null) confirmButton.active = true;
+        updateConfirm();
+    }
+
+    /** Confirm is live only for a pick the server would take; a claimed one says so. */
+    private void updateConfirm() {
+        if (confirmButton == null) return;
+        String owner = presenter.claimedBy(presenter.selectedOriginId());
+        confirmButton.active = presenter.canConfirm();
+        confirmButton.setMessage(Component.translatable(
+            owner == null ? "gui.neoorigins.button.confirm" : "gui.neoorigins.picker.claimed"));
+        confirmButton.setTooltip(OriginButton.claimTooltip(owner));
+    }
+
+    @Override
+    public void onClaimsChanged() {
+        if (!presenter.isDone()) refreshWidgets();
     }
 
     /** Step the browsed origin (wraps around). */
@@ -193,7 +208,7 @@ public class OriginCarouselSelectionScreen extends Screen implements PickerScree
         confirmButton = ParchmentButton.parchment(Component.translatable("gui.neoorigins.button.confirm"),
                 b -> confirmSelection())
             .bounds(cx + 12, cy, 80, 28).build();
-        confirmButton.active = presenter.selectedOriginId() != null;
+        updateConfirm();
         addRenderableWidget(confirmButton);
     }
 

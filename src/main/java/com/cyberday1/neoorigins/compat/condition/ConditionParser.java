@@ -745,27 +745,30 @@ public final class ConditionParser {
     static EntityCondition parseEquippedItem(JsonObject json, String contextId) {
         String slot = json.has("equipment_slot") ? json.get("equipment_slot").getAsString() : "mainhand";
 
-        // Check for item_condition sub-object
-        JsonObject itemCond = json.has("item_condition") ? json.getAsJsonObject("item_condition") : null;
+        // Delegate the per-stack predicate to the shared ItemConditionParser so
+        // packs get the full item-condition vocabulary (and/or/not, nbt subtree
+        // containment, enchantment levels, ingredient match, empty-slot, etc.)
+        // instead of the previous inline-and-only id/tag/empty path.
+        JsonObject itemCond = json.has("item_condition") && json.get("item_condition").isJsonObject()
+            ? json.getAsJsonObject("item_condition") : null;
 
-        // Accessory branch, intercepted BEFORE mapEquipmentSlot: that maps any
-        // unrecognised slot name to MAINHAND, so "accessory" used to be answered
-        // with whatever the player was holding. Equipped accessory stacks come
-        // from the shared, soft-dep AccessoryInspector; the optional slot_type
-        // narrows to one named curio slot (ring, belt, hands, ...).
+        // Accessory branch — intercept BEFORE mapEquipmentSlot (which would
+        // otherwise fall through to MAINHAND). Inspects equipped Curios/Accessories
+        // stacks via the shared, soft-dep AccessoryInspector. Optional slot_type
+        // narrows to a named accessory/curio slot (e.g. ring, belt, hands).
         if ("accessory".equalsIgnoreCase(slot)) {
             String slotType = json.has("slot_type") && !json.get("slot_type").isJsonNull()
                 ? json.get("slot_type").getAsString() : null;
             if (itemCond == null) {
-                // Slot-presence check: any accessory equipped, optionally in the
-                // named slot type. Deliberately not the alwaysTrue() the vanilla
-                // branch below falls back to — a condition that cannot fail is no
-                // condition, and there is no pack behaviour to preserve here.
+                // No item_condition — slot-presence check: any accessory equipped
+                // (optionally in the named slot type).
                 return player -> !AccessoryInspector.getEquippedAccessories(player, slotType).isEmpty();
             }
-            ItemCondition accPredicate = ItemConditionParser.parse(itemCond);
+            com.cyberday1.neoorigins.compat.condition.ItemCondition accPredicate =
+                com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(itemCond);
             return player -> {
-                for (ItemStack stack : AccessoryInspector.getEquippedAccessories(player, slotType)) {
+                for (net.minecraft.world.item.ItemStack stack
+                        : AccessoryInspector.getEquippedAccessories(player, slotType)) {
                     if (accPredicate.test(stack)) return true;
                 }
                 return false;
@@ -773,44 +776,15 @@ public final class ConditionParser {
         }
 
         EquipmentSlot eqSlot = mapEquipmentSlot(slot);
-        if (itemCond == null) return EntityCondition.alwaysTrue();
-
-        // Simplified item condition: check item id or tag
-        String itemId = itemCond.has("id") ? itemCond.get("id").getAsString() : null;
-        String itemTag = itemCond.has("tag") ? itemCond.get("tag").getAsString() : null;
-        String itemType = itemCond.has("type") ? itemCond.get("type").getAsString() : "";
-
-        // Handle ingredient-style item condition
-        if (itemCond.has("ingredient") && itemCond.get("ingredient").isJsonObject()) {
-            JsonObject ing = itemCond.getAsJsonObject("ingredient");
-            if (ing.has("item")) itemId = ing.get("item").getAsString();
-            else if (ing.has("tag")) itemTag = ing.get("tag").getAsString();
+        if (itemCond == null) {
+            // No item_condition supplied — treat as a slot-presence check (vanilla
+            // Apoli behaviour: equipped_item with just a slot matches when ANY
+            // item is in that slot).
+            return player -> !player.getItemBySlot(eqSlot).isEmpty();
         }
-
-        final String fItemId = itemId;
-        final String fItemTag = itemTag;
-
-        if (fItemId != null) {
-            Identifier targetItem = Identifier.parse(fItemId);
-            return player -> {
-                ItemStack stack = player.getItemBySlot(eqSlot);
-                return BuiltInRegistries.ITEM.getKey(stack.getItem()).equals(targetItem);
-            };
-        }
-        if (fItemTag != null) {
-            var itemTagKey = TagKey.create(Registries.ITEM, Identifier.parse(fItemTag));
-            return player -> {
-                ItemStack stack = player.getItemBySlot(eqSlot);
-                return stack.is(itemTagKey);
-            };
-        }
-
-        // Nested condition type check (e.g., origins:empty for checking empty slot)
-        if ("origins:empty".equals(itemType) || "apace:empty".equals(itemType)) {
-            return player -> player.getItemBySlot(eqSlot).isEmpty();
-        }
-
-        return EntityCondition.alwaysTrue();
+        com.cyberday1.neoorigins.compat.condition.ItemCondition itemPredicate =
+            com.cyberday1.neoorigins.compat.condition.ItemConditionParser.parse(itemCond);
+        return player -> itemPredicate.test(player.getItemBySlot(eqSlot));
     }
 
     /**
@@ -1368,6 +1342,29 @@ public final class ConditionParser {
      * {@code null} for an unrecognised leaf so callers can fall back to
      * always-true. Honours a per-node {@code inverted} flag.
      */
+    /**
+     * True for a beacon with at least one pyramid level and an unobstructed beam,
+     * the same test vanilla runs before handing out its effects
+     * ({@code BeaconBlockEntity#tick}: {@code levels > 0 && !beamSections.isEmpty()}).
+     *
+     * <p>Both halves are needed. The beam comes from an upward sky scan that never
+     * reads the base, and a beacon block is itself a beam block, so a bare beacon
+     * under open sky has a beam section with no pyramid under it.
+     */
+    static boolean isActiveBeacon(net.minecraft.world.level.BlockGetter level, BlockPos pos) {
+        if (!level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BEACON)) return false;
+        if (!(level.getBlockEntity(pos)
+                instanceof net.minecraft.world.level.block.entity.BeaconBlockEntity beacon)) return false;
+        int levels = ((com.cyberday1.neoorigins.mixin.BeaconBlockEntityLevelsAccessor) beacon).neoorigins$getLevels();
+        return beaconGrantsEffects(levels, beacon.getBeamSections().isEmpty());
+    }
+
+    /** Vanilla's gate, apart from the block entity: a pyramid AND an unobstructed beam. */
+    static boolean beaconGrantsEffects(int levels, boolean beamEmpty) {
+        return levels > 0 && !beamEmpty;
+    }
+
+
     static BlockPosCondition compileInBlockPredicate(JsonObject bc, String contextId) {
         boolean inverted = bc.has("inverted") && bc.get("inverted").getAsBoolean();
         BlockPosCondition base = compileInBlockLeaf(bc, contextId);
@@ -1439,6 +1436,11 @@ public final class ConditionParser {
         // both non-blocking, which is exactly the distinction Giant's slam wants.
         if (bare.equals("movement_blocking")) {
             return (level, pos) -> level.getBlockState(pos).blocksMotion();
+        }
+        // active_beacon — a beacon that is actually lit: a pyramid under it and a
+        // clear beam. A bare beacon block is decoration and must not count.
+        if (bare.equals("active_beacon")) {
+            return ConditionParser::isActiveBeacon;
         }
         if (bare.equals("and") || bare.equals("all_of") || bare.equals("or") || bare.equals("any_of")) {
             boolean isAnd = bare.equals("and") || bare.equals("all_of");
