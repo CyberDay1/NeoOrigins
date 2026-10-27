@@ -34,7 +34,7 @@ public class MountPower extends AbstractActivePower<MountPower.Config> {
         boolean allowMobs,
         boolean blockBosses,
         String mountPosition,
-        String type,
+        String type,
         String cooldownIcon,
         boolean cooldownCountdown,
         boolean alwaysShowIcon
@@ -47,7 +47,7 @@ public class MountPower extends AbstractActivePower<MountPower.Config> {
             Codec.BOOL.optionalFieldOf("allow_mobs", true).forGetter(Config::allowMobs),
             Codec.BOOL.optionalFieldOf("block_bosses", true).forGetter(Config::blockBosses),
             Codec.STRING.optionalFieldOf("mount_position", "centered").forGetter(Config::mountPosition),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
             Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
