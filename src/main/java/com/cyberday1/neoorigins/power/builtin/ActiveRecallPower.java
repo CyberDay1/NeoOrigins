@@ -15,7 +15,7 @@ public class ActiveRecallPower extends AbstractActivePower<ActiveRecallPower.Con
         boolean alwaysShowIcon) implements AbstractActivePower.Config {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.optionalFieldOf("cooldown_ticks", 600).forGetter(Config::cooldownTicks),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
             Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
