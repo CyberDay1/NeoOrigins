@@ -1,7 +1,7 @@
 ---
 title: Global Power Sets
 parent: "Origins & Content"
-nav_order: 5
+nav_order: 6
 ---
 
 # Global Power Sets

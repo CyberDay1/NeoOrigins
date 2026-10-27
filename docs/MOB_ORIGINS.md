@@ -1,7 +1,7 @@
 ---
 title: Mob Origins
 parent: "Origins & Content"
-nav_order: 4
+nav_order: 5
 ---
 
 # Mob Origins
@@ -66,6 +66,8 @@ convention as player origins.)
     is skipped if its group is already recorded. Because the roll stops at the
     first origin that attaches, this has no visible effect today.
   - `replace` (default `false`): parsed, but the spawn roll does not read it.
+
+> **1.21.1 vs 26.x:** `spawn_reasons` takes `MobSpawnType` names on 1.21.1 and `EntitySpawnReason` names on 26.x: `spawn_egg` becomes `spawn_item_use`, and 26.x adds `load` and `dimension_travel`. A name the running version does not know fails to parse.
 
   Candidates whose `target` matches are tried in id order and the first one that
   passes attaches; a mob gets at most one origin.

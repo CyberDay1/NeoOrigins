@@ -34,7 +34,7 @@ Highlights this release:
 - **Resource bar styles**: a resource power can name a bar style (`"animated": "neoorigins:fire"` in its `hud_render` block) and the bar draws in that style instead of a flat colour. Eight are built in: seven scrolling themed fills and `neoorigins:tinted`, a still fill colored by `tint` or `color`. Presets are resource-pack JSON under `assets/<ns>/bar_fx/`. See [docs/PACK_FORMAT.md](docs/PACK_FORMAT.md#resource-bar-hud)
 - **Dragon Survival integration**: three built-in dragon origins (Cave / Forest / Sea) turn the player into a Dragon Survival dragon via the `become_dragon` power; content gated behind `required_mods` only loads when the target mod is installed. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 - **Origin info screen**: press O to view your current origin and class details
-- **Named-keybind pool**: packs can declare more than six active abilities; each `"key"` translation id on a power gets a labelled hotkey slot the player can rebind from *Controls → Key Binds → NeoOrigins (Hotkeys)*. See [docs/API.md#named-keybinds](docs/API.md#named-keybinds)
+- **Named-keybind pool**: packs can declare more than six active abilities; each `"key"` translation id on a power gets a labelled hotkey slot the player can rebind from *Controls → Key Binds → NeoOrigins (Hotkeys)*. See [Keybinds](docs/concepts/keybinds.md)
 - **Night-vision toggle**: press K to switch off origin-granted night vision when you'd rather have the dark back; it starts on, toggles only your own view, and persists across relogs. Rebindable in *Controls → Key Binds → NeoOrigins*, alongside Skill 1-6 (V/G/N/B) and Class Skill (H). See [docs/CLIENT_CONFIG.md#built-in-keybinds](docs/CLIENT_CONFIG.md#built-in-keybinds)
 - **Skinnable UI**: origin selection / info screens read colours, panel texture, font and 9-slice insets from a datapack-and-resourcepack theme. Ships with `neoorigins:parchment` (bundled Newsreader OFL font); addon packs can register their own theme and activate it via `data/<ns>/neoorigins/active_theme.json`. See [docs/THEMING.md](docs/THEMING.md) and the copy-and-edit skeleton at [`docs/theme-template/`](docs/theme-template)
 - **JEI / REI integration**: JEI shows an info panel for the Orb of Origin; REI lists the Orb of Origin as an entry
@@ -163,31 +163,31 @@ See [`docs/GLOBAL_POWERS.md`](docs/GLOBAL_POWERS.md) for the pack-author referen
 
 Classes are a second selection layer: every player picks both an origin and a class. Class powers never take one of the origin skill slots (Skill 1-6). A class's first active power is fired by the separate Class Skill key (H): the built-in Explorer, Rogue and Scout use it to switch their step assist on and off.
 
-Pack authors can add their own classes. See [docs/CLASSES.md](docs/CLASSES.md).
+Pack authors can add their own classes. See [docs/CLASSES.md](docs/CLASSES.md). Every class power's exact numbers are in [docs/CLASS_CATALOG.md](docs/CLASS_CATALOG.md).
 
 | Class | Description |
 |---|---|
-| **Warrior** | +1 attack, 30% KB resist, +2 armor, +2 HP, immune weakness |
+| **Warrior** | +1 melee attack, 30% KB resist, +2 armor, +2 HP, immune weakness |
 | **Archer** | Perfect projectile accuracy, +15% speed, enhanced vision, Slowness-on-hit vs arthropods, starting bow (Power I) + 16 arrows |
 | **Miner** | +50% break speed, −30% hunger drain, bare-hand stone pickaxe, enhanced vision, +2 HP |
-| **Beastmaster** | Potion effects shared with tamed animals, +50% potion duration |
+| **Beastmaster** | Beneficial effects shared with tamed animals within 16 blocks, +50% duration on every effect |
 | **Explorer** | Starts with compass, clock, maps; −40% hunger drain; no fall damage; +0.5 step height; campfire regen (out of combat) |
 | **Sentinel** | +4 armor, 25% thorns, 40% KB resist, immune weakness/slowness, +2 HP, +35% KB resist when sneaking |
-| **Herbalist** | Accelerates nearby crop growth, +1 extra drop from mature crops and logs, poison immunity, +1 bonemeal application, starting seeds + bone meal |
+| **Herbalist** | Accelerates nearby crop growth, +1 extra drop from mature crops and natural logs, poison immunity, +1 bonemeal application, starting seeds + bone meal |
 | **Scout** | Night vision, +20% speed, no fall damage, +0.5 step height, starting bread |
-| **Berserker** | +3 attack, +50% hunger drain, +2 damage when HP≤50%, −2 armor, +0.2 KB resist |
+| **Berserker** | +3 melee attack, +50% hunger drain, +2 damage when HP≤50%, −2 armor, +0.2 KB resist |
 | **Titan** | 1.25× size, +2 hearts, extended reach, +1 attack, +0.2 KB resist, −10% speed |
 | **Rogue** | Mobs notice you only within 30% of their follow range, invisibility after sneaking for 10 seconds, +2 attack damage while sneaking, 0.5× fall damage, +0.5 step height (switched on the Class Skill key) |
-| **Lumberjack** | One-hit tree felling, +2 extra oak planks when crafting oak planks, bare-hand iron axe, starting iron axe (Unbreaking II) |
-| **Blacksmith** | 0.5× anvil cost, crafted/smithed gear gets +10% durability plus +25% mining speed (tools), +20% damage (weapons) or +1 toughness (armor), bare-hand stone pickaxe, 0.5× fire damage, starting 4 iron ingots |
-| **Cook** | Crafted and smelted food gets +1 nutrition and extra saturation (smelted food +2 more nutrition), immune hunger/nausea, 1.25× potion duration, starting iron sword (cook's knife) |
-| **Merchant** | Restocks trades of villagers within 8 blocks, rare wandering trader loot, starting emerald, 1.15× potion duration, +1 luck |
-| **Cleric** | +5 enchant levels, 2× potion duration, weakness-on-hit vs undead, enhanced vision, starting writable book |
+| **Lumberjack** | One-hit tree felling with an axe, +2 extra planks per plank craft, bare-hand iron axe, starting iron axe (Unbreaking II) |
+| **Blacksmith** | 0.5× anvil cost, crafted/smithed gear gets +10% durability plus +25% mining efficiency (tools; amplifies Efficiency), +20% damage (weapons) or +1 toughness (armor), bare-hand stone pickaxe, 0.5× fire damage, starting 4 iron ingots |
+| **Cook** | Crafted and smelted food gets +1 nutrition and extra saturation (smelted food +2 more nutrition), immune hunger/nausea, 1.25× duration on every effect, starting iron sword (cook's knife) |
+| **Merchant** | Restocks trades of villagers within 8 blocks, rare wandering trader loot, starting emerald, 1.15× duration on every effect, +1 luck |
+| **Cleric** | +5 enchant levels, 2× duration on every effect, weakness-on-hit vs undead, enhanced vision, starting writable book |
 | **Nitwit** | No special abilities: for the purist |
-| **Fisher** ⭐ | +1 luck in water, +15% speed in water, 0.5× drown damage, starting rod (Luck of the Sea I + Lure I), night vision underwater |
-| **Mason** ⭐ | Bare-hand stone pickaxe, +1 armor, 1.25× break speed, starting stone pickaxe (Efficiency I), +1 block placement reach |
-| **Paladin** ⭐ | Weakness-on-hit vs undead, +2 armor, regen near beacons, starting iron sword (Smite I), wither immunity |
-| **Farmer*** ⭐ | +1 extra drop from mature crops and logs, +1 bonemeal application |
+| **Fisher** ⭐ | +1 luck in water, +15% speed in water, 0.5× drown damage, starting rod (Luck of the Sea I + Lure I), night vision in water |
+| **Mason** ⭐ | Bare-hand stone pickaxe, +1 armor, 1.25× break speed, starting stone pickaxe (Efficiency I), +1 block reach |
+| **Paladin** ⭐ | Weakness-on-hit vs undead, +2 armor, regen near active beacons, starting iron sword (Smite I), wither immunity |
+| **Farmer*** ⭐ | +1 extra drop from mature crops and natural logs, +1 bonemeal application |
 | **Rancher*** ⭐ | Bred animals produce twins, 2× drops from animals you kill |
 
 ⭐ = new
@@ -392,7 +392,7 @@ All fields are optional. `dimension` picks the level to search (default: the pla
 
 On a respawn **with** a set bed or respawn anchor, vanilla behavior applies; `spawn_location` is only used when there's no respawn point to honor.
 
-The same dimension/biome/structure fields can gate a `neoorigins:attribute_modifier` power effect as a `location_condition`. See [docs/POWER_TYPES.md](docs/POWER_TYPES.md#neooriginsattribute_modifier). (`allow_water_surface` / `allow_ocean_floor` are ignored in the gate path; they only influence the spawn finder.)
+The same dimension/biome/structure fields can gate a `neoorigins:attribute_modifier` power effect as a `location_condition`. See [Core & composable](docs/powers/core.md#neooriginsattribute_modifier). (`allow_water_surface` / `allow_ocean_floor` are ignored in the gate path; they only influence the spawn finder.)
 
 ---
 

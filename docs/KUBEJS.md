@@ -25,6 +25,8 @@ the `neoorigins:kubejs_callback` action and the `neoorigins:js_custom` /
 `neoorigins:js_active` power types are all absent there, and no amount of KubeJS
 being installed brings them back.
 
+> **1.21.1 vs 26.x:** the integration ships on 1.21.1, and on 26.1 from 2.2.24. 26.2 and 26.3 have none, so there are no `NeoOrigins` / `NeoOriginsEvents` globals, no `kubejs_callback` action and no `js_custom` / `js_active` power types there, whether or not KubeJS is installed.
+
 The reason is upstream, not a choice of ours: KubeJS has published no NeoForge
 build for Minecraft 26.2 or 26.3, so those builds declare no KubeJS dependency
 and carry none of the integration's classes. Re-check KubeJS's release list before
@@ -103,11 +105,6 @@ each event.
 when the layer is cleared. The `/neoorigins reset` command does **not** fire
 `originChanged` (nor `powerRevoked`): it tears powers down directly. Evolution tiers are integers:
 `0` base, `1` evolved, `2` ascended, `3` apex.
-
-On this 26.1 build `originChosen` waits for the whole first walkthrough: while a
-player is still picking their first set of layers nothing fires, and once the last
-layer is filled it fires once per chosen layer, in layer order. A first pick made
-after that (a layer added later, for example) fires straight away.
 
 `evolutionDeclined` only fires when there is an offer to decline: the player has
 to be below Apex and at or past the next tier's kill threshold.

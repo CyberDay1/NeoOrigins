@@ -1,7 +1,7 @@
 ---
 title: Sub-Origins
 parent: "Origins & Content"
-nav_order: 3
+nav_order: 4
 ---
 
 # Sub-Origins (Conditioned Layers)
@@ -142,7 +142,7 @@ The primary condition type. Checks if a specific origin was chosen in a specific
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `type` | string | required | `"origins:origin"`, `"apace:origin"`, or `"neoorigins:origin"` |
-| `layer` | string | `"neoorigins:origin"` | The layer ID to check |
+| `layer` | string | `"neoorigins:origin"` | The layer ID to check. `origins:origin` and `apace:origin` are rewritten to `neoorigins:origin`, the layer they are merged into. |
 | `origin` | string | required | The origin ID the player must have chosen |
 | `inverted` | boolean | `false` | When `true`, passes when the origin was NOT chosen |
 

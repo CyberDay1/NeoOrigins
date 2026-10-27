@@ -1,7 +1,7 @@
 ---
 title: UI Theming
 parent: Guides
-nav_order: 3
+nav_order: 7
 ---
 
 # UI Theming
@@ -135,3 +135,7 @@ small "I just want different colours" packs.
 redistributed under the SIL Open Font License 1.1.
 The licence text ships at `assets/neoorigins/font/ofl.txt`. If you rebundle
 the TTF in your own pack you must keep `ofl.txt` alongside it.
+
+Both filenames are lowercase on disk because NeoForge's `PathPackResources`
+validator rejects uppercase letters in path segments: the TTF is referenced
+by resource id from `parchment.json`, so an uppercase name would not resolve.

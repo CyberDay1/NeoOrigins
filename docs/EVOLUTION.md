@@ -1,8 +1,9 @@
 ---
 title: Evolution System
 parent: "Origins & Content"
-nav_order: 6
+nav_order: 7
 ---
+
 
 # Evolution System
 
@@ -85,6 +86,33 @@ records no tier, so a decline typed early cannot mute a prompt that has not been
 shown yet.
 
 ---
+
+## How it works
+
+1. Player kills a mob (non-player entities only; PvP kills don't count).
+2. Kill counter increments. At every `message_interval` kills the player
+   sees a milestone message.
+3. When the counter reaches a tier threshold, the player gets a chat
+   prompt with clickable **[EVOLVE]** / **[DECLINE]** buttons.
+4. Accepting grants the tier's `add` powers and revokes its `remove`
+   powers (defined in the origin JSON). Declining defers: the tier stays
+   available to accept by command at any time, and the prompt is not shown
+   for it again. See [The Evolution Prompt](#the-evolution-prompt).
+5. Using an **Orb of Origin** resets kills and tier to zero, and clears any
+   declined tier.
+
+## Commands
+
+**Player commands** (permission level 0):
+- `/neoorigins evolve accept`: accept a pending evolution prompt
+- `/neoorigins evolve decline`: decline a standing prompt; the tier can still
+  be accepted later
+- `/origin evolve accept` / `/origin evolve decline`: legacy aliases
+
+**Admin commands** (permission level 2):
+- `/neoorigins evolve <player> <tier>`: force-set tier
+  (`base`/`0`, `evolved`/`1`, `ascended`/`2`, `apex`/`3`)
+- `/neoorigins evolve query <player>`: show current kills and tier
 
 ## Evolution by Origin
 
@@ -573,31 +601,89 @@ Paladin, Rancher, Rogue, Scout, Sentinel, Titan, Warrior.
 
 ---
 
-## Datapack Customization
+<a id="datapack-customization"></a>
+## Adding evolution tiers to an origin
 
-Evolution tiers are defined per-origin in JSON via `tier_powers`:
+Add a `tier_powers` array to your origin JSON. Each entry specifies
+which powers to **add** and which to **remove** at that tier. Tiers are
+cumulative: tier 2 includes tier 1 changes plus its own.
 
 ```json
 {
-  "powers": [ "mod:base_power_1", "mod:base_power_2" ],
+  "name": "origins.mypack.shadow.name",
+  "description": "origins.mypack.shadow.description",
+  "impact": "medium",
+  "powers": [
+    "mypack:shadow_stealth",
+    "mypack:shadow_attack",
+    "mypack:shadow_weakness"
+  ],
   "tier_powers": [
     {
       "tier": 1,
-      "add": [ "mod:evolved_power" ],
-      "remove": []
+      "add": ["mypack:shadow_evolved_attack"],
+      "remove": ["mypack:shadow_attack"]
     },
     {
       "tier": 2,
-      "add": [ "mod:ascended_power" ],
-      "remove": [ "mod:evolved_power" ]
+      "add": [
+        "mypack:shadow_ascended_attack",
+        "mypack:shadow_ascended_stealth"
+      ],
+      "remove": [
+        "mypack:shadow_evolved_attack",
+        "mypack:shadow_stealth"
+      ]
     },
     {
       "tier": 3,
-      "add": [ "mod:apex_power" ],
-      "remove": [ "mod:ascended_power" ]
+      "add": [
+        "mypack:shadow_apex_attack",
+        "mypack:shadow_apex_immunity"
+      ],
+      "remove": [
+        "mypack:shadow_ascended_attack",
+        "mypack:shadow_weakness"
+      ]
     }
   ]
 }
 ```
 
-Pack authors can add, modify, or remove tiers for any origin.
+**`tier_powers` fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `tier` | int (1–3) | The tier this overlay applies at |
+| `add` | array of power IDs | Powers granted when evolving to this tier |
+| `remove` | array of power IDs | Powers revoked when evolving to this tier |
+
+**Common patterns:**
+- **Stat growth:** replace a base `attribute_modifier` with a stronger
+  one at each tier (e.g. +2 HP → +4 HP → +8 HP). Put the base in
+  `powers`, the evolved version in tier 1 `add` and the base in tier 1
+  `remove`.
+- **Weakness removal:** list a weakness power in a later tier's `remove`
+  to shed it as a reward (e.g. Apex vampires lose sun damage).
+- **New abilities:** add an `active_ability` or `persistent_effect` at a
+  tier without removing anything (pure upgrade).
+
+The evolution power JSONs themselves are standard power files, no
+special format. Any power type works as a tier reward.
+
+
+## Built-in evolution powers
+
+NeoOrigins ships over 270 evolution power JSONs covering all bundled
+origins (classes do not evolve). These live at:
+
+```
+data/neoorigins/origins/powers/<origin>_evolved_*.json
+data/neoorigins/origins/powers/<origin>_ascended_*.json
+data/neoorigins/origins/powers/<origin>_apex_*.json
+```
+
+All bundled origins (the class layer aside) have full three-tier
+evolution tracks. Pack authors
+can override them with higher-priority datapacks or use them as examples
+for their own origins.

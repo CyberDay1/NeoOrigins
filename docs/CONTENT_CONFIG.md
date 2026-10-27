@@ -1,7 +1,7 @@
 ---
 title: Content Config
 parent: "Guides"
-nav_order: 7
+nav_order: 11
 ---
 
 # NeoOrigins Content Config Reference
@@ -58,7 +58,7 @@ Both outrank the player-facing **Toggle Night Vision** keybind. That key is a
 personal preference switch and only ever turns night vision *off* on top of what
 the server already permits: on a server with `disable_night_vision = true`,
 pressing it reports that night vision is disabled and changes nothing. See the
-[player toggle](POWER_TYPES.md#player-toggle) section for the player-side half.
+[player toggle](powers/retired.md#player-toggle) section for the player-side half.
 
 ## `[origins]`: per-origin enable toggles
 
@@ -108,6 +108,7 @@ The same mechanism for the built-in classes (`class_warrior`, `class_archer`,
 - **Origins:** only Human, Merling, Avian, Blazeborn (`blazeling`), Elytrian, Enderian, Arachnid, Shulk, Phantom and Feline are offered. Every other built-in origin is hidden, the Dragon Survival dragons included.
 - **Classes:** only the fourteen Origins: Classes classes are offered: Archer, Beastmaster, Blacksmith, Cleric, Cook, Explorer, Farmer, Lumberjack, Merchant, Miner, Nitwit, Rancher, Rogue and Warrior. Farmer and Rancher ship for classic mode: they stay registered either way, but outside the mode they are hidden from the picker, the way a class switched off by its own toggle is.
 - **Powers:** each of those origins and classes swaps its NeoOrigins power list for one modelled on the original mod. The classic definitions live in `data/neoorigins/origins/classic_origins/<id>.json`, one full origin body per id, and replace `neoorigins:<id>` while the mode is on: ten origins and twelve classes. Farmer and Rancher have no file there, because their only definition already is the classic one. They have no evolution tiers. A datapack can override a classic definition by shipping the same path.
+- **Evolution:** off while the mode is on, whatever `[evolution] enabled` in [`gameplay.toml`](GAMEPLAY_CONFIG.md#evolution-essence-evolution) says, for every origin, datapack and `originpacks/` ones included: the original origins and classes have no tiers. Kills are not counted, no evolution prompt appears, and the info screen hides the Evolution Path. A player who already reached a tier keeps it, and it comes back into play if the mode is switched off.
 
 | Behaviour | Detail |
 |---|---|

@@ -1,15 +1,15 @@
 ---
 title: Admin Config
 parent: "Guides"
-nav_order: 5
+nav_order: 9
 ---
 
 # NeoOrigins Admin Config Reference
 
 Server-operator policy knobs live in the TOML file
 `config/neoorigins/admin.toml`: the command-power blacklist, command access,
-per-power dimension restrictions, the global taming/scare entity blacklist,
-compat origin filtering and debug flags.
+per-power dimension restrictions, unique-origin layers, the global
+taming/scare entity blacklist, compat origin filtering and debug flags.
 
 This is a **COMMON** config, not a server config: it loads early enough to be
 readable during the boot-time datapack reload, it is **not** synced to
@@ -59,6 +59,21 @@ dimension(s).
 [dimension_restrictions]
     rules = ["neoorigins:elytrian_flight = minecraft:the_nether, minecraft:the_end"]
 ```
+
+## `unique_origin_layers`: one player per origin
+
+A top-level list (no section) of layer IDs in which each origin can be
+claimed by only one player on the server.
+
+| Behaviour | Detail |
+|---|---|
+| Key | `unique_origin_layers`, a list of layer IDs. Default `[]`. |
+| Scope | Per-layer: only the layer IDs listed are affected. Example: `["neoorigins:origin"]`. |
+| Effect | Once a player picks an origin in a listed layer, no one else can pick that same origin there. |
+| Release | Claims are released only by `/neoorigins unlock`, an Orb of Origin re-pick, `/neoorigins reset`, or an `every_death` random reroll. |
+| Picker | An origin another player holds stays listed but is marked claimed, with the holder's name. Confirm is disabled on it and the Random button skips it. The server refuses it either way. |
+| Random assignment | `random_assignment` never hands out an origin someone else holds, and claims the one it hands out. |
+| Bypass | Operators in creative mode (and `/neoorigins set`) bypass the lock and take over the claim. |
 
 ## `[compat_filtering]`: hide broken addon origins
 
