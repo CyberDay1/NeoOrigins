@@ -383,6 +383,8 @@ Also takes the shared [toggle upkeep](../concepts/costs-and-upkeep.md#toggle-upk
 
 **Limited sight while phasing.** Vanilla darkens the screen when your head is inside a block, but phasing switches that off, so a phasing player normally sees caves, ores and bases straight through the rock. With `"obscured_vision": true` the view is fogged instead: as soon as the camera enters a solid block the world fades to near-black beyond `phase_view_distance`, and it clears the moment the camera is back in open air. Only the phasing player's own view changes, and only while the power is on.
 
+**The world border and portals.** A phasing player stops at the world border's face, and one who is already outside is put back inside, half a block in from the face. Nether portals, end portals and end gateways work while phasing. Other blocks the player passes through, such as cactus, fire, sweet berries, cobwebs and powder snow, still have no effect while phasing. Both apply with `always_on` too.
+
 Emits the `wall_phase` capability while active (toggled on or always_on).
 
 **Example: base wraith phase**
