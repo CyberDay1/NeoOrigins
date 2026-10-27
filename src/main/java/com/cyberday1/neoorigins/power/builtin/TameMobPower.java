@@ -80,7 +80,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
         // and tame_mob handles all cost itself, charging once per mob tamed.
         String tameResourceId,
         int tameResourceAmount,
-        String type,
+        String type,
         String cooldownIcon,
         boolean cooldownCountdown,
         boolean alwaysShowIcon
@@ -108,7 +108,7 @@ public class TameMobPower extends AbstractActivePower<TameMobPower.Config> {
             Codec.STRING.optionalFieldOf("targeting", "raycast").forGetter(Config::targeting),
             Codec.STRING.optionalFieldOf("resource_cost", "").forGetter(Config::tameResourceId),
             Codec.INT.optionalFieldOf("resource_cost_amount", 0).forGetter(Config::tameResourceAmount),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
             Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
