@@ -10,6 +10,7 @@ import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.data.LayerDataManager;
+import com.cyberday1.neoorigins.data.OriginClaimsData;
 import com.cyberday1.neoorigins.data.OriginDataManager;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.network.payload.ActivateClassPowerPayload;
@@ -30,6 +31,7 @@ import com.cyberday1.neoorigins.network.payload.SyncResourceValuesPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginRegistryPayload;
 import com.cyberday1.neoorigins.network.payload.SyncMobOriginPayload;
 import com.cyberday1.neoorigins.network.payload.SyncOriginsPayload;
+import com.cyberday1.neoorigins.network.payload.SyncOriginClaimsPayload;
 import com.cyberday1.neoorigins.network.payload.SyncInvisibilityArmorPayload;
 import com.cyberday1.neoorigins.network.payload.SyncElytraFlightPayload;
 import com.cyberday1.neoorigins.network.payload.SyncFoodNutritionPayload;
@@ -268,6 +270,12 @@ public class NeoOriginsNetwork {
             com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload.TYPE,
             com.cyberday1.neoorigins.network.payload.SyncKeybindRegistryPayload.STREAM_CODEC,
             NeoOriginsNetwork::handleSyncKeybindRegistry
+        );
+
+        registrar.playToClient(
+            SyncOriginClaimsPayload.TYPE,
+            SyncOriginClaimsPayload.STREAM_CODEC,
+            NeoOriginsNetwork::handleSyncOriginClaims
         );
 
         registrar.playToServer(
@@ -554,6 +562,12 @@ public class NeoOriginsNetwork {
     private static void handleSyncMoisture(SyncMoisturePayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
             com.cyberday1.neoorigins.client.ClientMoistureState.set(payload.moisture())
+        );
+    }
+
+    private static void handleSyncOriginClaims(SyncOriginClaimsPayload payload, IPayloadContext ctx) {
+        ctx.enqueueWork(() ->
+            com.cyberday1.neoorigins.client.ClientOriginClaims.applySync(payload.claims())
         );
     }
 
@@ -975,6 +989,22 @@ public class NeoOriginsNetwork {
                 return;
             }
 
+            // Unique-origin enforcement. For layers configured as unique
+            // (unique_origin_layers), an origin already claimed by another
+            // player cannot be taken. An operator in creative mode bypasses
+            // the lock (the admin override path). Checked BEFORE any orb is
+            // consumed below so a rejected pick never wastes the player's orb.
+            boolean uniqueLayer = AdminConfig.isUniqueLayer(layerId);
+            boolean uniqueBypass = bypassesUniqueLock(sp);
+            if (uniqueLayer && !uniqueBypass
+                    && OriginClaimsData.get(sp.level().getServer()).isClaimedByOther(layerId, originId, sp.getUUID())) {
+                sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "That origin has already been claimed by another player on this server.")
+                    .withStyle(net.minecraft.ChatFormatting.RED));
+                reopenAfterRefusal(sp, sp.getData(OriginAttachments.originData()));
+                return;
+            }
+
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
 
             // First commit after an orb-of-origin use: perform the deferred
@@ -984,7 +1014,18 @@ public class NeoOriginsNetwork {
             // anything is a free cancel — the player keeps their orb and
             // origins.
             if (data.isPendingOrbCommit()) {
+                // The orb re-picks only the origin layer, so release just that
+                // layer's unique-origin claim (if any). Capture before the commit
+                // clears it; the class/other layers keep their claims since the orb
+                // no longer resets them.
+                Identifier orbLayer =
+                    com.cyberday1.neoorigins.content.OrbOfOriginItem.ORIGIN_LAYER;
+                Identifier preOrbOrigin = data.getOrigin(orbLayer);
                 commitOrbUse(sp, data);
+                if (preOrbOrigin != null && AdminConfig.isUniqueLayer(orbLayer)) {
+                    OriginClaimsData.get(sp.level().getServer())
+                        .releaseIfOwner(orbLayer, preOrbOrigin, sp.getUUID());
+                }
             }
 
             // First commit after a scoped layer-picker was opened (Orb of Class,
@@ -1033,6 +1074,10 @@ public class NeoOriginsNetwork {
             if (NeoForge.EVENT_BUS.post(event).isCanceled()) return;
 
             data.setOrigin(layerId, event.getNewOrigin());
+            if (uniqueLayer) {
+                OriginClaimsData.get(sp.level().getServer()).claim(layerId, event.getNewOrigin(), sp.getUUID());
+                syncClaimsToAll(sp.level().getServer());
+            }
             ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
             // CHOSEN runs the origin's entity_action_chosen callbacks
             // (action_on_callback). During the initial multi-layer walkthrough
@@ -2012,8 +2057,71 @@ public class NeoOriginsNetwork {
      */
     public static void openSelectionScreen(ServerPlayer player, boolean isOrb, boolean forceReselect,
                                            java.util.List<Identifier> scopedLayers) {
+        syncClaimsToPlayer(player);
         PacketDistributor.sendToPlayer(player, new OpenOriginScreenPayload(isOrb, forceReselect,
             scopedLayers == null ? java.util.List.of() : scopedLayers));
+    }
+
+    /** An operator in creative mode is not held to unique-origin claims. */
+    public static boolean bypassesUniqueLock(ServerPlayer player) {
+        return player.isCreative() && player.permissions().hasPermission(
+            net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
+    }
+
+    /**
+     * Send the set of origins locked for {@code player} (claimed by someone else in a
+     * unique-enforced layer) so the picker can grey them out. The player's own claims are
+     * excluded so they can re-pick their current origin; an OP in creative bypasses the lock
+     * entirely and receives an empty map.
+     */
+    public static void syncClaimsToPlayer(ServerPlayer player) {
+        Map<Identifier, Map<Identifier, String>> locked = new java.util.HashMap<>();
+        if (!bypassesUniqueLock(player)) {
+            var server = player.level().getServer();
+            OriginClaimsData claimsData = OriginClaimsData.get(server);
+            claimsData.view().forEach((layer, byOrigin) -> {
+                if (!AdminConfig.isUniqueLayer(layer)) return;
+                byOrigin.forEach((origin, owner) -> {
+                    if (owner.equals(player.getUUID())) return;
+                    locked.computeIfAbsent(layer, k -> new java.util.HashMap<>())
+                          .put(origin, ownerName(server, owner));
+                });
+            });
+        }
+        PacketDistributor.sendToPlayer(player, new SyncOriginClaimsPayload(locked));
+    }
+
+    /** Re-sends every online player's lock view; call after any claim or release. */
+    public static void syncClaimsToAll(net.minecraft.server.MinecraftServer server) {
+        if (server == null || AdminConfig.UNIQUE_ORIGIN_LAYERS.get().isEmpty()) return;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) syncClaimsToPlayer(p);
+    }
+
+    /**
+     * The client advanced past a pick the server then refused, and believes it holds
+     * the origin. Correct its state and reopen the walk it was in, so the player is
+     * not left with an empty layer and no picker.
+     */
+    private static void reopenAfterRefusal(ServerPlayer sp, PlayerOriginData data) {
+        syncToPlayer(sp);
+        if (data.isPendingOrbCommit()) {
+            openSelectionScreen(sp, true, true,
+                java.util.List.of(com.cyberday1.neoorigins.content.OrbOfOriginItem.ORIGIN_LAYER));
+        } else {
+            // A deferred layer picker keeps its free cancel; its layers are already cleared.
+            openSelectionScreen(sp, data.isPendingLayerPickerCommit(), false);
+        }
+    }
+
+    /** Display name of a claim owner: online name, then the server's name cache, else the UUID. */
+    public static String ownerName(net.minecraft.server.MinecraftServer server, java.util.UUID id) {
+        ServerPlayer online = server.getPlayerList().getPlayer(id);
+        if (online != null) return online.getGameProfile().name();
+        var services = server.services();
+        var cache = services != null ? services.nameToIdCache() : null;
+        return cache != null
+            ? cache.get(id).map(net.minecraft.server.players.NameAndId::name).orElse(id.toString())
+            : id.toString();
     }
 
     /** Sync the full origin/layer/power registry to a player so their client can render the GUI. */

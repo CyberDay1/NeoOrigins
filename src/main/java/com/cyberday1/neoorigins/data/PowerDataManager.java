@@ -133,6 +133,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         CompatTranslationLog.open();
         OriginsMultipleExpander.reset();
         com.cyberday1.neoorigins.command.CommandPowerGuard.clearParseMemory();
+        // Toggle upkeep is re-read from every toggle below (and by Route B after us).
+        com.cyberday1.neoorigins.power.util.PowerUpkeep.clearTable();
 
         // Build a working set, expanding any origins:multiple entries into synthetic sub-power entries
         Map<Identifier, JsonElement> working = new HashMap<>(pObject);
@@ -446,7 +448,27 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
 
         type.codec().parse(JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, name, desc, hidden, finalCondition, finalConditionMode)));
+            .ifPresent(config -> {
+                target.put(id, new PowerHolder<>(id, type, config, name, desc, hidden, finalCondition, finalConditionMode));
+                registerUpkeep(id, type, configJson);
+            });
+    }
+
+    /**
+     * Records a toggle's shared upkeep fields (hunger_cost, resource_cost,
+     * resource_cost_amount, upkeep_interval, upkeep_condition) and its
+     * toggle_messages flag, read off the same post-override JSON the codec saw,
+     * so power_overrides values apply.
+     */
+    public static void registerUpkeep(Identifier id, PowerType<?> type, JsonObject configJson) {
+        if (!(type instanceof com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle<?> toggle)) return;
+        if (toggle.readsSharedUpkeep()) {
+            com.cyberday1.neoorigins.power.util.PowerUpkeep.register(id,
+                com.cyberday1.neoorigins.power.util.PowerUpkeep.parse(configJson, id.toString()));
+        }
+        // toggle_messages is shared by every toggle type, effect_over_time included.
+        com.cyberday1.neoorigins.power.util.PowerUpkeep.registerToggleMessages(id,
+            com.cyberday1.neoorigins.power.util.PowerUpkeep.parseToggleMessages(configJson, id.toString()));
     }
 
     /** Merges config-file overrides into the power JSON before CODEC parsing. */
@@ -455,32 +477,49 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         if (overrides == null) return;
 
         for (var entry : overrides.entrySet()) {
-            String path = PowerOverridesConfig.getOverrideTarget(id.toString(), entry.getKey());
-            JsonObject target = json;
-            String[] parts = path.split("\\.");
-            for (int i = 0; i < parts.length - 1 && target != null; i++) {
-                JsonElement next = target.get(parts[i]);
-                target = next != null && next.isJsonObject() ? next.getAsJsonObject() : null;
-            }
-            if (target == null) {
-                // The pack replaced the power with a shape that lacks the nested
-                // object; writing a fresh one would invent structure it never had.
-                NeoOrigins.LOGGER.warn("Config override {} for power {} skipped: no '{}' in its JSON",
-                    entry.getKey(), id, path);
-                continue;
-            }
-            String field = parts[parts.length - 1];
-            Object value = entry.getValue();
-            if (value instanceof Number n) {
-                target.addProperty(field, n);
-            } else if (value instanceof Boolean b) {
-                target.addProperty(field, b);
-            } else {
-                target.addProperty(field, value.toString());
+            for (String path : PowerOverridesConfig.getOverrideTargets(id.toString(), entry.getKey())) {
+                writeOverride(id, json, entry.getKey(), path, entry.getValue());
             }
         }
         NeoOrigins.LOGGER.info("Applied {} config override(s) to power {}: {}",
             overrides.size(), id, overrides);
+    }
+
+    /**
+     * Writes one override value at a dotted path. A numeric segment indexes an
+     * array ({@code entity_action.actions.0.amount}).
+     */
+    private static void writeOverride(Identifier id, JsonObject json, String key, String path, Object value) {
+        String[] parts = path.split("\\.");
+        JsonElement cur = json;
+        for (int i = 0; i < parts.length - 1 && cur != null; i++) {
+            cur = child(cur, parts[i]);
+        }
+        if (cur == null || !cur.isJsonObject()) {
+            // The pack replaced the power with a shape that lacks the nested
+            // object; writing a fresh one would invent structure it never had.
+            NeoOrigins.LOGGER.warn("Config override {} for power {} skipped: no '{}' in its JSON",
+                key, id, path);
+            return;
+        }
+        JsonObject target = cur.getAsJsonObject();
+        String field = parts[parts.length - 1];
+        if (value instanceof Number n) {
+            target.addProperty(field, n);
+        } else if (value instanceof Boolean b) {
+            target.addProperty(field, b);
+        } else {
+            target.addProperty(field, value.toString());
+        }
+    }
+
+    private static JsonElement child(JsonElement parent, String segment) {
+        if (parent.isJsonObject()) return parent.getAsJsonObject().get(segment);
+        if (parent.isJsonArray() && !segment.isEmpty() && segment.chars().allMatch(Character::isDigit)) {
+            int i = Integer.parseInt(segment);
+            return i < parent.getAsJsonArray().size() ? parent.getAsJsonArray().get(i) : null;
+        }
+        return null;
     }
 
     private static Component extractComponentField(JsonObject json, String field) {

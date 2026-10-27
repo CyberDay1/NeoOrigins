@@ -201,6 +201,7 @@ public class PowerTypes {
     public static final DeferredHolder<PowerType<?>, ActiveDashPower>          ACTIVE_DASH          = reg("active_dash",          new ActiveDashPower());
     // active_launch retired in 2.0; aliased to active_ability.
     public static final DeferredHolder<PowerType<?>, ActiveRecallPower>        ACTIVE_RECALL        = reg("active_recall",        new ActiveRecallPower());
+    public static final DeferredHolder<PowerType<?>, PersonalDimensionPower>   PERSONAL_DIMENSION   = reg("personal_dimension",   new PersonalDimensionPower());
     public static final DeferredHolder<PowerType<?>, ActiveSwapPower>          ACTIVE_SWAP          = reg("active_swap",          new ActiveSwapPower());
     public static final DeferredHolder<PowerType<?>, ActiveFireballPower>      ACTIVE_FIREBALL      = reg("active_fireball",      new ActiveFireballPower());
     public static final DeferredHolder<PowerType<?>, ActiveBoltPower>          ACTIVE_BOLT          = reg("active_bolt",          new ActiveBoltPower());

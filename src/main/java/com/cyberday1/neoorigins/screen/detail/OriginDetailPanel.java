@@ -147,6 +147,9 @@ public final class OriginDetailPanel {
     private List<EvoTier> computeEvoTiers(int descW) {
         Origin origin = vm.origin();
         if (origin == null || origin.tierPowers().isEmpty()) return List.of();
+        // Evolution switched off on the server: no tiers can be earned, so the
+        // whole section goes (synced at login, before any picker can open).
+        if (!com.cyberday1.neoorigins.client.ClientEvolutionConfig.isEnabled()) return List.of();
         var sorted = new ArrayList<>(origin.tierPowers());
         sorted.sort(java.util.Comparator.comparingInt(OriginTierOverlay::tier));
         List<EvoTier> out = new ArrayList<>();
@@ -197,7 +200,7 @@ public final class OriginDetailPanel {
         return total + 6; // bottom padding
     }
 
-    /** Pixel height of the evolution section; 0 when the origin has no tiers. */
+    /** Pixel height of the evolution section; 0 when the origin has no tiers or evolution is off. */
     private int evolutionSectionHeight() {
         if (evoTiers.isEmpty()) return 0;
         boolean evoOn = progress.enabled();

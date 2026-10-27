@@ -188,7 +188,19 @@ public final class PowerReferenceGenerator {
         line(out, "  " + (name.isEmpty() ? id.toString() : name + " (" + id + ")"));
 
         String written = json != null && json.has("type") ? json.get("type").getAsString() : null;
-        if (holder != null) {
+        // A multiple is flattened at load: the origin references its parts, never the parent id.
+        java.util.List<Identifier> parts =
+            com.cyberday1.neoorigins.compat.OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.get(id);
+        if (holder == null && parts != null) {
+            line(out, "    Type: " + written + " (" + parts.size() + " parts)");
+            for (Identifier part : parts) {
+                PowerHolder<?> partHolder = PowerDataManager.INSTANCE.getPower(part);
+                Identifier partType = partHolder == null ? null : typeIds.get(partHolder.type().getClass());
+                line(out, "      - " + part + ": " + (partHolder == null ? "DOES NOT LOAD"
+                    : partType != null ? partType.toString() : partHolder.type().getClass().getSimpleName()));
+                if (partHolder == null) stats.notLoading.add(part);
+            }
+        } else if (holder != null) {
             Identifier loaded = typeIds.get(holder.type().getClass());
             String type = loaded != null ? loaded.toString() : holder.type().getClass().getSimpleName();
             line(out, "    Type: " + type + (written != null && !written.equals(type) ? " (written as " + written + ")" : ""));

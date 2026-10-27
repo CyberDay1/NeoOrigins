@@ -65,6 +65,14 @@ public class EntityAttachments {
                 .serialize(PlacedLogs.MAP_CODEC)
                 .build());
 
+    /** Saved return point for the personal_dimension power. No {@code copyOnDeath}:
+     *  dying inside the personal dimension is one of the exits that clears it. */
+    public static final DeferredHolder<AttachmentType<?>, AttachmentType<PersonalSpaceReturn>> PERSONAL_SPACE_RETURN =
+        ATTACHMENT_TYPES.register("personal_space_return", () ->
+            AttachmentType.builder(() -> PersonalSpaceReturn.NONE)
+                .serialize(PersonalSpaceReturn.MAP_CODEC)
+                .build());
+
     public static void register(IEventBus modEventBus) {
         ATTACHMENT_TYPES.register(modEventBus);
     }
@@ -79,6 +87,10 @@ public class EntityAttachments {
 
     public static AttachmentType<PlacedLogs> placedLogs() {
         return PLACED_LOGS.get();
+    }
+
+    public static AttachmentType<PersonalSpaceReturn> personalSpaceReturn() {
+        return PERSONAL_SPACE_RETURN.get();
     }
 
     public static AttachmentType<String> mountPosition() {

@@ -8,6 +8,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -178,7 +179,9 @@ public class TornadoVfxEntity extends AbstractVfxEntity {
             target.setDeltaMovement(target.getDeltaMovement().add(pull).add(lift).add(spin));
             target.hurtMarked = true;
 
-            if (intervalTick && dist <= damageRange) {
+            // Only living entities take the hit: items, XP orbs, boats and the
+            // like have health too and would be destroyed (#138). They still spin.
+            if (intervalTick && dist <= damageRange && target instanceof LivingEntity) {
                 if (impactCallback != null) {
                     impactCallback.apply(level, target, impactCaster);
                 } else {

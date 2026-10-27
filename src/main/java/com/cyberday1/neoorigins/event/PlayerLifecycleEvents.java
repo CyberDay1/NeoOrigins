@@ -2,7 +2,9 @@ package com.cyberday1.neoorigins.event;
 
 import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
+import com.cyberday1.neoorigins.data.OriginClaimsData;
 import com.cyberday1.neoorigins.service.RandomOriginPool;
 import com.cyberday1.neoorigins.config.GameplayConfig.RandomMode;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
@@ -143,6 +145,40 @@ public class PlayerLifecycleEvents {
         }
     }
 
+    /** Last-seen onGround state per player, for the creative-safe LAND detector below. */
+    private static final java.util.Map<java.util.UUID, Boolean> lastOnGround =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * Creative-safe {@link com.cyberday1.neoorigins.service.EventPowerIndex.Event#LAND}
+     * source. {@code LivingFallEvent} only fires when the player accrues fall
+     * distance, which never happens in creative flight or when descending slowly,
+     * so {@code action_on_event} powers keyed on {@code land} silently did nothing
+     * outside survival. This watches {@code onGround} for a false→true rising edge
+     * and dispatches LAND itself.
+     *
+     * <p>Runs on {@code PlayerTickEvent.Post} so its {@code tickCount} matches the
+     * one {@code LivingFallEvent} observes; in survival LivingFallEvent fires first
+     * and stamps the tick via {@link com.cyberday1.neoorigins.service.EventPowerIndex#markLandDispatched},
+     * so this detector's same-tick dedup check skips it and LAND fires exactly once.
+     * Context is null (the player is the subject); the cancellable fall-damage path
+     * stays exclusive to the LivingFallEvent source.
+     */
+    @SubscribeEvent
+    public static void onPlayerTickPost(PlayerTickEvent.Post event) {
+        if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        var uuid = sp.getUUID();
+        boolean onGround = sp.onGround();
+        Boolean prev = lastOnGround.put(uuid, onGround);
+        if (onGround && (prev == null || !prev)) {
+            if (!com.cyberday1.neoorigins.service.EventPowerIndex.landDispatchedThisTick(uuid, sp.tickCount)) {
+                com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
+                    sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LAND);
+                com.cyberday1.neoorigins.service.EventPowerIndex.markLandDispatched(uuid, sp.tickCount);
+            }
+        }
+    }
+
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -209,6 +245,7 @@ public class PlayerLifecycleEvents {
         NeoOriginsNetwork.syncRegistryToPlayer(sp);
         NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOriginsNetwork.syncClaimsToPlayer(sp);
         NeoOriginsNetwork.syncEvolutionToPlayer(sp);
         NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
     }
@@ -323,6 +360,7 @@ public class PlayerLifecycleEvents {
         // so settle it (slot, then inventory, then ground) before dropping the
         // bookkeeping. Logging out mid-retry must not delete it.
         flushPendingTrinkets(sp);
+        lastOnGround.remove(uuid);
         NeoOriginsNetwork.clearPhaseGate(uuid);
         com.cyberday1.neoorigins.power.morph.ServerMorphState.remove(uuid);
         MorphHitboxEvents.forget(uuid);
@@ -348,6 +386,7 @@ public class PlayerLifecycleEvents {
         com.cyberday1.neoorigins.service.AsyncSpawnLocator.cancel(uuid);
         com.cyberday1.neoorigins.power.builtin.ModelColorPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ResourcePower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.power.util.PowerUpkeep.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.StealthPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.clearAmplifierModifiers(uuid);
@@ -410,6 +449,11 @@ public class PlayerLifecycleEvents {
         if (GameplayConfig.getRandomMode() == RandomMode.EVERY_DEATH) {
             ActiveOriginService.revokeAllPowers(sp);
             PlayerOriginData data = sp.getData(OriginAttachments.originData());
+            // The reroll gives these up, so their unique-layer claims must go too.
+            var claims = OriginClaimsData.get(sp.level().getServer());
+            data.getOrigins().forEach((layer, origin) -> {
+                if (AdminConfig.isUniqueLayer(layer)) claims.releaseIfOwner(layer, origin, sp.getUUID());
+            });
             data.clear();
             assignRandomOrigins(sp);
         } else {
@@ -597,6 +641,13 @@ public class PlayerLifecycleEvents {
         return o != null && !o.unchoosable() && !ContentTogglesConfig.isOriginDisabled(id);
     }
 
+    /** Origins another player holds in a unique layer; an OP in creative is not blocked, as in the picker. */
+    private static java.util.function.Predicate<Identifier> claimBlocker(ServerPlayer sp, Identifier layerId) {
+        if (!AdminConfig.isUniqueLayer(layerId) || NeoOriginsNetwork.bypassesUniqueLock(sp)) return id -> false;
+        OriginClaimsData claims = OriginClaimsData.get(sp.level().getServer());
+        return id -> claims.isClaimedByOther(layerId, id, sp.getUUID());
+    }
+
     private static void assignRandomOrigins(ServerPlayer sp) {
         PlayerOriginData data = sp.getData(OriginAttachments.originData());
         List<String> assigned = new ArrayList<>();
@@ -605,16 +656,21 @@ public class PlayerLifecycleEvents {
             Identifier layerId = layer.id();
             if (data.hasOriginForLayer(layerId)) continue;
 
+            var heldByOther = claimBlocker(sp, layerId);
             Identifier picked = pickRandomOrigin(layer, data.getOrigins(),
-                PlayerLifecycleEvents::isOffered, sp.getRandom()::nextInt);
+                id -> isOffered(id) && !heldByOther.test(id), sp.getRandom()::nextInt);
             if (picked == null) continue;
             data.setOrigin(layerId, picked);
+            if (AdminConfig.isUniqueLayer(layerId)) {
+                OriginClaimsData.get(sp.level().getServer()).claim(layerId, picked, sp.getUUID());
+            }
             ActiveOriginService.applyOriginPowers(sp, layerId, null, picked);
             assigned.add(picked.toString());
         }
 
         data.setHadAllOrigins(true);
         NeoOriginsNetwork.syncToPlayer(sp);
+        NeoOriginsNetwork.syncClaimsToAll(sp.level().getServer());
         NeoOrigins.LOGGER.info("Randomly assigned origins to {}: {}",
             sp.getName().getString(), String.join(", ", assigned));
     }

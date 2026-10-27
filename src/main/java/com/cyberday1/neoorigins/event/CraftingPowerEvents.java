@@ -143,6 +143,8 @@ public class CraftingPowerEvents {
     @SubscribeEvent
     public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        // Fallback for crafting menus the result-slot hook doesn't reach; the
+        // marker makes it a no-op on stacks the hook already boosted.
         boostFoodIfCook(sp, event.getCrafting());
         applyQualityAttributes(sp, event.getCrafting());
         applyCraftAmountBonus(sp, event.getCrafting());
@@ -154,42 +156,91 @@ public class CraftingPowerEvents {
     @SubscribeEvent
     public static void onItemSmelted(PlayerEvent.ItemSmeltedEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
-        boostFoodIfCook(sp, event.getSmelting());
-        applySmokingExpertBonus(sp, event.getSmelting());
+        // Shift-click hands this event the stack still sitting in the output
+        // slot; boosting it there would stop the furnace stacking new smelts.
+        // AbstractFurnaceMenuQuickMoveMixin boosts the moved copy instead.
+        if (!isStillInMenuContainer(sp, event.getSmelting())) {
+            boostSmeltedFood(sp, event.getSmelting());
+        }
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(sp,
             com.cyberday1.neoorigins.service.EventPowerIndex.Event.SMELT_ITEM,
             new com.cyberday1.neoorigins.service.EventPowerIndex.CraftContext(event.getSmelting()));
     }
 
 
+    /** CUSTOM_DATA flags on a food stack the Cook bonuses were applied to, so each lands once (#137). */
+    static final String GOOD_MEALS_KEY = "neoorigins:cook_good_meals";
+    static final String SMOKING_EXPERT_KEY = "neoorigins:cook_smoking_expert";
+
+    /**
+     * Good Meals on a freshly assembled crafting result, called from the crafting
+     * result-slot hook so shift-click carries it (vanilla merges the result into
+     * the inventory before {@code ItemCraftedEvent} fires).
+     */
+    public static void boostCraftedFood(ServerPlayer sp, ItemStack result) {
+        boostFoodIfCook(sp, result);
+    }
+
+    /**
+     * Good Meals plus Smoking Expert on a furnace output stack the player is
+     * taking. Returns whether the stack changed.
+     */
+    public static boolean boostSmeltedFood(ServerPlayer sp, ItemStack result) {
+        boolean changed = boostFoodIfCook(sp, result);
+        return applySmokingExpertBonus(sp, result) || changed;
+    }
+
+    /** True while {@code stack} is the very object in a non-player slot of the open menu. */
+    static boolean isStillInMenuContainer(ServerPlayer sp, ItemStack stack) {
+        for (net.minecraft.world.inventory.Slot slot : sp.containerMenu.slots) {
+            if (slot.getItem() == stack && slot.container != sp.getInventory()) return true;
+        }
+        return false;
+    }
+
+    static boolean isMarked(ItemStack stack, String key) {
+        net.minecraft.world.item.component.CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data != null && data.contains(key);
+    }
+
+    private static void mark(ItemStack stack, String key) {
+        net.minecraft.world.item.component.CustomData.update(DataComponents.CUSTOM_DATA, stack,
+            tag -> tag.putBoolean(key, true));
+    }
+
     /**
      * One-shot food boost for Cook class. Adds bonus saturation AND nutrition
      * at craft/smelt time — no tick scanning, no identity-hash tracking.
      */
-    private static void boostFoodIfCook(ServerPlayer sp, ItemStack result) {
+    private static boolean boostFoodIfCook(ServerPlayer sp, ItemStack result) {
+        if (result.isEmpty() || isMarked(result, GOOD_MEALS_KEY)) return false;
         FoodProperties food = result.get(DataComponents.FOOD);
-        if (food == null) return;
+        if (food == null) return false;
 
         float satBonus = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_CRAFTED_FOOD_SATURATION,
             result, 0f);
-        if (satBonus <= 0f) return;
+        if (satBonus <= 0f) return false;
 
         // Add +1 nutrition (hunger bar) alongside the saturation bonus
         int bonusNutrition = 1;
         result.set(DataComponents.FOOD, rebuildFood(food,
             food.nutrition() + bonusNutrition,
             food.saturation() + satBonus));
+        mark(result, GOOD_MEALS_KEY);
+        return true;
     }
 
     /**
      * Smoking Expert — extra nutrition for food cooked in a smoker/furnace.
      * Stacks with the Cook's base food boost from boostFoodIfCook.
      */
-    private static void applySmokingExpertBonus(ServerPlayer sp, ItemStack result) {
+    private static boolean applySmokingExpertBonus(ServerPlayer sp, ItemStack result) {
+        if (result.isEmpty() || isMarked(result, SMOKING_EXPERT_KEY)) return false;
         FoodProperties food = result.get(DataComponents.FOOD);
-        if (food == null) return;
+        if (food == null) return false;
 
+        boolean[] applied = {false};
         ActiveOriginService.forEachOfType(sp, MoreSmokerXpPower.class, config -> {
             int bonusNutrition = Math.round(config.multiplier());
             if (bonusNutrition <= 0) return;
@@ -199,7 +250,10 @@ public class CraftingPowerEvents {
             result.set(DataComponents.FOOD, rebuildFood(current,
                 current.nutrition() + bonusNutrition,
                 current.saturation() + config.multiplier() * 0.25f));
+            applied[0] = true;
         });
+        if (applied[0]) mark(result, SMOKING_EXPERT_KEY);
+        return applied[0];
     }
 
     /**
@@ -329,16 +383,21 @@ public class CraftingPowerEvents {
         if (!(event.getPlayer() instanceof ServerPlayer sp)) return;
 
         // efficient_repairs moved to action_on_event (MOD_ANVIL_COST).
-        float mult = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
-            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_ANVIL_COST, event, 1.0f);
-        if (mult != 1.0f) {
-            event.setXpCost(scaledAnvilCost(event.getXpCost(), mult));
-        }
+        // NeoForge fires this after vanilla computed the result, so getXpCost()
+        // is the vanilla level cost. It is the modifier chain's base value and
+        // the chain's result becomes the new cost, as in 1.21.1's AnvilMenuCostMixin.
+        int current = event.getXpCost();
+        if (current <= 0) return;
+        float scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
+            sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_ANVIL_COST, event, current);
+        if (!Float.isFinite(scaled)) return;
+        int desired = anvilCostFromModifier(scaled);
+        if (desired != current) event.setXpCost(desired);
     }
 
-    /** MOD_ANVIL_COST: rounded to nearest, minimum 1, the same rule as 1.21.1's AnvilMenuCostMixin. */
-    static int scaledAnvilCost(long cost, float mult) {
-        return Math.max(1, Math.round(cost * mult));
+    /** MOD_ANVIL_COST: the modified cost, rounded to nearest with a floor of 1. */
+    static int anvilCostFromModifier(float scaled) {
+        return Math.max(1, Math.round(scaled));
     }
 
     /**

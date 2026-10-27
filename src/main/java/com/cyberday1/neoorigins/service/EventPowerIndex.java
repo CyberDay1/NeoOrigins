@@ -166,6 +166,26 @@ public final class EventPowerIndex {
         return false;
     }
 
+    /** Per-player tick stamp of the last {@link Event#LAND} dispatch, used to
+     *  de-duplicate the two LAND sources: {@code LivingFallEvent} (fires in
+     *  survival, carries the cancellable event needed for fall-damage negation)
+     *  and the {@code PlayerTickEvent.Post} onGround rising-edge detector (the
+     *  only LAND source in creative/flight, where LivingFallEvent never fires).
+     *  Both run at the same {@code tickCount}, so whichever fires first stamps
+     *  the tick and the other skips. Cleared on logout via {@link #invalidate(UUID)}. */
+    private static final Map<UUID, Integer> LAND_DISPATCH_TICK = new ConcurrentHashMap<>();
+
+    /** Record that LAND was dispatched for {@code uuid} on {@code tick}. */
+    public static void markLandDispatched(UUID uuid, int tick) {
+        LAND_DISPATCH_TICK.put(uuid, tick);
+    }
+
+    /** True if LAND was already dispatched for {@code uuid} on {@code tick}. */
+    public static boolean landDispatchedThisTick(UUID uuid, int tick) {
+        Integer last = LAND_DISPATCH_TICK.get(uuid);
+        return last != null && last == tick;
+    }
+
     /** Register a handler for a player+event. Typically called in {@code PowerType.onGranted}. */
     public static Token register(ServerPlayer player, Event event, Handler handler) {
         UUID uuid = player.getUUID();
@@ -215,6 +235,7 @@ public final class EventPowerIndex {
         INDEX.remove(uuid);
         MOD_INDEX.remove(uuid);
         EFFECT_GRACE.remove(uuid);
+        LAND_DISPATCH_TICK.remove(uuid);
     }
 
     /** Dispatch an event to all registered handlers. */
@@ -269,6 +290,7 @@ public final class EventPowerIndex {
         INDEX.remove(uuid);
         MOD_INDEX.remove(uuid);
         EFFECT_GRACE.remove(uuid);
+        LAND_DISPATCH_TICK.remove(uuid);
     }
 
     /** For regression tests: returns an immutable view of all events for a player. */

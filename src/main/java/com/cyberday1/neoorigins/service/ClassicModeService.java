@@ -76,6 +76,8 @@ public final class ClassicModeService {
             if (changed) ActiveOriginService.reconcileDefinitionChange(sp, before.get(sp.getUUID()));
             NeoOriginsNetwork.syncRegistryToPlayer(sp);
             NeoOriginsNetwork.syncToPlayer(sp);
+            // Classic mode switches evolution off, so the info screen's Evolution Path follows it.
+            NeoOriginsNetwork.syncEvolutionToPlayer(sp);
             if (switchedOn) warnHiddenSelections(sp);
         }
         if (changed && !players.isEmpty()) {

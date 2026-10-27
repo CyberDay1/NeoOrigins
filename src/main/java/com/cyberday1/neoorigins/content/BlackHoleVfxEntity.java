@@ -7,6 +7,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -64,7 +65,8 @@ public class BlackHoleVfxEntity extends AbstractVfxEntity {
             target.setDeltaMovement(target.getDeltaMovement().add(pull));
             target.hurtMarked = true;
 
-            if (damageTick && dist <= damageRadius
+            // Living entities only: items and XP orbs are pulled, never destroyed (#138).
+            if (damageTick && dist <= damageRadius && target instanceof LivingEntity
                     && (casterUuid == null || !target.getUUID().equals(casterUuid))) {
                 target.hurtServer(level, damageSources().magic(), damagePerTick);
             }
