@@ -216,6 +216,15 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         // it recovers anyone already outside and a client that didn't clamp.
         PhaseBounds.pullInsideBorder(player);
 
+        // Portals, for the same reason: noPhysics skips the tail of Entity.move
+        // too, and that tail (tryCheckInsideBlocks) is what offers a portal
+        // block the chance to claim the player. Only re-run it while noPhysics
+        // actually suppressed vanilla's own check — inside a blocked block the
+        // flag is off, so vanilla handles it.
+        if (!inBlockedBlock) {
+            PhasePortals.offerPortalsInside(player);
+        }
+
         boolean insideSolid = isInsideSolid(player);
         // Sneak only counts as "phase down" when there is solid ground
         // directly beneath the feet to sink INTO. Plain isShiftKeyDown() let a
