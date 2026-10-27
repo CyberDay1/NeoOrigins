@@ -43,11 +43,13 @@ public final class HeadlessWorld {
 
     private final Map<BlockPos, BlockState> blocks = new HashMap<>();
     private final Level level;
+    /** Real border, default-sized until a test narrows it with {@link #borderSize}. */
+    private final WorldBorder border = new WorldBorder();
 
     public HeadlessWorld() {
         this.level = Mockito.mock(Level.class);
         Mockito.when(level.isClientSide()).thenReturn(false);
-        Mockito.when(level.getWorldBorder()).thenReturn(new WorldBorder());
+        Mockito.when(level.getWorldBorder()).thenReturn(border);
         Mockito.when(level.getEntityCollisions(Mockito.any(), Mockito.any())).thenReturn(List.of());
         Mockito.when(level.isLoaded(Mockito.any(BlockPos.class))).thenReturn(true);
         Mockito.when(level.hasChunkAt(Mockito.any(BlockPos.class))).thenReturn(true);
@@ -63,6 +65,17 @@ public final class HeadlessWorld {
 
     public Level level() {
         return level;
+    }
+
+    public WorldBorder worldBorder() {
+        return border;
+    }
+
+    /** Shrinks the world border to {@code size} blocks across, centred on the origin. */
+    public HeadlessWorld borderSize(double size) {
+        border.setCenter(0, 0);
+        border.setSize(size);
+        return this;
     }
 
     private BlockState stateAt(BlockPos pos) {

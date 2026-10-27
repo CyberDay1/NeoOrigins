@@ -45,7 +45,10 @@ public abstract class LocalPlayerNoPhysicsMixin {
         Entity self = (Entity) (Object) this;
 
         if (fullNoclip) {
-            // PhantomForm -- full noclip, always flying
+            // PhantomForm -- full noclip, always flying. Deliberately NOT
+            // border-clamped: phantom form is spectator-lite, and a vanilla
+            // spectator passes the world border too. Only wall_phase (the
+            // wraith) is contained below.
             self.setPos(self.getX() + movement.x, self.getY() + movement.y, self.getZ() + movement.z);
             self.horizontalCollision = false;
             self.minorHorizontalCollision = false;
@@ -88,8 +91,9 @@ public abstract class LocalPlayerNoPhysicsMixin {
                 vy = 0.0;
             }
             Vec3 intended = new Vec3(movement.x, vy, movement.z);
-            // But block movement into blacklisted blocks
-            Vec3 clamped = neoorigins$clampAgainstBlocked(self, intended);
+            // But block movement into blacklisted blocks and out through the
+            // world border
+            Vec3 clamped = neoorigins$clampAgainstBarriers(self, intended);
             self.setPos(self.getX() + clamped.x, self.getY() + clamped.y, self.getZ() + clamped.z);
             self.horizontalCollision = false;
             self.minorHorizontalCollision = false;
@@ -101,8 +105,9 @@ public abstract class LocalPlayerNoPhysicsMixin {
             self.setOnGround(false);
             self.setDeltaMovement(clamped);
         } else {
-            // Wall phase + on surface -- horizontal noclip (except blacklisted blocks), vertical collision kept
-            Vec3 hClamped = neoorigins$clampAgainstBlocked(self, new Vec3(movement.x, 0, movement.z));
+            // Wall phase + on surface -- horizontal noclip (except blacklisted
+            // blocks and the world border), vertical collision kept
+            Vec3 hClamped = neoorigins$clampAgainstBarriers(self, new Vec3(movement.x, 0, movement.z));
             double newX = self.getX() + hClamped.x;
             double newZ = self.getZ() + hClamped.z;
 
@@ -133,26 +138,40 @@ public abstract class LocalPlayerNoPhysicsMixin {
 
     /**
      * Applies vanilla collision to any movement that would push the player's
-     * bounding box into a blacklisted block ({@code blocked_blocks} on the
-     * phase power, synced via {@code phase_blocked:} capability tags).
-     * Previously this hardcoded bedrock only, which silently let phasing
-     * players through obsidian and any other pack-blacklisted block — the
-     * client predicts the movement and the server accepts it, so the client
-     * clamp IS the blacklist.
+     * bounding box into a barrier a wall phase may not cross: a blacklisted
+     * block ({@code blocked_blocks} on the phase power, synced via
+     * {@code phase_blocked:} capability tags) or the world border.
+     *
+     * <p>The client clamp IS the enforcement for both — the client predicts the
+     * movement and the server, running the player under {@code noPhysics},
+     * accepts the position it reports. The border has to be re-applied by hand
+     * because vanilla only adds it inside {@code Entity.collide}, which phasing
+     * skips entirely ({@link com.cyberday1.neoorigins.power.builtin.PhaseBounds}).
      */
     @Unique
-    private static Vec3 neoorigins$clampAgainstBlocked(Entity entity, Vec3 movement) {
+    private static Vec3 neoorigins$clampAgainstBarriers(Entity entity, Vec3 movement) {
+        // Collect collision shapes of the barriers ONLY — colliding against
+        // everything would also stop the player at the ordinary blocks they're
+        // legitimately phasing through. A block is a barrier if its id is
+        // listed OR it carries a blacklisted block tag.
+        java.util.List<VoxelShape> shapes = new java.util.ArrayList<>();
+        com.cyberday1.neoorigins.power.builtin.PhaseBounds.addBorderShape(entity, movement, shapes);
+        neoorigins$addBlockedShapes(entity, movement, shapes);
+        if (shapes.isEmpty()) return movement;
+        return com.cyberday1.neoorigins.power.builtin.PhaseBounds.collideAgainstShapes(
+            movement, entity.getBoundingBox(), shapes);
+    }
+
+    /** Adds the collision shapes of any blacklisted blocks {@code movement} reaches. */
+    @Unique
+    private static void neoorigins$addBlockedShapes(
+            Entity entity, Vec3 movement, java.util.List<VoxelShape> out) {
         java.util.Set<net.minecraft.resources.Identifier> blocked =
             ClientActivePowers.phaseBlockedBlocks();
         java.util.List<net.minecraft.tags.TagKey<net.minecraft.world.level.block.Block>> blockedTags =
             ClientActivePowers.phaseBlockedTags();
-        if (blocked.isEmpty() && blockedTags.isEmpty()) return movement;
+        if (blocked.isEmpty() && blockedTags.isEmpty()) return;
         AABB moved = entity.getBoundingBox().move(movement);
-        // Collect collision shapes of blacklisted blocks ONLY — colliding
-        // against everything would also stop the player at the ordinary
-        // blocks they're legitimately phasing through. A block is blacklisted
-        // if its id is listed OR it carries a blacklisted block tag.
-        java.util.List<VoxelShape> shapes = new java.util.ArrayList<>();
         for (BlockPos pos : BlockPos.betweenClosed(
                 BlockPos.containing(moved.minX, moved.minY, moved.minZ),
                 BlockPos.containing(moved.maxX, moved.maxY, moved.maxZ))) {
@@ -168,57 +187,10 @@ public abstract class LocalPlayerNoPhysicsMixin {
             if (isBlocked) {
                 VoxelShape shape = state.getCollisionShape(entity.level(), pos);
                 if (!shape.isEmpty()) {
-                    shapes.add(shape.move(pos.getX(), pos.getY(), pos.getZ()));
+                    out.add(shape.move(pos.getX(), pos.getY(), pos.getZ()));
                 }
             }
         }
-        if (!shapes.isEmpty()) {
-            return neoorigins$collideAgainstOnly(movement, entity.getBoundingBox(), shapes);
-        }
-        return movement;
-    }
-
-    /**
-     * Axis-wise collision against {@code shapes} and nothing else.
-     *
-     * <p>{@link Entity#collideBoundingBox} cannot be used for this. It funnels
-     * through {@code collectColliders}, which unconditionally appends
-     * {@code level.getBlockCollisions(...)} to whatever list it is handed, so
-     * passing it the blacklisted shapes still collided the player against EVERY
-     * block in range — including the ordinary ones they are legitimately phasing
-     * through. The effect was that a wraith froze solid inside a wall whenever a
-     * blacklisted block happened to be within reach, which is the opposite of
-     * what the blacklist is for. Vanilla's own shapes-only routine
-     * ({@code Entity.collideWithShapes}) is private, so its axis order is
-     * mirrored here.
-     */
-    @Unique
-    private static Vec3 neoorigins$collideAgainstOnly(
-            Vec3 movement, AABB box, java.util.List<VoxelShape> shapes) {
-        double dx = movement.x;
-        double dy = movement.y;
-        double dz = movement.z;
-        if (dy != 0.0) {
-            dy = net.minecraft.world.phys.shapes.Shapes.collide(
-                net.minecraft.core.Direction.Axis.Y, box, shapes, dy);
-            if (dy != 0.0) box = box.move(0.0, dy, 0.0);
-        }
-        boolean zFirst = Math.abs(dx) < Math.abs(dz);
-        if (zFirst && dz != 0.0) {
-            dz = net.minecraft.world.phys.shapes.Shapes.collide(
-                net.minecraft.core.Direction.Axis.Z, box, shapes, dz);
-            if (dz != 0.0) box = box.move(0.0, 0.0, dz);
-        }
-        if (dx != 0.0) {
-            dx = net.minecraft.world.phys.shapes.Shapes.collide(
-                net.minecraft.core.Direction.Axis.X, box, shapes, dx);
-            if (!zFirst && dx != 0.0) box = box.move(dx, 0.0, 0.0);
-        }
-        if (!zFirst && dz != 0.0) {
-            dz = net.minecraft.world.phys.shapes.Shapes.collide(
-                net.minecraft.core.Direction.Axis.Z, box, shapes, dz);
-        }
-        return new Vec3(dx, dy, dz);
     }
 
     @Unique

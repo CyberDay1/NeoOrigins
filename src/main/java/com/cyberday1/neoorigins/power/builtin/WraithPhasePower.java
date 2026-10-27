@@ -207,6 +207,15 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         }
         player.noPhysics = !inBlockedBlock;
 
+        // World border. noPhysics skips Entity.collide, which is the only place
+        // vanilla applies the border, so a phasing wraith used to walk straight
+        // out of it (and then lost the power's whole point, there being nothing
+        // solid out there to be inside of). The client clamp in
+        // LocalPlayerNoPhysicsMixin is what stops the crossing — under noPhysics
+        // the server snaps to the client's position — and this is the backstop:
+        // it recovers anyone already outside and a client that didn't clamp.
+        PhaseBounds.pullInsideBorder(player);
+
         boolean insideSolid = isInsideSolid(player);
         // Sneak only counts as "phase down" when there is solid ground
         // directly beneath the feet to sink INTO. Plain isShiftKeyDown() let a
