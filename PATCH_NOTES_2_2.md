@@ -2,6 +2,100 @@
 
 ---
 
+## v2.2.32
+
+> Toggle powers can now cost something to keep running. Any toggle, from flight to stealth, can now be configured to consume hunger or a resource while it is on and to switch off when the player can no longer pay, and `effect_over_time` charges its upkeep in every mode. Riding the Sword is the first built-in power to use it: flying on the blade costs 1 hunger point every 3 seconds. A new `personal_dimension` power type, marked \<Experimental\>, gives a player a room of their own in a new dimension, kept between visits, and pack authors get text colours and outlines for resource bars, a way to silence toggle messages, a running cost for the extra inventory, and fog for players phasing through walls. Lucky Trader now does what its name says and makes trades cheaper.
+>
+> Most of the rest of this release makes the classes do what their descriptions say. More than sixty previously ineffective settings in `power_overrides.toml` now change the values they name, Charisma and Scavenging no longer hand out duplicates, Seal's Grace and the classic Mining Expert work, and every class description now states the real numbers. The 26.x builds pick up the 1.21.1 fixes they were missing, and the documentation is reorganised around a new start page, with a page listing every class power and its exact numbers.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Changes
+
+- **Riding the Sword costs hunger while you fly.** The Sword Immortal's flight now takes 1 hunger point every 3 seconds, charged only while you are actually in the air, so standing or walking with the art switched on is free. Saturation is spent first, as with sprinting. When you can no longer pay, the art switches off and you drop, and Immortal Body still means the fall does no damage. Server owners can change the cost with `hunger_cost` and `upkeep_interval` under `[power_overrides.jianxian_riding_sword]`.
+
+- **Lucky Trader makes trades cheaper.** The Merchant's Lucky Trader gave +1 Luck and nothing else, and Luck has no effect on trading: in vanilla it only changes fishing catches. It keeps the +1 Luck and now also lowers the first cost of every villager and wandering trader offer by about 10%, rounded in your favour, so anything costing 2 or more is at least 1 cheaper (5 emeralds becomes 4, 20 becomes 18). The discount applies when the trade screen opens and stacks with Hero of the Village and villager reputation.
+
+- **Timber! needs an axe.** The Lumberjack felled a whole tree whatever broke the log, including a bare hand or a pickaxe. It now fells only when the log is broken with an axe, or with an empty hand while Axe Hands is active.
+
+- **Beacon Regeneration needs a working beacon.** The Paladin regenerated next to any beacon block, including one with no pyramid or a blocked beam. It now needs a beacon that would give its own effects.
+
+- **Two class powers have new names.** The Warrior's +2 armor power is now Battle-Hardened, so the class no longer shows two powers called Battle Stance. The classic Rogue's Stealth description card is now Vanish, for the same reason.
+
+- **Classic mode turns evolution off.** Classic mode only turned evolution off in practice: the classic origins and classes have no tiers, but kills were still counted and evolution prompts still appeared that granted nothing. While `classic_mode` is on, evolution is now fully off whatever `gameplay.toml` says, for datapack and `originpacks/` origins too: kills are not counted, no prompt appears, and the info screen hides the Evolution Path. A tier a player already reached is kept and applies again if classic mode is switched off.
+
+- **Murky Sight lingers a little longer.** The Fisher's underwater night vision now stays for about 13 seconds after you leave the water, up from about 11, which is what stops it flickering (see below).
+
+- **The Evolution Path is hidden when evolution is off.** On a server with evolution switched off (`enabled = false` under `[evolution]` in `gameplay.toml`), the origin info screen and the origin pickers no longer show the Evolution Path section, since no tier can be earned. With evolution on, nothing changes.
+
+### Bug Fixes
+
+- **`power_overrides.toml` keys that changed nothing now work.** More than sixty keys named a field the power does not read at the top of its JSON, such as a projectile's speed or a hunger multiplier inside an action, so changing them did nothing. Each now reaches the value it names, including the Cleric's enchanting `bonus_levels`, the Cook's `saturation_bonus`, the Miner's efficiency `multiplier`, the Sentinel's thorns `return_ratio` and the Paladin's beacon radius. Fifteen keys also had a default that did not match the value the power actually used, and their defaults are corrected. A config written by an older version still holds the old defaults, which would now be applied, so on the first launch of 2.2.32 any of those fifteen keys still on its old default is moved to the new one and the change is logged. Any other value is left alone, though a value you chose deliberately that happens to equal the old default moves with the rest, and the change is logged so you can set it back. Two keys that matched nothing at all are gone, `caveborn_daylight_damage.ignite` and `class_blacksmith_quality.unbreaking_level`, and so are the `mount`, `js_active` and `js_custom` tables, which configured no power. [POWER_OVERRIDES_CONFIG.md](docs/POWER_OVERRIDES_CONFIG.md) lists every key and the field it writes.
+
+- **Charisma no longer adds duplicate trades after a server restart.** A wandering trader forgot which players it had already given Charisma trades to whenever the server restarted, and added another set the next time each Merchant interacted with it. The trader now saves that list. A trader that already gave trades before this update adds one more set, once, the first time each player interacts with it.
+
+- **Scavenging no longer duplicates saddles, horse armor and chests.** The classic Rancher's Scavenging copied everything an animal dropped, including the saddle, armor or chest (with its contents) it was carrying. It now copies only the animal's own loot, such as meat and leather.
+
+- **Seal's Grace works without Depth Strider.** The Fisher's +15% speed in water was a movement speed bonus, which does nothing in water unless Depth Strider is involved, so the power did nothing for most players. It is now a +15% swim speed bonus.
+
+- **The classic Miner's Mining Expert speeds up mining.** The boost was applied on the server but not on the client, so blocks still broke at normal speed. It now applies on both, while you hold a tool that suits the block, such as a pickaxe on stone.
+
+- **Bare-hand mining powers stack with other mining bonuses.** Stone Hands, Axe Hands, Forge Hands and the other powers that make an empty hand dig like a tool replaced the break speed outright, so a mining speed bonus such as the Mason's or the Miner's could be lost depending on which ran first. The empty hand now counts as the tool it imitates, so other bonuses, Haste, and the underwater and mid-air penalties all apply to it the way they apply to a held tool.
+
+- **Murky Sight no longer flickers.** The Fisher's underwater night vision lasted 11 seconds and was renewed every 2, so it fell to 9 seconds between renewals, below the 10 seconds at which vanilla starts making night vision pulse. It now lasts 13 seconds and never drops below 11 while you are in water.
+
+- **`no_mob_spawns_nearby` honours every category it lists (1.21.1).** Only monsters were ever suppressed, whatever `categories` said. Every listed category is now suppressed, as on the 26.x builds.
+
+- **The 26.x builds pick up fixes that had only reached 1.21.1.** Twin Births places the twin next to its parents instead of at the world origin. Enhanced vision powers such as Hawk Eye light the world as brightly as on 1.21.1. Halved anvil costs round to the nearest level, so a 3-level repair as a Blacksmith costs 2 instead of 1. For packs, `equipped_item` accepts the full item condition vocabulary and treats a missing `item_condition` as "anything is equipped", `land` also fires for landings that cause no fall event (creative flight, slow descents), `mod_anvil_cost` starts from the vanilla level cost, `target_action` damage honours `weapon_damage_scale` on mobs, an item `and` action accepts a single action, and `unique_origin_layers` is available as an admin setting.
+
+- **Class descriptions say what the powers do.** Many class descriptions overstated or misstated their powers, and they now give the real numbers. Among them: the Blacksmith's Quality Craftsmanship (+20% attack damage on weapons, +1 armor toughness per armor piece, +25% mining efficiency on tools, which boosts the Efficiency enchantment, and +10% durability) and Efficient Repairs (anvil work costs half the experience levels), the Cook's Good Meals and Smoking Expert (which give extra food, not experience), the effect duration powers (which lengthen every effect, harmful ones included), Empathic Bond, Bountiful Harvest, Restocking, Charisma, Mason's Reach, Starting Seeds and Trail Rations. The Rogue's Sneaky no longer promises a hidden nameplate, which it never gave.
+
+- **The Air Mage's tornado no longer destroys items and experience orbs (#138).** Whirlwind's tornado damaged everything it caught, and dropped items, experience orbs, boats and minecarts break when they take damage, so loot and experience near the funnel were lost. Only living things take its damage now: items and orbs are still pulled, lifted and spun. The Gravity Mage's Gravity Well had the same flaw and is fixed the same way.
+
+- **Ability descriptions give the real resource cost.** Whirlwind's description said it costs 4 mana when it costs 40, and most origin abilities paid from a resource bar made the same slip, stating a tenth of the real cost, while two others named no cost at all. Every one of them now gives the cost the bar actually loses.
+
+- **The Cook's food bonuses apply when you shift-click (#137).** Good Meals and Smoking Expert added their extra food only when the result was clicked out of the crafting grid or furnace, so shift-clicking it into the inventory, or crafting many at once from the recipe book, gave plain food. Both now apply however the food is taken, once per item. Food still waiting in a furnace, smoker or blast furnace stays plain until you take it, so new food keeps stacking onto it and a hopper underneath still pulls plain food.
+
+### Pack Author Features
+
+- **Every toggle can charge an upkeep.** Flight, creative flight, stealth, phantom form, wraith phase, pose, item magnetism, `no_mob_spawns_nearby`, and `persistent_effect` and `condition_passive` with `toggleable` on all take `hunger_cost`, `resource_cost` and `resource_cost_amount`, charged every `upkeep_interval` ticks (20 by default) while the toggle is on. When the player cannot pay, the toggle switches off with the usual message. Switching on is free, and the first charge falls at the next interval. `upkeep_condition` limits charging to the ticks it passes, so a flight power can charge only while the player is flying. A toggle with an upkeep cost and no assigned key is no longer switched back on at every login, and a power authored with `"toggleable": false` lapses while unpaid instead. The [Costs and upkeep](docs/concepts/costs-and-upkeep.md) page explains the rules, and [the costs guide](docs/guides/costs.md) walks through examples.
+
+- **`effect_over_time` charges its upkeep in every mode.** Only the active mode charged one. A toggleable passive aura now pays each pulse and switches off when it cannot, a plain passive aura skips any pulse it cannot pay, and every mode takes `upkeep_condition`.
+
+- **`tree_felling` takes `require_axe`.** On by default, it fells only when the log is broken with an axe (on 1.21.1, an item in `#minecraft:axes` or one that can dig like an axe; on 26.x, the tag), or with an empty hand under a `bare_hand_tool` power that acts as an axe. Set it to `false` to fell with anything, as before.
+
+- **`neoorigins:active_beacon` block condition.** True for a beacon with a pyramid under it and an unobstructed beam, the same check vanilla makes before granting beacon effects. One base layer is enough, as it is in vanilla.
+
+- **`break_speed_modifier` takes `effective_tool_only`.** With it on, the bonus applies only while the held item is a correct tool for the block, and the client applies the bonus too.
+
+- **`toggle_messages` silences a toggle.** Every toggle type takes `toggle_messages`. Set it to `false` and the toggle no longer prints the green "on" or red "off" line in chat, whether the key flipped it or an unpaid upkeep switched it off. The key and the HUD icon work as before.
+
+- **A resource can keep its bar while hidden from the origin menu.** On `neoorigins:resource`, `"hidden": true` hid both the menu row and the HUD bar. Setting `hud_render.should_render` to `true` now keeps the bar on the HUD while the power stays out of the menu. A resource without `should_render` behaves as before.
+
+- **Resource bars take a text colour and an outline.** `hud_render.text_color` sets the colour of a bar's label and value (`#RRGGBB` or `#AARRGGBB`, the usual light grey by default), and `"text_outline": true` draws a thin dark outline around both so they read on any background. The HUD editor shows the same styling.
+
+- **`extra_inventory` can cost something to keep open.** It takes `hunger_cost`, `resource_cost`, `resource_cost_amount` and `upkeep_interval` (20 ticks by default), charged while its menu is open. The key does nothing while the player can't pay one charge, and the menu closes at the first charge they can't pay. Nothing in the inventory is lost when it closes: an item held on the cursor goes back to the player's inventory.
+
+- **`wraith_phase` takes `obscured_vision`.** Phasing turns off vanilla's darkened view from inside a block, so a phasing player could see straight through terrain. With `"obscured_vision": true`, thick dark fog closes in whenever the player's view is inside a solid block, leaving only `phase_view_distance` blocks visible (1.5 by default). It is off by default, so existing powers are unchanged.
+
+- **\<Experimental\> `personal_dimension` gives a player a room of their own.** A new keybind power type moves the player into their own box in the new `neoorigins:personal_space` dimension, and back out to the exact spot they left. The box is `size` blocks wide and tall inside (12 by default, up to 64), with a bedrock floor and barrier walls and ceiling, and whatever is left in it stays there between visits. Raising `size` later grows the box on the next visit without touching its contents. Entering has a 1-minute cooldown (`cooldown_ticks`) and an optional `xp_levels_cost`, and leaving is free. Leaving by another route, such as dying or using a portal, clears the saved return location, and the key then sends the player to their respawn point. The dimension has no terrain and no weather, and the world spawns no mobs there on its own, while spawners, spawn eggs and breeding still work. No built-in origin or class uses it yet. See [Active abilities](docs/powers/active.md#neooriginspersonal_dimension).
+
+### Compatibility (Apoli / Origins)
+
+- **Sub-origin conditions on the `origins:origin` layer work on 26.x.** A `layer` of `origins:origin` or `apace:origin` is now read as `neoorigins:origin` on every build, as it already was on 1.21.1.
+
+### Compatibility (Mod Integrations)
+
+- **The 26.1 build gains the KubeJS and FTB Quests features 1.21.1 had.** `originChosen` fires right away on each first-time pick instead of waiting for the whole first walkthrough, `js_active` accepts the three cooldown HUD fields, and FTB Quests gains the Grant Loot Pool reward type. The 26.2 and 26.3 builds have no KubeJS support and no Grant Loot Pool reward type, since neither mod is published for them; the quest-tag path those builds already carry is unchanged.
+
+### Documentation
+
+- **The documentation is reorganised.** A new [START_HERE.md](docs/START_HERE.md) points to the right page for each task. The power types, actions and conditions are split into category pages under `docs/powers/`, `docs/actions/` and `docs/conditions/`, with the old `POWER_TYPES.md`, `ACTIONS.md` and `CONDITIONS.md` kept as indexes so existing links still land. New concept pages cover power basics, [costs and upkeep](docs/concepts/costs-and-upkeep.md), toggles, keybinds, and cooldowns and the HUD, and new guides cover getting started, adding a cost to an ability, making a toggle, and testing a pack. Where 1.21.1 and 26.x behave differently, the page now says so.
+
+- **Every class power, with its numbers.** [CLASS_CATALOG.md](docs/CLASS_CATALOG.md) lists each class's powers with what they do, their exact numbers and the config key that changes each one. [POWER_OVERRIDES_CONFIG.md](docs/POWER_OVERRIDES_CONFIG.md) lists every key in `power_overrides.toml`.
+
+---
+
 ## v2.2.31
 
 > The headline is classic mode: a new `content.toml` switch that offers only the original Origins mod's ten origins and the fourteen Origins: Classes classes, each with a power set modelled on the original mod. Turn it on before the world is created if you can: players who already have an origin or class hidden by classic mode keep it until they reset it.
