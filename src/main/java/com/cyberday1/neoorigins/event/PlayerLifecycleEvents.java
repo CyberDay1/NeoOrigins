@@ -407,6 +407,7 @@ public class PlayerLifecycleEvents {
         com.cyberday1.neoorigins.service.AsyncSpawnLocator.cancel(uuid);
         com.cyberday1.neoorigins.power.builtin.ModelColorPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ResourcePower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.power.util.PowerUpkeep.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.StealthPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.clearAmplifierModifiers(uuid);

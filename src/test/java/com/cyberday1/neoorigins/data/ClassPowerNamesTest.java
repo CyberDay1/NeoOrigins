@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Two powers in one class must not share a display name: Warrior listed both its
- * knockback resistance and its armor bonus as "Battle Stance".
+ * knockback resistance and its armor bonus as "Battle Stance", and classic Rogue
+ * showed its Stealth power beside a description card also called "Stealth".
+ * Display-only cards count: the picker lists them like any other power.
  */
 class ClassPowerNamesTest {
 
@@ -55,9 +57,6 @@ class ClassPowerNamesTest {
         String key = "power.neoorigins." + path + ".name";
         Path file = RealDatapack.projectPath(DATA + "powers/" + path + ".json");
         JsonObject power = read(file);
-        // Display-only descriptors (classic Rogue's "Stealth") mirror Origins: Classes,
-        // which lists a descriptor beside the power it describes.
-        if ("neoorigins:simple".equals(power.get("type").getAsString())) return null;
         if (power.has("name") && power.get("name").isJsonPrimitive()) key = power.get("name").getAsString();
         return lang.has(key) ? lang.get(key).getAsString() : null;
     }

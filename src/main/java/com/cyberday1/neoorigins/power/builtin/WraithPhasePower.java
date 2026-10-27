@@ -112,14 +112,25 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         return IN_BLOCKED_BLOCK.contains(player.getUUID());
     }
 
+    /**
+     * Capability carrying {@code obscured_vision} to the client, as
+     * {@code phase_obscured_vision:<phase_view_distance>}. The client fogs the
+     * view down to that distance while the camera is inside a solid block.
+     */
+    public static final String OBSCURED_VISION_PREFIX = "phase_obscured_vision:";
+
     @Override
     public Set<String> capabilities(Config config) {
-        return CAPS_CACHE.computeIfAbsent(config.blockedBlocks(), list -> {
+        Set<String> base = CAPS_CACHE.computeIfAbsent(config.blockedBlocks(), list -> {
             java.util.Set<String> caps = new java.util.HashSet<>();
             caps.add("wall_phase");
             for (String block : list) caps.add(PhaseBlacklist.CAPABILITY_PREFIX + block);
             return Set.copyOf(caps);
         });
+        if (!config.obscuredVision()) return base;
+        java.util.Set<String> caps = new java.util.HashSet<>(base);
+        caps.add(OBSCURED_VISION_PREFIX + config.phaseViewDistance());
+        return Set.copyOf(caps);
     }
 
     public record Config(
@@ -128,8 +139,20 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         boolean alwaysOn,
         String type,
         String cooldownIcon,
-        boolean alwaysShowIcon
+        boolean alwaysShowIcon,
+        boolean obscuredVision,
+        float phaseViewDistance
     ) implements PowerConfiguration, HudIconConfig {
+
+        public static final float DEFAULT_VIEW_DISTANCE = 1.5F;
+
+        /** Clear sight while phasing (the pre-2.2.32 behaviour). */
+        public Config(List<String> blockedBlocks, float exhaustionPerTick, boolean alwaysOn, String type,
+                      String cooldownIcon, boolean alwaysShowIcon) {
+            this(blockedBlocks, exhaustionPerTick, alwaysOn, type, cooldownIcon, alwaysShowIcon,
+                false, DEFAULT_VIEW_DISTANCE);
+        }
+
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("blocked_blocks", List.of("minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"))
                 .forGetter(Config::blockedBlocks),
@@ -137,7 +160,9 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
             Codec.BOOL.optionalFieldOf("always_on", false).forGetter(Config::alwaysOn),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
-            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
+            Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon),
+            Codec.BOOL.optionalFieldOf("obscured_vision", false).forGetter(Config::obscuredVision),
+            Codec.FLOAT.optionalFieldOf("phase_view_distance", DEFAULT_VIEW_DISTANCE).forGetter(Config::phaseViewDistance)
         ).apply(inst, Config::new));
     }
 
@@ -158,6 +183,10 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
         if (config.alwaysOn()) return false;
         return super.isToggledOff(player, config, id);
     }
+
+    /** An always_on phase has no toggle to switch off, so it charges no upkeep. */
+    @Override
+    protected boolean chargesUpkeep(Config config) { return !config.alwaysOn(); }
 
     @Override
     public Codec<Config> codec() { return Config.CODEC; }

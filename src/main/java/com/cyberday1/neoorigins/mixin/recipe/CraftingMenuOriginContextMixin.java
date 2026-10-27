@@ -145,6 +145,9 @@ public class CraftingMenuOriginContextMixin {
         // co-exists with the still-registered ItemCraftedEvent path; no setItem to
         // avoid re-entrant grid recomputes, matching the count-scaling below.
         com.cyberday1.neoorigins.event.CraftingPowerEvents.applyQualityAttributes(sp, result);
+        // Cook "Good Meals" (#137): same reasoning. The result is reassembled on
+        // every grid change, so each assembled stack is boosted exactly once.
+        com.cyberday1.neoorigins.event.CraftingPowerEvents.boostCraftedFood(sp, result);
         float scaled = com.cyberday1.neoorigins.service.EventPowerIndex.dispatchModifier(
             sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.MOD_CRAFT_AMOUNT,
             result, result.getCount());

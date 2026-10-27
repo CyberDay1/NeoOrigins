@@ -1324,6 +1324,28 @@ public final class ConditionParser {
      * {@code null} for an unrecognised leaf so callers can fall back to
      * always-true. Honours a per-node {@code inverted} flag.
      */
+    /**
+     * True for a beacon with at least one pyramid level and an unobstructed beam,
+     * the same test vanilla runs before handing out its effects
+     * ({@code BeaconBlockEntity#tick}: {@code levels > 0 && !beamSections.isEmpty()}).
+     *
+     * <p>Both halves are needed. The beam comes from an upward sky scan that never
+     * reads the base, and a beacon block is itself a beam block, so a bare beacon
+     * under open sky has a beam section with no pyramid under it.
+     */
+    static boolean isActiveBeacon(net.minecraft.world.level.BlockGetter level, BlockPos pos) {
+        if (!level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BEACON)) return false;
+        if (!(level.getBlockEntity(pos)
+                instanceof net.minecraft.world.level.block.entity.BeaconBlockEntity beacon)) return false;
+        int levels = ((com.cyberday1.neoorigins.mixin.BeaconBlockEntityLevelsAccessor) beacon).neoorigins$getLevels();
+        return beaconGrantsEffects(levels, beacon.getBeamSections().isEmpty());
+    }
+
+    /** Vanilla's gate, apart from the block entity: a pyramid AND an unobstructed beam. */
+    static boolean beaconGrantsEffects(int levels, boolean beamEmpty) {
+        return levels > 0 && !beamEmpty;
+    }
+
     static BlockPosCondition compileInBlockPredicate(JsonObject bc, String contextId) {
         boolean inverted = bc.has("inverted") && bc.get("inverted").getAsBoolean();
         BlockPosCondition base = compileInBlockLeaf(bc, contextId);
@@ -1395,6 +1417,11 @@ public final class ConditionParser {
         // both non-blocking, which is exactly the distinction Giant's slam wants.
         if (bare.equals("movement_blocking")) {
             return (level, pos) -> level.getBlockState(pos).blocksMotion();
+        }
+        // active_beacon — a beacon that is actually lit: a pyramid under it and a
+        // clear beam. A bare beacon block is decoration and must not count.
+        if (bare.equals("active_beacon")) {
+            return ConditionParser::isActiveBeacon;
         }
         if (bare.equals("and") || bare.equals("all_of") || bare.equals("or") || bare.equals("any_of")) {
             boolean isAnd = bare.equals("and") || bare.equals("all_of");

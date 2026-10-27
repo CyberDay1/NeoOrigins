@@ -333,12 +333,14 @@ public class ResourceHudEditorScreen extends Screen {
             // Label above
             String label = w.data().label();
             int labelW = mc.font.width(label);
-            g.drawString(mc.font, label, bx + (BAR_WIDTH - labelW) / 2, by - LABEL_HEIGHT, LABEL_COLOR, false);
+            ResourceHudOverlay.drawBarText(g, mc.font, label, bx + (BAR_WIDTH - labelW) / 2, by - LABEL_HEIGHT,
+                w.data().textColor(), w.data().textOutline());
 
             // Value below
             String readout = w.data().value() + "/" + w.data().max();
             int readoutW = mc.font.width(readout);
-            g.drawString(mc.font, readout, bx + (BAR_WIDTH - readoutW) / 2, by + BAR_HEIGHT + 2, LABEL_COLOR, false);
+            ResourceHudOverlay.drawBarText(g, mc.font, readout, bx + (BAR_WIDTH - readoutW) / 2, by + BAR_HEIGHT + 2,
+                w.data().textColor(), w.data().textOutline());
 
             if (scaled) g.pose().popPose();
         }

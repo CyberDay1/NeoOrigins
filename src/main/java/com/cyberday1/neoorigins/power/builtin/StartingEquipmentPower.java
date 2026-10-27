@@ -36,8 +36,10 @@ import java.util.List;
  * flips so any deferred grants catch up.
  *
  * <p>Dedup: {@code grantId} is stored in {@link PlayerOriginData#grantedEquipmentPowers} so the
- * same item can't be given twice. The set is cleared by the Orb of Origin and full
- * {@code /origin reset} so users re-pay for re-granted items.
+ * same item can't be given twice. Only a full reset of the origin data clears the set
+ * ({@link PlayerOriginData#clear}: {@code /origin reset} with no layer, the
+ * random-on-every-death reroll and a profile reapply). An Orb of Origin re-pick does
+ * not, so picking the same class again never hands its starting items out twice.
  *
  * <p><b>Multi-item shape (v2.1.6):</b> in addition to the legacy single-item shape
  * ({@code item} + {@code count} + {@code enchantments} + {@code legacy_tag} +

@@ -13,6 +13,7 @@ import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
+import com.cyberday1.neoorigins.power.util.PowerUpkeep;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -20,8 +21,6 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -32,10 +31,11 @@ import net.minecraft.server.level.ServerPlayer;
  *
  * <ul>
  *   <li>{@code "passive"} (default) — an always-on aura: runs
- *       {@code entity_action} every {@code interval} ticks while granted, with no
- *       upkeep cost. {@code condition} gates the pulse; {@code else_action} runs
- *       when it fails. With {@code toggleable:true} it also gains an on/off
- *       keybind (still free), and starts <em>on</em> by default.</li>
+ *       {@code entity_action} every {@code interval} ticks while granted.
+ *       {@code condition} gates the pulse; {@code else_action} runs when it
+ *       fails. With {@code toggleable:true} it also gains an on/off keybind, and
+ *       starts <em>on</em> by default. An upkeep cost is optional: a toggleable
+ *       passive that can't pay switches off, a plain one skips the pulse.</li>
  *   <li>{@code "active"} — a maintained aura: a keybind toggles it on/off, and
  *       while on it pulses {@code entity_action} every {@code interval} AND pays
  *       an upkeep cost ({@code hunger_cost} and/or
@@ -61,9 +61,10 @@ import net.minecraft.server.level.ServerPlayer;
  *   "condition": { ... optional EntityCondition tree ... },
  *   "entity_action": { "type": "origins:area_of_effect", ... },
  *   "else_action": { ... optional; runs when condition false ... },
- *   "hunger_cost": 2,                // active upkeep: food points per interval
- *   "resource_cost": "",             // active upkeep: resource power id
- *   "resource_cost_amount": 0,       // active upkeep: amount per interval
+ *   "hunger_cost": 2,                // upkeep: food points per pulse
+ *   "resource_cost": "",             // upkeep: resource power id
+ *   "resource_cost_amount": 0,       // upkeep: amount per pulse
+ *   "upkeep_condition": { ... },     // optional: charge only on pulses where it passes
  *   "default_off": false,            // override initial state (def: active=on→off, passive-toggle=on)
  *   "cooldown_icon": "",
  *   "always_show_icon": false
@@ -86,6 +87,7 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> i
         int hungerCost,
         String resourceCost,
         int resourceCostAmount,
+        EntityCondition upkeepCondition,
         boolean defaultOff,
         String type,
         String cooldownIcon,
@@ -135,13 +137,14 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> i
                 boolean alwaysShow = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
 
                 EntityCondition cond = ConditionParser.parseField(obj, "condition", t);
+                EntityCondition upkeepCond = ConditionParser.parseField(obj, "upkeep_condition", t);
                 EntityAction action = ActionParser.parseField(obj, "entity_action", t);
                 EntityAction elseAction = ActionParser.parseField(obj, "else_action", t);
 
                 String finalActivation = activation;
                 return DataResult.success(Pair.of(
                     new Config(finalActivation, toggleable, interval, cond, action, elseAction,
-                        hunger, resCost, resCostAmt, defaultOff, t, cdIcon, alwaysShow),
+                        hunger, resCost, resCostAmt, upkeepCond, defaultOff, t, cdIcon, alwaysShow),
                     ops.empty()));
             }
 
@@ -235,12 +238,10 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> i
         boolean wasOff = data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config));
         if (wasOff) {
             data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
-            player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
-                .withStyle(ChatFormatting.GREEN));
+            PowerUpkeep.announceToggle(player, PowerHolder.currentDispatchId(), true);
         } else {
             data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
-            player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
-                .withStyle(ChatFormatting.RED));
+            PowerUpkeep.announceToggle(player, PowerHolder.currentDispatchId(), false);
         }
     }
 
@@ -248,18 +249,21 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> i
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % config.interval() != 0) return;
 
-        if (hasToggle(config)) {
+        boolean toggle = hasToggle(config);
+        if (toggle) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
             if (data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config))) return;
-            // Active auras pay upkeep for each pulse; if the holder can't afford
-            // it the aura switches itself off (the "cost to keep it up").
-            // Toggleable passives are free, so they skip the charge.
-            if (config.activation().equals(ACTIVE) && !payUpkeep(player, config)) {
-                data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
-                player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
-                    .withStyle(ChatFormatting.RED));
-                return;
+        }
+        // Upkeep is paid per pulse, in every mode. A toggleable aura that can't
+        // pay switches itself off; a plain passive one skips the pulse (neither
+        // entity_action nor else_action runs) and tries again next interval.
+        if (!payUpkeep(player, config)) {
+            if (toggle) {
+                player.getData(OriginAttachments.originData())
+                    .setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
+                PowerUpkeep.announceShutOff(player);
             }
+            return;
         }
 
         try {
@@ -273,32 +277,34 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> i
         }
     }
 
+    /** This type keeps its own cost fields rather than the shared toggle table. */
+    @Override
+    public boolean readsSharedUpkeep() { return false; }
+
+    @Override
+    public boolean hasUpkeep(Config config, ResourceLocation id) {
+        return !upkeepCharge(config, false).isFree();
+    }
+
+    private static PowerUpkeep.Charge upkeepCharge(Config config, boolean barsDisabled) {
+        return PowerUpkeep.Charge.of(config.hungerCost(), config.resourceCost(),
+            config.resourceCostAmount(), barsDisabled);
+    }
+
     /**
-     * Charges one interval of upkeep for an active aura. Returns true if paid
-     * (or there is no cost), false if the holder can't afford it. Mirrors the
-     * {@link com.cyberday1.neoorigins.power.builtin.base.AbstractActivePower}
-     * cost model: resource cost falls back to hunger when resource bars are
-     * globally disabled.
+     * Charges one pulse of upkeep. True if paid, free, or waived because
+     * {@code upkeep_condition} failed; false if the holder can't afford it, in
+     * which case nothing is deducted.
      */
-    private boolean payUpkeep(ServerPlayer player, Config config) {
-        int hungerCost = config.hungerCost();
-        String resCostKey = config.resourceCost();
-        int resCostAmt = config.resourceCostAmount();
-        boolean hasResourceCost = !resCostKey.isEmpty() && resCostAmt > 0;
-        if (hasResourceCost && ContentTogglesConfig.isResourceBarsDisabled()) {
-            hungerCost += resCostAmt;
-            hasResourceCost = false;
-        }
+    boolean payUpkeep(ServerPlayer player, Config config) {
+        boolean hasResource = !config.resourceCost().isEmpty() && config.resourceCostAmount() > 0;
+        return payUpkeep(player, config, hasResource && ContentTogglesConfig.isResourceBarsDisabled());
+    }
 
-        if (hungerCost > 0 && !com.cyberday1.neoorigins.util.FoodCost.canAfford(player, hungerCost)) return false;
-        if (hasResourceCost && ResourcePower.getValue(player, resCostKey) < resCostAmt) return false;
-
-        if (hungerCost > 0) {
-            com.cyberday1.neoorigins.util.FoodCost.spend(player, hungerCost);
-        }
-        if (hasResourceCost) {
-            ResourcePower.deduct(player, resCostKey, resCostAmt);
-        }
-        return true;
+    boolean payUpkeep(ServerPlayer player, Config config, boolean barsDisabled) {
+        PowerUpkeep.Charge charge = upkeepCharge(config, barsDisabled);
+        if (charge.isFree()) return true;
+        if (!config.upkeepCondition().test(player)) return true;
+        return charge.pay(player);
     }
 }

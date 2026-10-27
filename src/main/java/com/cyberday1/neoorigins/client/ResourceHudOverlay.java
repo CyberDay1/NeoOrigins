@@ -41,7 +41,6 @@ public class ResourceHudOverlay {
 
     private static final int BG_COLOR = 0xAA000000;
     private static final int BORDER_COLOR = 0xFF333333;
-    private static final int LABEL_COLOR = 0xFFCCCCCC;
     // Value scale ticks on animated bars: a major tick every 25 units, a minor every 5.
     private static final int TICK_MAJOR_STEP = ResourceBarTicks.MAJOR_STEP;
     private static final int TICK_MINOR_STEP = ResourceBarTicks.MINOR_STEP;
@@ -164,11 +163,13 @@ public class ResourceHudOverlay {
             if (bar.label()) {
                 String label = res.label();
                 int labelW = mc.font.width(label);
-                g.drawString(mc.font, label, x + (barW - labelW) / 2, y - ResourceBarStacking.LINE, LABEL_COLOR, false);
+                drawBarText(g, mc.font, label, x + (barW - labelW) / 2, y - ResourceBarStacking.LINE,
+                    res.textColor(), res.textOutline());
             }
             String readout = res.value() + "/" + res.max();
             int readoutW = mc.font.width(readout);
-            g.drawString(mc.font, readout, x + (barW - readoutW) / 2, y + bar.box().readoutY(), LABEL_COLOR, false);
+            drawBarText(g, mc.font, readout, x + (barW - readoutW) / 2, y + bar.box().readoutY(),
+                res.textColor(), res.textOutline());
 
             if (scaled) {
                 g.pose().popPose();
@@ -368,5 +369,23 @@ public class ResourceHudOverlay {
         }
         SHEET_CACHE.put(spriteLocation, resolved);
         return resolved;
+    }
+
+    /**
+     * A bar's label or readout in its hud_render text colour. With text_outline
+     * the string is first drawn in black at the eight 1px offsets around it, so
+     * it reads on any background.
+     */
+    static void drawBarText(GuiGraphics g, net.minecraft.client.gui.Font font, String s,
+                            int x, int y, int color, boolean outline) {
+        if (outline) {
+            int dark = color & 0xFF000000; // black, at the text's own alpha
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    if (dx != 0 || dy != 0) g.drawString(font, s, x + dx, y + dy, dark, false);
+                }
+            }
+        }
+        g.drawString(font, s, x, y, color, false);
     }
 }

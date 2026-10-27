@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 
 /**
  * Report on the one hop in the authoring pipeline that nothing checks: the
- * <b>doc reference tables</b> in {@code docs/POWER_TYPES.md} against the
+ * <b>doc reference tables</b> in {@code docs/powers/*.md} against the
  * {@code FieldSpec} registry they are supposed to describe.
  *
  * <p>Three layers exist and only two were pinned. {@code schemaDriftVerify}
@@ -75,7 +75,12 @@ public final class DocFieldTableCheck {
 
     private DocFieldTableCheck() {}
 
-    private static final Path DOC = Path.of("docs/POWER_TYPES.md");
+    /**
+     * The power-type reference: one page per category under {@code docs/powers/},
+     * plus {@code docs/concepts/}, which holds the shared-field passages
+     * (cooldown HUD fields, toggle upkeep, the {@code condition} alias).
+     */
+    private static final List<Path> DOC_DIRS = List.of(Path.of("docs/powers"), Path.of("docs/concepts"));
 
     /** {@code ## `neoorigins:foo`} — a power section heading (exactly two hashes). */
     private static final Pattern SECTION =
@@ -156,7 +161,7 @@ public final class DocFieldTableCheck {
         boolean emitRows = List.of(args).contains("--rows");
         // The alias table is populated by an explicit call, not by class load.
         LegacyPowerTypeAliases.bootstrap();
-        List<String> lines = Files.readAllLines(DOC, StandardCharsets.UTF_8);
+        List<String> lines = readDocs();
         Map<String, DocSection> docs = parseSections(lines);
         Map<String, List<FieldSpec>> registry = registry();
 
@@ -496,6 +501,26 @@ public final class DocFieldTableCheck {
                 }
             }
             out.add(new SharedClaim(fields, ids, i + 1));
+        }
+        return out;
+    }
+
+    /**
+     * Every page of the reference, in a fixed order, as one line list. Each file
+     * opens with a non-power {@code ## } line so a section never runs on into the
+     * next file. Line numbers in the report count through this combined list.
+     */
+    private static List<String> readDocs() throws IOException {
+        List<String> out = new ArrayList<>();
+        for (Path dir : DOC_DIRS) {
+            List<Path> files;
+            try (var stream = Files.list(dir)) {
+                files = stream.filter(p -> p.toString().endsWith(".md")).sorted().toList();
+            }
+            for (Path f : files) {
+                out.add("## " + f.toString().replace('\\', '/'));
+                out.addAll(Files.readAllLines(f, StandardCharsets.UTF_8));
+            }
         }
         return out;
     }

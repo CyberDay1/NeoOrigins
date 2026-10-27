@@ -38,13 +38,10 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
  * <p><b>Why an event and not a mixin.</b> {@code PlayerEvent.BreakSpeed} fires as
  * the very last line of {@code getDigSpeed}, after both penalties, so a plain
  * multiply here restores exactly what the divide took. It runs at
- * {@link EventPriority#HIGHEST} so it sees the raw vanilla figure: the two other
- * break-speed listeners in this package are a multiply
- * ({@link BreakSpeedModifierEvents}, order-independent) and a
- * <em>replacement</em> ({@link BareHandToolEvents}, which swaps in a virtual
- * tool's speed if it beats the running value). Correcting first keeps the
- * bare-hand comparison honest instead of multiplying a figure that never
- * carried the penalty.
+ * {@link EventPriority#HIGHEST} so it sees the raw vanilla figure. The other
+ * break-speed listeners in this package ({@link BreakSpeedModifierEvents},
+ * {@link BareHandToolEvents}) are plain multiplies, so their order does not
+ * matter.
  *
  * <p>Handled on both sides, like its two neighbours: destroy progress is
  * predicted client-side, so a server-only correction would leave the local

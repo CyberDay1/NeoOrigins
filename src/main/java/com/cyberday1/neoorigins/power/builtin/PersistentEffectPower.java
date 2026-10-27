@@ -8,6 +8,7 @@ import com.cyberday1.neoorigins.attachment.PlayerOriginData;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
+import com.cyberday1.neoorigins.power.util.PowerUpkeep;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -15,10 +16,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
@@ -264,13 +263,11 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         boolean wasOff = data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config));
         if (wasOff) {
             data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
-            player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
-                .withStyle(ChatFormatting.GREEN));
+            PowerUpkeep.announceToggle(player, PowerHolder.currentDispatchId(), true);
         } else {
             data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
             clearEffects(player, config);
-            player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
-                .withStyle(ChatFormatting.RED));
+            PowerUpkeep.announceToggle(player, PowerHolder.currentDispatchId(), false);
         }
     }
 
@@ -279,6 +276,21 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         if (config.toggleable()) {
             PlayerOriginData data = player.getData(OriginAttachments.originData());
             if (data.isPowerToggledOff(toggleKey(config), legacyToggleKey(config))) return;
+        }
+        // Upkeep: a toggle that can't pay switches off; without a toggle the
+        // effects come off until a later charge is paid.
+        ResourceLocation id = PowerHolder.currentDispatchId();
+        PowerUpkeep.Verdict verdict = PowerUpkeep.tick(player, id, PowerUpkeep.forPower(id), config.toggleable());
+        if (verdict == PowerUpkeep.Verdict.SHUT_OFF) {
+            player.getData(OriginAttachments.originData())
+                .setPowerToggledOff(toggleKey(config), legacyToggleKey(config), true);
+            clearEffects(player, config);
+            PowerUpkeep.announceShutOff(player);
+            return;
+        }
+        if (!verdict.runs()) {
+            clearEffects(player, config);
+            return;
         }
         if (!config.condition().test(player)) {
             // Condition now false: clear our effects so the player isn't permanently buffed.
@@ -398,6 +410,7 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     public void onRevoked(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         data.setPowerToggledOff(toggleKey(config), legacyToggleKey(config), false);
+        PowerUpkeep.clearLapse(player, PowerHolder.currentDispatchId());
         clearEffects(player, config);
     }
 

@@ -5,8 +5,7 @@ import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.attachment.PlayerOriginData;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
+import com.cyberday1.neoorigins.power.util.PowerUpkeep;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -26,13 +25,11 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
         if (wasOff) {
             data.setPowerToggledOff(key, legacy, false);
             onToggledOn(player, config);
-            player.sendSystemMessage(Component.translatable("neoorigins.toggle.on")
-                .withStyle(ChatFormatting.GREEN));
+            PowerUpkeep.announceToggle(player, PowerHolder.currentDispatchId(), true);
         } else {
             data.setPowerToggledOff(key, legacy, true);
             removeEffect(player, config);
-            player.sendSystemMessage(Component.translatable("neoorigins.toggle.off")
-                .withStyle(ChatFormatting.RED));
+            PowerUpkeep.announceToggle(player, PowerHolder.currentDispatchId(), false);
         }
         // Toggles count as activations in BOTH directions — the keypress always
         // does something. Listeners that care about direction can pair with a
@@ -44,7 +41,29 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
     @Override
     public final void onTick(ServerPlayer player, C config) {
         if (isToggledOff(player, config)) return;
+        if (chargesUpkeep(config)) {
+            ResourceLocation id = PowerHolder.currentDispatchId();
+            PowerUpkeep.Verdict verdict = PowerUpkeep.tick(player, id, PowerUpkeep.forPower(id), true);
+            if (verdict == PowerUpkeep.Verdict.SHUT_OFF) {
+                shutOffForUpkeep(player, config);
+                return;
+            }
+        }
         tickEffect(player, config);
+    }
+
+    /**
+     * Whether this instance pays its authored upkeep. False for a config that
+     * makes the power always-on (wraith_phase {@code always_on}): with no toggle
+     * to switch off there is nothing a missed charge could do.
+     */
+    protected boolean chargesUpkeep(C config) { return true; }
+
+    /** The player could not pay the upkeep: switch off as a keypress would. */
+    private void shutOffForUpkeep(ServerPlayer player, C config) {
+        setToggledOff(player, config, true);
+        removeEffect(player, config);
+        PowerUpkeep.announceShutOff(player);
     }
 
     @Override

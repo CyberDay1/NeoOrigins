@@ -39,7 +39,8 @@ import java.util.Map;
  *       fluid, and a "am I wet" power means the latter.</li>
  *   <li>{@code light_level} — the light reaching the tested position, compared
  *       numerically; {@code exposed_to_sky} — nothing between it and the sky;
- *       {@code movement_blocking} — the block obstructs movement.</li>
+ *       {@code movement_blocking} — the block obstructs movement;
+ *       {@code active_beacon} — a beacon with a pyramid and a clear beam.</li>
  *   <li>{@code and} / {@code or} (Apoli 2.9+ spellings {@code all_of} / {@code any_of},
  *       carried as aliases) — recursive combinators over {@code conditions[]},
  *       each element a nested {@code block_condition} (explicit cross-doc
@@ -129,6 +130,8 @@ public final class BuiltinBlockConditions {
         define("exposed_to_sky", List.of());
         // movement_blocking — the block obstructs movement.
         define("movement_blocking", List.of());
+        // active_beacon — a lit beacon: pyramid built and beam unobstructed.
+        define("active_beacon", List.of());
         // and — every nested block condition must match.
         // `all_of` is the Apoli 2.9+ rename, accepted by ConditionParser's block
         // combinator arm; declared here so the editors stop rejecting a file that

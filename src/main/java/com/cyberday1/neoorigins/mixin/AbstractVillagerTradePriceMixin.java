@@ -2,7 +2,6 @@ package com.cyberday1.neoorigins.mixin;
 
 import com.cyberday1.neoorigins.service.EventPowerIndex;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -70,7 +69,7 @@ public abstract class AbstractVillagerTradePriceMixin {
                 new EventPowerIndex.TradeContext(offer), displayed);
             if (!Float.isFinite(scaled)) continue;
             int max = offer.getBaseCostA().getMaxStackSize();
-            int desired = Mth.clamp(Math.round(scaled), 1, max);
+            int desired = com.cyberday1.neoorigins.util.TradeCost.rounded(scaled, max);
             if (desired != displayed) {
                 offer.addToSpecialPriceDiff(desired - displayed);
             }

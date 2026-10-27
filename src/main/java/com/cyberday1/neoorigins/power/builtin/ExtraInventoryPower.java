@@ -2,7 +2,9 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.power.util.PowerUpkeep;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.HolderLookup;
@@ -11,9 +13,12 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.SimpleMenuProvider;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
@@ -27,6 +32,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * The inventory is opened via the skill keybind (active power) and uses vanilla's
  * chest UI. Contents are persisted via player data NBT.
  *
+ * <p>An optional cost ({@code hunger_cost}, {@code resource_cost} +
+ * {@code resource_cost_amount}) is charged every {@code upkeep_interval} ticks
+ * while this power's menu is open, through {@link PowerUpkeep}. The key does
+ * nothing when the player can't pay one charge, and the menu closes at the
+ * first charge they can't pay. Items stay in the stored container either way.
+ *
  * <pre>{@code
  * { "type": "neoorigins:extra_inventory", "size": 9 }
  * }</pre>
@@ -36,13 +47,44 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
     private static final String NBT_KEY = "neoorigins:extra_inventory";
     private static final Map<UUID, SimpleContainer> CONTAINERS = new ConcurrentHashMap<>();
 
-    public record Config(int size, boolean dropOnDeath, String type, String title) implements PowerConfiguration {
+    public record Config(int size, boolean dropOnDeath, String type, String title,
+                         int hungerCost, String resourceCost, int resourceCostAmount,
+                         int upkeepInterval) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.optionalFieldOf("size", 9).forGetter(Config::size),
             Codec.BOOL.optionalFieldOf("drop_on_death", false).forGetter(Config::dropOnDeath),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
-            Codec.STRING.optionalFieldOf("title", "").forGetter(Config::title)
+            Codec.STRING.optionalFieldOf("title", "").forGetter(Config::title),
+            Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
+            Codec.STRING.optionalFieldOf("resource_cost", "").forGetter(Config::resourceCost),
+            Codec.INT.optionalFieldOf("resource_cost_amount", 0).forGetter(Config::resourceCostAmount),
+            Codec.INT.optionalFieldOf("upkeep_interval", PowerUpkeep.Upkeep.DEFAULT_INTERVAL)
+                .forGetter(Config::upkeepInterval)
         ).apply(inst, Config::new));
+
+        /** No cost. */
+        public Config(int size, boolean dropOnDeath, String type, String title) {
+            this(size, dropOnDeath, type, title, 0, "", 0, PowerUpkeep.Upkeep.DEFAULT_INTERVAL);
+        }
+
+        /** The cost charged each interval while the menu is open. */
+        public PowerUpkeep.Upkeep upkeep() {
+            return new PowerUpkeep.Upkeep(hungerCost, resourceCost, resourceCostAmount, upkeepInterval, null);
+        }
+    }
+
+    /**
+     * The menu this power opens: a plain chest menu that remembers which power
+     * opened it, so only that power charges for it.
+     */
+    static final class ExtraInventoryMenu extends ChestMenu {
+        final ResourceLocation powerId;
+
+        ExtraInventoryMenu(MenuType<?> type, int windowId, Inventory playerInv, Container container,
+                           int rows, ResourceLocation powerId) {
+            super(type, windowId, playerInv, container, rows);
+            this.powerId = powerId;
+        }
     }
 
     @Override
@@ -62,8 +104,32 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
         CONTAINERS.remove(player.getUUID());
     }
 
+    /**
+     * Charges the cost while this power's menu is the player's open container,
+     * and closes it at the first charge the player can't pay. Closing goes
+     * through the normal close path, so the stored items stay put and a stack
+     * on the cursor goes back to the player's inventory.
+     */
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        PowerUpkeep.Upkeep upkeep = config.upkeep();
+        if (upkeep.isFree() || !player.isAlive()) return;
+        if (!(player.containerMenu instanceof ExtraInventoryMenu menu)) return;
+        if (!java.util.Objects.equals(menu.powerId, PowerHolder.currentDispatchId())) return;
+        if (PowerUpkeep.chargeIfDue(player, upkeep) == PowerUpkeep.Outcome.SHORT) {
+            player.closeContainer();
+        }
+    }
+
     @Override
     public void onActivated(ServerPlayer player, Config config) {
+        // Opening is free, but only for a player who could pay the next charge.
+        PowerUpkeep.Upkeep upkeep = config.upkeep();
+        if (!upkeep.isFree() && !PowerUpkeep.Charge.of(upkeep.hungerCost(), upkeep.resourceCost(),
+                upkeep.resourceCostAmount()).affordable(player)) {
+            return;
+        }
+        ResourceLocation powerId = PowerHolder.currentDispatchId();
         SimpleContainer container = getOrCreateContainer(player, config);
         // Clamp to valid chest row counts (1-6 rows of 9)
         int rows = Math.max(1, Math.min(6, (config.size() + 8) / 9));
@@ -79,7 +145,7 @@ public class ExtraInventoryPower extends PowerType<ExtraInventoryPower.Config> {
             ? Component.literal(config.title())
             : Component.translatable("container.neoorigins.extra_inventory");
         player.openMenu(new SimpleMenuProvider(
-            (windowId, playerInv, p) -> new ChestMenu(menuType, windowId, playerInv, container, rows),
+            (windowId, playerInv, p) -> new ExtraInventoryMenu(menuType, windowId, playerInv, container, rows, powerId),
             title
         ));
     }

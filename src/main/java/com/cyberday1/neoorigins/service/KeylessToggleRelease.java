@@ -27,7 +27,10 @@ public final class KeylessToggleRelease {
     /** Mirrors {@code NeoOriginsNetwork#handleActivatePower}'s slot bound. */
     private static final int SKILL_SLOTS = 6;
 
-    /** Clears the off-flag of every keyless toggle, default_off included. Returns the ids it switched on. */
+    /**
+     * Clears the off-flag of every keyless toggle, default_off included, except
+     * one that charges an upkeep. Returns the ids it switched on.
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static List<ResourceLocation> release(ServerPlayer player) {
         // Suppression forced these off on purpose; wait for a login without it.
@@ -44,6 +47,10 @@ public final class KeylessToggleRelease {
             if (!(holder.type() instanceof OffFlagToggle toggle)) continue;
             if (!holder.occupiesHotkeySlot() || PowerKeybindRegistry.isNativeHotkeyPower(holder.id())) continue;
             if (keyed.contains(holder) || !toggle.hasToggle(holder.config())) continue;
+            // A toggle that charges upkeep is never switched on behind the player's
+            // back: forcing it on every login while it shut itself off for want of
+            // the cost would be an on/off loop the player has no key to stop.
+            if (toggle.hasUpkeep(holder.config(), holder.id())) continue;
             if (toggle.isToggledOff(player, holder.config(), holder.id())) keyless.add(holder);
         }
         if (keyless.isEmpty()) return List.of();

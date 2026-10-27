@@ -26,10 +26,10 @@ import java.util.Optional;
  *       {@code bare_hand_tool:<id>} capability, construct the virtual tool
  *       stack and delegate the harvest eligibility check to it. If the
  *       virtual tool can harvest the target, flip {@code canHarvest} on.</li>
- *   <li>{@code BreakSpeed} — same substitution pattern on break-speed:
- *       if the virtual tool's {@code getDestroySpeed} beats the current
- *       (empty-fist) value, replace it. Fires client-side as well, so
- *       mining animation predicts correctly.</li>
+ *   <li>{@code BreakSpeed} — scales the running speed by the virtual tool's
+ *       {@code getDestroySpeed}, as vanilla does for a held tool (an empty
+ *       hand's base is 1.0). Fires client-side as well, so mining animation
+ *       predicts correctly.</li>
  * </ul>
  */
 @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
@@ -59,10 +59,26 @@ public final class BareHandToolEvents {
         ItemStack virtual = virtualToolFor(player);
         if (virtual.isEmpty()) return;
 
-        float virtualSpeed = virtual.getDestroySpeed(event.getState());
-        if (virtualSpeed > event.getNewSpeed()) {
-            event.setNewSpeed(virtualSpeed);
+        float scaled = bareHandSpeed(event.getNewSpeed(), virtual.getDestroySpeed(event.getState()));
+        if (scaled != event.getNewSpeed()) {
+            event.setNewSpeed(scaled);
         }
+    }
+
+    /**
+     * The break speed with the virtual tool standing in for the empty hand.
+     *
+     * <p>Vanilla's empty-hand base speed is 1.0 and every later factor (Haste,
+     * Mining Fatigue, {@code block_break_speed}, the submerged and off-ground
+     * penalties) multiplies it, so multiplying by the tool's speed is exactly what
+     * holding that tool would give. It used to REPLACE the running value instead,
+     * which threw away whatever another listener had already multiplied in: a
+     * Miner's or Mason's break-speed bonus vanished bare-handed whenever this
+     * listener happened to run after {@code BreakSpeedModifierEvents}. A pure
+     * multiply is order-independent.
+     */
+    static float bareHandSpeed(float current, float virtualSpeed) {
+        return virtualSpeed > 1.0f ? current * virtualSpeed : current;
     }
 
     /**
@@ -75,7 +91,7 @@ public final class BareHandToolEvents {
      * the tool ID is encoded into the tag after the
      * {@code bare_hand_tool:} prefix so no extra sync state is needed.
      */
-    private static ItemStack virtualToolFor(Player player) {
+    static ItemStack virtualToolFor(Player player) {
         Optional<ResourceLocation> toolId = Optional.empty();
 
         if (player instanceof ServerPlayer sp) {

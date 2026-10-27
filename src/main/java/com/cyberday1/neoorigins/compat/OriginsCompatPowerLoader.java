@@ -500,7 +500,10 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         configJson.addProperty("_power_id", id.toString());
         type.codec().parse(com.mojang.serialization.JsonOps.INSTANCE, configJson)
             .resultOrPartial(err -> NeoOrigins.LOGGER.warn("[CompatSynth] codec error for {}: {}", id, err))
-            .ifPresent(config -> target.put(id, new PowerHolder<>(id, type, config, net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty())));
+            .ifPresent(config -> {
+                target.put(id, new PowerHolder<>(id, type, config, net.minecraft.network.chat.Component.empty(), net.minecraft.network.chat.Component.empty()));
+                com.cyberday1.neoorigins.data.PowerDataManager.registerUpkeep(id, type, configJson);
+            });
     }
 
     private static com.google.gson.JsonObject json(String type) {
@@ -4121,7 +4124,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // The world-reading leaves share the in_block compiler's leaf. It skips
         // `inverted`, which compileBlockPredicate applies, so it is negated once.
         if (bareType.equals("fluid") || bareType.equals("light_level")
-                || bareType.equals("exposed_to_sky") || bareType.equals("movement_blocking")) {
+                || bareType.equals("exposed_to_sky") || bareType.equals("movement_blocking")
+                || bareType.equals("active_beacon")) {
             var leaf = com.cyberday1.neoorigins.compat.condition.ConditionParser
                 .compileBlockLeaf(condJson, contextId);
             if (leaf == null) {

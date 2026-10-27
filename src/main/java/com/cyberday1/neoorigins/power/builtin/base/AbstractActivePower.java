@@ -1,6 +1,5 @@
 package com.cyberday1.neoorigins.power.builtin.base;
 
-import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
@@ -74,46 +73,44 @@ public abstract class AbstractActivePower<C extends AbstractActivePower.Config>
     @Override
     public final void onActivated(ServerPlayer player, C config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
+        if (isFreeActivation(player, config)) {
+            // No cooldown gate, no cost, no cooldown started (personal_dimension's exit).
+            if (execute(player, config)) fireActivated(player);
+            return;
+        }
         String key = getCooldownKey(config);
         if (data.isOnCooldown(player, key)) return;
 
-        int hungerCost = config.hungerCost();
-
-        // Resource cost — if resource bars are globally disabled, fall back to hunger
-        String resCostKey = config.resourceCost();
-        int resCostAmt = config.resourceCostAmount();
-        boolean hasResourceCost = !resCostKey.isEmpty() && resCostAmt > 0;
-        boolean resourceBarsDisabled = ContentTogglesConfig.isResourceBarsDisabled();
-        if (hasResourceCost && resourceBarsDisabled) {
-            // Convert resource cost to hunger cost
-            hungerCost += resCostAmt;
-            hasResourceCost = false;
-        }
-
-        if (hungerCost > 0 && !com.cyberday1.neoorigins.util.FoodCost.canAfford(player, hungerCost)) {
-            return;  // not enough hunger — silent abort, no cooldown consumed
-        }
-
-        // Resource cost check (pre-flight)
-        if (hasResourceCost) {
-            int current = com.cyberday1.neoorigins.power.builtin.ResourcePower.getValue(player, resCostKey);
-            if (current < resCostAmt) return; // not enough resource — silent abort
-        }
+        // All-or-nothing; a resource cost falls back to hunger while resource
+        // bars are globally disabled. Short = silent abort, no cooldown consumed.
+        com.cyberday1.neoorigins.power.util.PowerUpkeep.Charge cost =
+            com.cyberday1.neoorigins.power.util.PowerUpkeep.Charge.of(
+                config.hungerCost(), config.resourceCost(), config.resourceCostAmount());
+        if (!cost.affordable(player)) return;
 
         if (execute(player, config)) {
-            if (hungerCost > 0) {
-                com.cyberday1.neoorigins.util.FoodCost.spend(player, hungerCost);
-            }
-            if (hasResourceCost) {
-                com.cyberday1.neoorigins.power.builtin.ResourcePower.deduct(player, resCostKey, resCostAmt);
-            }
+            cost.spend(player);
             data.setCooldown(key, player.tickCount, resolveCooldown(player, config));
-            ResourceLocation activatedId = PowerHolder.currentDispatchId();
-            if (activatedId != null) {
-                com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerActivated(player, activatedId);
-                com.cyberday1.neoorigins.service.EventPowerIndex.dispatchPowerActivated(player, activatedId);
-            }
+            fireActivated(player);
         }
+    }
+
+    private static void fireActivated(ServerPlayer player) {
+        ResourceLocation activatedId = PowerHolder.currentDispatchId();
+        if (activatedId != null) {
+            com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerActivated(player, activatedId);
+            com.cyberday1.neoorigins.service.EventPowerIndex.dispatchPowerActivated(player, activatedId);
+        }
+    }
+
+    /**
+     * True when this key press should bypass the cooldown entirely: it is
+     * allowed while the cooldown runs, charges no cost and starts no cooldown.
+     * Default false. {@code personal_dimension} uses it for leaving, so only
+     * entering is cooldown-gated.
+     */
+    protected boolean isFreeActivation(ServerPlayer player, C config) {
+        return false;
     }
 
     /**

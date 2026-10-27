@@ -40,8 +40,14 @@ final class TeleportEffects {
      * arrival in the DESTINATION level.
      */
     static void teleportWithEffects(ServerPlayer player, ServerLevel targetLevel, double x, double y, double z) {
+        teleportWithEffects(player, targetLevel, x, y, z, player.getYRot(), player.getXRot());
+    }
+
+    /** As above, arriving with the given facing. */
+    static void teleportWithEffects(ServerPlayer player, ServerLevel targetLevel, double x, double y, double z,
+                                    float yRot, float xRot) {
         playAt(player, player.position());
-        player.teleportTo(targetLevel, x, y, z, player.getYRot(), player.getXRot());
+        player.teleportTo(targetLevel, x, y, z, yRot, xRot);
         playAt(targetLevel, new Vec3(x, y, z));
     }
 }

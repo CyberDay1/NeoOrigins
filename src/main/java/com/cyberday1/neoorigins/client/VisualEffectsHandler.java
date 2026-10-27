@@ -282,6 +282,76 @@ public final class VisualEffectsHandler {
         }
     }
 
+    // ---- Wraith phase: obscured vision ----
+
+    /** Fog colour while phasing blind: near-black, like the inside of a block. */
+    private static final float PHASE_FOG_SHADE = 0.03f;
+
+    /**
+     * wraith_phase with {@code obscured_vision}: while the camera is inside a
+     * solid block, fog closes in at {@code phase_view_distance}. Phasing sets
+     * {@code noPhysics}, which turns off vanilla's in-wall overlay, so without
+     * this a phasing player sees straight through terrain.
+     */
+    @SubscribeEvent
+    public static void onRenderPhaseFog(ViewportEvent.RenderFog event) {
+        float distance = phaseFogDistance(event.getCamera());
+        if (Float.isNaN(distance)) return;
+        event.setNearPlaneDistance(0.0f);
+        event.setFarPlaneDistance(Math.max(0.05f, distance));
+        event.setFogShape(com.mojang.blaze3d.shaders.FogShape.SPHERE);
+        event.setCanceled(true);
+    }
+
+    @SubscribeEvent
+    public static void onComputePhaseFogColor(ViewportEvent.ComputeFogColor event) {
+        if (Float.isNaN(phaseFogDistance(event.getCamera()))) return;
+        event.setRed(PHASE_FOG_SHADE);
+        event.setGreen(PHASE_FOG_SHADE);
+        event.setBlue(PHASE_FOG_SHADE);
+    }
+
+    /**
+     * How far a phasing player may see right now, or NaN when the fog is off:
+     * no obscured_vision phase is active, or the camera is not inside a solid block.
+     */
+    static float phaseFogDistance(net.minecraft.client.Camera camera) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null || mc.player.isSpectator()) return Float.NaN;
+        if (camera.getEntity() != mc.player) return Float.NaN;
+        if (!ClientActivePowers.hasCapability("wall_phase")) return Float.NaN;
+        String data = findCapabilityData("phase_obscured_vision");
+        if (data == null) return Float.NaN;
+        if (!cameraInsideSolid(mc.level, camera.getPosition())) return Float.NaN;
+        return parseViewDistance(data);
+    }
+
+    /** The synced phase_view_distance; a value that does not parse keeps the default. */
+    public static float parseViewDistance(String data) {
+        try {
+            float d = Float.parseFloat(data);
+            if (Float.isFinite(d) && d >= 0.0f) return d;
+        } catch (NumberFormatException ignored) {}
+        return com.cyberday1.neoorigins.power.builtin.WraithPhasePower.Config.DEFAULT_VIEW_DISTANCE;
+    }
+
+    /**
+     * True when {@code eye} sits inside (or within the near plane of) the
+     * collision shape of the block it is in: the case in which the world
+     * renders as if the walls were not there.
+     */
+    private static boolean cameraInsideSolid(net.minecraft.world.level.Level level, net.minecraft.world.phys.Vec3 eye) {
+        net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.containing(eye);
+        net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+        if (state.isAir()) return false;
+        net.minecraft.world.phys.shapes.VoxelShape shape = state.getCollisionShape(level, pos);
+        if (shape.isEmpty()) return false;
+        for (net.minecraft.world.phys.AABB box : shape.toAabbs()) {
+            if (box.move(pos).inflate(0.1).contains(eye)) return true;
+        }
+        return false;
+    }
+
     // ---- Shader ----
 
     @SubscribeEvent
