@@ -55,6 +55,8 @@ public final class HeadlessWorld {
         Mockito.when(level.getEntityCollisions(Mockito.any(), Mockito.any())).thenReturn(List.of());
         Mockito.when(level.isLoaded(Mockito.any(BlockPos.class))).thenReturn(true);
         Mockito.when(level.hasChunkAt(Mockito.any(BlockPos.class))).thenReturn(true);
+        Mockito.when(level.hasChunksAt(Mockito.any(BlockPos.class), Mockito.any(BlockPos.class)))
+               .thenReturn(true);
         Mockito.when(level.getBlockState(Mockito.any(BlockPos.class)))
                .thenAnswer(inv -> stateAt(inv.getArgument(0)));
         Mockito.when(level.getFluidState(Mockito.any(BlockPos.class)))
@@ -82,6 +84,12 @@ public final class HeadlessWorld {
 
     private BlockState stateAt(BlockPos pos) {
         return blocks.getOrDefault(pos, Blocks.AIR.defaultBlockState());
+    }
+
+    /** Places one block state, where {@link #fill} only ever places stone. */
+    public HeadlessWorld place(int x, int y, int z, BlockState state) {
+        blocks.put(new BlockPos(x, y, z), state);
+        return this;
     }
 
     /** Fills a solid stone slab of blocks, inclusive on every axis. */
