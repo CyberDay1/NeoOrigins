@@ -20,6 +20,8 @@ KubeJS dependency and contains none of the integration's classes, because
 KubeJS has published no NeoForge build for Minecraft 26.3 (nor for 26.2). The scripting
 reference lives in the documentation for the 1.21.1 and 26.1 builds.
 
+> **1.21.1 vs 26.x:** the integration ships on 1.21.1, and on 26.1 from 2.2.24. 26.2 and 26.3 have none, so there are no `NeoOrigins` / `NeoOriginsEvents` globals, no `kubejs_callback` action and no `js_custom` / `js_active` power types there, whether or not KubeJS is installed.
+
 Everything the integration provides is absent here:
 
 - The `NeoOrigins` and `NeoOriginsEvents` script globals.

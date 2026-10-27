@@ -1,7 +1,7 @@
 ---
 title: Migration Guide
-parent: Guides
-nav_order: 2
+parent: "Project & Internals"
+nav_order: 3
 ---
 
 # NeoOrigins 2.0 Migration Guide

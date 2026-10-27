@@ -1,7 +1,7 @@
 ---
 title: Figura Integration
 parent: "Guides"
-nav_order: 9
+nav_order: 14
 ---
 
 # NeoOrigins + Figura Integration

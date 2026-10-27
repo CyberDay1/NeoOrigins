@@ -571,15 +571,18 @@ Fires when the player wakes from sleeping.
 
 ## `land`
 
-Fires when the player lands after a fall, via NeoForge's `LivingFallEvent`.
-That event is only raised when the player has accumulated fall distance, so
-landings in creative flight or slow descents do not fire `land` on this line.
+Fires when the player lands after a fall.
 
 **Context:** the cancellable `LivingFallEvent` itself, so
-`neoorigins:cancel_event` negates the fall damage.
+`neoorigins:cancel_event` negates the fall damage. On the tick-detector path
+below the context is null: there is no fall event to cancel, so
+`cancel_event` is a no-op for creative/flight landings.
 
-**Dispatch site:** `MovementPowerEvents.onLivingFall` (runs after the
-`prevent_action: FALL_DAMAGE` gate).
+**Dispatch sites:** `MovementPowerEvents.onLivingFall` (runs after the
+`prevent_action: FALL_DAMAGE` gate), and an onGround rising-edge detector in
+`PlayerLifecycleEvents` that catches landings which never raise
+`LivingFallEvent` (creative flight, slow descents). The two sites share a
+per-tick stamp so a survival landing is not dispatched twice.
 
 **Typical use:** landing shockwave, impact-damage scaling, parkour
 streak reset.
@@ -1033,12 +1036,19 @@ other to be present.
 
 ## `mod_anvil_cost`
 
-Multiplies the XP-level cost of an anvil repair / combine.
+Modifies the XP-level cost of an anvil repair / combine.
 
-**Context:** the `AnvilUpdateEvent`. Base value is `1.0f`; final cost is
-`max(1, (int)(originalCost * value))`.
+**Context:** the `AnvilUpdateEvent`. Base value is the vanilla-computed level
+cost; final cost is `max(1, round(modifiedValue))`. NeoForge fires the event
+after vanilla has computed the result, so the adjusted cost is both displayed
+in the anvil UI and charged when the output is taken.
 
-**Dispatch site:** `CraftingPowerEvents.onAnvilUpdate`.
+**Dispatch site:** `CraftingPowerEvents.onAnvilUpdate` (covers all vanilla
+repairs, renames, and combines).
+
+**Note:** vanilla's "Too Expensive!" cap (cost ≥ 40 in survival) is evaluated
+against the *unmodified* cost, so a discount cannot rescue an operation
+vanilla already refuses.
 
 **Typical use:** artisan / smith class 0.5× anvil cost, cursed class 2×.
 
