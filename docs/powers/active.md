@@ -264,7 +264,7 @@ Active ability that shoots a spread of 3 to 4 small (blaze-style) fireballs in t
 
 ## `neoorigins:active_phase`
 
-Active ability that phases the player through a solid wall in their look direction. Scans forward in 0.5-block steps from half eye height for a spot with a passable block, clear space above and a solid floor below, and teleports there. If none is found within `max_depth` nothing happens and no cooldown is spent. An optional hunger cost is deducted per use.
+Active ability that phases the player through a solid wall in their look direction. Scans forward in 0.5-block steps from half eye height for a passable block with clear space above and a solid floor below, where the player's whole hitbox would stand inside the world border, and teleports to the centre of that block. If none is found within `max_depth` nothing happens and no cooldown is spent. An optional hunger cost is deducted per use.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
