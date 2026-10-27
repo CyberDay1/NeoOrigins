@@ -151,3 +151,22 @@
     }
   })();
 </script>
+
+<script>
+  // ── 3. Old deep links into split pages ───────────────────────────────
+  // POWER_TYPES, ACTIONS and CONDITIONS were split into one page per
+  // category. Their index rows still carry the old anchor ids, so a link such
+  // as POWER_TYPES#neooriginsresource lands on the row; this forwards it to the
+  // row's own link, keeping the requested anchor.
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!document.getElementById('no-anchor-stub') || !location.hash) return;
+    var el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (!el || el.tagName !== 'A') return;
+    var holder = el.closest('tr, li');
+    var link = holder && holder.querySelector('a[href]');
+    if (!link) return;
+    var url = new URL(link.getAttribute('href'), location.href);
+    url.hash = location.hash;
+    location.replace(url.toString());
+  });
+</script>

@@ -9,7 +9,7 @@ nav_order: 2
 Spec for artists producing fills for NeoOrigins resource bars (mana, stamina, rage
 and custom origin resources). A bar style is a preset JSON plus its textures; the
 preset format and every field are in
-[POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource). This page covers
+[Resources, toggles & state → resource](powers/state.md#neooriginsresource). This page covers
 the art.
 
 ---

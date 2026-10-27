@@ -7,11 +7,11 @@ nav_order: 1
 # Origin Catalog
 
 A per-origin reference for the default NeoOrigins origins. Class origins
-(Warrior, Cleric, etc.) are listed in the README's Built-in Classes table, and
+(Warrior, Cleric, etc.) are listed with exact numbers in the [Class Catalog](CLASS_CATALOG.md), and
 [`CLASSES.md`](CLASSES.md) covers authoring your own; evolution mechanics live in
 [`EVOLUTION.md`](EVOLUTION.md), and authoring your own evolution tiers
 via the `tier_powers` origin field is covered in the
-[COOKBOOK](COOKBOOK.md#adding-evolution-tiers-to-an-origin).
+[Evolution System](EVOLUTION.md#adding-evolution-tiers-to-an-origin).
 
 Origins are listed alphabetically by display name.
 
@@ -309,7 +309,7 @@ alone, nine points against four, but a nugget carries no saturation and fifteen
 seconds of buff a second one restarts rather than extends. With saturation the
 iron ingot is worth 10.4 and the gold one 15, so the nuggets nether gold ore
 drops are a stopgap and not a shortcut. The full table is in
-[POWER_TYPES.md](POWER_TYPES.md#neooriginsedible_item).
+[Health, hunger & survival](powers/survival.md#neooriginsedible_item).
 
 Diamond is the key to the origin's mining loop: Diamond Clarity is what
 switches Mining Fortune on, so a Caveborn eats a diamond and then mines ore for
@@ -1324,7 +1324,7 @@ Flies on their blade, hurls sword-qi at range and blinks through battle: every s
 - *Sword Heart*: strike far harder with a blade in hand, merely mortal without one
 - *Keen Edge*: your sword recovers almost instantly between cuts
 - *Sword Qi*: active, loose a crescent of sword-energy that cuts at range (sword required)
-- *Riding the Sword*: toggle, step onto your blade and fly; jump to rise, sneak to descend
+- *Riding the Sword*: toggle, step onto your blade and fly; jump to rise, sneak to descend. Costs 1 hunger point every 3 seconds while airborne, and ends when you can no longer pay
 - *Flickering Slash*: active, blink forward in a flash of steel
 - *Immortal Body*: take no fall damage
 - *Ten Thousand Swords Return*: active, hurl a spectral blade that rains a sword-storm where it strikes (sword required)
