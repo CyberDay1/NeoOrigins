@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -59,7 +60,11 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
                 boolean aboveClear = above.getCollisionShape(level, bp.above()).isEmpty();
                 BlockState below = level.getBlockState(bp.below());
                 boolean floorSolid = !below.getCollisionShape(level, bp.below()).isEmpty();
-                if (aboveClear && floorSolid) {
+                // Never land outside the world border: the scan reaches
+                // max_depth blocks ahead, which is far enough to cross it from
+                // just inside, and a teleport answers to no collision.
+                if (aboveClear && floorSolid
+                        && landsInsideBorder(level.getWorldBorder(), bp, player.getBbWidth() / 2.0)) {
                     target = bp;
                     break;
                 }
@@ -78,5 +83,15 @@ public class ActivePhasePower extends AbstractActivePower<ActivePhasePower.Confi
         // Hunger cost is handled by AbstractActivePower.onActivated() when we return true.
         TeleportEffects.teleportWithEffects(player, dest.x, dest.y, dest.z);
         return true;
+    }
+
+    /**
+     * Whether a player {@code halfWidth} wide, landed on the centre of {@code bp},
+     * is wholly inside the border. Tests the landing point, not the block's lower
+     * corner: a border face can sit at a half block, which {@code /worldborder
+     * center} gives for any whole-number centre.
+     */
+    static boolean landsInsideBorder(WorldBorder border, BlockPos bp, double halfWidth) {
+        return border.isWithinBounds(bp.getX() + 0.5, bp.getZ() + 0.5, -halfWidth);
     }
 }
