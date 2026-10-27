@@ -23,7 +23,7 @@ public class ActiveGroundSlamPower extends AbstractActivePower<ActiveGroundSlamP
         float knockbackStrength,
         double radius,
         int cooldownTicks,
-        String type,
+        String type,
         String cooldownIcon,
         boolean cooldownCountdown,
         boolean alwaysShowIcon
@@ -33,7 +33,7 @@ public class ActiveGroundSlamPower extends AbstractActivePower<ActiveGroundSlamP
             Codec.FLOAT.optionalFieldOf("knockback_strength", 1.5f).forGetter(Config::knockbackStrength),
             Codec.DOUBLE.optionalFieldOf("radius", 6.0).forGetter(Config::radius),
             Codec.INT.optionalFieldOf("cooldown_ticks", 120).forGetter(Config::cooldownTicks),
-            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
+            Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),
             Codec.BOOL.optionalFieldOf("always_show_icon", false).forGetter(Config::alwaysShowIcon)
