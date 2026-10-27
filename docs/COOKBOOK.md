@@ -1,138 +1,29 @@
 # NeoOrigins Pack-Builder Cookbook
 
-A recipe-first tour of NeoOrigins 2.0 for datapack authors. The
-[POWER_TYPES](POWER_TYPES.md), [CONDITIONS](CONDITIONS.md),
-[ACTIONS](ACTIONS.md), and [EVENTS](EVENTS.md) docs are the reference;
-this doc is the _how do I actually build a thing_ companion.
+Working patterns to copy and adapt. Each recipe is a complete power file (or a small set of them). The reference pages hold every field: [Power Types](POWER_TYPES.md), [Entity Actions](ACTIONS.md), [Conditions](CONDITIONS.md) and [Events](EVENTS.md).
+
+New to NeoOrigins? Start with [Getting started](guides/getting-started.md). Debugging a pack? See [Test and debug a pack](guides/testing.md).
 
 Contents:
-- [Zero to origin in five minutes](#zero-to-origin-in-five-minutes)
-- [Anatomy of a power file](#anatomy-of-a-power-file)
-- [Recipes](#recipes): common patterns (incl. toggleable abilities)
-- [Essence Evolution](#essence-evolution-tier-progression): kill-based tier progression
-- [Built-in mechanics](#built-in-mechanics): undead potion reversal, aquatic shared powers
-- [Testing & debugging](#testing--debugging)
-- [Common pitfalls](#common-pitfalls)
+
+- [Passive stats and effects](#passive-stats-and-effects)
+- [Hazards and weaknesses](#hazards-and-weaknesses)
+- [Diet and food](#diet-and-food)
+- [Combat triggers](#combat-triggers)
+- [Active abilities and costs](#active-abilities-and-costs)
+- [Projectiles and spells](#projectiles-and-spells)
+- [Toggles](#toggles)
+- [Mobs and mounts](#mobs-and-mounts)
+- [Mining and movement](#mining-and-movement)
+- [Origins, layers and respawn](#origins-layers-and-respawn)
 - [Where to go next](#where-to-go-next)
 
 ---
 
-## Zero to origin in five minutes
+## Passive stats and effects
 
-The smallest viable origin needs three files:
-
-```
-data/
-  mypack/
-    origins/
-      origin_layers/
-        origin.json                 # which origins show in the picker
-      origins/
-        my_origin.json              # the origin itself
-      powers/
-        my_origin_scale.json        # one or more powers granted by the origin
-```
-
-**`origin_layers/origin.json`**: add your origin to the built-in picker layer.
-Overriding `neoorigins:origin` (the main picker layer) merges your origins
-into the vanilla tab instead of giving them their own. Only list the IDs you
-are adding: layer JSONs merge **additively** by default, so your `origins`
-array is appended to the shipped one (deduplicated by ID) and the built-in
-origins stay listed by the core mod's own `origin_layers/origin.json`. You
-never have to re-list a built-in.
-
-Position in the array is not display order. The picker sorts by each origin's
-own `order` field (ascending, alphabetical tie-break) by default, under the
-`MANUAL` sort, so set `order` in `origins/my_origin.json` to place
-your entry. If you want to remove or curate the built-ins rather than add to
-them, set `"replace": true` on your layer file: every field you supply then
-overwrites the built-in's, `origins` included. See
-[PACK_FORMAT](PACK_FORMAT.md#adding-origins-to-the-built-in-layer) for the
-full merge rules.
-
-```json
-{
-  "origins": [
-    "mypack:my_origin"
-  ]
-}
-```
-
-**`origins/my_origin.json`**: the origin definition the picker renders.
-
-```json
-{
-  "name": "Stone Walker",
-  "description": "Hardened from birth. Cannot drown but takes extra fire damage.",
-  "impact": 1,
-  "order": 50,
-  "powers": [
-    "mypack:my_origin_scale",
-    "mypack:stone_walker_water_breath",
-    "mypack:stone_walker_fire_weak"
-  ],
-  "icon": {
-    "item": "minecraft:stone"
-  }
-}
-```
-
-**`powers/my_origin_scale.json`**: a size-scaling power. Keeps the origin
-visually distinct.
-
-```json
-{
-  "type": "neoorigins:size_scaling",
-  "name": "Small",
-  "description": "90% the size of a regular player.",
-  "scale": 0.9,
-  "modify_reach": false
-}
-```
-
-Drop the datapack into `world/datapacks/` (or ship it as a mod resource),
-`/reload`, open the origin picker, pick your origin. Done.
-
-From here, everything is just adding more power JSONs and referencing them
-in the origin's `powers` array.
-
----
-
-## Anatomy of a power file
-
-Every power file follows the same shape:
-
-```json
-{
-  "type": "<the power type>",
-  "name": "...",                    // shown in the origin picker
-  "description": "...",             // shown in the origin picker
-  "hidden": false,                  // optional — hide from the UI
-  // ...type-specific fields...
-}
-```
-
-The `type` field is the only mandatory part of the skeleton. The rest of
-the JSON is whatever fields that power type accepts. See
-[POWER_TYPES.md](POWER_TYPES.md) for the full per-type field catalogue.
-
-**Three shapes of power**, in rough order of what you'll reach for:
-
-1. **Always-on / passive**: things that are true while the origin is held.
-   `attribute_modifier`, `persistent_effect`, `condition_passive`,
-   `size_scaling`, `prevent_action`.
-2. **Event-triggered**: things that run in response to something the
-   player does. `action_on_event`, `action_on_hit`.
-3. **Active ability**: things the player fires with a keybind.
-   `active_ability` + `entity_action`.
-
-Most recipes below are one of these three shapes.
-
----
-
-## Recipes
-
-### 1. "Passive health boost": +4 max HP
+<a id="1-passive-health-boost-4-max-hp"></a>
+### Passive health boost: +4 max HP
 
 ```json
 {
@@ -145,7 +36,10 @@ Most recipes below are one of these three shapes.
 }
 ```
 
-### 2. "Always has night vision"
+---
+
+<a id="2-always-has-night-vision"></a>
+### Always has night vision
 
 ```json
 {
@@ -161,7 +55,174 @@ player's "Toggle Night Vision" key (K by default) switches it off and on. The
 codec also accepts an `exposure` field (0.0-1.0), but the client currently
 ignores it and applies a fixed floor.
 
-### 3. "Carnivore: can only eat meat"
+---
+
+<a id="5-slow-fall-from-high-places"></a>
+### Slow fall from high places
+
+```json
+{
+  "type": "neoorigins:persistent_effect",
+  "name": "Hollow Bones",
+  "description": "Always falls slowly.",
+  "effect": "minecraft:slow_falling",
+  "amplifier": 0,
+  "show_icon": false,
+  "toggleable": false
+}
+```
+
+`persistent_effect` applies the effect at infinite duration and re-applies
+it if it goes missing. Set `show_icon: false` so the effects HUD doesn't
+clutter. Set `toggleable: false` so the player can't turn it off.
+
+---
+
+<a id="6-heal-in-water"></a>
+### Heal in water
+
+```json
+{
+  "type": "neoorigins:condition_passive",
+  "name": "Aquatic Recovery",
+  "description": "Regenerates while submerged in water.",
+  "condition": { "type": "neoorigins:submerged_in", "fluid": "minecraft:water" },
+  "entity_action": { "type": "neoorigins:heal", "amount": 0.5 },
+  "interval": 40
+}
+```
+
+`condition_passive` is the workhorse 2.0 type: pair any condition with any
+action, and it fires every `interval` ticks when the condition holds.
+Replaces the old `biome_buff`, `regen_in_fluid`, `burn_at_health_threshold`,
+and several others.
+
+---
+
+### Moon-blessed armor (condition-gated attribute)
+
+Attribute modifiers accept a `condition` that edge-triggers at ~5-tick
+intervals. Pair with the new `neoorigins:night` condition for
+"stronger after dark" flavor.
+
+```json
+{ "type": "neoorigins:attribute_modifier",
+  "attribute": "minecraft:armor",
+  "amount": 4.0, "operation": "add_value",
+  "condition": { "type": "neoorigins:night" } }
+```
+
+The modifier is applied/removed automatically as daytime flips. Any
+condition works here: `neoorigins:thundering` for storm-blessed
+equipment, `neoorigins:climbing` for scaling-specific buffs, etc.
+
+---
+
+### Warm near a campfire (near_block condition)
+
+`neoorigins:near_block` scans a cubic radius for matching blocks and
+fires when any are found. Accepts any combination of `block`/`blocks`/
+`tag`/`tags` fields with logical OR.
+
+```json
+{ "type": "neoorigins:condition_passive",
+  "condition": {
+    "type": "neoorigins:near_block",
+    "tags": ["minecraft:campfires", "#minecraft:fire"],
+    "radius": 5
+  },
+  "entity_action": {
+    "type": "neoorigins:apply_effect",
+    "effect": "minecraft:fire_resistance",
+    "duration": 100, "amplifier": 0
+  },
+  "interval": 20
+}
+```
+
+Radius defaults to 4 and is clamped to 1-16 to keep the scan cheap.
+
+---
+
+### Periodic feed / heal via `neoorigins:action_over_time`
+
+NeoOrigins' built-in `neoorigins:tick_action` ships no behaviour at all: it dispatches nothing. For any periodic action (periodically restore hunger, heal a fixed amount, apply an effect, run an arbitrary entity-action), use `neoorigins:action_over_time`. It is an alias for [`neoorigins:condition_passive`](powers/core.md#neooriginscondition_passive) (identical fields), so an optional `condition` gates whether the action runs each interval.
+
+**Periodic hunger restoration** (e.g. for an origin that doesn't eat conventionally):
+```json
+{
+  "type": "neoorigins:action_over_time",
+  "interval": 40,
+  "entity_action": {
+    "type": "neoorigins:feed",
+    "food": 1,
+    "saturation": 0.2
+  }
+}
+```
+
+**Periodic healing** (independent of food / `natural_regen_modifier`):
+```json
+{
+  "type": "neoorigins:action_over_time",
+  "interval": 60,
+  "entity_action": {
+    "type": "neoorigins:heal",
+    "amount": 0.5
+  }
+}
+```
+
+`interval` is in ticks (20 = 1 second). The `entity_action` runs against the player. An optional `condition` (any `ConditionParser` verb, e.g. `neoorigins:exposed_to_sun`) gates each run. Any verb supported by `ActionParser` works (`neoorigins:apply_effect`, `neoorigins:damage`, `neoorigins:execute_command`, `neoorigins:if_else` for conditional wrapping, etc.).
+
+---
+
+## Hazards and weaknesses
+
+<a id="4-fire-weakness-50-damage-from-fire"></a>
+### Fire weakness: +50% damage from fire
+
+```json
+{
+  "type": "neoorigins:modify_damage",
+  "name": "Flammable",
+  "description": "Takes +50% damage from fire.",
+  "direction": "in",
+  "damage_type": "#minecraft:is_fire",
+  "multiplier": 1.5
+}
+```
+
+Tag-based damage filters (`#minecraft:is_fire`) catch IN_FIRE + ON_FIRE +
+LAVA + HOT_FLOOR + FIREBALL in one rule. Bare `damage_type` strings
+(`"lava"`) match only that specific source.
+
+---
+
+<a id="10-lose-1-hp-every-2s-while-in-daylight-vampire-pattern"></a>
+### Lose 1 HP every 2s while in daylight (Vampire pattern)
+
+```json
+{
+  "type": "neoorigins:condition_passive",
+  "name": "Sun Allergy",
+  "description": "Takes damage while exposed to daylight.",
+  "condition": { "type": "neoorigins:exposed_to_sun" },
+  "entity_action": { "type": "neoorigins:damage", "amount": 1, "source": { "name": "on_fire" } },
+  "interval": 40
+}
+```
+
+`neoorigins:exposed_to_sun` is the canonical day-exposure condition: it
+checks both time-of-day and that the block column above the player lets
+skylight through.
+
+---
+
+## Diet and food
+
+<a id="3-carnivore-can-only-eat-meat"></a>
+### Carnivore: can only eat meat
 
 ```json
 {
@@ -178,7 +239,10 @@ player can eat anything in any listed tag. Every entry is read as an item
 tag (the leading `#` is optional), so put individual items in a tag of
 your own rather than listing bare item IDs.
 
-### 3b. "Restricted diet + make non-food items edible" (Skeleton pattern)
+---
+
+<a id="3b-restricted-diet--make-non-food-items-edible-skeleton-pattern"></a>
+### Restricted diet + make non-food items edible (Skeleton pattern)
 
 Combine `food_restriction` to block normal food with `edible_item` to
 make non-food items consumable. The Skeleton origin uses this pattern:
@@ -231,7 +295,10 @@ that `edible_item` makes edible and that have no vanilla food component
 (bone meal here) never reach the `food_restriction` check, so listing
 them is harmless but not required.
 
-### 3c. "Food restores more hunger and saturation"
+---
+
+<a id="3c-food-restores-more-hunger-and-saturation"></a>
+### Food restores more hunger and saturation
 
 Use the dedicated `neoorigins:modify_food_nutrition` power type. It
 **overrides** the nutrition of matching food to an absolute target value
@@ -276,60 +343,44 @@ eat, not to add to one.)
 }
 ```
 
-### 4. "Fire weakness: +50% damage from fire"
+---
 
+### Eat stone for food, eat diamonds for Luck (Caveborn consumables)
+
+Chained pattern: an `edible_item` power makes items consumable, and an
+`action_on_event` power listens on `ITEM_USE_FINISH` to apply a bonus
+when a matching item is eaten. Cross-reference using a custom item tag
+in `food_item_in_tag`.
+
+**Edibility side:**
 ```json
-{
-  "type": "neoorigins:modify_damage",
-  "name": "Flammable",
-  "description": "Takes +50% damage from fire.",
-  "direction": "in",
-  "damage_type": "#minecraft:is_fire",
-  "multiplier": 1.5
+{ "type": "neoorigins:edible_item",
+  "tags": ["mypack:eat_diamond"],
+  "nutrition": 6, "saturation": 1.2, "always_edible": true }
+```
+
+**Bonus side:**
+```json
+{ "type": "neoorigins:action_on_event",
+  "event": "item_use_finish",
+  "entity_action": {
+    "type": "neoorigins:if_else",
+    "condition": { "type": "neoorigins:food_item_in_tag",
+                   "tag": "#mypack:eat_diamond" },
+    "if_action": { "type": "neoorigins:apply_effect",
+                   "effect": "minecraft:luck", "duration": 6000, "amplifier": 1 }
+  }
 }
 ```
 
-Tag-based damage filters (`#minecraft:is_fire`) catch IN_FIRE + ON_FIRE +
-LAVA + HOT_FLOOR + FIREBALL in one rule. Bare `damage_type` strings
-(`"lava"`) match only that specific source.
+Ship the item tag at `data/mypack/tags/item/eat_diamond.json`.
 
-### 5. "Slow fall from high places"
+---
 
-```json
-{
-  "type": "neoorigins:persistent_effect",
-  "name": "Hollow Bones",
-  "description": "Always falls slowly.",
-  "effect": "minecraft:slow_falling",
-  "amplifier": 0,
-  "show_icon": false,
-  "toggleable": false
-}
-```
+## Combat triggers
 
-`persistent_effect` applies the effect at infinite duration and re-applies
-it if it goes missing. Set `show_icon: false` so the effects HUD doesn't
-clutter. Set `toggleable: false` so the player can't turn it off.
-
-### 6. "Heal in water"
-
-```json
-{
-  "type": "neoorigins:condition_passive",
-  "name": "Aquatic Recovery",
-  "description": "Regenerates while submerged in water.",
-  "condition": { "type": "neoorigins:submerged_in", "fluid": "minecraft:water" },
-  "entity_action": { "type": "neoorigins:heal", "amount": 0.5 },
-  "interval": 40
-}
-```
-
-`condition_passive` is the workhorse 2.0 type: pair any condition with any
-action, and it fires every `interval` ticks when the condition holds.
-Replaces the old `biome_buff`, `regen_in_fluid`, `burn_at_health_threshold`,
-and several others.
-
-### 7. "On kill: heal 2 hearts"
+<a id="7-on-kill-heal-2-hearts"></a>
+### On kill: heal 2 hearts
 
 ```json
 {
@@ -344,7 +395,24 @@ and several others.
 See [EVENTS.md](EVENTS.md) for the full list of event keys. Common ones:
 `kill`, `hit_taken`, `attack`, `jump`, `land`, `food_eaten`, `block_break`.
 
-### 8. "Active ability: short dash forward"
+---
+
+### Composing power sets
+
+Individual 2.0 power types are intentionally narrow so they can be combined. For a "rat"-style origin that marks small mobs it kills and gets a heal buff when attacking anything on the list:
+
+- `neoorigins:entity_set` — declares the UUID set (e.g. `mypack:kill_list`)
+- `neoorigins:action_on_event` with `event: kill`, `entity_action: { type: neoorigins:add_to_set, set: mypack:kill_list }` — appends victims to the set
+- `neoorigins:condition_passive` with `condition: { type: origins:target_in_set, set: mypack:kill_list }` and `entity_action: { type: neoorigins:heal, amount: 0.5 }` — heals when attacking a marked target
+
+Each piece is a separate power entry in the origin's `powers` array. The `entity_set` power carries no behaviour on its own: it's the shared name other powers read and write.
+
+---
+
+## Active abilities and costs
+
+<a id="8-active-ability-short-dash-forward"></a>
+### Active ability: short dash forward
 
 ```json
 {
@@ -366,46 +434,38 @@ Active abilities take skill slots in the order they appear in the origin's
 and so on. To bind one to a named hotkey instead, set `key` to a number N
 (Hotkey N).
 
-### 9. "Summon a minion"
+---
+
+### Forward dash in look direction
+
+The `neoorigins:dash` action projects a strength magnitude along the
+player's look vector. Canonical V2 replacement for `active_dash`.
 
 ```json
-{
-  "type": "neoorigins:summon_minion",
-  "name": "Raise Skeleton",
-  "description": "Call a skeleton guardian.",
-  "mob_type": "minecraft:skeleton",
-  "max_count": 2,
-  "cooldown_ticks": 400,
-  "hunger_cost": 6,
-  "despawn_ticks": 12000,
-  "death_damage": 2.0,
-  "mainhand": "minecraft:bow",
-  "head": "minecraft:iron_helmet"
-}
+{ "type": "neoorigins:active_ability",
+  "cooldown_ticks": 60, "hunger_cost": 2,
+  "entity_action": { "type": "neoorigins:dash",
+                     "strength": 2.2,
+                     "allow_vertical": true } }
 ```
 
-Summons get their AI rewritten automatically: they won't attack the
-summoner, and they fight back against whatever the summoner is fighting.
-`death_damage` is the HP penalty when the minion falls in combat.
+Set `allow_vertical: false` for ground-lock dashes that ignore look
+pitch. Sets `hurtMarked = true` internally so client prediction
+doesn't discard the impulse.
 
-### 10. "Lose 1 HP every 2s while in daylight" (Vampire pattern)
+---
 
-```json
-{
-  "type": "neoorigins:condition_passive",
-  "name": "Sun Allergy",
-  "description": "Takes damage while exposed to daylight.",
-  "condition": { "type": "neoorigins:exposed_to_sun" },
-  "entity_action": { "type": "neoorigins:damage", "amount": 1, "source": { "name": "on_fire" } },
-  "interval": 40
-}
-```
+<a id="21-ability-with-a-resource-cost"></a>
+### Ability with a resource cost
 
-`neoorigins:exposed_to_sun` is the canonical day-exposure condition: it
-checks both time-of-day and that the block column above the player lets
-skylight through.
+Moved to its own page: [Give an ability a cost](guides/costs.md).
 
-### 11. "Projectile that drowns enemies in an AoE at the impact point"
+---
+
+## Projectiles and spells
+
+<a id="11-projectile-that-drowns-enemies-in-an-aoe-at-the-impact-point"></a>
+### Projectile that drowns enemies in an AoE at the impact point
 
 Fires a snowball-sized projectile; where it lands, every undead in a
 5-block radius takes magic damage and gets heavy slowness for six seconds.
@@ -494,7 +554,10 @@ the nearest living entity); the DSL `on_hit_action` still fires
 independently on impact, so custom projectiles integrate cleanly with
 the rest of the 2.0 action pipeline.
 
-### 12. "Black hole: pull everything nearby toward a point and damage the center"
+---
+
+<a id="12-black-hole-pull-everything-nearby-toward-a-point-and-damage-the-center"></a>
+### Black hole: pull everything nearby toward a point and damage the center
 
 Active ability that spawns a lingering gravity well at the caster's
 position. Pulls for two seconds, then expires.
@@ -529,7 +592,10 @@ position. Pulls for two seconds, then expires.
     "on_hit_action": { "type": "neoorigins:spawn_black_hole", "radius": 6.0, "duration_ticks": 40 } }
   ```
 
-### 13. "Tornado: fling entities in a cone"
+---
+
+<a id="13-tornado-fling-entities-in-a-cone"></a>
+### Tornado: fling entities in a cone
 
 ```json
 {
@@ -563,7 +629,10 @@ position. Pulls for two seconds, then expires.
 - `lift_strength: 0.8` lifts targets ~2 blocks over the tornado's
   lifetime, enough to disorient without throwing them across the map.
 
-### 14. "Lingering damage cloud at projectile impact"
+---
+
+<a id="14-lingering-damage-cloud-at-projectile-impact"></a>
+### Lingering damage cloud at projectile impact
 
 Classic poison/acid cloud pattern: the projectile carries a cloud, the
 cloud ticks its action on an interval until it expires.
@@ -604,157 +673,225 @@ tick passes the cloud's location to the action context holder.
 
 ---
 
-### 15. Toggleable abilities (no keybind slot)
+<a id="17-arcane-bolt-a-straight-flying-spell-projectile-no-gravity"></a>
+### Arcane bolt: a straight-flying spell projectile (no gravity)
 
-A `neoorigins:toggle` power is a **named boolean** stored per-player. It
-doesn't appear on the skill bar and doesn't consume a keybind slot; its
-only job is to be _read_ by other powers' `condition` field and _written_
-by other powers' `entity_action`. This is the cleanest way to give pack
-authors a stance, a stealth flag, a mark, or any "is this mode on right
-now?" gate without burning a hotbar key.
-
-The pattern is always three pieces:
-
-1. **The flag itself**: a `neoorigins:toggle` power. Optional `default`
-   sets the value reads see before the flag has ever been flipped. Set
-   `"hidden": true` to keep the flag off the origin info panel, almost
-   always what you want for an internal flag.
-2. **A way to read it**: `neoorigins:power_active { power: "..." }` inside
-   any other power's `condition`.
-3. **A way to flip it**: `neoorigins:toggle { power: "..." }` inside any
-   `entity_action` (active ability, action_on_hit, action_on_event, etc.).
-   These glue powers also typically want `"hidden": true` since the
-   player only needs to see the user-facing rollup.
-
-#### Example A: Toggle-gated wall climbing
-
-A passive that lets the player climb walls, but only while a separate
-"climb mode" flag is on. The active ability flips the flag.
+Recipe #11 fires a projectile that arcs under gravity. Set
+`no_gravity: true` and it flies dead straight along your aim like a laser
+bolt, and the 2.1 visual fields let you style the orb without any Java.
+Here it's a cyan sphere with a soul-fire trail that deals magic damage on
+hit.
 
 ```json
-// data/mypack/origins/powers/climb_mode.json — the flag (visible so the player sees it cycle)
-{
-  "type": "neoorigins:toggle",
-  "default": false,
-  "name": "Climb Mode",
-  "description": "While active, you can climb walls."
-}
-```
-
-```json
-// data/mypack/origins/powers/wall_climb.json — gated capability
-{
-  "type": "neoorigins:wall_climbing",
-  "condition": {
-    "type": "neoorigins:power_active",
-    "power": "mypack:climb_mode"
-  },
-  "name": "Spider Grip",
-  "description": "Climb any wall while Climb Mode is on."
-}
-```
-
-```json
-// data/mypack/origins/powers/toggle_climb.json — the keybind
 {
   "type": "neoorigins:active_ability",
-  "cooldown_ticks": 10,
+  "name": "Arcane Bolt",
+  "description": "Fire a straight bolt of arcane energy.",
+  "cooldown_ticks": 40,
+  "hunger_cost": 2,
   "entity_action": {
-    "type": "neoorigins:toggle",
-    "power": "mypack:climb_mode"
-  },
-  "name": "Toggle Climb Mode",
-  "description": "Press to toggle wall climbing on/off."
-}
-```
-
-The wall-climb power does the work; the toggle is just a data flag.
-Swap `wall_climbing` for any condition-gated power (attribute,
-persistent_effect, etc.) and the same pattern works.
-
-#### Example B: Stance switch (Hunter's Mark style)
-
-A flag that's flipped on by attacking and back off after the next kill.
-No keybind required. While the flag is on, the player gains
-Strength I against all targets.
-
-```json
-// data/mypack/origins/powers/marked.json — the internal flag
-{
-  "type": "neoorigins:toggle",
-  "default": false,
-  "hidden": true
-}
-```
-
-```json
-// data/mypack/origins/powers/mark_on_hit.json — flip on when hitting (visible: this is the user-facing description)
-{
-  "type": "neoorigins:action_on_hit",
-  "entity_action": {
-    "type": "neoorigins:actor_action",
-    "action": {
-      "type": "neoorigins:toggle",
-      "power": "mypack:marked",
-      "value": true
+    "type": "neoorigins:spawn_projectile",
+    "entity_type": "neoorigins:magic_orb",
+    "speed": 2.2,
+    "no_gravity": true,
+    "orb_color": "#30E0FF",
+    "glow_color": "#1060FF",
+    "shape": "sphere",
+    "size": 0.35,
+    "trail_particle": "minecraft:soul_fire_flame",
+    "on_hit_action": {
+      "type": "neoorigins:target_action",
+      "action": {
+        "type": "neoorigins:damage",
+        "amount": 6.0,
+        "source": { "name": "magic" }
+      }
     }
-  },
-  "name": "Hunter's Mark",
-  "description": "Marks the next target in line."
-}
-```
-
-```json
-// data/mypack/origins/powers/mark_clear_on_kill.json — internal: flip off on kill
-{
-  "type": "neoorigins:action_on_event",
-  "event": "kill",
-  "hidden": true,
-  "entity_action": {
-    "type": "neoorigins:toggle",
-    "power": "mypack:marked",
-    "value": false
   }
 }
 ```
 
-`action_on_hit` runs a bare `entity_action` against the entity you hit, so
-the toggle above is wrapped in `actor_action` to flip the attacker's own
-flag. Unwrapped, it would do nothing on a mob and flip the victim's flag on
-a player.
+`on_hit_action` runs on the caster, so the damage is wrapped in
+`target_action`, which retargets it onto the entity the bolt hit (and does
+nothing on a block hit). A bare `damage` here would hurt the caster.
 
-Use `action_on_event` with `"event": "kill"` here, not the legacy
-`neoorigins:action_on_kill`. That alias builds its own `entity_action` from
-`action`/`amount`/`effect` and overwrites whatever the file supplied, so a
-toggle written under it is dropped and the power heals instead.
+`no_gravity` works on **any** projectile entity (vanilla `minecraft:arrow`
+included), not just the magic orb; it sets the vanilla no-gravity flag so
+drag still applies but the projectile never drops.
+
+---
+
+<a id="18-elemental-cast-one-line-fireball--wind-bolt"></a>
+### Elemental cast: one-line fireball / wind bolt
+
+For a quick spell without wiring up `spawn_projectile` yourself, the
+dedicated active cast powers fire a styled projectile on the skill key.
+`active_fireball` lobs small fireballs; `active_bolt` throws a wind charge.
 
 ```json
-// data/mypack/origins/powers/marked_strength.json — gated buff
 {
-  "type": "neoorigins:persistent_effect",
-  "condition": { "type": "neoorigins:power_active", "power": "mypack:marked" },
-  "effects": [
-    { "effect": "minecraft:strength", "amplifier": 0 }
-  ],
-  "toggleable": false,
-  "hidden": true,
-  "name": "Marked Strength",
-  "description": "Strength I while a target is marked."
+  "type": "neoorigins:active_fireball",
+  "name": "Fire Cast",
+  "description": "Hurl a small fireball.",
+  "speed": 1.6,
+  "cooldown_ticks": 80
 }
 ```
 
-Note `value: true` / `value: false` to set explicitly, vs. leaving
-`value` off to flip whatever the current state is. Setting explicitly is
-idempotent, useful for one-shot triggers like the `action_on_hit` above
-that should always force the mark on regardless of prior state.
+Swap to `"type": "neoorigins:active_bolt"` for a knockback wind charge
+(`speed` default 1.2, `cooldown_ticks` default 80). Both take the next free
+skill slot, like any active ability (see recipe #8).
 
-**Why use this over `AbstractTogglePower` subclasses (e.g. `flight`,
-`item_magnetism`)?** Those occupy a keybind slot and are best for one
-ability per origin. `neoorigins:toggle` is for fan-out: a single flag that
-multiple powers gate on, or a flag flipped by something other than the
-keybind (an event, a hit, a tick condition).
+---
 
-### 16. "Reroll my custom layer": wiring up a spare orb
+## Toggles
+
+<a id="15-toggleable-abilities-no-keybind-slot"></a>
+### Toggleable abilities (no keybind slot)
+
+Moved to its own page: [Make a toggle](guides/toggles.md).
+
+---
+
+## Mobs and mounts
+
+<a id="9-summon-a-minion"></a>
+### Summon a minion
+
+```json
+{
+  "type": "neoorigins:summon_minion",
+  "name": "Raise Skeleton",
+  "description": "Call a skeleton guardian.",
+  "mob_type": "minecraft:skeleton",
+  "max_count": 2,
+  "cooldown_ticks": 400,
+  "hunger_cost": 6,
+  "despawn_ticks": 12000,
+  "death_damage": 2.0,
+  "mainhand": "minecraft:bow",
+  "head": "minecraft:iron_helmet"
+}
+```
+
+Summons get their AI rewritten automatically: they won't attack the
+summoner, and they fight back against whatever the summoner is fighting.
+`death_damage` is the HP penalty when the minion falls in combat.
+
+---
+
+<a id="19-hunting-predator-conditional-mob-aggression-mob-origins"></a>
+### Hunting predator: conditional mob aggression (mob origins)
+
+`mob_behavior` rewrites a mob origin's AI so the mob hunts players. With
+`aggression: "conditional"` the mob only turns hostile when **all**
+`hostile_when` conditions hold against the prospective target: here, only
+players who are in daylight and *not* sneaking. It still retaliates when
+struck (`retaliate` defaults true) and calls nearby packmates.
+
+```json
+{
+  "type": "neoorigins:mob_behavior",
+  "aggression": "conditional",
+  "aggro_range": 24.0,
+  "anger_linger_ticks": 300,
+  "call_for_help": true,
+  "hostile_when": [
+    { "type": "neoorigins:exposed_to_sun" },
+    { "type": "neoorigins:not",
+      "condition": { "type": "neoorigins:sneaking" } }
+  ]
+}
+```
+
+Set `aggression: "hostile"` to always hunt (skip `hostile_when`), or leave
+it `"neutral"` to keep vanilla AI and only fight back when hit.
+`target_type` lets the mob hunt another entity type instead of players.
+
+---
+
+<a id="20-beast-rider-mount-entities-on-demand"></a>
+### Beast rider: mount entities on demand
+
+`mount` raycasts for an entity in front of you and seats you on it. Great
+for a tamer/druid origin: ride mobs (and optionally players) with one key.
+
+```json
+{
+  "type": "neoorigins:mount",
+  "name": "Mount Beast",
+  "description": "Leap onto the creature you're looking at.",
+  "range": 6.0,
+  "cooldown_ticks": 60,
+  "allow_mobs": true,
+  "allow_players": false,
+  "mount_position": "shoulder"
+}
+```
+
+`block_bosses` (default true) keeps players off the Ender Dragon and Wither.
+`mount_position: "shoulder"` offsets the rider to one side instead of
+sitting centered on top.
+
+---
+
+## Mining and movement
+
+### Bare-hand stone mining (Caveborn pattern)
+
+Make the player's empty hand behave as a vanilla tool at any tier,
+enabling proper drops and mining speed without holding an actual item.
+
+```json
+{ "type": "neoorigins:bare_hand_tool", "tool": "minecraft:stone_pickaxe" }
+```
+
+Stack multiple instances to emulate several tool types simultaneously
+(pickaxe + axe + shovel). Config accepts any vanilla tool item ID; the
+runtime reads the item's tool component to determine correct-for-drops
+and break speed. Only fires while the main hand is empty.
+
+---
+
+### Fortune-from-effect (Mining Fortune gated by a buff)
+
+Combine with the recipe above: while the player has `minecraft:luck`
+(granted by the consumable), ore blocks drop as if mined with a real
+Fortune pickaxe. Vanilla `ApplyBonusCount.ORE_DROPS` math, so the
+distribution matches a Fortune enchantment exactly.
+
+```json
+{ "type": "neoorigins:fortune_when_effect",
+  "effect": "minecraft:luck", "level": 2, "target": "#c:ores" }
+```
+
+Ancient debris is hardcoded-excluded (vanilla parity: Fortune doesn't
+affect netherite drops). Pack authors can narrow `target` to e.g.
+`#minecraft:diamond_ores` for a diamond-only bonus.
+
+---
+
+### Elytra-style flight without an elytra (Phantom/Elytrian)
+
+Grant gliding behavior: press jump while falling, spread wings like
+a vanilla elytra user. No chest-slot requirement.
+
+```json
+{ "type": "neoorigins:natural_glide" }
+```
+
+Pair with `neoorigins:elytra_boost` for launch-speed amplification.
+Contrast: `neoorigins:flight` is a toggle power (it takes a skill slot)
+that, while on, launches the same elytra-style flight from a jump in
+mid-air. `natural_glide` needs no toggle; it is pitch-based gliding, the
+real-elytra feel.
+
+---
+
+## Origins, layers and respawn
+
+<a id="16-reroll-my-custom-layer-wiring-up-a-spare-orb"></a>
+### Reroll my custom layer: wiring up a spare orb
 
 NeoOrigins ships six orb items. Two have hardcoded behaviour:
 `neoorigins:orb_of_origin` rerolls the origin layer and
@@ -764,6 +901,8 @@ inert. Right-clicking one does nothing on its own. They exist so a pack
 can bind its own meaning to them without registering an item, and they
 have no crafting recipe for the same reason: the pack that claims an orb
 decides what it costs.
+
+> **1.21.1 vs 26.x:** a shaped recipe's `key` entries are objects on 1.21.1 (`"G": { "item": "minecraft:gold_ingot" }`) and bare ingredient strings on 26.x (`"G": "minecraft:gold_ingot"`).
 
 All six are in the `#neoorigins:orbs` item tag.
 
@@ -829,7 +968,7 @@ free cancel and restores the previous bloodline; the 3 XP levels are
 charged only on commit. Use `"immediate"` if you want the cost paid up
 front and a cancelled pick to leave the layer empty (the layer's
 auto-default then fills it). Full field table in
-[ACTIONS.md](ACTIONS.md#neooriginsopen_layer_picker).
+[Core effect verbs](actions/effects.md#neooriginsopen_layer_picker).
 
 **Step 3: grant the power.**
 
@@ -900,213 +1039,6 @@ the player has the power and is holding the right orb.
 
 ---
 
-## New in 2.2
-
-The 2.2 spell-caster kit: gravity-free projectiles with full visual
-control, one-line elemental cast powers, conditional mob aggression for
-mob origins, and a ride-anything mount power.
-
-### 17. "Arcane bolt": a straight-flying spell projectile (no gravity)
-
-Recipe #11 fires a projectile that arcs under gravity. Set
-`no_gravity: true` and it flies dead straight along your aim like a laser
-bolt, and the 2.1 visual fields let you style the orb without any Java.
-Here it's a cyan sphere with a soul-fire trail that deals magic damage on
-hit.
-
-```json
-{
-  "type": "neoorigins:active_ability",
-  "name": "Arcane Bolt",
-  "description": "Fire a straight bolt of arcane energy.",
-  "cooldown_ticks": 40,
-  "hunger_cost": 2,
-  "entity_action": {
-    "type": "neoorigins:spawn_projectile",
-    "entity_type": "neoorigins:magic_orb",
-    "speed": 2.2,
-    "no_gravity": true,
-    "orb_color": "#30E0FF",
-    "glow_color": "#1060FF",
-    "shape": "sphere",
-    "size": 0.35,
-    "trail_particle": "minecraft:soul_fire_flame",
-    "on_hit_action": {
-      "type": "neoorigins:target_action",
-      "action": {
-        "type": "neoorigins:damage",
-        "amount": 6.0,
-        "source": { "name": "magic" }
-      }
-    }
-  }
-}
-```
-
-`on_hit_action` runs on the caster, so the damage is wrapped in
-`target_action`, which retargets it onto the entity the bolt hit (and does
-nothing on a block hit). A bare `damage` here would hurt the caster.
-
-`no_gravity` works on **any** projectile entity (vanilla `minecraft:arrow`
-included), not just the magic orb; it sets the vanilla no-gravity flag so
-drag still applies but the projectile never drops.
-
-### 18. "Elemental cast": one-line fireball / wind bolt
-
-For a quick spell without wiring up `spawn_projectile` yourself, the
-dedicated active cast powers fire a styled projectile on the skill key.
-`active_fireball` lobs small fireballs; `active_bolt` throws a wind charge.
-
-```json
-{
-  "type": "neoorigins:active_fireball",
-  "name": "Fire Cast",
-  "description": "Hurl a small fireball.",
-  "speed": 1.6,
-  "cooldown_ticks": 80
-}
-```
-
-Swap to `"type": "neoorigins:active_bolt"` for a knockback wind charge
-(`speed` default 1.2, `cooldown_ticks` default 80). Both take the next free
-skill slot, like any active ability (see recipe #8).
-
-### 19. "Hunting predator": conditional mob aggression (mob origins)
-
-`mob_behavior` rewrites a mob origin's AI so the mob hunts players. With
-`aggression: "conditional"` the mob only turns hostile when **all**
-`hostile_when` conditions hold against the prospective target: here, only
-players who are in daylight and *not* sneaking. It still retaliates when
-struck (`retaliate` defaults true) and calls nearby packmates.
-
-```json
-{
-  "type": "neoorigins:mob_behavior",
-  "aggression": "conditional",
-  "aggro_range": 24.0,
-  "anger_linger_ticks": 300,
-  "call_for_help": true,
-  "hostile_when": [
-    { "type": "neoorigins:exposed_to_sun" },
-    { "type": "neoorigins:not",
-      "condition": { "type": "neoorigins:sneaking" } }
-  ]
-}
-```
-
-Set `aggression: "hostile"` to always hunt (skip `hostile_when`), or leave
-it `"neutral"` to keep vanilla AI and only fight back when hit.
-`target_type` lets the mob hunt another entity type instead of players.
-
-### 20. "Beast rider": mount entities on demand
-
-`mount` raycasts for an entity in front of you and seats you on it. Great
-for a tamer/druid origin: ride mobs (and optionally players) with one key.
-
-```json
-{
-  "type": "neoorigins:mount",
-  "name": "Mount Beast",
-  "description": "Leap onto the creature you're looking at.",
-  "range": 6.0,
-  "cooldown_ticks": 60,
-  "allow_mobs": true,
-  "allow_players": false,
-  "mount_position": "shoulder"
-}
-```
-
-`block_bosses` (default true) keeps players off the Ender Dragon and Wither.
-`mount_position: "shoulder"` offsets the rider to one side instead of
-sitting centered on top.
-
----
-
-### Bare-hand stone mining (Caveborn pattern)
-
-Make the player's empty hand behave as a vanilla tool at any tier,
-enabling proper drops and mining speed without holding an actual item.
-
-```json
-{ "type": "neoorigins:bare_hand_tool", "tool": "minecraft:stone_pickaxe" }
-```
-
-Stack multiple instances to emulate several tool types simultaneously
-(pickaxe + axe + shovel). Config accepts any vanilla tool item ID; the
-runtime reads the item's tool component to determine correct-for-drops
-and break speed. Only fires while the main hand is empty.
-
----
-
-### Eat stone for food, eat diamonds for Luck (Caveborn consumables)
-
-Chained pattern: an `edible_item` power makes items consumable, and an
-`action_on_event` power listens on `ITEM_USE_FINISH` to apply a bonus
-when a matching item is eaten. Cross-reference using a custom item tag
-in `food_item_in_tag`.
-
-**Edibility side:**
-```json
-{ "type": "neoorigins:edible_item",
-  "tags": ["mypack:eat_diamond"],
-  "nutrition": 6, "saturation": 1.2, "always_edible": true }
-```
-
-**Bonus side:**
-```json
-{ "type": "neoorigins:action_on_event",
-  "event": "item_use_finish",
-  "entity_action": {
-    "type": "neoorigins:if_else",
-    "condition": { "type": "neoorigins:food_item_in_tag",
-                   "tag": "#mypack:eat_diamond" },
-    "if_action": { "type": "neoorigins:apply_effect",
-                   "effect": "minecraft:luck", "duration": 6000, "amplifier": 1 }
-  }
-}
-```
-
-Ship the item tag at `data/mypack/tags/item/eat_diamond.json`.
-
----
-
-### Fortune-from-effect (Mining Fortune gated by a buff)
-
-Combine with the recipe above: while the player has `minecraft:luck`
-(granted by the consumable), ore blocks drop as if mined with a real
-Fortune pickaxe. Vanilla `ApplyBonusCount.ORE_DROPS` math, so the
-distribution matches a Fortune enchantment exactly.
-
-```json
-{ "type": "neoorigins:fortune_when_effect",
-  "effect": "minecraft:luck", "level": 2, "target": "#c:ores" }
-```
-
-Ancient debris is hardcoded-excluded (vanilla parity: Fortune doesn't
-affect netherite drops). Pack authors can narrow `target` to e.g.
-`#minecraft:diamond_ores` for a diamond-only bonus.
-
----
-
-### Moon-blessed armor (condition-gated attribute)
-
-Attribute modifiers accept a `condition` that edge-triggers at ~5-tick
-intervals. Pair with the new `neoorigins:night` condition for
-"stronger after dark" flavor.
-
-```json
-{ "type": "neoorigins:attribute_modifier",
-  "attribute": "minecraft:armor",
-  "amount": 4.0, "operation": "add_value",
-  "condition": { "type": "neoorigins:night" } }
-```
-
-The modifier is applied/removed automatically as daytime flips. Any
-condition works here: `neoorigins:thundering` for storm-blessed
-equipment, `neoorigins:climbing` for scaling-specific buffs, etc.
-
----
-
 ### Sleepless origin with bed-anchored respawn
 
 `prevent_action SLEEP` blocks sleep transitions. The
@@ -1120,399 +1052,6 @@ anchor benefit: great for vampires, phantoms, wardens.
 
 Feedback message *"You don't need sleep, but you remember this place."*
 fires on bed interaction.
-
----
-
-### Elytra-style flight without an elytra (Phantom/Elytrian)
-
-Grant gliding behavior: press jump while falling, spread wings like
-a vanilla elytra user. No chest-slot requirement.
-
-```json
-{ "type": "neoorigins:natural_glide" }
-```
-
-Pair with `neoorigins:elytra_boost` for launch-speed amplification.
-Contrast: `neoorigins:flight` is a toggle power (it takes a skill slot)
-that, while on, launches the same elytra-style flight from a jump in
-mid-air. `natural_glide` needs no toggle; it is pitch-based gliding, the
-real-elytra feel.
-
----
-
-### Forward dash in look direction
-
-The `neoorigins:dash` action projects a strength magnitude along the
-player's look vector. Canonical V2 replacement for `active_dash`.
-
-```json
-{ "type": "neoorigins:active_ability",
-  "cooldown_ticks": 60, "hunger_cost": 2,
-  "entity_action": { "type": "neoorigins:dash",
-                     "strength": 2.2,
-                     "allow_vertical": true } }
-```
-
-Set `allow_vertical: false` for ground-lock dashes that ignore look
-pitch. Sets `hurtMarked = true` internally so client prediction
-doesn't discard the impulse.
-
----
-
-### Warm near a campfire (near_block condition)
-
-`neoorigins:near_block` scans a cubic radius for matching blocks and
-fires when any are found. Accepts any combination of `block`/`blocks`/
-`tag`/`tags` fields with logical OR.
-
-```json
-{ "type": "neoorigins:condition_passive",
-  "condition": {
-    "type": "neoorigins:near_block",
-    "tags": ["minecraft:campfires", "#minecraft:fire"],
-    "radius": 5
-  },
-  "entity_action": {
-    "type": "neoorigins:apply_effect",
-    "effect": "minecraft:fire_resistance",
-    "duration": 100, "amplifier": 0
-  },
-  "interval": 20
-}
-```
-
-Radius defaults to 4 and is clamped to 1-16 to keep the scan cheap.
-
----
-
-## Essence Evolution (tier progression)
-
-NeoOrigins ships an **Essence Evolution** system, a kill-based tier
-progression that lets origins grow stronger over time. Players kill mobs
-to accumulate essence, receive milestone chat messages, and get prompted
-to evolve when they hit a threshold.
-
-### Tiers
-
-| Tier | Name | Default Kill Threshold | Chat Color |
-|---|---|---|---|
-| 0 | _(base)_ | — | — |
-| 1 | Evolved | 1,000 | Green |
-| 2 | Ascended | 2,500 | Light Purple |
-| 3 | Apex | 5,000 | Gold |
-
-Thresholds are configurable in `config/neoorigins/gameplay.toml`:
-
-```toml
-[evolution]
-    enabled = true
-    tier_1_kills = 1000
-    tier_2_kills = 2500
-    tier_3_kills = 5000
-    message_interval = 100
-```
-
-`message_interval` controls how often the "essence strengthening" flavor
-message appears in chat (default: every 100 kills).
-
-### How it works
-
-1. Player kills a mob (non-player entities only; PvP kills don't count).
-2. Kill counter increments. At every `message_interval` kills the player
-   sees a milestone message.
-3. When the counter reaches a tier threshold, the player gets a chat
-   prompt with clickable **[EVOLVE]** / **[DECLINE]** buttons.
-4. Accepting grants the tier's `add` powers and revokes its `remove`
-   powers (defined in the origin JSON). Declining defers: the tier stays
-   available to accept by command at any time, and the prompt is not shown
-   for it again. See [EVOLUTION.md](EVOLUTION.md#the-evolution-prompt).
-5. Using an **Orb of Origin** resets kills and tier to zero, and clears any
-   declined tier.
-
-### Commands
-
-**Player commands** (permission level 0):
-- `/neoorigins evolve accept`: accept a pending evolution prompt
-- `/neoorigins evolve decline`: decline a standing prompt; the tier can still
-  be accepted later
-- `/origin evolve accept` / `/origin evolve decline`: legacy aliases
-
-**Admin commands** (permission level 2):
-- `/neoorigins evolve <player> <tier>`: force-set tier
-  (`base`/`0`, `evolved`/`1`, `ascended`/`2`, `apex`/`3`)
-- `/neoorigins evolve query <player>`: show current kills and tier
-
-### Adding evolution tiers to an origin
-
-Add a `tier_powers` array to your origin JSON. Each entry specifies
-which powers to **add** and which to **remove** at that tier. Tiers are
-cumulative: tier 2 includes tier 1 changes plus its own.
-
-```json
-{
-  "name": "origins.mypack.shadow.name",
-  "description": "origins.mypack.shadow.description",
-  "impact": "medium",
-  "powers": [
-    "mypack:shadow_stealth",
-    "mypack:shadow_attack",
-    "mypack:shadow_weakness"
-  ],
-  "tier_powers": [
-    {
-      "tier": 1,
-      "add": ["mypack:shadow_evolved_attack"],
-      "remove": ["mypack:shadow_attack"]
-    },
-    {
-      "tier": 2,
-      "add": [
-        "mypack:shadow_ascended_attack",
-        "mypack:shadow_ascended_stealth"
-      ],
-      "remove": [
-        "mypack:shadow_evolved_attack",
-        "mypack:shadow_stealth"
-      ]
-    },
-    {
-      "tier": 3,
-      "add": [
-        "mypack:shadow_apex_attack",
-        "mypack:shadow_apex_immunity"
-      ],
-      "remove": [
-        "mypack:shadow_ascended_attack",
-        "mypack:shadow_weakness"
-      ]
-    }
-  ]
-}
-```
-
-**`tier_powers` fields:**
-
-| Field | Type | Description |
-|---|---|---|
-| `tier` | int (1–3) | The tier this overlay applies at |
-| `add` | array of power IDs | Powers granted when evolving to this tier |
-| `remove` | array of power IDs | Powers revoked when evolving to this tier |
-
-**Common patterns:**
-- **Stat growth:** replace a base `attribute_modifier` with a stronger
-  one at each tier (e.g. +2 HP → +4 HP → +8 HP). Put the base in
-  `powers`, the evolved version in tier 1 `add` and the base in tier 1
-  `remove`.
-- **Weakness removal:** list a weakness power in a later tier's `remove`
-  to shed it as a reward (e.g. Apex vampires lose sun damage).
-- **New abilities:** add an `active_ability` or `persistent_effect` at a
-  tier without removing anything (pure upgrade).
-
-The evolution power JSONs themselves are standard power files, no
-special format. Any power type works as a tier reward.
-
-### Built-in evolution powers
-
-NeoOrigins ships over 270 evolution power JSONs covering all bundled
-origins (classes do not evolve). These live at:
-
-```
-data/neoorigins/origins/powers/<origin>_evolved_*.json
-data/neoorigins/origins/powers/<origin>_ascended_*.json
-data/neoorigins/origins/powers/<origin>_apex_*.json
-```
-
-All bundled origins (the class layer aside) have full three-tier
-evolution tracks. Pack authors
-can override them with higher-priority datapacks or use them as examples
-for their own origins.
-
----
-
-## Built-in mechanics
-
-### Undead potion reversal
-
-Origins holding a `neoorigins:entity_group` power with `"group": "undead"`
-(Revenant, Necromancer, Skeleton, Vampire) automatically receive
-vanilla-style undead potion interactions:
-
-- **Poison**: immune (no effect)
-- **Regeneration**: immune (no effect)
-- **Instant Health**: deals damage instead of healing (vanilla formula `6 × 2^amplifier`)
-- **Instant Damage**: heals instead of dealing damage (vanilla formula `4 × 2^amplifier`)
-- **Food healing**: works normally (natural regen from saturation is not blocked)
-
-This comes with the built-in `undead` group itself, so
-`{ "type": "neoorigins:entity_group", "group": "undead" }` is the only power
-JSON needed.
-
-### Aquatic origin shared powers
-
-All built-in ocean origins (Merling, Siren, Kraken, Abyssal) share these
-passive powers in addition to their unique abilities:
-
-| Power | Effect |
-|---|---|
-| `neoorigins:aquatic_underwater_mining` | Mines at full speed while submerged (Aqua Affinity) |
-| `neoorigins:aquatic_depth_strider` | +0.15 water movement efficiency (Natural Swimmer) |
-| `neoorigins:aquatic_swim_speed` | +0.25 `neoforge:swim_speed` (Open Water) |
-| `neoorigins:aquatic_buoyancy` | -0.08 `minecraft:gravity` while submerged, cancelling in-water sink (Neutral Buoyancy) |
-| `neoorigins:aquatic_fish_diet` | Fish-only diet (gated by `ocean_origins.fish_diet_required`; extend the allowed items via `ocean_origins.extra_fish_foods`) |
-| `neoorigins:aquatic_fish_diet_bonus` | Raw cod/salmon as nourishing as cooked |
-
-Custom aquatic origins can reference any of these shared powers by ID.
-
-**Why two swim-speed attributes?** `minecraft:water_movement_efficiency` is
-halved by vanilla whenever the swimmer is not standing on a block, so a power
-built on it alone is at its weakest exactly where an ocean origin spends its
-time: mid-water, clear of the seafloor. `neoforge:swim_speed` is applied
-unconditionally in the same movement pass, so it is the one that still pays out
-in open water, and it also feeds the vertical swim impulse that keeps a swimmer
-from sinking. Use `water_movement_efficiency` for a bottom-walking or shallows
-origin and `swim_speed` for a true open-water one; the built-in ocean origins
-carry both.
-
-**Moisture system:** ocean origins with `breath_out_of_fluid` replenish
-moisture from water blocks, rain, bubble columns, and water cauldrons, and
-Water Breathing pauses the drain for as long as it lasts. An active conduit
-holds them too, and it reaches them on dry land inside its normal radius, which
-makes one worth building as the dry heart of an ocean base. With Create
-installed, a charged backtank worn in the chest slot holds the drain off as
-well, spending one air a second, the rate it costs underwater.
-
-### Suppression
-
-`neoorigins:suppression` is a status effect the mod registers for you to hang a
-boss mechanic, a debuff zone, or a PvP counter on. While a player holds it,
-every active, keybind, and toggle power refuses to fire. A key press or a click
-in the power GUI gets an action bar message and a short sound, so an input that
-does nothing always comes with a reason. Refusals the player did not ask for are
-silent: `neoorigins:activate_power` and continuous (held-key) bindings can fire
-every tick, and announcing those would flood the action bar. The amplifier
-carries no meaning and is reserved for later use.
-
-Passive powers are deliberately out of scope, because you can already gate one
-yourself. Put a `power_condition` on the passive that tests for the effect and
-leave the mode at its `DENY` default, and the power switches off for exactly as
-long as Suppression is held.
-
-```json
-{
-  "type": "neoorigins:night_vision",
-  "power_condition": {
-    "type": "neoorigins:has_effect",
-    "effect": "neoorigins:suppression"
-  }
-}
-```
-
-A toggle power that is already on when the effect lands is forced off rather
-than left on and locked. Locking it on would strand the player
-mid-transformation, with the one key that undoes it refused and nothing on
-screen to explain why.
-
-Delivery is `/effect` and the `neoorigins:apply_effect` action, and nothing else.
-There is no brewing recipe, no tipped arrow, and no potion item by design: a
-craftable ability lock is a balance decision that belongs to your pack, and
-shipping the recipe would make that decision for every world.
-
----
-
-## Testing & debugging
-
-### Hot-reload
-
-`/reload` reloads all datapacks including power definitions. You don't
-need to rejoin. If a power you just added isn't showing up, check the
-server log for a `[CompatB]` or `[2.0-legacy]` warning. JSON parse errors
-log once at reload.
-
-### The deprecation log
-
-Every legacy type emits a single one-shot warning at first use:
-
-```
-[2.0-legacy] power type 'neoorigins:thorns_aura' is deprecated, remap to 'neoorigins:action_on_event' (first seen on power 'mypack:spiky_skin')
-```
-
-Grep your logs for `[2.0-legacy]` to get your migration punch list. See
-[MIGRATION.md](MIGRATION.md) for the full remap table.
-
-### Forcing an origin for testing
-
-Origin-picker state lives in the player data attachment. The fastest
-iteration loop:
-
-1. Give yourself a stack of `neoorigins:orb_of_origin`.
-2. Use the orb to reroll. Each use opens the picker; the XP cost applies
-   only when you commit a choice.
-3. Pick, test, reroll, repeat.
-
-### `/function` from an event
-
-Chain any shell command out of a power using `execute_command`:
-
-```json
-{
-  "type": "neoorigins:action_on_event",
-  "event": "kill",
-  "entity_action": {
-    "type": "neoorigins:execute_command",
-    "command": "function mypack:on_kill_callback"
-  }
-}
-```
-
-The command runs at server-level permissions (level 2), positioned at and
-targeting the player.
-
----
-
-## Common pitfalls
-
-**"My power JSON parsed but nothing happens."**
-Most often the `condition` you attached is evaluating false every tick.
-Swap in `{ "type": "neoorigins:constant", "value": true }` as a
-placeholder condition to confirm the wiring works, then narrow it back
-down. (There is no `always_true` condition; an unknown condition type
-evaluates to false.)
-
-**"My size-scaling power makes me punch through walls."**
-`modify_reach` defaults to `true`, so reach tracks body size unless you turn
-it off: set `modify_reach: false` on the `size_scaling` config. To claw back
-a flat amount of reach for a shrunk origin without re-enabling proportional
-scaling, set `reach_bonus` (in blocks) instead.
-
-**"My origin and my class both resize me, but only one of them takes effect."**
-They stack. A 1.3x origin plus a 1.25x class puts the player at 1.55x, in
-either pick order, and re-picking one layer leaves the other alone. If the
-last-picked layer wins instead, the build predates the cross-layer stacking
-fix. `attribute_modifier` bonuses stack across layers the same way.
-
-**"My active ability triggers but the server disagrees with the client."**
-A velocity change needs `hurtMarked` to survive the client's next physics
-tick. `add_velocity` and `dash` both set it for you; if the motion still
-snaps back, keep the magnitude conservative (<1.5 per axis). `add_velocity`
-adds to the current motion by default; `set: true` replaces it instead.
-
-**"My action_on_event fires twice on respawn."**
-`onLogin` and `onRespawn` both default to calling `onGranted`. If your
-event registers a handler in `onGranted`, the handler count doubles on
-each respawn. Use `action_on_event` (which is idempotent by construction)
-rather than registering listeners from a custom power.
-
-**"My custom power type shows as unknown."**
-The type field is case-sensitive and must be fully qualified:
-`"neoorigins:persistent_effect"`, not `"persistent_effect"` (a bare id
-resolves to the `minecraft:` namespace). The log names the offender:
-`Unknown power type '<type>' for power <id>`, with a hint when the path is
-really an action or condition.
-
-**"Packets say UI sent but players see nothing."**
-Most often: the client is running a much older version of NeoOrigins than
-the server. The picker payload is versioned: mismatched mod versions
-drop the payload on the client side.
 
 ---
 
@@ -1534,3 +1073,34 @@ drop the payload on the client side.
 The source of truth for every alias, verb, and event key is the Java code
 under `src/main/java/com/cyberday1/neoorigins/`. If a doc drifts from the
 code, the code wins. When in doubt, grep.
+
+---
+
+## Moved from this page
+
+These sections now live on other pages.
+
+<div id="no-anchor-stub"></div>
+
+- <a id="zero-to-origin-in-five-minutes"></a>[Zero to origin in five minutes](guides/getting-started.md#zero-to-origin-in-five-minutes)
+- <a id="anatomy-of-a-power-file"></a>[Anatomy of a power file](guides/getting-started.md#anatomy-of-a-power-file)
+- <a id="recipes"></a>Recipes: merged into the sections above.
+- <a id="example-a-toggle-gated-wall-climbing"></a>[Example A: Toggle-gated wall climbing](guides/toggles.md#example-a-toggle-gated-wall-climbing)
+- <a id="example-b-stance-switch-hunters-mark-style"></a>[Example B: Stance switch (Hunter's Mark style)](guides/toggles.md#example-b-stance-switch-hunters-mark-style)
+- <a id="new-in-22"></a>New in 2.2: merged into the sections above.
+- <a id="essence-evolution-tier-progression"></a>[Essence Evolution (tier progression)](EVOLUTION.md)
+- <a id="tiers"></a>[Tiers](EVOLUTION.md)
+- <a id="how-it-works"></a>[How it works](EVOLUTION.md#how-it-works)
+- <a id="commands"></a>[Commands](EVOLUTION.md#commands)
+- <a id="adding-evolution-tiers-to-an-origin"></a>[Adding evolution tiers to an origin](EVOLUTION.md#adding-evolution-tiers-to-an-origin)
+- <a id="built-in-evolution-powers"></a>[Built-in evolution powers](EVOLUTION.md#built-in-evolution-powers)
+- <a id="built-in-mechanics"></a>[Built-in mechanics](concepts/built-in-mechanics.md)
+- <a id="undead-potion-reversal"></a>[Undead potion reversal](concepts/built-in-mechanics.md#undead-potion-reversal)
+- <a id="aquatic-origin-shared-powers"></a>[Aquatic origin shared powers](concepts/built-in-mechanics.md#aquatic-origin-shared-powers)
+- <a id="suppression"></a>[Suppression](concepts/built-in-mechanics.md#suppression)
+- <a id="testing--debugging"></a>[Testing & debugging](guides/testing.md)
+- <a id="hot-reload"></a>[Hot-reload](guides/testing.md#hot-reload)
+- <a id="the-deprecation-log"></a>[The deprecation log](guides/testing.md#the-deprecation-log)
+- <a id="forcing-an-origin-for-testing"></a>[Forcing an origin for testing](guides/testing.md#forcing-an-origin-for-testing)
+- <a id="function-from-an-event"></a>[`/function` from an event](guides/testing.md#function-from-an-event)
+- <a id="common-pitfalls"></a>[Common pitfalls](guides/testing.md#common-pitfalls)

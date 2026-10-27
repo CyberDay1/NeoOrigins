@@ -34,10 +34,10 @@ documented elsewhere:
 | Folder | Contents | Reference |
 |---|---|---|
 | `origins/mob_origins/` | Origins granted to mobs rather than players | [MOB_ORIGINS.md](MOB_ORIGINS.md) |
-| `neoorigins/morphs/` | Reusable morph definitions for `neoorigins:entity_model` | [POWER_TYPES.md](POWER_TYPES.md#morph-definitions) |
-| `neoorigins/entity_groups/` | Entity groups for `neoorigins:entity_group` | [POWER_TYPES.md](POWER_TYPES.md#neooriginsentity_group) |
+| `neoorigins/morphs/` | Reusable morph definitions for `neoorigins:entity_model` | [Vision, rendering & HUD](powers/visuals.md#morph-definitions) |
+| `neoorigins/entity_groups/` | Entity groups for `neoorigins:entity_group` | [Mobs, minions & taming](powers/mobs.md#neooriginsentity_group) |
 | `global_powers/` | Powers granted to every player regardless of origin | [GLOBAL_POWERS.md](GLOBAL_POWERS.md) |
-| `tags/` | Vanilla-format tags. To extend one of the mod's own, author it under *its* namespace: `data/neoorigins/tags/block/cobwebs.json` adds a block to `#neoorigins:cobwebs` | [POWER_TYPES.md](POWER_TYPES.md#neooriginscobweb_affinity) |
+| `tags/` | Vanilla-format tags. To extend one of the mod's own, author it under *its* namespace: `data/neoorigins/tags/block/cobwebs.json` adds a block to `#neoorigins:cobwebs` | [Movement & body](powers/movement.md#neooriginscobweb_affinity) |
 
 **The original Origins mod layout is also accepted**, so a legacy pack loads without
 being rearranged: `data/<namespace>/origins/`, `powers/` and `origin_layers/` are read
@@ -50,6 +50,8 @@ packs: the shorter paths exist for compatibility, not as an alternative style.
 
 Minecraft 1.21.1 uses data-pack format `48` and resource-pack format `34` (the
 `pack_version` in the 1.21.1 game jar's `version.json`).
+
+> **1.21.1 vs 26.x:** data and resource pack formats are `48` / `34` on 1.21.1, `101.1` / `84` on 26.1.2, `107.1` / `88` on 26.2 and `121` / `97.1` on 26.3. 1.21.1 reads `pack_format` (plus an optional `supported_formats`), while 26.x requires `min_format` and `max_format` and rejects `supported_formats`.
 
 ```json
 {
@@ -107,7 +109,7 @@ Loaded as: `<namespace>:<id>`
 | `unchoosable` | bool | no | `false` | Hides the origin from the picker. It can still be assigned by command. |
 | `required_mods` | list of mod ids | no | `[]` | Load gate: the origin only loads (and only appears in the picker) when every listed mod is present. Used by the built-in Dragon Survival origins (`"required_mods": ["dragonsurvival"]`). |
 | `spawn_location` | object | no | — | Relocates the player to a matching location on first origin pick and on bedless respawn. See [Spawn Location](#spawn-location). |
-| `tier_powers` | list | no | `[]` | Evolution-tier power overlays (`{tier, add, remove}`). Full reference in [EVOLUTION.md](EVOLUTION.md#datapack-customization) and the [COOKBOOK](COOKBOOK.md#adding-evolution-tiers-to-an-origin). |
+| `tier_powers` | list | no | `[]` | Evolution-tier power overlays (`{tier, add, remove}`). Full reference in [EVOLUTION.md](EVOLUTION.md#datapack-customization) and the [Evolution System](EVOLUTION.md#adding-evolution-tiers-to-an-origin). |
 | `figura_model` | string | no | — | Opaque base model key for the Figura soft-dep integration. Only meaningful with the Figura mod installed. See [Figura Model Key](#figura-model-key) and [FIGURA.md](FIGURA.md). |
 | `figura_models` | object | no | — | Advanced reactive model maps (`tiers` / `powers` / `capabilities` / `vocab`) for Figura. Opaque strings, soft-dep only. See [Figura Model Key](#figura-model-key) and [FIGURA.md](FIGURA.md). |
 
@@ -122,7 +124,7 @@ instead of the world spawn. It is resolved server-side and fires:
   declares a `spawn_location`).
 
 For respawn control that fires on **every** death (optionally overriding the
-bed/anchor), use the [`neoorigins:modify_player_spawn`](POWER_TYPES.md#neooriginsmodify_player_spawn)
+bed/anchor), use the [`neoorigins:modify_player_spawn`](powers/survival.md#neooriginsmodify_player_spawn)
 power instead; `spawn_location` only covers first-join and bedless respawn.
 
 ```json
@@ -359,9 +361,11 @@ Powers of type `neoorigins:resource` display a HUD bar. The appearance is config
 |---|---|---|---|
 | `label` | string | `"Resource"` | Display name shown above the bar. |
 | `color` | string (hex) | `"#55AAFF"` | Fill colour as `#RRGGBB` or `#AARRGGBB`; any other value falls back to `#55AAFF`. With `animated` set, it is the fill a player sees when they do not have the style. |
-| `animated` | string (preset id) | — | Bar style to draw instead of the flat fill. Built in: `neoorigins:fire`, `water`, `wind`, `earth`, `soul`, `void` and `sculk` (scrolling themed fills), and `neoorigins:tinted` (a grey fill colored by `tint`, or by `color` when no tint is set). Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`. See [POWER_TYPES.md → resource](POWER_TYPES.md#neooriginsresource) for the styles, coloring examples and the preset format, and [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture authoring. |
+| `animated` | string (preset id) | — | Bar style to draw instead of the flat fill. Built in: `neoorigins:fire`, `water`, `wind`, `earth`, `soul`, `void` and `sculk` (scrolling themed fills), and `neoorigins:tinted` (a grey fill colored by `tint`, or by `color` when no tint is set). Presets are resource-pack JSON under `assets/<namespace>/bar_fx/<name>.json`. See [Resources, toggles & state → resource](powers/state.md#neooriginsresource) for the styles, coloring examples and the preset format, and [animated_bar_artist_spec.md](animated_bar_artist_spec.md) for texture authoring. |
 | `tint` | string (hex) | — | Color multiplied over the style's art, as `#RRGGBB` or `#AARRGGBB`; any other value falls back to `#55AAFF`. Ignored when `animated` is unset. |
 | `tint_end` | string (hex) | — | Second color for a style that does not scroll, such as `neoorigins:tinted`: the fill shades from `tint` (or `color`, on `neoorigins:tinted`) at the left end of the bar to `tint_end` at the right, across the whole bar. Ignored on a scrolling style. |
+| `text_color` | string (hex) | `"#CCCCCC"` | Color of the label and value readout, as `#RRGGBB` or `#AARRGGBB`; any other value falls back to `#CCCCCC`. |
+| `text_outline` | bool | `false` | Draws a 1px dark outline around the label and value readout, so they stay readable over any background. |
 
 Bars automatically **hide when full** and reappear when the resource drops below max. A bar that starts full is the exception until it is first spent: it stays on screen from the start, so players can find it, and begins hiding at full only once its value has dropped. The client forgets that first spend on each join, respawn and origin change. Set `always_render` in `hud_render` to keep a bar visible all the time. Players can reposition bars via the **Edit HUD** keybind (unbound by default). Positions persist across sessions in `config/neoorigins/hud.json`.
 

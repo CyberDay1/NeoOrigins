@@ -100,6 +100,8 @@ round from any angle (a cheap faithful approximation, not a tessellated mesh).
   `spawn_black_hole` / `spawn_tornado` verbs in
   [ACTIONS.md](ACTIONS.md) and recipes 12–14 in [COOKBOOK.md](COOKBOOK.md)).
 
+> **1.21.1 vs 26.x:** animation hooks, `resolveColor()`, `renderType()`, the effect-type registry and the model loaders are shared, but renderer plumbing is not. 1.21.1 renderers extend `EntityRenderer<T>`, implement `getTextureLocation(T)` and draw in `render()` with a `MultiBufferSource`; 26.x renderers extend `EntityRenderer<T, S>`, call `super.extractRenderState(...)` and draw through `submit()` + `SubmitNodeCollector`.
+
 ---
 
 ## Level 1: Pack-author, new `effect_type` color
@@ -600,8 +602,9 @@ steers toward the nearest living entity each tick.
 Use `neoorigins:spawn_lingering_area`, no custom entity needed. The
 action accepts any nested `entity_action` to run on interval. Pair it
 with a `spawn_projectile` + `on_hit_action` and the lingering area
-lands at the projectile's impact point. See `docs/COOKBOOK.md` recipe 14
-for a worked example.
+lands at the projectile's impact point. The cookbook recipe
+[Lingering damage cloud at projectile impact](COOKBOOK.md#lingering-damage-cloud-at-projectile-impact)
+is a worked example.
 
 ### Stability contract
 

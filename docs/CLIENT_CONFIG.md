@@ -118,7 +118,7 @@ slot_defaults = ["1=key.keyboard.r", "2=key.keyboard.z", "3=key.mouse.4"]
 ```
 
 Slot numbers line up with the numeric `"key": N` shorthand on a power (see
-[API → Named keybinds](API.md#named-keybinds)): a power authored with `"key": 1`
+[Keybinds → Named keybinds](concepts/keybinds.md)): a power authored with `"key": 1`
 lands on "Hotkey 01", which `"1=key.keyboard.r"` pre-binds to **R**. The player
 can rebind any of these in *Controls → Key Binds → NeoOrigins (Hotkeys)*; the
 config value only supplies the starting binding.

@@ -111,7 +111,7 @@ A class and an origin are separate layers, and their powers **add together**;
 neither replaces the other. A player who is a Golem (origin, 1.3x size) and a
 Titan (class, 1.25x size) ends up 1.55x, and re-picking either layer leaves the
 other layer's contribution alone. The same holds for
-[`attribute_modifier`](POWER_TYPES.md#neooriginsattribute_modifier) bonuses:
+[`attribute_modifier`](powers/core.md#neooriginsattribute_modifier) bonuses:
 health, armor and reach from the origin survive a class change.
 
 Design classes on that assumption. If a class is meant to be an *alternative*
@@ -188,7 +188,7 @@ kept, so only the class screen is shown.
 The Orb of Class is one preset of a general mechanism: the picker can be reopened
 for any layer subset, not just the class layer. Two author paths expose it:
 
-- **Datapack action** [`neoorigins:open_layer_picker`](ACTIONS.md#neooriginsopen_layer_picker):
+- **Datapack action** [`neoorigins:open_layer_picker`](actions/effects.md#neooriginsopen_layer_picker):
   give any power (item use, keybind, on-hit, …) a `layers` list to re-pick, with
   `commit_mode` (`deferred`/`immediate`), an XP `cost`, an optional `message` shown
   when the picker opens, and `consume_item` to spend the triggering item on commit.
@@ -208,7 +208,11 @@ G D G      N = minecraft:netherite_ingot
 
 ## See also
 
+- [Class Catalog](CLASS_CATALOG.md): every built-in class power with its exact numbers
 - [PACK_FORMAT.md](PACK_FORMAT.md): Origin JSON, Power JSON, Layer JSON
+- [`neoorigins:open_layer_picker`](actions/effects.md#neooriginsopen_layer_picker): reopen the
+  picker for the class layer (or any other layer subset) from a power, the mechanism the
+  Orb of Class is a preset of
 - [`examples/class_tier_up/`](../examples/class_tier_up/): class promotion via advancement upgrades
 - [`examples/custom_class/`](../examples/custom_class/): a complete copy-paste custom class
 - [SUB_ORIGINS.md](SUB_ORIGINS.md): conditioned layer entries (also work in the class layer)

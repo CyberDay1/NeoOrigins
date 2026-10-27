@@ -15,6 +15,8 @@ the `neoorigins:kubejs_callback` action and the `neoorigins:js_custom` /
 `neoorigins:js_active` power types are all absent there, and no amount of KubeJS
 being installed brings them back.
 
+> **1.21.1 vs 26.x:** the integration ships on 1.21.1, and on 26.1 from 2.2.24. 26.2 and 26.3 have none, so there are no `NeoOrigins` / `NeoOriginsEvents` globals, no `kubejs_callback` action and no `js_custom` / `js_active` power types there, whether or not KubeJS is installed.
+
 The reason is upstream, not a choice of ours: KubeJS has published no NeoForge
 build for Minecraft 26.2 or 26.3, so those builds declare no KubeJS dependency
 and carry none of the integration's classes. Re-check KubeJS's release list before

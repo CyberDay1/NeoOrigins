@@ -66,7 +66,7 @@ accumulating mob kills. An Orb of Origin resets the player to base tier.
 
 | Option | Type | Default | Range | Description |
 |---|---|---|---|---|
-| `enabled` | bool | `true` | | Enable the evolution system. When false, kills are not tracked and evolution prompts never appear. |
+| `enabled` | bool | `true` | | Enable the evolution system. When false, kills are not tracked, evolution prompts never appear, `/neoorigins evolve accept` and `decline` refuse, and the origin screens hide the Evolution Path section. [Classic mode](CONTENT_CONFIG.md#classic-mode) turns evolution off whatever this says. |
 | `tier_1_kills` | int | `1000` | 1 – 1000000 | Mob kills required to reach Evolved (tier 1). |
 | `tier_2_kills` | int | `2500` | 1 – 1000000 | Mob kills required to reach Ascended (tier 2). |
 | `tier_3_kills` | int | `5000` | 1 – 1000000 | Mob kills required to reach Apex (tier 3). |
@@ -105,6 +105,8 @@ its own durability. Helmets in the `neoorigins:sun_permeable` item tag
 shade the player nor lose durability. An item from the `neoorigins:umbrellas`
 tag, held in either hand or worn in a Curios/Accessories slot, blocks the sun before the helmet rule is checked, so it
 costs no helmet durability.
+
+> **1.21.1 vs 26.x:** a fire-resistant helmet is one with the `minecraft:fire_resistant` component on 1.21.1 and one with `minecraft:damage_resistant` covering fire on 26.x (netherite in vanilla on both).
 
 | Option | Type | Default | Range | Description |
 |---|---|---|---|---|

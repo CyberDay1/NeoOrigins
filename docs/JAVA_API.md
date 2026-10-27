@@ -348,6 +348,8 @@ tornados, ground markers. NeoOrigins ships five reference subclasses
 `ProjectileRainVfxEntity`, `TelegraphVfxEntity`) and a base class + renderer
 stack for custom VFX.
 
+> **1.21.1 vs 26.x:** on 26.x the VFX base saves lifetime, range, effect type and caster with the world and overrides `hurtServer()`; on 1.21.1 it saves none of them and overrides `hurt()`. Renderers need `getTextureLocation(T)` and `protected` state hooks on 1.21.1, and `public` state hooks with `submit()` on 26.x.
+
 ### Base class: `AbstractVfxEntity`
 
 ```java

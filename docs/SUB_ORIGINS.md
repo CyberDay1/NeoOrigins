@@ -121,6 +121,7 @@ All three formats can be mixed in the same layer's `"origins"` array.
 
 ## Condition Types
 
+
 ### `origins:origin` — Check parent layer choice
 
 The primary condition type. Checks if a specific origin was chosen in a specific layer.
