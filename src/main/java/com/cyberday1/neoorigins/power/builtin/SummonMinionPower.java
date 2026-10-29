@@ -72,7 +72,16 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
         int maxCount,
         int quantity,
         int cooldownTicks,
-        int hungerCost,
+        // Cost fields under NON-interface names (hungerCostLegacy /
+        // summonResourceId / summonResourceAmount, not hungerCost() /
+        // resourceCost() / resourceCostAmount()) so the base class's
+        // auto-charge stays disabled and summon_minion charges once per
+        // activation itself, with the resource replacing hunger. Same
+        // arrangement as tame_mob, and for the same reason: this power
+        // messages the player when they cannot pay.
+        int hungerCostLegacy,
+        String summonResourceId,
+        int summonResourceAmount,
         int despawnTicks,
         float deathDamage,
         Optional<EquipItem> head,
@@ -115,6 +124,8 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
                 int quantity = Math.max(1, intOr(obj, "quantity", 1));
                 int cooldown = intOr(obj, "cooldown_ticks", 200);
                 int hunger = intOr(obj, "hunger_cost", 4);
+                String resourceId = stringOr(obj, "resource_cost", "");
+                int resourceAmount = intOr(obj, "resource_cost_amount", 0);
                 int despawn = intOr(obj, "despawn_ticks", 18000);
                 float deathDamage = obj.has("death_damage") ? obj.get("death_damage").getAsFloat() : 1.0f;
                 String type = stringOr(obj, "type", "");
@@ -122,7 +133,8 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
                 boolean cooldownCountdown = !obj.has("cooldown_countdown") || obj.get("cooldown_countdown").getAsBoolean();
                 boolean alwaysShowIcon = obj.has("always_show_icon") && obj.get("always_show_icon").getAsBoolean();
                 return DataResult.success(Pair.of(new Config(
-                    mobType, maxCount, quantity, cooldown, hunger, despawn, deathDamage,
+                    mobType, maxCount, quantity, cooldown, hunger,
+                    resourceId, resourceAmount, despawn, deathDamage,
                     optEquip(obj, "head"), optEquip(obj, "chest"), optEquip(obj, "legs"),
                     optEquip(obj, "feet"), optEquip(obj, "mainhand"), optEquip(obj, "offhand"),
                     optString(obj, "mount"), parseAttributes(obj),
@@ -223,10 +235,18 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             return false;
         }
 
-        // Check hunger
-        if (!com.cyberday1.neoorigins.util.FoodCost.canAfford(player, config.hungerCost())) {
-            player.sendSystemMessage(Component.translatable(
-                "power.neoorigins.summon_minion.not_enough_hunger").withStyle(ChatFormatting.RED), true);
+        // Check the cost. A configured resource replaces hunger entirely,
+        // except while resource bars are globally disabled, where its amount
+        // is charged as hunger instead.
+        boolean resourceConfigured = !config.summonResourceId().isEmpty()
+            && config.summonResourceAmount() > 0;
+        boolean barsDisabled = resourceConfigured
+            && com.cyberday1.neoorigins.config.ContentTogglesConfig.isResourceBarsDisabled();
+        if (!canAffordSummon(player, config, resourceConfigured, barsDisabled)) {
+            player.sendSystemMessage(Component.translatable(resourceConfigured && !barsDisabled
+                    ? "power.neoorigins.summon_minion.no_resource"
+                    : "power.neoorigins.summon_minion.not_enough_hunger")
+                .withStyle(ChatFormatting.RED), true);
             return false;
         }
 
@@ -297,10 +317,37 @@ public class SummonMinionPower extends AbstractActivePower<SummonMinionPower.Con
             spawnPos.x, spawnPos.y + 0.2, spawnPos.z,
             10, 0.3, 0.3, 0.3, 0.01);
 
-        // Consume hunger (once per activation, regardless of count spawned)
-        com.cyberday1.neoorigins.util.FoodCost.spend(player, config.hungerCost());
+        // Consume the cost (once per activation, regardless of count spawned)
+        chargeSummon(player, config, resourceConfigured, barsDisabled);
 
         return true;
+    }
+
+    /**
+     * True when the player can pay for one activation: the named resource when
+     * one is configured and bars are enabled, otherwise hunger — either the
+     * configured resource amount (bars-disabled fallback) or the legacy
+     * {@code hunger_cost} when no resource is configured.
+     */
+    private static boolean canAffordSummon(ServerPlayer player, Config config,
+            boolean resourceConfigured, boolean barsDisabled) {
+        if (resourceConfigured && !barsDisabled) {
+            return ResourcePower.getValue(player, config.summonResourceId())
+                >= config.summonResourceAmount();
+        }
+        int h = resourceConfigured ? config.summonResourceAmount() : config.hungerCostLegacy();
+        return com.cyberday1.neoorigins.util.FoodCost.canAfford(player, h);
+    }
+
+    /** Debit one activation, mirroring {@link #canAffordSummon}'s mode. */
+    private static void chargeSummon(ServerPlayer player, Config config,
+            boolean resourceConfigured, boolean barsDisabled) {
+        if (resourceConfigured && !barsDisabled) {
+            ResourcePower.deduct(player, config.summonResourceId(), config.summonResourceAmount());
+            return;
+        }
+        int h = resourceConfigured ? config.summonResourceAmount() : config.hungerCostLegacy();
+        com.cyberday1.neoorigins.util.FoodCost.spend(player, h);
     }
 
     /**

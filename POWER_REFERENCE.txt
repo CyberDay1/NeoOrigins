@@ -386,8 +386,7 @@
 
   Ender Warp (neoorigins:enderian_teleport)
     Type: neoorigins:active_teleport
-    Teleport to where you're looking — up to 50 blocks. Costs 20 energy.
-    3-second cooldown.
+    Teleport to where you're looking — up to 50 blocks. 3-second cooldown.
 
   Energy (neoorigins:enderian_energy)
     Type: neoorigins:resource
@@ -1268,8 +1267,8 @@
 
   Abyssal Command (neoorigins:abyssal_summon_guardian)
     Type: neoorigins:summon_minion
-    Summons a guardian to fight for you. Max 2 at once. Costs 50 essence.
-    20-second cooldown. You take 1 damage if it dies in combat.
+    Summons a guardian to fight for you. Max 2 at once. 20-second cooldown.
+    You take 1 damage if it dies in combat.
 
   Pescivore (neoorigins:aquatic_fish_diet)
     Type: neoorigins:action_on_event
@@ -1371,13 +1370,12 @@
 
   Phase Walk (neoorigins:voidwalker_active_phase)
     Type: neoorigins:active_phase
-    Phase through a solid wall in the direction you're looking. Costs 30
-    energy. 80-tick cooldown.
+    Phase through a solid wall in the direction you're looking. 80-tick
+    cooldown.
 
   Void Step (neoorigins:voidwalker_active_teleport)
     Type: neoorigins:active_teleport
-    Blinks to where you are looking (up to 24 blocks). Costs 20 energy.
-    80-tick cooldown.
+    Blinks to where you are looking (up to 24 blocks). 80-tick cooldown.
 
   Void Sight (neoorigins:voidwalker_night_vision)
     Type: neoorigins:persistent_effect (written as neoorigins:night_vision)
@@ -1481,7 +1479,7 @@
   Stone Light (neoorigins:stoneguard_active_glowstone)
     Type: neoorigins:active_place_block
     Places a glowstone block at the surface you're looking at. 100-tick
-    cooldown. Costs 10 stamina.
+    cooldown.
 
   Stone-Footed (neoorigins:stoneguard_slow_movement)
     Type: neoorigins:attribute_modifier
@@ -1643,8 +1641,8 @@
   Shadow Orb (neoorigins:umbral_shadow_orb)
     Type: neoorigins:shadow_orb
     Place an invisible orb that plunges a 28-block radius into Darkness. Up to
-    4 orbs active at once; placing a new one removes the oldest. Costs 20
-    energy. 60-tick cooldown.
+    4 orbs active at once; placing a new one removes the oldest. 60-tick
+    cooldown.
 
   Shadow Dash (neoorigins:umbral_active_dash)
     Type: neoorigins:active_ability
@@ -2384,12 +2382,12 @@
 
   Warp Step (neoorigins:enderite_teleport)
     Type: neoorigins:active_teleport
-    Teleports up to 32 blocks in the direction you're looking. Costs 20
-    energy. 3-second cooldown.
+    Teleports up to 32 blocks in the direction you're looking. 3-second
+    cooldown.
 
   Void Phase (neoorigins:enderite_phase)
     Type: neoorigins:active_phase
-    Phases through solid walls. Costs 30 energy. 10-second cooldown.
+    Phases through solid walls. 10-second cooldown.
 
   Ender Drift (neoorigins:enderite_slow_fall)
     Type: neoorigins:persistent_effect
@@ -2455,13 +2453,13 @@
 
   Raise Wither Skeleton (neoorigins:necromancer_summon_wither)
     Type: neoorigins:summon_minion
-    Summons a wither skeleton to fight for you. Max 2 at once. Costs 60
-    essence. 30-second cooldown. You take 1 damage if it dies in combat.
+    Summons a wither skeleton to fight for you. Max 2 at once. 30-second
+    cooldown. You take 1 damage if it dies in combat.
 
   Raise Skeleton Archer (neoorigins:necromancer_summon_skeleton)
     Type: neoorigins:summon_minion
-    Summons a skeleton archer to fight for you. Max 3 at once. Costs 40
-    essence. 20-second cooldown. You take 1 damage if it dies in combat.
+    Summons a skeleton archer to fight for you. Max 3 at once. 20-second
+    cooldown. You take 1 damage if it dies in combat.
 
   Undead Nature (neoorigins:necromancer_entity_group)
     Type: neoorigins:entity_group
@@ -2725,8 +2723,8 @@
 
   Call of the Deep (neoorigins:kraken_summon_guardian)
     Type: neoorigins:summon_minion
-    Summons a guardian to fight for you. Max 2 at once. Costs 50 essence.
-    20-second cooldown. You take 1 damage if it dies in combat.
+    Summons a guardian to fight for you. Max 2 at once. 20-second cooldown.
+    You take 1 damage if it dies in combat.
 
   Beached (neoorigins:kraken_beached)
     Type: neoorigins:attribute_modifier
@@ -3144,7 +3142,7 @@
   Ground Slam (neoorigins:earth_mage_ground_slam)
     Type: neoorigins:ground_slam
     Slam the earth, dealing 6 damage and knocking back all nearby entities.
-    Costs 30 mana. 6-second cooldown.
+    6-second cooldown.
 
   Stone Wall (neoorigins:earth_mage_stone_wall)
     Type: neoorigins:active_place_block
@@ -3224,7 +3222,7 @@
   Tidal Wave (neoorigins:water_mage_tidal_wave)
     Type: neoorigins:tidal_wave
     Blast a cone of water forward, dealing 4 damage and pushing enemies away.
-    5-second cooldown. Costs 30 mana.
+    5-second cooldown.
 
   Healing Mist (neoorigins:water_mage_healing_mist)
     Type: neoorigins:active_ability
@@ -3550,13 +3548,11 @@
   Shadow Orb (neoorigins:darkness_mage_shadow_orb)
     Type: neoorigins:shadow_orb
     Place a shadow orb at your location that inflicts Darkness and Blindness
-    on nearby enemies. Up to 3 orbs active at once. Costs 30 mana. 5-second
-    cooldown.
+    on nearby enemies. Up to 3 orbs active at once. 5-second cooldown.
 
   Shadow Step (neoorigins:darkness_mage_shadow_step)
     Type: neoorigins:active_teleport
-    Teleport to where you're looking, up to 24 blocks away. Costs 20 mana.
-    4-second cooldown.
+    Teleport to where you're looking, up to 24 blocks away. 4-second cooldown.
 
   Dark Vision (neoorigins:darkness_mage_night_vision)
     Type: neoorigins:persistent_effect (written as neoorigins:night_vision)
@@ -4833,12 +4829,14 @@
   neoorigins:active_phase
     Active | Shipped powers: 3 | ActivePhasePower
     Fields: always_show_icon, cooldown_countdown, cooldown_icon,
-    cooldown_ticks, hunger_cost, max_depth
+    cooldown_ticks, hunger_cost, max_depth, resource_cost,
+    resource_cost_amount
 
   neoorigins:active_place_block
     Active | Shipped powers: 3 | ActivePlaceBlockPower
     Fields: always_show_icon, block_id, cooldown_countdown, cooldown_icon,
-    cooldown_ticks, hunger_cost, max_distance
+    cooldown_ticks, hunger_cost, max_distance, resource_cost,
+    resource_cost_amount
 
   neoorigins:active_recall
     Active | Shipped powers: 0 | ActiveRecallPower
@@ -4853,7 +4851,8 @@
   neoorigins:active_teleport
     Active | Shipped powers: 4 | ActiveTeleportPower
     Fields: always_show_icon, cooldown_countdown, cooldown_icon,
-    cooldown_ticks, hunger_cost, mode, range
+    cooldown_ticks, hunger_cost, mode, range, resource_cost,
+    resource_cost_amount
 
   neoorigins:attract_mobs
     Passive | Shipped powers: 0 | AttractMobsPower
@@ -5017,7 +5016,8 @@
   neoorigins:ground_slam
     Active | Shipped powers: 1 | ActiveGroundSlamPower
     Fields: always_show_icon, cooldown_countdown, cooldown_icon,
-    cooldown_ticks, damage, knockback_strength, radius
+    cooldown_ticks, damage, knockback_strength, radius, resource_cost,
+    resource_cost_amount
 
   neoorigins:hide_hud_bar
     Passive | Shipped powers: 2 | HideHudBarPower
@@ -5269,7 +5269,8 @@
   neoorigins:shadow_orb
     Active | Shipped powers: 2 | ShadowOrbPower
     Fields: always_show_icon, cooldown_countdown, cooldown_icon,
-    cooldown_ticks, hunger_cost, max_orbs, radius, tick_interval
+    cooldown_ticks, hunger_cost, max_orbs, radius, resource_cost,
+    resource_cost_amount, tick_interval
 
   neoorigins:simple
     Passive | Shipped powers: 2 | SimplePower
@@ -5311,7 +5312,8 @@
     Active | Shipped powers: 4 | SummonMinionPower
     Fields: always_show_icon, attributes, chest, cooldown_countdown,
     cooldown_icon, cooldown_ticks, death_damage, despawn_ticks, feet, head,
-    hunger_cost, legs, mainhand, max_count, mob_type, mount, offhand, quantity
+    hunger_cost, legs, mainhand, max_count, mob_type, mount, offhand,
+    quantity, resource_cost, resource_cost_amount
     (hand-written parser: the keys it read from an empty object and from 4
     shipped powers; a branch those never reach may read more)
 
@@ -5341,7 +5343,8 @@
   neoorigins:tidal_wave
     Active | Shipped powers: 1 | ActiveTidalWavePower
     Fields: always_show_icon, cone_angle, cooldown_countdown, cooldown_icon,
-    cooldown_ticks, damage, hunger_cost, knockback_strength, range
+    cooldown_ticks, damage, hunger_cost, knockback_strength, range,
+    resource_cost, resource_cost_amount
 
   neoorigins:toggle
     Passive | Shipped powers: 3 | TogglePower

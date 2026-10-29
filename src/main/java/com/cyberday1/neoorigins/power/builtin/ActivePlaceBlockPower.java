@@ -23,6 +23,8 @@ public class ActivePlaceBlockPower extends AbstractActivePower<ActivePlaceBlockP
         double maxDistance,
         int cooldownTicks,
         int hungerCost,
+        String resourceCost,
+        int resourceCostAmount,
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
@@ -30,12 +32,18 @@ public class ActivePlaceBlockPower extends AbstractActivePower<ActivePlaceBlockP
     ) implements AbstractActivePower.Config {
         @Override public int cooldownTicks() { return cooldownTicks; }
         @Override public int hungerCost() { return hungerCost; }
+        // AbstractActivePower#onActivated gates and debits both, all-or-nothing,
+        // before execute() runs and only spends once it returns true.
+        @Override public String resourceCost() { return resourceCost; }
+        @Override public int resourceCostAmount() { return resourceCostAmount; }
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.optionalFieldOf("block_id", "minecraft:glowstone").forGetter(Config::blockId),
             Codec.DOUBLE.optionalFieldOf("max_distance", 5.0).forGetter(Config::maxDistance),
             Codec.INT.optionalFieldOf("cooldown_ticks", 100).forGetter(Config::cooldownTicks),
             Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
+            Codec.STRING.optionalFieldOf("resource_cost", "").forGetter(Config::resourceCost),
+            Codec.INT.optionalFieldOf("resource_cost_amount", 0).forGetter(Config::resourceCostAmount),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),

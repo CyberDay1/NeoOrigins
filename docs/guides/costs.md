@@ -44,19 +44,23 @@ no cooldown starts:
 }
 ```
 
+`active_teleport`, `active_phase`, `active_place_block`, `ground_slam`,
+`tidal_wave`, `shadow_orb`, `tame_mob` and `summon_minion` read the same
+two keys: see [Who reads the cost keys](../concepts/costs-and-upkeep.md#who-reads-the-cost-keys).
+
 ## Types that don't read `resource_cost`
 
 Most other actives
-(`active_teleport`, `active_phase`, `ground_slam`, ...) ignore it. Charge
+(`active_dash`, `active_bolt`, `active_swap`, ...) ignore it. Charge
 those by hand: gate the power on a `neoorigins:resource` condition, and
 spend from a `power_activated` listener, which only fires when the ability
 actually went off:
 
 ```json
-// data/mypack/origins/powers/blink.json
+// data/mypack/origins/powers/lunge.json
 {
-  "type": "neoorigins:active_teleport",
-  "range": 24,
+  "type": "neoorigins:active_dash",
+  "power": 1.8,
   "cooldown_ticks": 60,
   "power_condition": {
     "type": "neoorigins:resource",
@@ -69,11 +73,11 @@ actually went off:
 ```
 
 ```json
-// data/mypack/origins/powers/blink_cost.json
+// data/mypack/origins/powers/lunge_cost.json
 {
   "type": "neoorigins:action_on_event",
   "event": "power_activated",
-  "power": "mypack:blink",
+  "power": "mypack:lunge",
   "hidden": true,
   "entity_action": {
     "type": "neoorigins:change_resource",

@@ -36,6 +36,8 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
         int cooldownTicks,
         int tickInterval,
         int hungerCost,
+        String resourceCost,
+        int resourceCostAmount,
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
@@ -43,6 +45,10 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
     ) implements AbstractActivePower.Config {
         @Override public int cooldownTicks() { return cooldownTicks; }
         @Override public int hungerCost() { return hungerCost; }
+        // AbstractActivePower#onActivated gates and debits both, all-or-nothing,
+        // before execute() runs and only spends once it returns true.
+        @Override public String resourceCost() { return resourceCost; }
+        @Override public int resourceCostAmount() { return resourceCostAmount; }
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.INT.optionalFieldOf("max_orbs", 4).forGetter(Config::maxOrbs),
@@ -50,6 +56,8 @@ public class ShadowOrbPower extends AbstractActivePower<ShadowOrbPower.Config> {
             Codec.INT.optionalFieldOf("cooldown_ticks", 100).forGetter(Config::cooldownTicks),
             Codec.INT.optionalFieldOf("tick_interval", 20).forGetter(Config::tickInterval),
             Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
+            Codec.STRING.optionalFieldOf("resource_cost", "").forGetter(Config::resourceCost),
+            Codec.INT.optionalFieldOf("resource_cost_amount", 0).forGetter(Config::resourceCostAmount),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),

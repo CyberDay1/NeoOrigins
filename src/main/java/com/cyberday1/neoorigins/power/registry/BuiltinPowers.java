@@ -752,6 +752,10 @@ public final class BuiltinPowers {
                 .def(20).doc("Ticks between each darkness pulse from orbs (20 = 1s; default 20)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).doc("Hunger points consumed per activation (default 0)."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id whose value is spent on a successful orb placement; empty = no resource cost. Falls back to hunger when resource bars are globally disabled."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per orb placed; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -808,7 +812,14 @@ public final class BuiltinPowers {
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(200).doc("Ticks before the summon ability can be reused (200 = 10s)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
-                .def(4).doc("Hunger consumed each time a minion is summoned."),
+                .boundTo("hungerCostLegacy")
+                .def(4).doc("Hunger consumed per activation, however many minions spawn; ignored when resource_cost is set with a resource_cost_amount above 0."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .boundTo("summonResourceId")
+                .def("").doc("Optional resource power id spent PER activation, replacing hunger_cost entirely; empty = no resource cost (hunger_cost applies). When resource bars are globally disabled this amount is charged as hunger instead."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .boundTo("summonResourceAmount")
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per activation, however many minions spawn; default 0. A player who cannot pay summons nothing and consumes no cooldown."),
             new FieldSpec("despawn_ticks", Kind.INTEGER, false)
                 .def(18000).doc("Ticks a minion lasts before despawning (18000 = 15 min)."),
             new FieldSpec("death_damage", Kind.NUMBER, false)
@@ -1050,6 +1061,10 @@ public final class BuiltinPowers {
                 .def(40).doc("Cooldown between phases in ticks (20 = 1s); default 40."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).doc("Food/exhaustion points consumed on a successful phase; default 0."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id whose value is spent on a successful phase; empty = no resource cost. Falls back to hunger when resource bars are globally disabled."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per phase; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -1062,6 +1077,10 @@ public final class BuiltinPowers {
                 .def(100).doc("Cooldown between placements in ticks (20 = 1s); default 100."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).doc("Food/exhaustion points consumed on a successful placement; default 0."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id whose value is spent on a successful placement; empty = no resource cost. Falls back to hunger when resource bars are globally disabled."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per placement; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -1120,6 +1139,10 @@ public final class BuiltinPowers {
                 .def("target").doc("\"target\" teleports to the looked-at spot, \"random\" to a nearby safe spot; default target."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).doc("Food/exhaustion points consumed on a successful teleport; default 0."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id whose value is spent on a successful teleport; empty = no resource cost. Falls back to hunger when resource bars are globally disabled."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per teleport; default 0. A player who cannot pay the whole cost does not teleport and consumes no cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -1132,6 +1155,10 @@ public final class BuiltinPowers {
                 .def(6.0).doc("Blocks around the player whose entities are hit (default 6.0)."),
             new FieldSpec("cooldown_ticks", Kind.INTEGER, false)
                 .def(120).doc("Ticks before the slam can be reused (default 120 = 6s)."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id whose value is spent on a successful slam; empty = no resource cost. Falls back to hunger when resource bars are globally disabled."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per slam; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
@@ -1148,6 +1175,10 @@ public final class BuiltinPowers {
                 .def(100).doc("Ticks before the wave can be reused (100 = 5s)."),
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).doc("Hunger consumed per use (default 0)."),
+            new FieldSpec("resource_cost", Kind.STRING, false)
+                .def("").doc("Optional resource power id whose value is spent on a successful wave; empty = no resource cost. Falls back to hunger when resource bars are globally disabled."),
+            new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
+                .def(0).range(0.0, null).doc("Amount of the resource_cost resource spent per wave; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown."),
             COOLDOWN_ICON_SPEC,
             COOLDOWN_COUNTDOWN_SPEC,
             ALWAYS_SHOW_ICON_SPEC));
