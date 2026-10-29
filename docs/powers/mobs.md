@@ -26,7 +26,9 @@ Active power that summons a mob near the player. Summoned mobs are tracked with 
 | `max_count` | int | no | `3` | Maximum concurrent minions per player per mob_type |
 | `quantity` | int | no | `1` | Minions summoned per activation, capped by remaining `max_count` headroom |
 | `cooldown_ticks` | int | no | `200` | Cooldown after each summon |
-| `hunger_cost` | int | no | `4` | Food points consumed per summon |
+| `hunger_cost` | int | no | `4` | Food points consumed per activation. Ignored when `resource_cost` is set with a `resource_cost_amount` above 0. |
+| `resource_cost` | string | no | `""` | Optional `neoorigins:resource` power id spent **per activation**, replacing `hunger_cost`. Empty = no resource cost. When resource bars are globally disabled this amount is charged as hunger instead. |
+| `resource_cost_amount` | int | no | `0` | Amount of `resource_cost` spent per activation, however many minions spawn. A player who can't pay summons nothing and consumes no cooldown. |
 | `despawn_ticks` | int | no | `18000` | Lifespan after spawn (15 min default) |
 | `death_damage` | float | no | `1.0` | Damage taken by the owner when a minion dies |
 | `head` / `chest` / `legs` / `feet` / `mainhand` / `offhand` | Identifier _or_ object | no | _(none or iron helmet for head)_ | Equipment per slot. Either a bare item id (`"minecraft:iron_sword"`) or an object `{"item": "...", "enchantments": [{"id": "...", "level": N}]}` to enchant the piece |
@@ -35,7 +37,7 @@ Active power that summons a mob near the player. Summoned mobs are tracked with 
 
 If `head` is unset, the minion gets an iron helmet by default (sun protection for undead). All drop chances are set to 0.
 
-**Multiple minions:** set `quantity` to summon several per activation (still capped by `max_count`). Hunger is charged once per activation regardless of how many spawn.
+**Multiple minions:** set `quantity` to summon several per activation (still capped by `max_count`). The cost is charged once per activation regardless of how many spawn.
 
 **Enchanted equipment:** any equipment slot accepts the object form `{"item": "...", "enchantments": [...]}` in place of a bare item id. Each enchantment entry is `{"id": "minecraft:sharpness", "level": 3}` (`level` defaults to 1). Unknown enchantment ids are skipped silently. The string form is unchanged, so existing configs keep working.
 

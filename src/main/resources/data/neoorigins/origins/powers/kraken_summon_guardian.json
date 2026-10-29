@@ -5,7 +5,5 @@
   "max_count": 2,
   "cooldown_ticks": 400,
   "despawn_ticks": 18000,
-  "death_damage": 1.0,
-  "resource_cost": "neoorigins:kraken_essence",
-  "resource_cost_amount": 50
+  "death_damage": 1.0
 }

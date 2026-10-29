@@ -23,6 +23,8 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
         int cooldownTicks,
         String mode,
         int hungerCost,
+        String resourceCost,
+        int resourceCostAmount,
         String type,
         String cooldownIcon,
         boolean cooldownCountdown,
@@ -30,12 +32,18 @@ public class ActiveTeleportPower extends AbstractActivePower<ActiveTeleportPower
     ) implements AbstractActivePower.Config {
         @Override public int cooldownTicks() { return cooldownTicks; }
         @Override public int hungerCost() { return hungerCost; }
+        // AbstractActivePower#onActivated gates and debits both, all-or-nothing,
+        // before execute() runs and only spends once it returns true.
+        @Override public String resourceCost() { return resourceCost; }
+        @Override public int resourceCostAmount() { return resourceCostAmount; }
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.DOUBLE.optionalFieldOf("range", 32.0).forGetter(Config::range),
             Codec.INT.optionalFieldOf("cooldown_ticks", 60).forGetter(Config::cooldownTicks),
             Codec.STRING.optionalFieldOf("mode", "target").forGetter(Config::mode),
             Codec.INT.optionalFieldOf("hunger_cost", 0).forGetter(Config::hungerCost),
+            Codec.STRING.optionalFieldOf("resource_cost", "").forGetter(Config::resourceCost),
+            Codec.INT.optionalFieldOf("resource_cost_amount", 0).forGetter(Config::resourceCostAmount),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type),
             Codec.STRING.optionalFieldOf("cooldown_icon", "").forGetter(Config::cooldownIcon),
             Codec.BOOL.optionalFieldOf("cooldown_countdown", true).forGetter(Config::cooldownCountdown),

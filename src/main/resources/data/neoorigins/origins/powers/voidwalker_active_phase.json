@@ -2,7 +2,5 @@
   "type": "neoorigins:active_phase",
   "cooldown_icon": "minecraft:phantom_membrane",
   "max_depth": 10,
-  "cooldown_ticks": 80,
-  "resource_cost": "neoorigins:voidwalker_energy",
-  "resource_cost_amount": 30
+  "cooldown_ticks": 80
 }
