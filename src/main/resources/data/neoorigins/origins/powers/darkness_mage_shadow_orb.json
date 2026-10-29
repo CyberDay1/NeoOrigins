@@ -4,7 +4,5 @@
   "max_orbs": 3,
   "radius": 5.0,
   "cooldown_ticks": 100,
-  "tick_interval": 20,
-  "resource_cost": "neoorigins:darkness_mage_mana",
-  "resource_cost_amount": 30
+  "tick_interval": 20
 }

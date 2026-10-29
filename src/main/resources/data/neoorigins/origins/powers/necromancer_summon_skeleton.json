@@ -8,7 +8,5 @@
   "death_damage": 1.0,
   "head": "minecraft:iron_helmet",
   "chest": "minecraft:chainmail_chestplate",
-  "mainhand": "minecraft:bow",
-  "resource_cost": "neoorigins:necromancer_essence",
-  "resource_cost_amount": 40
+  "mainhand": "minecraft:bow"
 }

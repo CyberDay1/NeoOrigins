@@ -3,7 +3,5 @@
   "cooldown_icon": "minecraft:glowstone",
   "block_id": "minecraft:glowstone",
   "max_distance": 5.0,
-  "cooldown_ticks": 100,
-  "resource_cost": "neoorigins:stoneguard_stamina",
-  "resource_cost_amount": 10
+  "cooldown_ticks": 100
 }

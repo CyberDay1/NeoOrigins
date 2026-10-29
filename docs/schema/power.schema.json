@@ -2467,6 +2467,17 @@
           "type": "integer",
           "default": 0
         },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on a successful phase; empty = no resource cost. Falls back to hunger when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per phase; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
           "type": "string",
@@ -2512,6 +2523,17 @@
           "description": "Food/exhaustion points consumed on a successful placement; default 0.",
           "type": "integer",
           "default": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on a successful placement; empty = no resource cost. Falls back to hunger when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per placement; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
@@ -2629,6 +2651,17 @@
           "description": "Food/exhaustion points consumed on a successful teleport; default 0.",
           "type": "integer",
           "default": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on a successful teleport; empty = no resource cost. Falls back to hunger when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per teleport; default 0. A player who cannot pay the whole cost does not teleport and consumes no cooldown.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
@@ -4389,6 +4422,17 @@
           "description": "Ticks before the slam can be reused (default 120 = 6s).",
           "type": "integer",
           "default": 120
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on a successful slam; empty = no resource cost. Falls back to hunger when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per slam; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
@@ -6875,6 +6919,17 @@
           "type": "integer",
           "default": 0
         },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on a successful orb placement; empty = no resource cost. Falls back to hunger when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per orb placed; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",
           "type": "string",
@@ -7495,9 +7550,20 @@
           "default": 200
         },
         "hunger_cost": {
-          "description": "Hunger consumed each time a minion is summoned.",
+          "description": "Hunger consumed per activation, however many minions spawn; ignored when resource_cost is set with a resource_cost_amount above 0.",
           "type": "integer",
           "default": 4
+        },
+        "resource_cost": {
+          "description": "Optional resource power id spent PER activation, replacing hunger_cost entirely; empty = no resource cost (hunger_cost applies). When resource bars are globally disabled this amount is charged as hunger instead.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per activation, however many minions spawn; default 0. A player who cannot pay summons nothing and consumes no cooldown.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         },
         "despawn_ticks": {
           "description": "Ticks a minion lasts before despawning (18000 = 15 min).",
@@ -7861,6 +7927,17 @@
           "description": "Hunger consumed per use (default 0).",
           "type": "integer",
           "default": 0
+        },
+        "resource_cost": {
+          "description": "Optional resource power id whose value is spent on a successful wave; empty = no resource cost. Falls back to hunger when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Amount of the resource_cost resource spent per wave; default 0. A player who cannot pay the whole cost does nothing and consumes no cooldown.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
         },
         "cooldown_icon": {
           "description": "Optional HUD cooldown icon: an item id (e.g. 'minecraft:ender_pearl') rendered as the item, or a datapack texture path ending in '.png' (resolved under assets/<namespace>/textures/) drawn 16x16. When set, the HUD swaps this power's cooldown bar for the icon with a clock-style radial sweep; empty (default) keeps the plain bar.",

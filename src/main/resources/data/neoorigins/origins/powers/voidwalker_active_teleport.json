@@ -3,7 +3,5 @@
   "cooldown_icon": "minecraft:ender_pearl",
   "range": 24.0,
   "cooldown_ticks": 80,
-  "mode": "target",
-  "resource_cost": "neoorigins:voidwalker_energy",
-  "resource_cost_amount": 20
+  "mode": "target"
 }

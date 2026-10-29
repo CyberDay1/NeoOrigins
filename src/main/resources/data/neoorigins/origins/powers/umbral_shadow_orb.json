@@ -4,7 +4,5 @@
   "max_orbs": 4,
   "radius": 28.0,
   "cooldown_ticks": 60,
-  "tick_interval": 20,
-  "resource_cost": "neoorigins:umbral_energy",
-  "resource_cost_amount": 20
+  "tick_interval": 20
 }
