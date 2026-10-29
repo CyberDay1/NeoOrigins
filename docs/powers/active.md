@@ -114,6 +114,8 @@ Active ability that teleports the player to the block they are looking at, up to
 | `cooldown_ticks` | int | no | `60` | Cooldown in ticks after each use |
 | `mode` | string | no | `"target"` | `"target"` teleports to the looked-at spot; `"random"` makes up to 16 tries at a spot within ±`range` horizontally and ±`range`/8 vertically, accepting the first with two free blocks for the player. It does not check for a floor, so it can land the player in the air. |
 | `hunger_cost` | int | no | `0` | Food points removed per use |
+| `resource_cost` | string | no | `""` | Id of a [`neoorigins:resource`](state.md#neooriginsresource) power debited per teleport. Empty = no resource cost. When resource bars are globally disabled the amount is charged as hunger instead. |
+| `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per teleport. A player who can't pay the whole cost does not teleport and consumes no cooldown. |
 
 **Example:**
 ```json
@@ -121,7 +123,8 @@ Active ability that teleports the player to the block they are looking at, up to
   "type": "neoorigins:active_teleport",
   "range": 32.0,
   "cooldown_ticks": 60,
-  "hunger_cost": 2,
+  "resource_cost": "mypack:mana",
+  "resource_cost_amount": 20,
   "name": "Blink",
   "description": "Teleports to where you're looking."
 }
@@ -264,13 +267,15 @@ Active ability that shoots a spread of 3 to 4 small (blaze-style) fireballs in t
 
 ## `neoorigins:active_phase`
 
-Active ability that phases the player through a solid wall in their look direction. Scans forward in 0.5-block steps from half eye height for a passable block with clear space above and a solid floor below, where the player's whole hitbox would stand inside the world border, and teleports to the centre of that block. If none is found within `max_depth` nothing happens and no cooldown is spent. An optional hunger cost is deducted per use.
+Active ability that phases the player through a solid wall in their look direction. Scans forward in 0.5-block steps from half eye height for a passable block with clear space above and a solid floor below, where the player's whole hitbox would stand inside the world border, and teleports to the centre of that block. If none is found within `max_depth` nothing happens and no cooldown is spent. An optional hunger or resource cost is deducted per use.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `max_depth` | int | no | `16` | Maximum solid-block scan depth in blocks |
 | `cooldown_ticks` | int | no | `40` | Cooldown in ticks |
 | `hunger_cost` | int | no | `0` | Food points removed per use (2 = 1 shank) |
+| `resource_cost` | string | no | `""` | Id of a [`neoorigins:resource`](state.md#neooriginsresource) power debited per use. Empty = no resource cost. Charged as hunger when resource bars are globally disabled. |
+| `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. A player who can't pay the whole cost does nothing and consumes no cooldown. |
 
 **Example:**
 ```json
@@ -318,6 +323,8 @@ Active ability that places a specific block at the surface the player is looking
 | `max_distance` | float | no | `5.0` | Maximum targeting range in blocks |
 | `cooldown_ticks` | int | no | `100` | Cooldown in ticks |
 | `hunger_cost` | int | no | `0` | Food points removed per use |
+| `resource_cost` | string | no | `""` | Id of a [`neoorigins:resource`](state.md#neooriginsresource) power debited per use. Empty = no resource cost. Charged as hunger when resource bars are globally disabled. |
+| `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. A player who can't pay the whole cost does nothing and consumes no cooldown. |
 
 **Example:**
 ```json
@@ -343,6 +350,8 @@ Active AoE slam: damages and knocks back every living entity in a box of `radius
 | `knockback_strength` | float | no | `1.5` | Radial knockback strength |
 | `radius` | double | no | `6.0` | Effect radius in blocks |
 | `cooldown_ticks` | int | no | `120` | Cooldown after each use |
+| `resource_cost` | string | no | `""` | Id of a [`neoorigins:resource`](state.md#neooriginsresource) power debited per use. Empty = no resource cost. Charged as hunger when resource bars are globally disabled. |
+| `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. A player who can't pay the whole cost does nothing and consumes no cooldown. |
 
 **Example:**
 ```json
@@ -370,6 +379,8 @@ Cone-shaped water blast in the player's look direction. Knocks back and damages 
 | `cone_angle` | double | no | `60.0` | Total cone angle in degrees (30° to each side of look axis) |
 | `cooldown_ticks` | int | no | `100` | Cooldown after each use |
 | `hunger_cost` | int | no | `0` | Food points removed per use |
+| `resource_cost` | string | no | `""` | Id of a [`neoorigins:resource`](state.md#neooriginsresource) power debited per use. Empty = no resource cost. Charged as hunger when resource bars are globally disabled. |
+| `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. A player who can't pay the whole cost does nothing and consumes no cooldown. |
 
 **Example:**
 ```json
@@ -397,6 +408,8 @@ Active ability that places a persistent shadow orb at the player's position. Eac
 | `cooldown_ticks` | int | no | `100` | Cooldown between placements |
 | `tick_interval` | int | no | `20` | Ticks between pulses per orb |
 | `hunger_cost` | int | no | `0` | Food points removed per placement |
+| `resource_cost` | string | no | `""` | Id of a [`neoorigins:resource`](state.md#neooriginsresource) power debited per use. Empty = no resource cost. Charged as hunger when resource bars are globally disabled. |
+| `resource_cost_amount` | int | no | `0` | Amount drained from `resource_cost` per use. A player who can't pay the whole cost does nothing and consumes no cooldown. |
 
 **Example:**
 ```json

@@ -8,7 +8,5 @@
   "death_damage": 1.0,
   "head": "minecraft:netherite_helmet",
   "chest": "minecraft:netherite_chestplate",
-  "mainhand": "minecraft:stone_sword",
-  "resource_cost": "neoorigins:necromancer_essence",
-  "resource_cost_amount": 60
+  "mainhand": "minecraft:stone_sword"
 }
