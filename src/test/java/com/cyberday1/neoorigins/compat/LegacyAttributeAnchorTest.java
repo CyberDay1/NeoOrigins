@@ -79,15 +79,19 @@ class LegacyAttributeAnchorTest {
     }
 
     /**
-     * The unconditional tier never carries rule 1, on any branch — the resource
-     * layer runs it over lines that already parse.
+     * The unconditional tier migrates only the /attribute argument, which cannot
+     * compile on 26.x; NBT, sound ids and prose are still left to rule 1.
      */
     @Test
-    void compileTierNeverTouchesAttributeIds() {
+    void compileTierMigratesOnlyTheAttributeArgument() {
+        assertEquals("execute store result score @s Minion_Armor run attribute @s minecraft:armor get",
+            LegacyCommandRewriter.rewriteForCompile(
+                "execute store result score @s Minion_Armor run attribute @s generic.armor get"));
         for (String command : new String[] {
-            "attribute @s generic.armor base set 30",
+            "attribute @s minecraft:armor base set 30",
             "playsound minecraft:entity.generic.extinguish_fire master @a ~ ~ ~ 1 1 0",
-            "execute store result score @s Minion_Armor run attribute @s generic.armor get",
+            "tellraw @a {\"text\":\"attribute @s generic.armor get\"}",
+            "summon zombie ~ ~ ~ {Attributes:[{AttributeName:\"generic.max_health\",Base:40}]}",
         }) {
             assertEquals(command, LegacyCommandRewriter.rewriteForCompile(command));
         }
