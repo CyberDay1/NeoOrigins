@@ -20,7 +20,7 @@ Two different things are called a toggle:
 ## Chat messages
 
 <!-- shared-fields: toggle_messages -->
-**Every toggle type** (`flight`, `creative_flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, `pose`, `persistent_effect`, `condition_passive` and `effect_over_time`) prints a green "on" or red "off" line in chat when its key flips it, and the same red line when an [upkeep](costs-and-upkeep.md#toggle-upkeep) it can't pay switches it off. Set `toggle_messages` to `false` to keep that toggle silent: the key still works and the HUD icon still brightens and dims, only the chat line is dropped.
+**Every toggle type** (`flight`, `creative_flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, `pose`, `persistent_effect`, `condition_passive` and `effect_over_time`) prints a green "on" or red "off" line in chat when its key flips it, and the same red line when an [upkeep](costs-and-upkeep.md#toggle-upkeep) it can't pay switches it off. Set `toggle_messages` to `false` to keep that toggle silent: the key still works and the HUD icon still brightens and dims, only the chat line is dropped. A [`neoorigins:toggle`](../powers/state.md#neooriginstoggle) has no key, so the only line it prints is the red one when an upkeep it can't pay switches it off; `toggle_messages: false` drops that too.
 
 | Field | Type | Default | Description |
 |---|---|---|---|

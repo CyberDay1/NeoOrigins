@@ -258,11 +258,14 @@ Increment it on hit (via an `action_on_event` / `change_resource` of `{ "resourc
 
 ## `neoorigins:toggle`
 
-A bare, stateless boolean power: purely a data-holder whose state lives in `CompatAttachments.toggleState()` keyed by the registered id. Unlike `active_ability`, `toggle` does not consume a keybind slot; it's a named boolean other powers gate on.
+A named boolean power that other powers can gate on, with optional upkeep while it is on. Unlike `active_ability`, `toggle` does not consume a keybind slot.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `default` | bool | no | `false` | Value reads see before the toggle has ever been flipped on this player. Set `true` for "on until flipped off." |
+| `toggle_messages` | bool | no | `true` | Print the off message when upkeep switches this toggle off. Set `false` to silence it. |
+
+Also takes the shared [toggle upkeep](../concepts/costs-and-upkeep.md#toggle-upkeep) fields (`hunger_cost`, `resource_cost`, `resource_cost_amount`, `upkeep_interval`, `upkeep_condition`). The toggle itself pays while its boolean is true, including when `default` is `true`; no separate power is needed to charge it. If the whole charge cannot be paid, nothing is deducted and the boolean switches off, so `power_active` reads false. Turning it back on resumes upkeep on the next charge tick. Without cost fields it stays free.
 
 Read the current value with `neoorigins:power_active { power: "mypack:my_toggle" }`. Flip it with `neoorigins:toggle { power: "mypack:my_toggle" }` (optionally `value: true/false` to set explicitly).
 
