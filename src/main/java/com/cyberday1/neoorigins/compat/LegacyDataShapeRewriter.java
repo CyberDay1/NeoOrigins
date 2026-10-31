@@ -28,7 +28,9 @@ import java.util.Set;
  * (was {@code condition} / {@code function}), the {@code conditions} and
  * {@code functions} lists became one {@code condition} and one {@code modifier},
  * a top-level array is no longer a predicate or item modifier, and a number
- * provider needs its {@code type}.
+ * provider needs its {@code type}. The {@code alternative} condition is now {@code any_of},
+ * a tag entry names its tag under {@code items}, and a criterion's entity fields take a
+ * loot condition, so a legacy condition list or bare entity predicate there is converted.
  */
 public final class LegacyDataShapeRewriter {
 
@@ -43,6 +45,14 @@ public final class LegacyDataShapeRewriter {
     private static final String ALL_OF = "minecraft:all_of";
     private static final String SEQUENCE = "minecraft:sequence";
     private static final String UNIFORM = "minecraft:uniform";
+    private static final String ANY_OF = "minecraft:any_of";
+    // Criterion fields that 26.3 reads as a loot condition rather than an entity predicate.
+    private static final List<String> ENTITY_CONDITION_FIELDS = List.of(
+        "player", "entity", "source", "child", "partner", "projectile", "villager", "zombie", "bystander", "lightning");
+    // Entity predicate keys whose 26.3 sub-predicate id is the same word, so wrapping keeps them valid.
+    private static final Set<String> ENTITY_PREDICATE_KEYS = Set.of(
+        "location", "stepping_on", "movement_affected_by", "distance", "movement", "effects", "nbt", "flags",
+        "equipment", "periodic_tick", "team", "slots");
     // Number-provider fields of the vanilla loot functions legacy packs use.
     private static final Map<String, String> FUNCTION_NUMBER_FIELDS = Map.of(
         "set_count", "count", "set_damage", "damage",
@@ -73,7 +83,8 @@ public final class LegacyDataShapeRewriter {
     @Nullable
     public static String rewrite(String path, String json) {
         boolean loot = isLoot(path);
-        if (!loot && !json.contains("\"item\"") && !json.contains("\"tag\"") && !json.contains("\"background\"")) {
+        if (!loot && !json.contains("\"item\"") && !json.contains("\"tag\"") && !json.contains("\"background\"")
+                && !(startsWithAny(path, ADVANCEMENT_DIRS) && json.contains("\"conditions\""))) {
             return null;
         }
         JsonElement root;
@@ -162,9 +173,20 @@ public final class LegacyDataShapeRewriter {
     }
 
     private static boolean rewriteAdvancement(JsonObject adv) {
-        if (!(adv.get("display") instanceof JsonObject display)) return false;
-        boolean changed = itemToId(display.get("icon"), true);
-        if (adv.has("parent") && display.remove("background") != null) changed = true;
+        boolean changed = false;
+        if (adv.get("display") instanceof JsonObject display) {
+            changed = itemToId(display.get("icon"), true);
+            if (adv.has("parent") && display.remove("background") != null) changed = true;
+        }
+        if (adv.get("criteria") instanceof JsonObject criteria) {
+            LootWalk walk = new LootWalk();
+            for (var e : criteria.entrySet()) {
+                if (e.getValue() instanceof JsonObject criterion && criterion.get("conditions") instanceof JsonObject conditions) {
+                    walk.criterionConditions(conditions);
+                }
+            }
+            changed |= walk.changed;
+        }
         return changed;
     }
 
@@ -222,10 +244,63 @@ public final class LegacyDataShapeRewriter {
             if (!(list instanceof JsonArray arr)) return;
             for (JsonElement el : arr) {
                 if (!(el instanceof JsonObject entry)) continue;
+                tagEntry(entry);
                 entries(entry.get("children"));
                 conditionsToCondition(entry);
                 functionsToModifier(entry);
             }
+        }
+
+        /** A tag entry names its tag under {@code items}, as a {@code #tag} holder set, instead of {@code name}. */
+        private void tagEntry(JsonObject entry) {
+            String type = stringOrNull(entry.has("type") ? entry.get("type") : null);
+            if (!"tag".equals(type) && !"minecraft:tag".equals(type)) return;
+            String name = stringOrNull(entry.get("name"));
+            if (entry.has("items") || name == null) return;
+            replaceKey(entry, "name", "items", new JsonPrimitive(name.startsWith("#") ? name : "#" + name));
+            changed = true;
+        }
+
+        /** Entity fields of a criterion's conditions: legacy condition lists and bare entity predicates. */
+        void criterionConditions(JsonObject conditions) {
+            for (String field : ENTITY_CONDITION_FIELDS) {
+                if (!conditions.has(field)) continue;
+                JsonElement out = entityCondition(conditions.get(field));
+                if (out == null) {
+                    conditions.remove(field);
+                    changed = true;
+                } else {
+                    conditions.add(field, out);
+                }
+            }
+            if (conditions.get("victims") instanceof JsonArray victims) {
+                for (int i = 0; i < victims.size(); i++) {
+                    JsonElement out = entityCondition(victims.get(i));
+                    if (out != null) victims.set(i, out);
+                }
+            }
+        }
+
+        /**
+         * A condition list becomes one condition (null when empty, i.e. no constraint); a bare
+         * entity predicate is wrapped in {@code entity_properties}. A predicate with a key
+         * 26.3 renamed (such as {@code type}) is ambiguous and left for the codec to judge.
+         */
+        @Nullable
+        private JsonElement entityCondition(JsonElement el) {
+            if (el instanceof JsonArray arr) {
+                changed = true;
+                return single(mapConditions(arr), ALL_OF, "terms");
+            }
+            if (!(el instanceof JsonObject obj) || obj.isEmpty()) return el;
+            if (obj.has("condition") || obj.has("type")) return condition(obj);
+            if (!ENTITY_PREDICATE_KEYS.containsAll(obj.keySet())) return el;
+            JsonObject wrapped = new JsonObject();
+            wrapped.addProperty("type", "minecraft:entity_properties");
+            wrapped.addProperty("entity", "this");
+            wrapped.add("predicate", obj);
+            changed = true;
+            return wrapped;
         }
 
         /** A predicate: {@code condition} becomes {@code type}; a bare array becomes {@code all_of}. */
@@ -240,6 +315,11 @@ public final class LegacyDataShapeRewriter {
                 changed = true;
             }
             String type = shortType(obj);
+            if ("alternative".equals(type)) {
+                obj.addProperty("type", ANY_OF);
+                type = "any_of";
+                changed = true;
+            }
             if ("inverted".equals(type) && obj.has("term")) obj.add("term", condition(obj.get("term")));
             if (("any_of".equals(type) || "all_of".equals(type)) && obj.get("terms") instanceof JsonArray terms) {
                 obj.add("terms", mapConditions(terms));
@@ -328,6 +408,7 @@ public final class LegacyDataShapeRewriter {
             return type != null && type.startsWith("minecraft:") ? type.substring("minecraft:".length()) : type;
         }
     }
+
 
     @Nullable
     static String stringOrNull(@Nullable JsonElement el) {

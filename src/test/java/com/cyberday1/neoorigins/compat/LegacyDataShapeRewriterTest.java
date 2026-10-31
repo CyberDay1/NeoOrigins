@@ -253,4 +253,63 @@ class LegacyDataShapeRewriterTest {
         assertJson(legacy.replace("\"item\"", "\"id\""),
             get(new LegacyFolderPackResources(inner, true), "recipe/torch.json"));
     }
+
+    // ── more 26.3 loot shapes ───────────────────────────────────────────────
+
+    @Test
+    void alternativeConditionBecomesAnyOf() {
+        assertJson("""
+            {"type":"minecraft:any_of","terms":[{"type":"minecraft:random_chance","chance":0.5}]}""",
+            LegacyDataShapeRewriter.rewrite("predicates/coin.json", """
+                {"condition":"minecraft:alternative","terms":[{"condition":"minecraft:random_chance","chance":0.5}]}"""));
+    }
+
+    @Test
+    void tagLootEntryNamesItsTagUnderItems() {
+        assertJson("""
+            {"pools":[{"rolls":1,"entries":[{"type":"minecraft:tag","items":"#minecraft:logs","expand":true}]}]}""",
+            LegacyDataShapeRewriter.rewrite("loot_table/x.json", """
+                {"pools":[{"rolls":1,"entries":[{"type":"minecraft:tag","name":"minecraft:logs","expand":true}]}]}"""));
+        // An item entry still keys on name in 26.3.
+        assertNull(LegacyDataShapeRewriter.rewrite("loot_table/x.json", """
+            {"pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:stone"}]}]}"""));
+        assertNull(LegacyDataShapeRewriter.rewrite("loot_table/x.json", """
+            {"pools":[{"rolls":1,"entries":[{"type":"minecraft:tag","items":"#minecraft:logs","expand":false}]}]}"""));
+    }
+
+    @Test
+    void criterionEntityFieldsBecomeLootConditions() {
+        assertJson("""
+            {"criteria":{"a":{"trigger":"minecraft:location","conditions":{
+              "player":{"type":"minecraft:entity_properties","entity":"this","predicate":{"flags":{"is_sneaking":true}}}}}}}""",
+            LegacyDataShapeRewriter.rewrite("advancement/a.json", """
+                {"criteria":{"a":{"trigger":"minecraft:location","conditions":{"player":{"flags":{"is_sneaking":true}}}}}}"""));
+        assertJson("""
+            {"criteria":{"a":{"trigger":"minecraft:player_killed_entity","conditions":{
+              "entity":{"type":"minecraft:all_of","terms":[
+                {"type":"minecraft:entity_properties","entity":"this","predicate":{"nbt":"{Tags:[\\"x\\"]}"}},
+                {"type":"minecraft:random_chance","chance":0.5}]}}}}}""",
+            LegacyDataShapeRewriter.rewrite("advancements/a.json", """
+                {"criteria":{"a":{"trigger":"minecraft:player_killed_entity","conditions":{"entity":[
+                  {"condition":"minecraft:entity_properties","entity":"this","predicate":{"nbt":"{Tags:[\\"x\\"]}"}},
+                  {"condition":"minecraft:random_chance","chance":0.5}]}}}}"""));
+        assertJson("""
+            {"criteria":{"a":{"trigger":"minecraft:tick","conditions":{}}}}""",
+            LegacyDataShapeRewriter.rewrite("advancement/a.json", """
+                {"criteria":{"a":{"trigger":"minecraft:tick","conditions":{"player":[]}}}}"""));
+    }
+
+    @Test
+    void modernOrAmbiguousCriteriaAreUnchanged() {
+        assertNull(LegacyDataShapeRewriter.rewrite("advancement/a.json", """
+            {"criteria":{"a":{"trigger":"minecraft:location","conditions":{
+              "player":{"type":"minecraft:entity_properties","entity":"this","predicate":{"flags":{"is_sneaking":true}}}}}}}"""));
+        assertNull(LegacyDataShapeRewriter.rewrite("advancement/a.json", """
+            {"criteria":{"a":{"trigger":"minecraft:location","conditions":{"player":"mypack:is_sneaking"}}}}"""));
+        // A legacy entity predicate keyed on type is indistinguishable from a condition here.
+        assertNull(LegacyDataShapeRewriter.rewrite("advancement/a.json", """
+            {"criteria":{"a":{"trigger":"minecraft:player_killed_entity","conditions":{"entity":{"type":"minecraft:zombie"}}}}}"""));
+        assertNull(LegacyDataShapeRewriter.rewrite("advancement/a.json", """
+            {"criteria":{"a":{"trigger":"minecraft:inventory_changed","conditions":{"items":[{"items":"minecraft:stone"}]}}}}"""));
+    }
 }
