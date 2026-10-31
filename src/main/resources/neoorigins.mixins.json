@@ -42,6 +42,8 @@
     "ServerAbilitiesPacketDebugMixin",
     "CraftingMenuCraftAmountMixin",
     "FolderPackDetectorMixin",
+    "RegistryElementLoadMixin",
+    "RegistryLoadTaskAccessor",
     "EntityForcedSwimmingMixin",
     "BlockStateBaseCobwebShapeMixin",
     "BeaconBlockEntityLevelsAccessor",
