@@ -448,4 +448,101 @@ class LegacyMcFunctionRewriteTest {
         String broken = "give @s minecraft:apple{this is not: snbt,,} 1";
         assertEquals(broken, LegacyCommandRewriter.rewriteForCompile(broken));
     }
+
+    @Test
+    void legacyModifierAddDropsTheNameAndRenamesTheOperation() {
+        // Line 6 of origins-plus-plus:deathsworn/freeze.
+        assertEquals(
+            "execute if score @s x matches -1 run attribute @s minecraft:movement_speed"
+                + " modifier add 1-1-1-1-1111 -100 add_value",
+            LegacyCommandRewriter.rewriteForCompile(
+                "execute if score @s x matches -1 run attribute @s minecraft:generic.movement_speed"
+                    + " modifier add 1-1-1-1-1111 standstill -100 add"));
+        assertEquals("attribute @s minecraft:armor modifier add 0-0-0-0-a1 2.5 add_multiplied_base",
+            LegacyCommandRewriter.rewriteForCompile(
+                "attribute @s generic.armor modifier add 0-0-0-0-a1 \"Iron skin\" 2.5 multiply_base"));
+        assertEquals("attribute @s minecraft:armor modifier add 0-0-0-0-a1 .5 add_multiplied_total",
+            LegacyCommandRewriter.rewriteForCompile(
+                "attribute @s minecraft:armor modifier add 0-0-0-0-a1 skin .5 multiply"));
+    }
+
+    @Test
+    void modernModifierCommandsAreUntouched() {
+        for (String command : new String[] {
+            "attribute @s minecraft:movement_speed modifier add neoorigins:slow -0.1 add_value",
+            "attribute @s minecraft:movement_speed modifier add 1-1-1-1-1111 -100 add_value",
+            "attribute @s minecraft:movement_speed modifier remove 1-1-1-1-1111",
+        }) {
+            assertEquals(command, LegacyCommandRewriter.rewriteForCompile(command));
+        }
+    }
+
+    @Test
+    void legacyGameruleNamesBecomeTheirRegistryIds() {
+        assertEquals("gamerule minecraft:show_death_messages false",
+            LegacyCommandRewriter.rewriteForCompile("gamerule showDeathMessages false"));
+        assertEquals("gamerule minecraft:random_tick_speed 20000",
+            LegacyCommandRewriter.rewriteForCompile("gamerule randomTickSpeed 20000"));
+        assertEquals("gamerule minecraft:raids false", LegacyCommandRewriter.rewriteForCompile("gamerule disableRaids true"));
+        assertEquals("execute if entity @a run gamerule minecraft:keep_inventory",
+            LegacyCommandRewriter.rewriteForCompile("execute if entity @a run gamerule keepInventory"));
+        // Already-current ids, a rule with no 26.x equivalent, and prose stay as written.
+        for (String command : new String[] {
+            "gamerule minecraft:show_death_messages false", "gamerule keep_inventory true",
+            "gamerule doFireTick false", "say gamerule keepInventory is on",
+        }) {
+            assertEquals(command, LegacyCommandRewriter.rewriteForCompile(command));
+        }
+    }
+
+    @Test
+    void summonedLegacyPotionBecomesSplashOrLingering() {
+        // Line 1 of origins-plus-plus:enigma/loop.
+        assertEquals("execute as @e[tag=Enigma_Kill] at @s run summon minecraft:splash_potion ~ ~ ~ {Item:{id:\"minecraft:splash_potion\"}}",
+            LegacyCommandRewriter.rewriteForCompile(
+                "execute as @e[tag=Enigma_Kill] at @s run summon minecraft:potion ~ ~ ~ {Item:{id:\"minecraft:splash_potion\"}}"));
+        assertEquals("summon minecraft:lingering_potion ~ ~ ~ {Item:{id:\"minecraft:lingering_potion\"}}",
+            LegacyCommandRewriter.rewriteForCompile("summon potion ~ ~ ~ {Item:{id:\"minecraft:lingering_potion\"}}"));
+        for (String command : new String[] {"summon minecraft:splash_potion ~ ~ ~", "summon minecraft:potionmod ~ ~ ~",
+                "give @s minecraft:potion 1"}) {
+            assertEquals(command, LegacyCommandRewriter.rewriteForCompile(command));
+        }
+    }
+
+    @Test
+    void horseSaddleSlotBecomesSaddle() {
+        // Line 2 of origins-plus-plus:dullahan/kill_steed.
+        assertEquals("execute as @e[tag=Dullahan_Horse] run item replace entity @s saddle with air",
+            LegacyCommandRewriter.rewriteForCompile("execute as @e[tag=Dullahan_Horse] run item replace entity @s horse.saddle with air"));
+        for (String command : new String[] {"item replace entity @s saddle with air", "item replace entity @s horse.chest with air",
+                "say horse.saddles"}) {
+            assertEquals(command, LegacyCommandRewriter.rewriteForCompile(command));
+        }
+    }
+
+    @Test
+    void bareFlashParticleGainsAColour() {
+        // Line 16 of wou:summon_wou.
+        String rewritten = LegacyCommandRewriter.rewriteForCompile(
+            "execute at @e[tag=wou] run particle minecraft:flash ~ ~1 ~ 0.25 0.25 0.25 0 3");
+        assertEquals("execute at @e[tag=wou] run particle minecraft:flash{color:[1.0f,1.0f,1.0f,1.0f]} ~ ~1 ~ 0.25 0.25 0.25 0 3",
+            rewritten);
+        assertInstanceOf(ColorParticleOption.class, parseParticle(rewritten.substring(rewritten.indexOf("particle "))));
+        String modern = "particle minecraft:flash{color:[1.0f,0.0f,0.0f,1.0f]} ~ ~ ~ 0 0 0 0 1";
+        assertEquals(modern, LegacyCommandRewriter.rewriteForCompile(modern));
+    }
+
+    @Test
+    void blockParticleStateMapGetsThe263Keys() {
+        // Line 30 of wou:exit_rock.
+        String rewritten = LegacyCommandRewriter.rewriteForCompile(
+            "particle minecraft:block{block_state:{Name:stone,Properties:{}}} ~ ~1 ~ 0.25 0.5 0.25 0 100");
+        assertEquals("particle minecraft:block{block_state:{id:stone,properties:{}}} ~ ~1 ~ 0.25 0.5 0.25 0 100", rewritten);
+        BlockParticleOption opts = assertInstanceOf(BlockParticleOption.class, parseParticle(rewritten));
+        assertEquals(Blocks.STONE.defaultBlockState(), opts.getState());
+        assertInstanceOf(BlockParticleOption.class, parseParticle(LegacyCommandRewriter.rewriteForCompile(
+            "particle block{block_state:{Name:\"minecraft:oak_log\",Properties:{axis:\"x\"}}} ~ ~ ~ 0 0 0 0 1")));
+        String modern = "particle minecraft:block{block_state:{id:\"minecraft:stone\"}} ~ ~ ~ 0 0 0 0 1";
+        assertEquals(modern, LegacyCommandRewriter.rewriteForCompile(modern));
+    }
 }
