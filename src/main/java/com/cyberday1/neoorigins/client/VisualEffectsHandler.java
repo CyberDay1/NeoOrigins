@@ -288,7 +288,7 @@ public final class VisualEffectsHandler {
     private static final float PHASE_FOG_SHADE = 0.03f;
 
     /**
-     * wraith_phase with {@code obscured_vision}: while the camera is inside a
+     * wraith_phase with {@code obscured_vision}: while the player's eyes are inside a
      * solid block, fog closes in at {@code phase_view_distance}. Phasing sets
      * {@code noPhysics}, which turns off vanilla's in-wall overlay, so without
      * this a phasing player sees straight through terrain.
@@ -313,7 +313,7 @@ public final class VisualEffectsHandler {
 
     /**
      * How far a phasing player may see right now, or NaN when the fog is off:
-     * no obscured_vision phase is active, or the camera is not inside a solid block.
+     * no obscured_vision phase is active, or the player's eyes are not inside a solid block.
      */
     static float phaseFogDistance(net.minecraft.client.Camera camera) {
         Minecraft mc = Minecraft.getInstance();
@@ -322,7 +322,7 @@ public final class VisualEffectsHandler {
         if (!ClientActivePowers.hasCapability("wall_phase")) return Float.NaN;
         String data = findCapabilityData("phase_obscured_vision");
         if (data == null) return Float.NaN;
-        if (!cameraInsideSolid(mc.level, camera.getPosition())) return Float.NaN;
+        if (!eyeInsideSolid(mc.level, mc.player.getEyePosition())) return Float.NaN;
         return parseViewDistance(data);
     }
 
@@ -340,7 +340,7 @@ public final class VisualEffectsHandler {
      * collision shape of the block it is in: the case in which the world
      * renders as if the walls were not there.
      */
-    private static boolean cameraInsideSolid(net.minecraft.world.level.Level level, net.minecraft.world.phys.Vec3 eye) {
+    private static boolean eyeInsideSolid(net.minecraft.world.level.Level level, net.minecraft.world.phys.Vec3 eye) {
         net.minecraft.core.BlockPos pos = net.minecraft.core.BlockPos.containing(eye);
         net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
         if (state.isAir()) return false;

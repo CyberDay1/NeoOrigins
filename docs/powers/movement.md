@@ -376,12 +376,12 @@ Toggleable spectral phasing. When active the player walks through solid blocks h
 | `blocked_blocks` | list of string | no | `["minecraft:obsidian", "minecraft:crying_obsidian", "minecraft:bedrock"]` | Blocks that cannot be phased through, each a block id or a block tag written as `#namespace:tag`. An entry that does not parse is skipped with a warning in the log rather than failing the power. |
 | `exhaustion_per_tick` | float | no | `0.15` | Hunger drain per tick while inside solid blocks. |
 | `always_on` | bool | no | `false` | When `true`, the power is passive (always active, no toggle, no skill key slot). Configurable per tier in the mod config. |
-| `obscured_vision` | bool | no | `false` | When `true`, the player can't see through terrain while phasing: whenever their view is inside a solid block, thick dark fog closes in at `phase_view_distance`. When `false`, the player sees through walls as before. |
-| `phase_view_distance` | float | no | `1.5` | With `obscured_vision`, how far the player can see, in blocks, while their view is inside a solid block. |
+| `obscured_vision` | bool | no | `false` | When `true`, the player can't see through terrain while phasing: whenever their eyes are inside a solid block, thick dark fog closes in at `phase_view_distance`. When `false`, the player sees through walls as before. |
+| `phase_view_distance` | float | no | `1.5` | With `obscured_vision`, how far the player can see, in blocks, while their eyes are inside a solid block. |
 
 Also takes the shared [toggle upkeep](../concepts/costs-and-upkeep.md#toggle-upkeep) fields (`hunger_cost`, `resource_cost`, `resource_cost_amount`, `upkeep_interval`, `upkeep_condition`).
 
-**Limited sight while phasing.** Vanilla darkens the screen when your head is inside a block, but phasing switches that off, so a phasing player normally sees caves, ores and bases straight through the rock. With `"obscured_vision": true` the view is fogged instead: as soon as the camera enters a solid block the world fades to near-black beyond `phase_view_distance`, and it clears the moment the camera is back in open air. Only the phasing player's own view changes, and only while the power is on.
+**Limited sight while phasing.** Vanilla darkens the screen when your head is inside a block, but phasing switches that off, so a phasing player normally sees caves, ores and bases straight through the rock. With `"obscured_vision": true` the view is fogged instead: as soon as the player's eyes enter a solid block the world fades to near-black beyond `phase_view_distance`, and it clears the moment the player's eyes are back in open air. Only the phasing player's own view changes, and only while the power is on.
 
 **The world border and portals.** A phasing player stops at the world border's face, and one who is already outside is put back inside, half a block in from the face. Nether portals, end portals and end gateways work while phasing. Other blocks the player passes through, such as cactus, fire, sweet berries, cobwebs and powder snow, still have no effect while phasing. Both apply with `always_on` too.
 

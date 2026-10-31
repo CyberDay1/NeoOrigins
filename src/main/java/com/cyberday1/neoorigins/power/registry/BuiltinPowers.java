@@ -915,9 +915,9 @@ public final class BuiltinPowers {
             new FieldSpec("always_on", Kind.BOOLEAN, false)
                 .def(false).doc("If true phasing is always-active instead of a toggle key (default false)."),
             new FieldSpec("obscured_vision", Kind.BOOLEAN, false)
-                .def(false).doc("If true, the player can't see through terrain while phasing: whenever the camera is inside a solid block, thick dark fog closes in at phase_view_distance (default false = clear sight through walls)."),
+                .def(false).doc("If true, the player can't see through terrain while phasing: whenever the player's eyes are inside a solid block, thick dark fog closes in at phase_view_distance (default false = clear sight through walls)."),
             new FieldSpec("phase_view_distance", Kind.NUMBER, false)
-                .def(1.5).range(0.0, null).doc("With obscured_vision, how far the player can see, in blocks, while the camera is inside a solid block (default 1.5)."),
+                .def(1.5).range(0.0, null).doc("With obscured_vision, how far the player can see, in blocks, while the player's eyes are inside a solid block (default 1.5)."),
             TOGGLE_ICON_SPEC, ALWAYS_SHOW_ICON_SPEC));
 
         // ── Group R (cont.) — batch D ───────────────────────────────────────
