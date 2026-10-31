@@ -52,7 +52,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * function name makes the whole file fail to parse, so those JSONs are passed
  * through {@link LegacyLootFunctionRewriter} on read. That surface is gated on
  * a path prefix plus a substring test before anything is parsed — see
- * {@link #rewriteLootJson}.
+ * {@link #rewriteJson}.
+ *
+ * <p>Packs from originpacks/ also get {@link LegacyDataShapeRewriter}, which
+ * repairs legacy JSON shapes in recipes and advancements; world datapacks do not.
  *
  * <p>Only {@link PackType#SERVER_DATA} is remapped; client resource layouts
  * did not change. Wrap points: {@link OriginsPackFinder} (originpacks/) and
@@ -95,6 +98,8 @@ public final class LegacyFolderPackResources implements PackResources {
         "loot_table/", "loot_tables/", "item_modifier/", "item_modifiers/");
 
     private final PackResources delegate;
+    /** Served from NeoOrigins' originpacks/ folder: gates the JSON shape rewrites. */
+    private final boolean originpack;
     /** One INFO line per pack, emitted the first time a legacy remap actually serves content. */
     private final AtomicBoolean announced = new AtomicBoolean(false);
     /** Ditto for the mcfunction rewrite — packs ship hundreds of files, so never log per line. */
@@ -103,23 +108,39 @@ public final class LegacyFolderPackResources implements PackResources {
     private final AtomicBoolean lootAnnounced = new AtomicBoolean(false);
     /** Ditto for the dead item→tag path repair, which is its own rewrite tier. */
     private final AtomicBoolean deadItemTagAnnounced = new AtomicBoolean(false);
+    /** Ditto for the originpack JSON shape rewrite. */
+    private final AtomicBoolean shapeAnnounced = new AtomicBoolean(false);
 
     public LegacyFolderPackResources(PackResources delegate) {
+        this(delegate, false);
+    }
+
+    public LegacyFolderPackResources(PackResources delegate, boolean originpack) {
         this.delegate = delegate;
+        this.originpack = originpack;
     }
 
     /** Wrap a {@link Pack.ResourcesSupplier} so both open paths get the shim. */
     public static Pack.ResourcesSupplier wrap(Pack.ResourcesSupplier inner) {
+        return wrap(inner, false);
+    }
+
+    /** As {@link #wrap(Pack.ResourcesSupplier)}, plus the originpack-only JSON shape rewrites. */
+    public static Pack.ResourcesSupplier wrapOriginpack(Pack.ResourcesSupplier inner) {
+        return wrap(inner, true);
+    }
+
+    private static Pack.ResourcesSupplier wrap(Pack.ResourcesSupplier inner, boolean originpack) {
         if (inner == null) return null;
         return new Pack.ResourcesSupplier() {
             @Override
             public PackResources openPrimary(PackLocationInfo info) {
-                return new LegacyFolderPackResources(inner.openPrimary(info));
+                return new LegacyFolderPackResources(inner.openPrimary(info), originpack);
             }
 
             @Override
             public PackResources openFull(PackLocationInfo info, Pack.Metadata metadata) {
-                return new LegacyFolderPackResources(inner.openFull(info, metadata));
+                return new LegacyFolderPackResources(inner.openFull(info, metadata), originpack);
             }
         };
     }
@@ -155,7 +176,10 @@ public final class LegacyFolderPackResources implements PackResources {
         if (io == null || type != PackType.SERVER_DATA) return io;
         String path = location.getPath();
         if (path.endsWith(MCFUNCTION)) return () -> rewriteFunction(io);
-        if (path.endsWith(JSON) && isLootJson(path)) return () -> rewriteLootJson(io);
+        if (!path.endsWith(JSON)) return io;
+        boolean loot = isLootJson(path);
+        boolean shape = originpack && LegacyDataShapeRewriter.handles(path);
+        if (loot || shape) return () -> rewriteJson(io, path, loot, shape);
         return io;
     }
 
@@ -216,21 +240,41 @@ public final class LegacyFolderPackResources implements PackResources {
      *
      * <p>Gated cheaply on purpose — path prefix and suffix first, then a plain
      * substring test, so the overwhelming majority of a pack's JSONs are never
-     * handed to a parser at all.
+     * handed to a parser at all. Originpacks then get {@link LegacyDataShapeRewriter}.
      */
-    private InputStream rewriteLootJson(IoSupplier<InputStream> io) throws IOException {
+    private InputStream rewriteJson(IoSupplier<InputStream> io, String path, boolean loot, boolean shape)
+            throws IOException {
         byte[] raw;
         try (InputStream in = io.get()) {
             raw = in.readAllBytes();
         }
         String text = new String(raw, StandardCharsets.UTF_8);
-        if (!text.contains(LegacyLootFunctionRewriter.MARKER)) return new ByteArrayInputStream(raw);
+        boolean changed = false;
+        if (loot && text.contains(LegacyLootFunctionRewriter.MARKER)) {
+            String rewritten = LegacyLootFunctionRewriter.rewrite(text, packId());
+            if (rewritten != null) {
+                announceLootRewrite();
+                text = rewritten;
+                changed = true;
+            }
+        }
+        if (shape) {
+            String rewritten = LegacyDataShapeRewriter.rewrite(path, text);
+            if (rewritten != null) {
+                announceShapeRewrite();
+                text = rewritten;
+                changed = true;
+            }
+        }
+        return new ByteArrayInputStream(changed ? text.getBytes(StandardCharsets.UTF_8) : raw);
+    }
 
-        String rewritten = LegacyLootFunctionRewriter.rewrite(text, packId());
-        if (rewritten == null) return new ByteArrayInputStream(raw);
-
-        announceLootRewrite();
-        return new ByteArrayInputStream(rewritten.getBytes(StandardCharsets.UTF_8));
+    private void announceShapeRewrite() {
+        if (shapeAnnounced.compareAndSet(false, true)) {
+            NeoOrigins.LOGGER.info(
+                "OriginsCompat: pack '{}' ships recipe/advancement JSON in a legacy shape — rewriting it on read",
+                packId());
+        }
     }
 
     private void announceLootRewrite() {
