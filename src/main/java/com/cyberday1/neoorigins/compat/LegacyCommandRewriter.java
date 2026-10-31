@@ -160,6 +160,104 @@ public final class LegacyCommandRewriter {
         "modifier (add|remove) ([0-9a-fA-F-]+)");
 
     /**
+     * The 1.20 {@code modifier add <uuid> <name> <value> <op>} form; 1.21 dropped the
+     * name and renamed the operations. Also matches the id rule 4 already rewrote.
+     */
+    private static final Pattern LEGACY_MODIFIER_ADD = Pattern.compile(
+        "\\bmodifier\\s+add\\s+([0-9a-f]+(?:-[0-9a-f]+){4}|neoorigins:compat_[0-9a-f_]+)"
+            + "\\s+(?:\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|\\S+)"
+            + "\\s+([-+]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][-+]?[0-9]+)?)"
+            + "\\s+(add|multiply_base|multiply)(?=\\s|$)");
+
+    /** 1.20 operation literal to its 1.21 name. */
+    private static String modifierOperation(String legacy) {
+        return switch (legacy) {
+            case "add" -> "add_value";
+            case "multiply_base" -> "add_multiplied_base";
+            default -> "add_multiplied_total";
+        };
+    }
+
+    /** {@code gamerule <camelCaseName>} as a command or an execute step: 26.1 moved rules to snake_case ids. */
+    private static final Pattern LEGACY_GAMERULE = Pattern.compile(
+        "(^\\s*|\\brun\\s+)gamerule\\s+([a-zA-Z]+)(?=\\s|$)(?:\\s+(true|false)(?=\\s|$))?");
+
+    /**
+     * Legacy rule name to its 26.x id, from vanilla's GameRuleRegistryFix. A leading
+     * {@code !} marks a rule whose boolean was inverted (disableRaids became raids).
+     */
+    private static final java.util.Map<String, String> GAMERULE_IDS = java.util.Map.ofEntries(
+        java.util.Map.entry("allowEnteringNetherUsingPortals", "minecraft:allow_entering_nether_using_portals"),
+        java.util.Map.entry("announceAdvancements", "minecraft:show_advancement_messages"),
+        java.util.Map.entry("blockExplosionDropDecay", "minecraft:block_explosion_drop_decay"),
+        java.util.Map.entry("commandBlockOutput", "minecraft:command_block_output"),
+        java.util.Map.entry("enableCommandBlocks", "minecraft:command_blocks_work"),
+        java.util.Map.entry("commandBlocksEnabled", "minecraft:command_blocks_work"),
+        java.util.Map.entry("commandModificationBlockLimit", "minecraft:max_block_modifications"),
+        java.util.Map.entry("disableElytraMovementCheck", "!minecraft:elytra_movement_check"),
+        java.util.Map.entry("disablePlayerMovementCheck", "!minecraft:player_movement_check"),
+        java.util.Map.entry("disableRaids", "!minecraft:raids"),
+        java.util.Map.entry("doDaylightCycle", "minecraft:advance_time"),
+        java.util.Map.entry("doEntityDrops", "minecraft:entity_drops"),
+        java.util.Map.entry("doImmediateRespawn", "minecraft:immediate_respawn"),
+        java.util.Map.entry("doInsomnia", "minecraft:spawn_phantoms"),
+        java.util.Map.entry("doLimitedCrafting", "minecraft:limited_crafting"),
+        java.util.Map.entry("doMobLoot", "minecraft:mob_drops"),
+        java.util.Map.entry("doMobSpawning", "minecraft:spawn_mobs"),
+        java.util.Map.entry("doPatrolSpawning", "minecraft:spawn_patrols"),
+        java.util.Map.entry("doTileDrops", "minecraft:block_drops"),
+        java.util.Map.entry("doTraderSpawning", "minecraft:spawn_wandering_traders"),
+        java.util.Map.entry("doVinesSpread", "minecraft:spread_vines"),
+        java.util.Map.entry("doWardenSpawning", "minecraft:spawn_wardens"),
+        java.util.Map.entry("doWeatherCycle", "minecraft:advance_weather"),
+        java.util.Map.entry("drowningDamage", "minecraft:drowning_damage"),
+        java.util.Map.entry("enderPearlsVanishOnDeath", "minecraft:ender_pearls_vanish_on_death"),
+        java.util.Map.entry("fallDamage", "minecraft:fall_damage"),
+        java.util.Map.entry("fireDamage", "minecraft:fire_damage"),
+        java.util.Map.entry("forgiveDeadPlayers", "minecraft:forgive_dead_players"),
+        java.util.Map.entry("freezeDamage", "minecraft:freeze_damage"),
+        java.util.Map.entry("globalSoundEvents", "minecraft:global_sound_events"),
+        java.util.Map.entry("keepInventory", "minecraft:keep_inventory"),
+        java.util.Map.entry("lavaSourceConversion", "minecraft:lava_source_conversion"),
+        java.util.Map.entry("locatorBar", "minecraft:locator_bar"),
+        java.util.Map.entry("logAdminCommands", "minecraft:log_admin_commands"),
+        java.util.Map.entry("maxCommandChainLength", "minecraft:max_command_sequence_length"),
+        java.util.Map.entry("maxCommandForkCount", "minecraft:max_command_forks"),
+        java.util.Map.entry("maxEntityCramming", "minecraft:max_entity_cramming"),
+        java.util.Map.entry("minecartMaxSpeed", "minecraft:max_minecart_speed"),
+        java.util.Map.entry("mobExplosionDropDecay", "minecraft:mob_explosion_drop_decay"),
+        java.util.Map.entry("mobGriefing", "minecraft:mob_griefing"),
+        java.util.Map.entry("naturalRegeneration", "minecraft:natural_health_regeneration"),
+        java.util.Map.entry("playersNetherPortalCreativeDelay", "minecraft:players_nether_portal_creative_delay"),
+        java.util.Map.entry("playersNetherPortalDefaultDelay", "minecraft:players_nether_portal_default_delay"),
+        java.util.Map.entry("playersSleepingPercentage", "minecraft:players_sleeping_percentage"),
+        java.util.Map.entry("projectilesCanBreakBlocks", "minecraft:projectiles_can_break_blocks"),
+        java.util.Map.entry("randomTickSpeed", "minecraft:random_tick_speed"),
+        java.util.Map.entry("reducedDebugInfo", "minecraft:reduced_debug_info"),
+        java.util.Map.entry("sendCommandFeedback", "minecraft:send_command_feedback"),
+        java.util.Map.entry("showDeathMessages", "minecraft:show_death_messages"),
+        java.util.Map.entry("snowAccumulationHeight", "minecraft:max_snow_accumulation_height"),
+        java.util.Map.entry("spawnMonsters", "minecraft:spawn_monsters"),
+        java.util.Map.entry("spawnRadius", "minecraft:respawn_radius"),
+        java.util.Map.entry("spawnerBlocksEnabled", "minecraft:spawner_blocks_work"),
+        java.util.Map.entry("spectatorsGenerateChunks", "minecraft:spectators_generate_chunks"),
+        java.util.Map.entry("tntExplodes", "minecraft:tnt_explodes"),
+        java.util.Map.entry("tntExplosionDropDecay", "minecraft:tnt_explosion_drop_decay"),
+        java.util.Map.entry("universalAnger", "minecraft:universal_anger"),
+        java.util.Map.entry("waterSourceConversion", "minecraft:water_source_conversion"));
+
+    /** {@code summon minecraft:potion}: the thrown potion entity was split into splash and lingering. */
+    private static final Pattern SUMMON_LEGACY_POTION = Pattern.compile(
+        "\\bsummon\\s+(?:minecraft:)?potion(?=\\s|$)");
+
+    /** The {@code horse.saddle} slot as a command token: the saddle became its own equipment slot, {@code saddle}. */
+    private static final Pattern HORSE_SADDLE_SLOT = Pattern.compile("(?<=\\s)horse\\.saddle(?=\\s|$)");
+
+    /** {@code particle flash} with no options: 26.1 made flash a coloured particle. */
+    private static final Pattern PARTICLE_FLASH = Pattern.compile(
+        "\\bparticle\\s+((?:minecraft:)?flash)(?=\\s|$)");
+
+    /**
      * Matches a leading {@code origin} verb so we can rewrite it to
      * {@code neoorigins}. We do this so existing mcfunctions / chat habits that
      * use {@code /origin set @p ...} keep working transparently after the
@@ -395,6 +493,42 @@ public final class LegacyCommandRewriter {
         //     from. See ENTITY_EFFECT_COLOR for why the value is invented.
         result = PARTICLE_ENTITY_EFFECT.matcher(result).replaceAll(mr ->
             "particle " + mr.group(1) + ENTITY_EFFECT_COLOR);
+
+        // 6d. flash took no options before 26.1; it now requires a colour. White
+        //     matches how the uncoloured flash drew.
+        result = PARTICLE_FLASH.matcher(result).replaceAll(mr ->
+            "particle " + mr.group(1) + ENTITY_EFFECT_COLOR);
+
+        // 7. modifier add <uuid> <name> <value> <op>: drop the name, rename the op.
+        //    The uuid stays as the id, so the pack's own `modifier remove <uuid>` still pairs.
+        result = LEGACY_MODIFIER_ADD.matcher(result).replaceAll(mr -> Matcher.quoteReplacement(
+            "modifier add " + mr.group(1) + " " + mr.group(2) + " " + modifierOperation(mr.group(3))));
+
+        // 8. The attribute argument of /attribute: 26.x registers no generic.* id, so
+        //    such a line can never compile. NBT and sound ids are still left to rule 1.
+        result = replaceOutsideStrings(result, ATTRIBUTE_CMD_ID,
+            mr -> "attribute " + mr.group(1) + " minecraft:" + mr.group(2));
+
+        // 9. summon minecraft:potion: splash, or lingering when its Item says so (as fire_projectile does).
+        Matcher potion = SUMMON_LEGACY_POTION.matcher(result);
+        if (potion.find()) {
+            result = result.substring(0, potion.start()) + "summon "
+                + LegacyEntityIds.remap("minecraft:potion", result.substring(potion.end())) + result.substring(potion.end());
+        }
+
+        // 11. Slot horse.saddle: 1.21.5 moved the saddle to the saddle equipment slot.
+        result = HORSE_SADDLE_SLOT.matcher(result).replaceAll("saddle");
+
+        // 10. gamerule <camelCase>: renamed per GameRuleRegistryFix; inverted rules flip the value.
+        result = LEGACY_GAMERULE.matcher(result).replaceAll(mr -> {
+            String id = GAMERULE_IDS.get(mr.group(2));
+            if (id == null) return Matcher.quoteReplacement(mr.group());
+            boolean invert = id.startsWith("!");
+            String value = mr.group(3);
+            if (invert && value != null) value = String.valueOf(!Boolean.parseBoolean(value));
+            return Matcher.quoteReplacement(mr.group(1) + "gamerule " + (invert ? id.substring(1) : id)
+                + (value == null ? "" : " " + value));
+        });
 
         return result;
     }
