@@ -31,6 +31,7 @@ import java.util.Set;
  * provider needs its {@code type}. The {@code alternative} condition is now {@code any_of},
  * a tag entry names its tag under {@code items}, and a criterion's entity fields take a
  * loot condition, so a legacy condition list or bare entity predicate there is converted.
+ * Item, block and entity tags get the ids 26.x renamed or split.
  */
 public final class LegacyDataShapeRewriter {
 
@@ -68,7 +69,7 @@ public final class LegacyDataShapeRewriter {
     /** True for the in-namespace paths this rewriter looks at. */
     public static boolean handles(String path) {
         return path.endsWith(".json") && (startsWithAny(path, RECIPE_DIRS) || startsWithAny(path, ADVANCEMENT_DIRS)
-            || isLoot(path));
+            || isLoot(path) || tagKind(path) != null);
     }
 
     private static boolean isLoot(String path) {
@@ -82,6 +83,8 @@ public final class LegacyDataShapeRewriter {
      */
     @Nullable
     public static String rewrite(String path, String json) {
+        String tagKind = tagKind(path);
+        if (tagKind != null) return rewriteTag(tagKind, json);
         boolean loot = isLoot(path);
         if (!loot && !json.contains("\"item\"") && !json.contains("\"tag\"") && !json.contains("\"background\"")
                 && !(startsWithAny(path, ADVANCEMENT_DIRS) && json.contains("\"conditions\""))) {
@@ -409,6 +412,65 @@ public final class LegacyDataShapeRewriter {
         }
     }
 
+    // ── tags (26.x) ─────────────────────────────────────────────────────────
+
+    private static final String[][] TAG_DIRS = {
+        {"tags/item/", "item"}, {"tags/items/", "item"}, {"tags/block/", "block"}, {"tags/blocks/", "block"},
+        {"tags/entity_type/", "entity_type"}, {"tags/entity_types/", "entity_type"}};
+
+    // Ids 26.x renamed or split. The legacy boat entity covered every wood, which is #minecraft:boat now.
+    private static final Map<String, Map<String, List<String>>> TAG_RENAMES = Map.of(
+        "item", Map.of("minecraft:chain", List.of("minecraft:iron_chain")),
+        "block", Map.of("minecraft:chain", List.of("minecraft:iron_chain")),
+        "entity_type", Map.of(
+            "minecraft:boat", List.of("#minecraft:boat"),
+            "minecraft:potion", List.of("minecraft:splash_potion", "minecraft:lingering_potion")));
+
+    @Nullable
+    private static String tagKind(String path) {
+        for (String[] dir : TAG_DIRS) if (path.startsWith(dir[0])) return dir[1];
+        return null;
+    }
+
+    /** Tag values naming a renamed or split id are replaced by the current id(s), keeping {@code required}. */
+    @Nullable
+    static String rewriteTag(String kind, String json) {
+        Map<String, List<String>> renames = TAG_RENAMES.get(kind);
+        boolean mentioned = false;
+        for (String id : renames.keySet()) mentioned |= json.contains("\"" + id + "\"");
+        if (!mentioned) return null;
+        JsonElement root;
+        try {
+            root = JsonParser.parseString(json);
+        } catch (Exception e) {
+            return null;
+        }
+        if (!(root instanceof JsonObject obj) || !(obj.get("values") instanceof JsonArray values)) return null;
+        JsonArray out = new JsonArray();
+        boolean changed = false;
+        for (JsonElement value : values) {
+            JsonObject entry = value instanceof JsonObject o ? o : null;
+            String id = entry != null ? stringOrNull(entry.get("id")) : stringOrNull(value);
+            List<String> current = id == null ? null : renames.get(id);
+            if (current == null) {
+                out.add(value);
+                continue;
+            }
+            changed = true;
+            for (String to : current) {
+                if (entry == null) {
+                    out.add(to);
+                } else {
+                    JsonObject copy = entry.deepCopy();
+                    copy.addProperty("id", to);
+                    out.add(copy);
+                }
+            }
+        }
+        if (!changed) return null;
+        obj.add("values", out);
+        return new GsonBuilder().disableHtmlEscaping().create().toJson(root);
+    }
 
     @Nullable
     static String stringOrNull(@Nullable JsonElement el) {

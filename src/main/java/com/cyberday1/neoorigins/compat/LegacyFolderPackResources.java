@@ -275,7 +275,7 @@ public final class LegacyFolderPackResources implements PackResources {
     private void announceShapeRewrite() {
         if (shapeAnnounced.compareAndSet(false, true)) {
             NeoOrigins.LOGGER.info(
-                "OriginsCompat: pack '{}' ships recipe, advancement or loot JSON in a legacy shape — rewriting it on read",
+                "OriginsCompat: pack '{}' ships recipe, advancement, loot or tag JSON in a legacy shape — rewriting it on read",
                 packId());
         }
     }

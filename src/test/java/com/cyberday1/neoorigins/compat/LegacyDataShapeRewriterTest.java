@@ -312,4 +312,28 @@ class LegacyDataShapeRewriterTest {
         assertNull(LegacyDataShapeRewriter.rewrite("advancement/a.json", """
             {"criteria":{"a":{"trigger":"minecraft:inventory_changed","conditions":{"items":[{"items":"minecraft:stone"}]}}}}"""));
     }
+
+    // ── tags ────────────────────────────────────────────────────────────────
+
+    @Test
+    void renamedTagIdsAreMapped() {
+        assertJson("{\"values\":[\"minecraft:anvil\",\"minecraft:iron_chain\"]}",
+            LegacyDataShapeRewriter.rewrite("tags/item/iron.json", "{\"values\":[\"minecraft:anvil\",\"minecraft:chain\"]}"));
+        assertJson("{\"values\":[\"minecraft:iron_chain\"]}",
+            LegacyDataShapeRewriter.rewrite("tags/blocks/iron.json", "{\"values\":[\"minecraft:chain\"]}"));
+        assertJson("""
+            {"replace":false,"values":["minecraft:arrow","#minecraft:boat",
+              {"id":"minecraft:splash_potion","required":false},{"id":"minecraft:lingering_potion","required":false}]}""",
+            LegacyDataShapeRewriter.rewrite("tags/entity_type/untargetable.json", """
+                {"replace":false,"values":["minecraft:arrow","minecraft:boat",{"id":"minecraft:potion","required":false}]}"""));
+    }
+
+    @Test
+    void currentTagsAreUnchanged() {
+        // An item tag's minecraft:potion is the potion item, which still exists.
+        assertNull(LegacyDataShapeRewriter.rewrite("tags/item/x.json", "{\"values\":[\"minecraft:potion\",\"minecraft:boat\"]}"));
+        assertNull(LegacyDataShapeRewriter.rewrite("tags/entity_type/x.json",
+            "{\"values\":[\"#minecraft:boat\",\"minecraft:splash_potion\",\"mymod:potion\"]}"));
+        assertNull(LegacyDataShapeRewriter.rewrite("tags/block/x.json", "{\"values\":[\"minecraft:iron_chain\"]}"));
+    }
 }
