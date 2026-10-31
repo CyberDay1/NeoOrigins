@@ -224,7 +224,7 @@ public final class BuiltinPowers {
             .doc("Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free."),
         new FieldSpec("resource_cost", Kind.STRING, false)
             .def("").readBy(UPKEEP_READER)
-            .doc("Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled."),
+            .doc("Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled."),
         new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
             .def(0).range(0.0, null).readBy(UPKEEP_READER)
             .doc("Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid."),
@@ -537,7 +537,7 @@ public final class BuiltinPowers {
             new FieldSpec("hunger_cost", Kind.INTEGER, false)
                 .def(0).range(0.0, null).doc("Food points charged every upkeep_interval while the inventory is open (saturation first). The key does nothing while the player can't pay one charge, and the menu closes at the first charge they can't pay. Default 0 = free."),
             new FieldSpec("resource_cost", Kind.STRING, false)
-                .def("").doc("Id of a neoorigins:resource power drained every upkeep_interval while the inventory is open; empty = no resource cost. Falls back to hunger_cost when resource bars are globally disabled."),
+                .def("").doc("Id of a neoorigins:resource power drained every upkeep_interval while the inventory is open; empty = no resource cost. Charged as hunger instead when resource bars are globally disabled."),
             new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
                 .def(0).range(0.0, null).doc("Amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid."),
             new FieldSpec("upkeep_interval", Kind.INTEGER, false)
@@ -1898,7 +1898,7 @@ public final class BuiltinPowers {
                 .def(0).range(0.0, null)
                 .doc("Upkeep: food points drained each pulse. A toggleable aura (active, or passive with toggleable:true) switches itself off when the holder can't pay; a plain passive aura skips that pulse. Default 0 = free."),
             new FieldSpec("resource_cost", Kind.STRING, false)
-                .def("").doc("Upkeep: optional resource power id drained each pulse, in any mode; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled."),
+                .def("").doc("Upkeep: optional resource power id drained each pulse, in any mode; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled."),
             new FieldSpec("resource_cost_amount", Kind.INTEGER, false)
                 .def(0).doc("Upkeep: amount of the resource_cost resource drained each pulse; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid."),
             new FieldSpec("upkeep_condition", Kind.REF, false).ref("condition.schema.json")
