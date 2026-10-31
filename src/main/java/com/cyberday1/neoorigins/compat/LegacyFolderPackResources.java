@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link #rewriteJson}.
  *
  * <p>Packs from originpacks/ also get {@link LegacyDataShapeRewriter}, which
- * repairs legacy JSON shapes in recipes and advancements; world datapacks do not.
+ * repairs legacy JSON shapes in recipes, advancements and loot data; world datapacks do not.
  *
  * <p>Only {@link PackType#SERVER_DATA} is remapped; client resource layouts
  * did not change. Wrap points: {@link OriginsPackFinder} (originpacks/) and
@@ -272,7 +272,7 @@ public final class LegacyFolderPackResources implements PackResources {
     private void announceShapeRewrite() {
         if (shapeAnnounced.compareAndSet(false, true)) {
             NeoOrigins.LOGGER.info(
-                "OriginsCompat: pack '{}' ships recipe/advancement JSON in a legacy shape — rewriting it on read",
+                "OriginsCompat: pack '{}' ships recipe, advancement or loot JSON in a legacy shape — rewriting it on read",
                 packId());
         }
     }
