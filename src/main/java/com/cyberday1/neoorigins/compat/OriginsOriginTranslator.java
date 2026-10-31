@@ -74,9 +74,9 @@ public final class OriginsOriginTranslator {
         out.addProperty("description", extractLiteralOrDerive(src.has("description") ? src.get("description") : null,
             ""));
 
-        // ---- icon: pass through as-is (IconCodec handles all formats) ----
+        // ---- icon: IconCodec handles all formats; renamed item ids are remapped first ----
         if (src.has("icon")) {
-            out.add("icon", src.get("icon"));
+            out.add("icon", LegacyItemIds.remapIcon(src.get("icon")));
         }
 
         // ---- impact: integer → string ----
