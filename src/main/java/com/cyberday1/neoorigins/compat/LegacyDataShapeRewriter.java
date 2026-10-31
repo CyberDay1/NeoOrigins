@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.compat;
 
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -17,6 +18,7 @@ import java.util.Set;
  * <p>1.21.1 subset: an item stack written {@code {"item":...}} where the codec
  * requires {@code id} (recipe {@code result}, advancement {@code display.icon}).
  * Ingredients still accept {@code {"item":...}} on this line, so they are left alone.
+ * Loot data and advancements also get the {@code alternative} condition renamed {@code any_of}.
  */
 public final class LegacyDataShapeRewriter {
 
@@ -24,6 +26,9 @@ public final class LegacyDataShapeRewriter {
 
     private static final String[] RECIPE_DIRS = {"recipe/", "recipes/"};
     private static final String[] ADVANCEMENT_DIRS = {"advancement/", "advancements/"};
+    private static final String[] LOOT_DIRS = {"predicate/", "predicates/", "item_modifier/", "item_modifiers/",
+        "loot_table/", "loot_tables/"};
+    private static final String ALTERNATIVE = "alternative";
 
     // Vanilla recipe types whose result is an ItemStack; other mods' schemas are not ours to guess.
     private static final Set<String> VANILLA_RECIPES = Set.of(
@@ -32,7 +37,8 @@ public final class LegacyDataShapeRewriter {
 
     /** True for the in-namespace paths this rewriter looks at. */
     public static boolean handles(String path) {
-        return path.endsWith(".json") && (startsWithAny(path, RECIPE_DIRS) || startsWithAny(path, ADVANCEMENT_DIRS));
+        return path.endsWith(".json") && (startsWithAny(path, RECIPE_DIRS) || startsWithAny(path, ADVANCEMENT_DIRS)
+            || startsWithAny(path, LOOT_DIRS));
     }
 
     /**
@@ -41,18 +47,20 @@ public final class LegacyDataShapeRewriter {
      */
     @Nullable
     public static String rewrite(String path, String json) {
-        if (!json.contains("\"item\"")) return null;
+        boolean alternative = json.contains(ALTERNATIVE);
+        if (!alternative && (startsWithAny(path, LOOT_DIRS) || !json.contains("\"item\""))) return null;
         JsonElement root;
         try {
             root = JsonParser.parseString(json);
         } catch (Exception e) {
             return null; // malformed JSON is vanilla's to report
         }
-        if (!root.isJsonObject()) return null;
-        JsonObject obj = root.getAsJsonObject();
         boolean changed = false;
-        if (startsWithAny(path, RECIPE_DIRS)) changed = rewriteRecipe(obj);
-        else if (startsWithAny(path, ADVANCEMENT_DIRS)) changed = rewriteAdvancement(obj);
+        if (root instanceof JsonObject obj) {
+            if (startsWithAny(path, RECIPE_DIRS)) changed = rewriteRecipe(obj);
+            else if (startsWithAny(path, ADVANCEMENT_DIRS)) changed = rewriteAdvancement(obj);
+        }
+        if (alternative && !startsWithAny(path, RECIPE_DIRS)) changed |= alternativeToAnyOf(root);
         return changed ? new GsonBuilder().disableHtmlEscaping().create().toJson(root) : null;
     }
 
@@ -81,6 +89,22 @@ public final class LegacyDataShapeRewriter {
         if (!allowNbt && stack.has("nbt")) return false;
         renameKey(stack, "item", "id");
         return true;
+    }
+
+    /** The loot condition {@code alternative}, renamed {@code any_of} with the same {@code terms}. */
+    static boolean alternativeToAnyOf(JsonElement el) {
+        boolean changed = false;
+        if (el instanceof JsonObject obj) {
+            String type = stringOrNull(obj.get("condition"));
+            if (ALTERNATIVE.equals(type) || ("minecraft:" + ALTERNATIVE).equals(type)) {
+                obj.addProperty("condition", "minecraft:any_of");
+                changed = true;
+            }
+            for (var e : obj.entrySet()) changed |= alternativeToAnyOf(e.getValue());
+        } else if (el instanceof JsonArray arr) {
+            for (JsonElement child : arr) changed |= alternativeToAnyOf(child);
+        }
+        return changed;
     }
 
     /** Renames a key in place, keeping its position. */

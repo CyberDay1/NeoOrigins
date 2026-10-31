@@ -137,4 +137,36 @@ class LegacyDataShapeRewriterTest {
         assertJson(legacy.replace("\"item\"", "\"id\""),
             get(new LegacyFolderPackResources(inner, true), "recipe/torch.json"));
     }
+
+    // ── alternative → any_of ────────────────────────────────────────────────
+
+    @Test
+    void alternativeConditionBecomesAnyOf() {
+        assertJson("""
+            {"condition":"minecraft:any_of","terms":[{"condition":"minecraft:random_chance","chance":0.5}]}""",
+            LegacyDataShapeRewriter.rewrite("predicates/coin.json", """
+                {"condition":"alternative","terms":[{"condition":"minecraft:random_chance","chance":0.5}]}"""));
+        assertJson("""
+            {"pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:stone",
+              "conditions":[{"condition":"minecraft:any_of","terms":[]}]}]}]}""",
+            LegacyDataShapeRewriter.rewrite("loot_table/x.json", """
+                {"pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"minecraft:stone",
+                  "conditions":[{"condition":"minecraft:alternative","terms":[]}]}]}]}"""));
+        assertJson("""
+            {"criteria":{"a":{"trigger":"minecraft:tick","conditions":{"player":[
+              {"condition":"minecraft:any_of","terms":[]}]}}}}""",
+            LegacyDataShapeRewriter.rewrite("advancement/x.json", """
+                {"criteria":{"a":{"trigger":"minecraft:tick","conditions":{"player":[
+                  {"condition":"minecraft:alternative","terms":[]}]}}}}"""));
+    }
+
+    @Test
+    void modernLootDataIsUnchanged() {
+        assertNull(LegacyDataShapeRewriter.rewrite("predicate/coin.json",
+            "{\"condition\":\"minecraft:any_of\",\"terms\":[]}"));
+        assertNull(LegacyDataShapeRewriter.rewrite("loot_table/x.json",
+            "{\"pools\":[{\"rolls\":1,\"entries\":[{\"type\":\"minecraft:item\",\"name\":\"minecraft:alternative\"}]}]}"));
+        assertNull(LegacyDataShapeRewriter.rewrite("item_modifier/x.json",
+            "{\"function\":\"minecraft:set_count\",\"count\":2}"));
+    }
 }
