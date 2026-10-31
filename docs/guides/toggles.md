@@ -11,12 +11,14 @@ Many power types are already toggleable: `flight`, `stealth`, `persistent_effect
 
 A `neoorigins:toggle` power is a **named boolean** stored per-player. It
 doesn't appear on the skill bar and doesn't consume a keybind slot; its
-only job is to be _read_ by other powers' `condition` field and _written_
+state is _read_ by other powers' `condition` field and _written_
 by other powers' `entity_action`. This is the cleanest way to give pack
 authors a stance, a stealth flag, a mark, or any "is this mode on right
 now?" gate without burning a hotbar key.
 
-The pattern is always three pieces:
+The flag can also pay its own [upkeep](../concepts/costs-and-upkeep.md#toggle-upkeep): put `resource_cost`, `resource_cost_amount` and `upkeep_interval` on the `neoorigins:toggle` power to drain an existing resource while the flag is true. `hunger_cost` and `upkeep_condition` work here too. No separate charging power is needed. If the player cannot pay, the flag switches off and `power_active` reads false.
+
+The pattern for a mode shared by other powers is three pieces:
 
 1. **The flag itself**: a `neoorigins:toggle` power. Optional `default`
    sets the value reads see before the flag has ever been flipped. Set
@@ -71,7 +73,7 @@ A passive that lets the player climb walls, but only while a separate
 }
 ```
 
-The wall-climb power does the work; the toggle is just a data flag.
+The wall-climb power does the work; the toggle holds the mode flag and can pay its upkeep.
 Swap `wall_climbing` for any condition-gated power (attribute,
 persistent_effect, etc.) and the same pattern works.
 

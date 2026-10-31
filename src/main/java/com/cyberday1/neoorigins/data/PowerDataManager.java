@@ -458,8 +458,10 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
      * so power_overrides values apply.
      */
     public static void registerUpkeep(ResourceLocation id, PowerType<?> type, JsonObject configJson) {
-        if (!(type instanceof com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle<?> toggle)) return;
-        if (toggle.readsSharedUpkeep()) {
+        if (!(type instanceof com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle<?>)
+                && !(type instanceof com.cyberday1.neoorigins.power.builtin.TogglePower)) return;
+        if (!(type instanceof com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle<?> toggle)
+                || toggle.readsSharedUpkeep()) {
             com.cyberday1.neoorigins.power.util.PowerUpkeep.register(id,
                 com.cyberday1.neoorigins.power.util.PowerUpkeep.parse(configJson, id.toString()));
         }

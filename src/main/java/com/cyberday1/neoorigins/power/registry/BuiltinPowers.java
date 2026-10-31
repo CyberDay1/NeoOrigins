@@ -243,14 +243,15 @@ public final class BuiltinPowers {
     private static final FieldSpec TOGGLE_MESSAGES_SPEC =
         new FieldSpec("toggle_messages", Kind.BOOLEAN, false)
             .def(true).readBy("com.cyberday1.neoorigins.power.util.PowerUpkeep#parseToggleMessages")
-            .doc("Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.");
+            .doc("Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.");
 
     private static void define(String path, Class<?> powerClass, List<FieldSpec> fields) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(NeoOrigins.MOD_ID, path);
         // Every toggle type except effect_over_time reads the shared upkeep fields
         // (OffFlagToggle#readsSharedUpkeep), so they are appended here rather than
         // repeated per type, and a new toggle type picks them up by construction.
-        if (com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle.class.isAssignableFrom(powerClass)) {
+        if (com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle.class.isAssignableFrom(powerClass)
+                || powerClass == TogglePower.class) {
             List<FieldSpec> shared = new java.util.ArrayList<>(fields);
             if (powerClass != EffectOverTimePower.class) shared.addAll(TOGGLE_UPKEEP_SPECS);
             shared.add(TOGGLE_MESSAGES_SPEC);

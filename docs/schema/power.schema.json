@@ -1955,7 +1955,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -3312,7 +3312,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -3453,7 +3453,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -3819,7 +3819,7 @@
           "default": false
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -4311,7 +4311,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -4784,7 +4784,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -5776,7 +5776,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -6025,7 +6025,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -6142,7 +6142,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -6232,7 +6232,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -7271,7 +7271,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -7504,7 +7504,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -7572,7 +7572,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }
@@ -8028,6 +8028,48 @@
           "description": "Initial boolean value before the toggle is first flipped (default false). 'true' declares 'on until flipped off' without a GAINED hook.",
           "type": "boolean",
           "default": false
+        },
+        "hunger_cost": {
+          "description": "Upkeep: food points charged every upkeep_interval while the power is on (saturation first, as sprinting drains it). A toggle that can't pay switches itself off; a power with no toggle stops until it can pay again. Default 0 = free.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "resource_cost": {
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "type": "string",
+          "default": ""
+        },
+        "resource_cost_amount": {
+          "description": "Upkeep: amount of the resource_cost resource drained each charge; default 0. Nothing is deducted unless the whole cost (this plus hunger_cost) can be paid.",
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        },
+        "upkeep_interval": {
+          "description": "Ticks between upkeep charges (min 1; default 20 = 1s). Only matters when hunger_cost or resource_cost is set.",
+          "type": "integer",
+          "default": 20,
+          "minimum": 1
+        },
+        "upkeep_condition": {
+          "description": "Optional EntityCondition: upkeep is charged only on charge ticks where it passes (default always-true). E.g. neoorigins:creative_flying charges a creative_flight only while the player is actually flying.",
+          "oneOf": [
+            {
+              "$ref": "condition.schema.json"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "condition.schema.json"
+              }
+            }
+          ]
+        },
+        "toggle_messages": {
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
+          "type": "boolean",
+          "default": true
         }
       },
       "required": [
@@ -8269,7 +8311,7 @@
           ]
         },
         "toggle_messages": {
-          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off.",
+          "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
         }

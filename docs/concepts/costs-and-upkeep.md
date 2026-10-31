@@ -26,7 +26,7 @@ Both use the same keys: `hunger_cost` (food points; one shank is 2), `resource_c
 
 <a id="toggle-upkeep"></a>
 <!-- shared-fields: upkeep_interval -->
-Every toggle type (`flight`, `creative_flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, `pose`, `persistent_effect` and `condition_passive`, plus the aliases that load as those last two) accepts an optional upkeep: a hunger and/or resource cost charged at intervals while the power is on. Every field is optional and the defaults are free, so a toggle without them behaves exactly as before. `extra_inventory` takes the same `hunger_cost`, `resource_cost`, `resource_cost_amount` and `upkeep_interval` (but not `upkeep_condition`) and charges them while its menu is open: see [its table](../powers/items.md#neooriginsextra_inventory).
+Every toggle type (`toggle`, `flight`, `creative_flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, `pose`, `persistent_effect` and `condition_passive`, plus the aliases that load as those last two) accepts an optional upkeep: a hunger and/or resource cost charged at intervals while the power is on. Every field is optional and the defaults are free, so a toggle without them behaves exactly as before. `extra_inventory` takes the same `hunger_cost`, `resource_cost`, `resource_cost_amount` and `upkeep_interval` (but not `upkeep_condition`) and charges them while its menu is open: see [its table](../powers/items.md#neooriginsextra_inventory).
 
 | Field | Type | Default | Description |
 |---|---|---|---|

@@ -53,7 +53,7 @@ Start with [Power basics](concepts/power-basics.md) for the fields every power a
 |---|---|
 | <a id="neooriginsresource"></a>[`resource`](powers/state.md#neooriginsresource) | Named persistent value with a HUD bar. Regeneration, threshold actions, `change_resource` compatible. |
 | <a id="neooriginsvariable"></a>[`variable`](powers/state.md#neooriginsvariable) | Hidden persistent integer counter. No bar, no regen: written only by actions. |
-| <a id="neooriginstoggle"></a>[`toggle`](powers/state.md#neooriginstoggle) | Boolean state cycled by the skill key, readable via `neoorigins:power_active`. |
+| <a id="neooriginstoggle"></a>[`toggle`](powers/state.md#neooriginstoggle) | Named boolean flag with no key of its own, readable via `neoorigins:power_active`; can pay its own upkeep while true. |
 | <a id="neooriginsentity_set"></a>[`entity_set`](powers/state.md#neooriginsentity_set) | Named UUID set per power id. Pair with `neoorigins:in_set` / `add_to_set` / `remove_from_set`. |
 
 ## Movement & body
