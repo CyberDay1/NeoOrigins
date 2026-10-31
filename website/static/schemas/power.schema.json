@@ -1924,7 +1924,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -3281,7 +3281,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -3422,7 +3422,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -3781,7 +3781,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: optional resource power id drained each pulse, in any mode; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: optional resource power id drained each pulse, in any mode; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -4214,7 +4214,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Id of a neoorigins:resource power drained every upkeep_interval while the inventory is open; empty = no resource cost. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Id of a neoorigins:resource power drained every upkeep_interval while the inventory is open; empty = no resource cost. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -4280,7 +4280,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -4753,7 +4753,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -5745,7 +5745,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -5994,7 +5994,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -6111,7 +6111,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -6201,7 +6201,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -7240,7 +7240,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -7473,7 +7473,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -7541,7 +7541,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -8036,7 +8036,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
@@ -8280,7 +8280,7 @@
           "minimum": 0
         },
         "resource_cost": {
-          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Falls back to hunger_cost when resource bars are globally disabled.",
+          "description": "Upkeep: id of a neoorigins:resource power drained every upkeep_interval while the power is on; empty = no resource upkeep. Charged as hunger instead when resource bars are globally disabled.",
           "type": "string",
           "default": ""
         },
