@@ -115,7 +115,7 @@ public class WraithPhasePower extends AbstractTogglePower<WraithPhasePower.Confi
     /**
      * Capability carrying {@code obscured_vision} to the client, as
      * {@code phase_obscured_vision:<phase_view_distance>}. The client fogs the
-     * view down to that distance while the camera is inside a solid block.
+     * view down to that distance while the player's eyes are inside a solid block.
      */
     public static final String OBSCURED_VISION_PREFIX = "phase_obscured_vision:";
 
