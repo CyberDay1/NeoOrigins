@@ -18,9 +18,13 @@
  * Don't depend on them from another mod.
  *
  * <p>Preferred entry point: {@link com.cyberday1.neoorigins.api.NeoOriginsAPI}
- * exposes the common integration operations (query a player's origin,
- * check if they have a power, register a custom power type, listen for
- * origin-change events).
+ * answers questions about a player's active powers (list them, test for a
+ * power type or a capability tag, visit every configuration of a type) and
+ * about summoned minions (who summoned an entity, whether it is a minion).
+ * It has no lookup for a player's current origin. A custom power type is
+ * registered through NeoForge's {@code RegisterEvent} against the
+ * {@code neoorigins:power_type} registry, and origin changes arrive as the
+ * events in {@code api.event} on the NeoForge event bus.
  *
  * <p>Sub-packages:
  * <ul>
