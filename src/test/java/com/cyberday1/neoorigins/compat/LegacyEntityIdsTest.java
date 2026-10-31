@@ -22,6 +22,19 @@ class LegacyEntityIdsTest {
     }
 
     @Test
+    void legacyPotionSplitsBySplashOrLingeringItem() {
+        assertEquals("minecraft:splash_potion", LegacyEntityIds.remap("minecraft:potion"));
+        assertEquals("minecraft:splash_potion", LegacyEntityIds.remap("minecraft:potion", null));
+        assertEquals("minecraft:splash_potion", LegacyEntityIds.remap("minecraft:potion",
+            "{Item:{id:\"minecraft:splash_potion\",Count:1b}}"));
+        assertEquals("minecraft:lingering_potion", LegacyEntityIds.remap("minecraft:potion",
+            "{Item:{id:\"minecraft:lingering_potion\",Count:1b,tag:{Potion:\"minecraft:poison\"}}}"));
+        // Modern ids are left alone whatever the tag says.
+        assertEquals("minecraft:splash_potion", LegacyEntityIds.remap("minecraft:splash_potion",
+            "{Item:{id:\"minecraft:lingering_potion\"}}"));
+    }
+
+    @Test
     void unmappedIdsPassThroughUnchanged() {
         assertEquals("minecraft:ender_pearl", LegacyEntityIds.remap("minecraft:ender_pearl"));
         assertEquals("minecraft:arrow", LegacyEntityIds.remap("minecraft:arrow"));

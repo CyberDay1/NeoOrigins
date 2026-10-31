@@ -390,6 +390,8 @@ you leave out, and any field you set wins. See
 
 Legacy Apoli alias for [`neoorigins:spawn_projectile`](#neooriginsspawn_projectile): identical fields and behaviour. Use `spawn_projectile` in new packs.
 
+26.x has no `minecraft:potion` entity: the thrown potion is now `minecraft:splash_potion` or `minecraft:lingering_potion`. This action, under either name, takes `entity_type` as written, so a legacy `minecraft:potion` logs a warning and does nothing: give it the new id. The `origins:fire_projectile` power type does remap the old id; see [Legacy Origins packs](../COMPATIBILITY.md#legacy-origins-packs).
+
 **Example:**
 ```json
 { "type": "neoorigins:fire_projectile", "entity_type": "minecraft:arrow", "speed": 2.0 }

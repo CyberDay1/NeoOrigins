@@ -3112,7 +3112,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Legacy code-registered Origins entities (origins:enderian_pearl) remap
         // to their vanilla equivalent; the pearl keeps Origins' no-fall-damage /
         // no-endermite landing via the flag + CompatEventPowers.onEnderPearlTeleport.
-        String entityTypeStr = LegacyEntityIds.remap(rawEntityTypeStr);
+        String entityTypeStr = LegacyEntityIds.remap(rawEntityTypeStr,
+            json.has("tag") && json.get("tag").isJsonPrimitive() ? json.get("tag").getAsString() : null);
         boolean enderianPearl = !entityTypeStr.equals(rawEntityTypeStr)
             && "minecraft:ender_pearl".equals(entityTypeStr);
         float speed = json.has("speed") ? json.get("speed").getAsFloat() : 1.5f;
