@@ -253,7 +253,13 @@ public class LayerDataManager extends SimplePreparableReloadListener<Map<Identif
     /**
      * Normalizes Origins-format layer JSON fields to NeoOrigins format in-place.
      */
-    private static void normalizeLayerJson(Identifier id, JsonObject obj) {
+    static void normalizeLayerJson(Identifier id, JsonObject obj) {
+        // Origins only read exclude_random when it was a list and ignored any other
+        // value, so a legacy "exclude_random": true excluded nothing.
+        if (obj.has("exclude_random") && !obj.get("exclude_random").isJsonArray()) {
+            NeoOrigins.LOGGER.debug("Layer {}: ignoring non-list exclude_random, as Origins did", id);
+            obj.remove("exclude_random");
+        }
         if (!obj.has("name")) {
             obj.addProperty("name", id.getPath());
         } else if (obj.get("name").isJsonObject()) {
