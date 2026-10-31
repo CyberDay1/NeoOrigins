@@ -8152,12 +8152,12 @@
           "default": false
         },
         "obscured_vision": {
-          "description": "If true, the player can't see through terrain while phasing: whenever the camera is inside a solid block, thick dark fog closes in at phase_view_distance (default false = clear sight through walls).",
+          "description": "If true, the player can't see through terrain while phasing: whenever the player's eyes are inside a solid block, thick dark fog closes in at phase_view_distance (default false = clear sight through walls).",
           "type": "boolean",
           "default": false
         },
         "phase_view_distance": {
-          "description": "With obscured_vision, how far the player can see, in blocks, while the camera is inside a solid block (default 1.5).",
+          "description": "With obscured_vision, how far the player can see, in blocks, while the player's eyes are inside a solid block (default 1.5).",
           "type": "number",
           "default": 1.5,
           "minimum": 0.0
