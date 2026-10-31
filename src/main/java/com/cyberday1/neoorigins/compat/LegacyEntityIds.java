@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.compat;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 
 /**
@@ -16,7 +17,9 @@ public final class LegacyEntityIds {
         // Origins' EnderianPearlEntity is a ThrownEnderpearl minus the fall
         // damage and the endermite chance. CompatEventPowers restores that
         // behaviour for pearls tagged ENDERIAN_PEARL_FLAG at spawn time.
-        "origins:enderian_pearl", "minecraft:ender_pearl"
+        "origins:enderian_pearl", "minecraft:ender_pearl",
+        // 1.21.2 split the thrown potion into splash and lingering entities.
+        "minecraft:potion", "minecraft:splash_potion"
     );
 
     /** Persistent-data flag marking a pearl spawned as an Enderian pearl. */
@@ -28,5 +31,13 @@ public final class LegacyEntityIds {
     public static String remap(String entityId) {
         if (entityId == null) return null;
         return REMAP.getOrDefault(entityId, entityId);
+    }
+
+    /** As {@link #remap(String)}; a legacy potion whose tag holds a lingering potion item stays lingering. */
+    public static String remap(String entityId, @Nullable String tagSnbt) {
+        if ("minecraft:potion".equals(entityId) && tagSnbt != null && tagSnbt.contains("lingering_potion")) {
+            return "minecraft:lingering_potion";
+        }
+        return remap(entityId);
     }
 }
