@@ -392,4 +392,32 @@ class LegacyMcFunctionRewriteTest {
         String broken = "give @s minecraft:apple{this is not: snbt,,} 1";
         assertEquals(broken, LegacyCommandRewriter.rewriteForCompile(broken));
     }
+
+    @Test
+    void legacyModifierAddDropsTheNameAndRenamesTheOperation() {
+        // Line 6 of origins-plus-plus:deathsworn/freeze.
+        assertEquals(
+            "execute if score @s x matches -1 run attribute @s minecraft:generic.movement_speed"
+                + " modifier add 1-1-1-1-1111 -100 add_value",
+            LegacyCommandRewriter.rewriteForCompile(
+                "execute if score @s x matches -1 run attribute @s minecraft:generic.movement_speed"
+                    + " modifier add 1-1-1-1-1111 standstill -100 add"));
+        assertEquals("attribute @s generic.armor modifier add 0-0-0-0-a1 2.5 add_multiplied_base",
+            LegacyCommandRewriter.rewriteForCompile(
+                "attribute @s generic.armor modifier add 0-0-0-0-a1 \"Iron skin\" 2.5 multiply_base"));
+        assertEquals("attribute @s generic.armor modifier add 0-0-0-0-a1 .5 add_multiplied_total",
+            LegacyCommandRewriter.rewriteForCompile(
+                "attribute @s generic.armor modifier add 0-0-0-0-a1 skin .5 multiply"));
+    }
+
+    @Test
+    void modernModifierCommandsAreUntouched() {
+        for (String command : new String[] {
+            "attribute @s generic.movement_speed modifier add neoorigins:slow -0.1 add_value",
+            "attribute @s generic.movement_speed modifier add 1-1-1-1-1111 -100 add_value",
+            "attribute @s generic.movement_speed modifier remove 1-1-1-1-1111",
+        }) {
+            assertEquals(command, LegacyCommandRewriter.rewriteForCompile(command));
+        }
+    }
 }

@@ -135,6 +135,25 @@ public final class LegacyCommandRewriter {
         "modifier (add|remove) ([0-9a-fA-F-]+)");
 
     /**
+     * The 1.20 {@code modifier add <uuid> <name> <value> <op>} form; 1.21 dropped the
+     * name and renamed the operations. Also matches the id rule 4 already rewrote.
+     */
+    private static final Pattern LEGACY_MODIFIER_ADD = Pattern.compile(
+        "\\bmodifier\\s+add\\s+([0-9a-f]+(?:-[0-9a-f]+){4}|neoorigins:compat_[0-9a-f_]+)"
+            + "\\s+(?:\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|\\S+)"
+            + "\\s+([-+]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][-+]?[0-9]+)?)"
+            + "\\s+(add|multiply_base|multiply)(?=\\s|$)");
+
+    /** 1.20 operation literal to its 1.21 name. */
+    private static String modifierOperation(String legacy) {
+        return switch (legacy) {
+            case "add" -> "add_value";
+            case "multiply_base" -> "add_multiplied_base";
+            default -> "add_multiplied_total";
+        };
+    }
+
+    /**
      * Matches a leading {@code origin} verb so we can rewrite it to
      * {@code neoorigins}. We do this so existing mcfunctions / chat habits that
      * use {@code /origin set @p ...} keep working transparently after the
@@ -359,6 +378,11 @@ public final class LegacyCommandRewriter {
         //     from. See ENTITY_EFFECT_COLOR for why the value is invented.
         result = PARTICLE_ENTITY_EFFECT.matcher(result).replaceAll(mr ->
             "particle " + mr.group(1) + ENTITY_EFFECT_COLOR);
+
+        // 7. modifier add <uuid> <name> <value> <op>: drop the name, rename the op.
+        //    The uuid stays as the id, so the pack's own `modifier remove <uuid>` still pairs.
+        result = LEGACY_MODIFIER_ADD.matcher(result).replaceAll(mr -> Matcher.quoteReplacement(
+            "modifier add " + mr.group(1) + " " + mr.group(2) + " " + modifierOperation(mr.group(3))));
 
         return result;
     }
