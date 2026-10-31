@@ -101,6 +101,24 @@ public final class LegacyTagToComponents {
         return true;
     }
 
+    /** True for a 1.20 item compound ({@code Count}/{@code tag}), which the 1.21 stack codec no longer reads. */
+    public static boolean isLegacyItemCompound(@Nullable CompoundTag item) {
+        return item != null && item.contains("id", Tag.TAG_STRING)
+            && (item.contains("Count") || item.contains("tag", Tag.TAG_COMPOUND))
+            && !item.contains("count") && !item.contains("components");
+    }
+
+    /** Builds the stack a 1.20 item compound described; EMPTY for an unknown item. */
+    public static ItemStack legacyItemStack(CompoundTag item, @Nullable RegistryAccess registries) {
+        ResourceLocation id = ResourceLocation.tryParse(item.getString("id"));
+        var holder = id == null ? java.util.Optional.<net.minecraft.core.Holder.Reference<net.minecraft.world.item.Item>>empty()
+            : BuiltInRegistries.ITEM.getHolder(id);
+        if (holder.isEmpty()) return ItemStack.EMPTY;
+        ItemStack stack = new ItemStack(holder.get(), Math.max(1, item.contains("Count") ? item.getInt("Count") : 1));
+        if (item.contains("tag", Tag.TAG_COMPOUND)) applyTo(stack, item.getCompound("tag"), registries);
+        return stack;
+    }
+
     public static void applyTo(ItemStack stack, CompoundTag tag, @Nullable RegistryAccess registries) {
         if (stack.isEmpty() || tag == null) return;
 

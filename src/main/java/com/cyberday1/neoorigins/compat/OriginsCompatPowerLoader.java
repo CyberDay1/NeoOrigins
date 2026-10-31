@@ -3354,6 +3354,15 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                     idStr, json.get("tag").getAsString(), e.getMessage());
             }
         }
+        // A 1.20 Item compound (Count, tag:{Potion:...}) is rebuilt as a stack at spawn,
+        // since merging it raw would throw a potion with no effect.
+        CompoundTag legacyItem = parsedTag != null && parsedTag.contains("Item", net.minecraft.nbt.Tag.TAG_COMPOUND)
+            && LegacyTagToComponents.isLegacyItemCompound(parsedTag.getCompound("Item"))
+            ? parsedTag.getCompound("Item") : null;
+        if (legacyItem != null) {
+            parsedTag.remove("Item");
+            if (parsedTag.isEmpty()) parsedTag = null;
+        }
         CompoundTag tag = parsedTag;
 
         EntityType<?> resolvedType = ResourceLocation.tryParse(entityTypeStr) != null
@@ -3405,6 +3414,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                         merged.merge(tag);
                         entity.load(merged);
                     }
+                    if (legacyItem != null) setLegacyItem(entity, legacyItem, sl.registryAccess());
                     if (enderianPearl) {
                         entity.getPersistentData().putBoolean(LegacyEntityIds.ENDERIAN_PEARL_FLAG, true);
                     }
@@ -3412,6 +3422,14 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 }
             })
             .build();
+    }
+
+    private static void setLegacyItem(net.minecraft.world.entity.Entity entity, CompoundTag item,
+                                      net.minecraft.core.RegistryAccess registries) {
+        ItemStack stack = LegacyTagToComponents.legacyItemStack(item, registries);
+        if (stack.isEmpty()) return;
+        if (entity instanceof net.minecraft.world.entity.projectile.ThrowableItemProjectile thrown) thrown.setItem(stack);
+        else if (entity instanceof net.minecraft.world.entity.projectile.Fireball fireball) fireball.setItem(stack);
     }
 
     private CompatPower.Config parseTargetActionOnHit(ResourceLocation id, JsonObject json) {
