@@ -577,10 +577,15 @@ public class PlayerLifecycleEvents {
                     continue;
                 }
 
-                // An OriginChangedEvent listener may cancel or redirect the upgrade.
+                // An OriginChangedEvent listener may cancel or redirect the upgrade, and a
+                // unique origin another player holds blocks it.
                 var outcome = com.cyberday1.neoorigins.service.OriginChangeService.change(
                     sp, layerId, upgrade.origin(), com.cyberday1.neoorigins.service.OriginChangeService.Mode.NORMAL, true);
-                if (outcome.origin() == null) break;
+                if (outcome.origin() == null) {
+                    NeoOrigins.LOGGER.info("Skipped {}'s upgrade on layer {} to {}: {}",
+                        sp.getName().getString(), layerId, upgrade.origin(), outcome.result());
+                    break;
+                }
 
                 announceUpgrade(sp, upgrade.announcement());
 

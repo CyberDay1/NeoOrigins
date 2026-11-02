@@ -67,6 +67,11 @@ public final class OriginChangeService {
             if (target == null || !OriginDataManager.INSTANCE.hasOrigin(target)) {
                 return new Outcome(SetOriginResult.UNKNOWN_ORIGIN, null);
             }
+            // A unique origin another player holds is theirs; only ADMIN may take it.
+            if (AdminConfig.isUniqueLayer(layer)
+                    && OriginClaimsData.get(player.getServer()).isClaimedByOther(layer, target, player.getUUID())) {
+                return new Outcome(SetOriginResult.CLAIMED, null);
+            }
         }
 
         data.setOrigin(layer, target);
