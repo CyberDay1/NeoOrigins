@@ -14,6 +14,11 @@ need to rejoin. If a power you just added isn't showing up, check the
 server log for a `[CompatB]` or `[2.0-legacy]` warning. JSON parse errors
 log once at reload.
 
+Players who already hold a power you edited get the new version at the
+reload: the old version is removed and the new one applied, once. Powers you
+didn't change are left alone, so resource bars, toggles and cooldowns keep
+their state.
+
 ## The deprecation log
 
 Every legacy type emits a single one-shot warning at first use:

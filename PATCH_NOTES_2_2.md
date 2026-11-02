@@ -2,6 +2,38 @@
 
 ---
 
+## v2.2.35
+
+> Other mods can now build on NeoOrigins: they can back a resource bar with their own pool, read and change a player's origin, grant and revoke powers at runtime, and register powers in code. Resetting one layer with `/origin reset` no longer takes away the powers of the player's other layers, and an origin upgrade no longer hands out a unique origin that another player already holds. Editing a power and running `/reload` now updates the players who already hold it. Players can also hide the folded wings that powers such as the Elytrian's draw on their back.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Changes
+
+- **Origin upgrades respect unique origins.** On a layer where each origin can belong to only one player, an origin's `upgrades` entry still switched a player to its target origin when someone else already held it, leaving two players on a unique origin. While another player holds the target, the upgrade now does not happen and its announcement is not shown. `/origin set` is not affected: it gives the origin to the named player, who then holds the claim. See [Unique origin layers](docs/ADMIN_CONFIG.md#unique_origin_layers-one-player-per-origin).
+
+### Configuration
+
+- **Hide folded wings.** Wings that a power draws folded on the back while not gliding, such as the Elytrian's, can now be hidden with `hide_folded_wings` under the new `[wings]` section of `client.toml`. The wings still appear while gliding. The option only changes what you see: it applies to every player's wings on your screen and to no one else's. It is off by default, so nothing changes until you turn it on. See [Client config](docs/CLIENT_CONFIG.md#wings-power-granted-wings).
+
+### Bug Fixes
+
+- **Resetting one layer keeps the player's other powers.** `/origin reset <player> <layer>` cleared only the named layer, but it switched off the powers of every layer, so a player whose class was reset also lost their origin's powers, such as extra hearts, while keeping the origin itself. Powers granted with `grant_power` or `/power grant` were dropped too. It now removes only the named layer's powers.
+
+- **Editing a power and reloading updates the players who hold it.** When a `/reload` changed what a power does, online players who already held it kept the old version: its old effects stayed and the new ones never applied until they relogged, and taking the power away afterwards could leave an old effect behind, such as extra hearts. After a reload, each held power whose definition changed is now removed in its old form and applied in its new form, once. A reload that changes nothing leaves powers, resource bars and toggles exactly as they were. See [Hot-reload](docs/guides/testing.md#hot-reload).
+
+### Mod Developer API
+
+- **Other mods can back a resource bar (#140).** A `neoorigins:resource` bar's `backing` could only be `irons_spellbooks:mana`. A mod can now register its own pool with `NeoOriginsAPI.registerResourceBacking`, and a pack names it the same way, for example `"backing": "mymod:stamina"`. The bar reads that pool, sends every change to it and scales to its live maximum. A backing that does not take an absolute value ignores `set_resource` with one warning, a backing whose mod is missing leaves the bar empty, and a `backing` id that no installed mod registers keeps the bar in NeoOrigins' own store, with a warning. Iron's Spells mana works as before. See [Resource backings](docs/JAVA_API.md#resource-backings).
+
+- **Read and change a player's origin (#139).** `NeoOriginsAPI` gains `getOrigin`, `getOrigins`, `setOrigin` and `clearOrigin`. `setOrigin` reports what happened: success, an unknown layer or origin, no change, a unique origin another player holds, or a listener cancelling it. Origin changes made through the API, the origin picker, `/origin set`, origin upgrades, auto-human mode and random assignment now share one path, so powers, unique-origin claims and the client update the same way for all of them, and each fires `OriginChangedEvent`. Clearing a layer with `clearOrigin` does not fire it. A listener can cancel or redirect a change from the API, the picker or an upgrade; `/origin set`, auto-human mode and random assignment go ahead regardless. See [Changing a player's origin](docs/JAVA_API.md#changing-a-players-origin).
+
+- **Grant and revoke powers at runtime (#139).** `grantPower` gives a player a power under a source id naming the mod that granted it, optionally tied to a layer, and `revokePower` and `revokePowers` take it away again. Each source's grants are its own: a power two mods granted stays until both revoke it, `/power revoke` does not remove it, and a power the player's origin also gives stays when the grant ends. A grant tied to a layer ends when that layer's origin changes or is reset, and one without a layer lasts until it is revoked. Grants are saved with the player and kept through relogs, restarts and death. See [Granting powers at runtime](docs/JAVA_API.md#granting-powers-at-runtime).
+
+- **Register powers in code (#139).** `registerPower` adds a power built from a mod's own power type and configuration, under an id in that mod's namespace, with no JSON file. Origins can list it, `grantPower` can grant it, and it survives `/reload`. A datapack power with the same id takes its place, with a warning, so a pack can still override it. See [Powers registered in code](docs/JAVA_API.md#powers-registered-in-code).
+
+---
+
 ## v2.2.34
 
 > Origin upgrades now happen for advancements written without a `display` block, and their announcements go to the whole server and name the player who upgraded. A new `gameplay.toml` option chooses who sees them.
