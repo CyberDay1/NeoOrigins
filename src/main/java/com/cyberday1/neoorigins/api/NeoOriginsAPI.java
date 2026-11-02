@@ -3,9 +3,12 @@ package com.cyberday1.neoorigins.api;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.api.origin.SetOriginResult;
 import com.cyberday1.neoorigins.api.resource.ResourceBacking;
+import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
+import com.cyberday1.neoorigins.service.OriginChangeService;
 import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -13,6 +16,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -106,6 +110,39 @@ public final class NeoOriginsAPI {
      */
     public static boolean isAnyMinion(Entity entity) {
         return MinionTracker.isAnyTrackedMinion(entity);
+    }
+
+    // ---------------------------------------------------------------------
+    // Origins
+    // ---------------------------------------------------------------------
+
+    /** The player's origin on {@code layer}, or empty if the layer holds none. */
+    public static Optional<Identifier> getOrigin(ServerPlayer player, Identifier layer) {
+        return Optional.ofNullable(player.getData(OriginAttachments.originData()).getOrigin(layer));
+    }
+
+    /** Every layer the player holds an origin on, mapped to that origin. Unmodifiable copy. */
+    public static Map<Identifier, Identifier> getOrigins(ServerPlayer player) {
+        return Map.copyOf(player.getData(OriginAttachments.originData()).getOrigins());
+    }
+
+    /**
+     * Sets the player's origin on {@code layer}, the same way an origin change in game does:
+     * the old origin's powers on that layer are revoked, the new one's granted, and the client
+     * synced. Fires {@link com.cyberday1.neoorigins.api.event.OriginChangedEvent}, whose
+     * listeners may cancel or redirect it. Doesn't check the layer's own origin list or
+     * conditions, and doesn't open a confirmation prompt or change the evolution tier.
+     */
+    public static SetOriginResult setOrigin(ServerPlayer player, Identifier layer, Identifier origin) {
+        return OriginChangeService.set(player, layer, origin, OriginChangeService.Mode.NORMAL);
+    }
+
+    /**
+     * Empties {@code layer}, revoking only that layer's powers. Other layers and powers granted
+     * by commands or actions are kept. Returns false if the layer held nothing.
+     */
+    public static boolean clearOrigin(ServerPlayer player, Identifier layer) {
+        return OriginChangeService.clear(player, layer);
     }
 
     // ---------------------------------------------------------------------

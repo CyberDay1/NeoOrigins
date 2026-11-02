@@ -21,7 +21,8 @@
  * answers questions about a player's active powers (list them, test for a
  * power type or a capability tag, visit every configuration of a type) and
  * about summoned minions (who summoned an entity, whether it is a minion).
- * It has no lookup for a player's current origin. A custom power type is
+ * It also reads a player's origin per layer ({@code getOrigin}, {@code getOrigins})
+ * and changes it ({@code setOrigin}, {@code clearOrigin}). A custom power type is
  * registered through NeoForge's {@code RegisterEvent} against the
  * {@code neoorigins:power_type} registry, and origin changes arrive as the
  * events in {@code api.event} on the NeoForge event bus.
@@ -29,7 +30,8 @@
  * <p>Sub-packages:
  * <ul>
  *   <li>{@code api.origin} — data model for Origin / OriginLayer / Impact /
- *       OriginUpgrade. Constructed by pack JSON; readable by mods.</li>
+ *       OriginUpgrade, constructed by pack JSON and readable by mods, plus
+ *       {@code SetOriginResult}.</li>
  *   <li>{@code api.power} — {@link com.cyberday1.neoorigins.api.power.PowerType}
  *       (extend for custom power types) and {@link com.cyberday1.neoorigins.api.power.PowerConfiguration}.</li>
  *   <li>{@code api.event} — NeoForge-bus events fired by the mod
