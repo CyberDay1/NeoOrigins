@@ -13,7 +13,6 @@ import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.evolution.EssenceEvolutionManager;
 import com.cyberday1.neoorigins.service.MountConsentManager;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
-import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.MobOriginService;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -372,22 +371,10 @@ public class OriginCommand {
             return 0;
         }
 
-        PlayerOriginData data = player.getData(OriginAttachments.originData());
-        Identifier oldOrigin = data.getOrigin(layerId);
-        data.setOrigin(layerId, originId);
-        // Admin override: /set takes over the claim in a unique layer —
-        // release whatever this player previously held there, then claim the
-        // newly-assigned origin for them (overwriting any prior holder).
-        if (AdminConfig.isUniqueLayer(layerId)) {
-            var claims = OriginClaimsData.get(ctx.getSource().getServer());
-            if (oldOrigin != null && !oldOrigin.equals(originId)) {
-                claims.releaseIfOwner(layerId, oldOrigin, player.getUUID());
-            }
-            claims.claim(layerId, originId, player.getUUID());
-            NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
-        }
-        ActiveOriginService.applyOriginPowers(player, layerId, oldOrigin, originId);
-        NeoOriginsNetwork.syncToPlayer(player);
+        // Admin override: listeners can't cancel it, and in a unique layer it takes
+        // over the claim from any prior holder.
+        com.cyberday1.neoorigins.service.OriginChangeService.set(player, layerId, originId,
+            com.cyberday1.neoorigins.service.OriginChangeService.Mode.ADMIN);
 
         var origin = OriginDataManager.INSTANCE.getOrigin(originId);
         String name = origin != null ? origin.name().getString() : originId.toString();
@@ -398,28 +385,14 @@ public class OriginCommand {
 
     private static int executeReset(CommandContext<CommandSourceStack> ctx, Identifier layerId) throws CommandSyntaxException {
         ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
-        PlayerOriginData data = player.getData(OriginAttachments.originData());
 
-        // Releasing a player's origin also frees any unique-origin claims they
-        // held in the affected layer(s). Capture before the data is cleared.
-        java.util.Map<Identifier, Identifier> releasing = layerId != null
-            ? java.util.Collections.singletonMap(layerId, data.getOrigin(layerId))
-            : new java.util.HashMap<>(data.getOrigins());
-
-        ActiveOriginService.revokeAllPowers(player);
+        // A single-layer reset touches only that layer's powers; a full reset revokes
+        // everything, dynamic grants included. Both release the player's claims.
         if (layerId != null) {
-            data.removeOrigin(layerId);
+            com.cyberday1.neoorigins.service.OriginChangeService.clear(player, layerId);
         } else {
-            data.clear();
+            com.cyberday1.neoorigins.service.OriginChangeService.clearAll(player);
         }
-        var claims = OriginClaimsData.get(ctx.getSource().getServer());
-        releasing.forEach((l, o) -> {
-            if (o != null && AdminConfig.isUniqueLayer(l)) claims.releaseIfOwner(l, o, player.getUUID());
-        });
-        NeoOriginsNetwork.syncClaimsToAll(ctx.getSource().getServer());
-        // revokeAllPowers cleared the global-power ledger; re-grant any matching
-        // global power sets so a reset doesn't strip apoli:global powers.
-        com.cyberday1.neoorigins.service.GlobalPowerService.reconcilePlayer(player);
 
         NeoOriginsNetwork.syncRegistryToPlayer(player);
         NeoOriginsNetwork.syncToPlayer(player);
