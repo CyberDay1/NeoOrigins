@@ -2346,9 +2346,9 @@ public final class BuiltinActions {
                 final boolean wildcard = com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState.isWildcard(key);
                 if ("set".equals(operation)) {
                     return player -> {
-                        // Mana-backed resources are additive-only; an absolute set
-                        // is ignored (logged once). Not applicable to wildcards.
-                        if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.handleAbsoluteSet(key)) {
+                        // A backed resource takes the set through its backing, or ignores it
+                        // (logged once) if the backing is additive-only. Not for wildcards.
+                        if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.handleAbsoluteSet(player, key, fChange)) {
                             return;
                         }
                         var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());
@@ -2358,9 +2358,8 @@ public final class BuiltinActions {
                     };
                 }
                 return player -> {
-                    // Mana-backed resource: route the additive delta into the
-                    // Iron's pool instead of the internal store. Not applicable
-                    // to wildcard selectors.
+                    // Backed resource: route the additive delta into its pool
+                    // instead of the internal store. Not for wildcard selectors.
                     if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.add(player, key, fChange)) {
                         com.cyberday1.neoorigins.compat.CompatAttachments.syncResourceValuesToClient(player);
                         return;
@@ -2400,9 +2399,9 @@ public final class BuiltinActions {
                 // nothing matches yet) — see ResourceState.matchingKeys.
                 final boolean wildcard = com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState.isWildcard(key);
                 return player -> {
-                    // Mana-backed resources are additive-only; an absolute
-                    // set_resource is ignored (logged once). Not for wildcards.
-                    if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.handleAbsoluteSet(key)) {
+                    // A backed resource takes the set through its backing, or ignores it
+                    // (logged once) if the backing is additive-only. Not for wildcards.
+                    if (!wildcard && com.cyberday1.neoorigins.compat.ResourceBackingRouter.handleAbsoluteSet(player, key, value)) {
                         return;
                     }
                     var state = player.getData(com.cyberday1.neoorigins.compat.CompatAttachments.resourceState());

@@ -169,7 +169,7 @@ class SharedResourceRegistryTest {
             com.cyberday1.neoorigins.event.PlayerLifecycleEvents.onDatapackSync(event);
         }
 
-        assertTrue(CompatAttachments.isManaBacked(MANA), "a reload left the online holder's bar unbacked");
+        assertTrue(ResourceBackingRouter.isBacked(MANA), "a reload left the online holder's bar unbacked");
         var bars = CompatAttachments.fullSyncEntries(a);
         assertTrue(bars.containsKey(ENERGY), "a reload took the online holder's energy bar away");
         assertEquals(37, bars.get(MANA).value(), "a reload took the online holder's mana bar away");
@@ -184,7 +184,7 @@ class SharedResourceRegistryTest {
         compile("origins:resource", """
             {"type": "origins:resource", "min": 0, "max": 100, "backing": "irons_spellbooks:mana"}""");
 
-        assertTrue(CompatAttachments.isManaBacked(MANA), "a reload left the Apoli resource unbacked until someone is re-granted it");
+        assertTrue(ResourceBackingRouter.isBacked(MANA), "a reload left the Apoli resource unbacked until someone is re-granted it");
     }
 
     /** What the Route B loader's apply clears on every reload. */

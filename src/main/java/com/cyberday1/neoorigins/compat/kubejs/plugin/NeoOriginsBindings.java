@@ -111,18 +111,18 @@ public final class NeoOriginsBindings {
 
     /**
      * True if the player has this resource: a {@code neoorigins:resource} bar,
-     * a variable or an Apoli resource. A mana-backed bar keeps no stored value,
+     * a variable or an Apoli resource. A backed bar keeps no stored value,
      * so it counts when the player holds the power with that id.
      */
     public boolean hasResource(ServerPlayer player, String id) {
         if (player.getData(CompatAttachments.resourceState()).has(id)) return true;
-        return CompatAttachments.isManaBacked(id) && CompatAttachments.holdsResourcePower(player, id);
+        return com.cyberday1.neoorigins.compat.ResourceBackingRouter.isBacked(id) && CompatAttachments.holdsResourcePower(player, id);
     }
 
     /**
      * The resource's current value, or {@code null} if the player doesn't have
      * it, so a missing resource never reads as an empty one. Goes through
-     * {@link ResourcePower#getValue}, so a mana-backed bar reports live mana.
+     * {@link ResourcePower#getValue}, so a backed bar reports its live pool.
      */
     public Integer getResource(ServerPlayer player, String id) {
         return hasResource(player, id) ? ResourcePower.getValue(player, id) : null;

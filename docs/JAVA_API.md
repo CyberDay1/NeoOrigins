@@ -117,9 +117,52 @@ Full method list:
 | `summonerOf(entity)` | Reverse-lookup a summoned minion's owner. |
 | `isMinionOf(entity, summoner)` | Cheap check: is this entity summoner's minion? |
 | `isAnyMinion(entity)` | Is this entity anyone's tracked minion? Falls back to a scan of tracked minions when the entity carries no minion marker. |
+| `registerResourceBacking(id, backing)` | Register an external pool that resource bars can name with `"backing"`. See [Resource backings](#resource-backings). |
 
 Call these on the logical server: the player-facing methods take a
 `ServerPlayer` and read server-side state.
+
+---
+
+## Resource backings
+
+A `neoorigins:resource` bar normally keeps its value in NeoOrigins' own
+per-player store. A bar with `"backing": "<id>"` reads and writes another
+mod's pool instead, and that pool stays authoritative. `irons_spellbooks:mana`
+is built in. To add your own, implement
+`com.cyberday1.neoorigins.api.resource.ResourceBacking` and register it once,
+from your mod's constructor or `FMLCommonSetupEvent`:
+
+```java
+NeoOriginsAPI.registerResourceBacking(
+    ResourceLocation.fromNamespaceAndPath("mymod", "stamina"),
+    new ResourceBacking() {
+        @Override public int read(ServerPlayer player) { return Stamina.get(player); }
+        @Override public void add(ServerPlayer player, int delta) { Stamina.add(player, delta); }
+        @Override public int max(ServerPlayer player) { return Stamina.max(player); }
+    });
+```
+
+A pack then uses `"backing": "mymod:stamina"` on a resource power.
+
+| Method | Required | Purpose |
+|---|---|---|
+| `read(player)` | yes | The player's current value. Read by the HUD, the `resource` condition and `resource_cost`. |
+| `add(player, delta)` | yes | Add `delta` (negative to spend). Regen, `change_resource` and `resource_cost` all arrive here. Your pool applies its own limits. |
+| `max(player)` | no | The live maximum the bar scales to. Return 0 or less (the default) to use the bar's declared `max`. |
+| `set(player, value)` | no | Absolute set, for `set_resource` and `change_resource` with `"operation": "set"`. Return `false` (the default) to refuse it; the set is then ignored with one warning. |
+| `available()` | no | Return `false` while the pool can't be used, e.g. when an optional dependency is missing. The bar then reads empty and writes do nothing, with one warning. Default `true`. |
+
+- All methods are called on the server thread. NeoOrigins re-reads `read` and
+  `max` every 10 ticks for the HUD, so keep them cheap.
+- A backed bar runs from 0 to `max`. NeoOrigins never stores a value for it,
+  and `start_value` is not applied.
+- An exception thrown from a backing is caught and logged once. While it keeps
+  throwing, the bar reads empty and writes do nothing.
+- Registering an id twice, including `irons_spellbooks:mana`, throws
+  `IllegalStateException`.
+- A `backing` id that no mod registers leaves the bar in NeoOrigins' own store,
+  with one warning.
 
 ---
 
