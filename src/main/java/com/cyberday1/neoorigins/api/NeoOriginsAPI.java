@@ -3,8 +3,11 @@ package com.cyberday1.neoorigins.api;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
+import com.cyberday1.neoorigins.api.resource.ResourceBacking;
+import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.MinionTracker;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -103,5 +106,21 @@ public final class NeoOriginsAPI {
      */
     public static boolean isAnyMinion(Entity entity) {
         return MinionTracker.isAnyTrackedMinion(entity);
+    }
+
+    // ---------------------------------------------------------------------
+    // Resource backings
+    // ---------------------------------------------------------------------
+
+    /**
+     * Registers an external pool that {@code neoorigins:resource} bars can name with
+     * {@code "backing": "<id>"}. Call once, from your mod's constructor or
+     * {@code FMLCommonSetupEvent}, before datapacks load.
+     *
+     * @throws IllegalStateException if {@code id} is already registered,
+     *         including the built-in {@code irons_spellbooks:mana}
+     */
+    public static void registerResourceBacking(Identifier id, ResourceBacking backing) {
+        ResourceBackingRouter.register(id.toString(), backing);
     }
 }
