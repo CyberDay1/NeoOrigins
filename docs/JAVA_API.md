@@ -117,10 +117,49 @@ Full method list:
 | `summonerOf(entity)` | Reverse-lookup a summoned minion's owner. |
 | `isMinionOf(entity, summoner)` | Cheap check: is this entity summoner's minion? |
 | `isAnyMinion(entity)` | Is this entity anyone's tracked minion? Falls back to a scan of tracked minions when the entity carries no minion marker. |
+| `getOrigin(player, layer)` | The player's origin on a layer, as an `Optional`. Empty if the layer holds none. |
+| `getOrigins(player)` | Every layer the player holds an origin on, mapped to that origin. Unmodifiable copy. |
+| `setOrigin(player, layer, origin)` | Change the player's origin on a layer. Returns a `SetOriginResult`. See [Changing a player's origin](#changing-a-players-origin). |
+| `clearOrigin(player, layer)` | Empty one layer, revoking only that layer's powers. Returns `false` if it held nothing. |
 | `registerResourceBacking(id, backing)` | Register an external pool that resource bars can name with `"backing"`. See [Resource backings](#resource-backings). |
 
 Call these on the logical server: the player-facing methods take a
 `ServerPlayer` and read server-side state.
+
+---
+
+## Changing a player's origin
+
+```java
+SetOriginResult result = NeoOriginsAPI.setOrigin(player,
+    Identifier.fromNamespaceAndPath("neoorigins", "origin"),
+    Identifier.fromNamespaceAndPath("mypack", "archmage"));
+```
+
+`setOrigin` changes an origin the same way the game does: it revokes the old
+origin's powers on that layer only, grants the new one's, updates unique-origin
+claims and syncs the client. It fires `OriginChangedEvent`, so a listener can
+cancel the change or redirect it to another origin.
+
+| Result | Meaning |
+|---|---|
+| `SUCCESS` | The layer now holds the origin (or the origin a listener redirected to). |
+| `UNCHANGED` | The layer already held that origin. |
+| `UNKNOWN_LAYER` / `UNKNOWN_ORIGIN` | The id isn't loaded. |
+| `CLAIMED` | The layer is unique and another player holds that origin. |
+| `CANCELLED` | An `OriginChangedEvent` listener cancelled it. |
+
+- It doesn't check the layer's own origin list or conditions, so it can assign
+  any loaded origin, the same as `/origin set`.
+- It doesn't ask the player to confirm, open the picker or change the evolution
+  tier.
+- `clearOrigin(player, layer)` empties one layer and revokes only its powers.
+  Other layers, and powers granted by `/power grant` or the `grant_power`
+  action, are kept. It fires no event.
+- `OriginChangedEvent` fires when an origin is set by the picker,
+  `/origin set`, an advancement upgrade, random assignment, auto-human or this
+  API. `/origin set`, random assignment and auto-human ignore a listener's
+  cancel or redirect. Emptying a layer fires nothing.
 
 ---
 
@@ -135,7 +174,7 @@ from your mod's constructor or `FMLCommonSetupEvent`:
 
 ```java
 NeoOriginsAPI.registerResourceBacking(
-    ResourceLocation.fromNamespaceAndPath("mymod", "stamina"),
+    Identifier.fromNamespaceAndPath("mymod", "stamina"),
     new ResourceBacking() {
         @Override public int read(ServerPlayer player) { return Stamina.get(player); }
         @Override public void add(ServerPlayer player, int delta) { Stamina.add(player, delta); }
@@ -278,10 +317,9 @@ Read-only data types representing loaded origin JSON.
 | `OriginUpgrade` | Upgrade condition (vanilla advancement) that migrates one origin to another. |
 | `ConditionedOrigin` | Wraps an origin with a predicate determining availability. |
 
-`NeoOriginsAPI` has no "current origin" lookup: its methods are the seven
-listed above. A player's chosen origin per layer lives in internal state
-(`PlayerOriginData`), so reading it today means importing internal classes.
-Open an issue if you need it promoted to the API.
+A player's chosen origin per layer is read with `NeoOriginsAPI.getOrigin` and
+`getOrigins`, and changed with `setOrigin` and `clearOrigin`; see
+[Changing a player's origin](#changing-a-players-origin).
 
 ---
 
