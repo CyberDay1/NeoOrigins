@@ -59,6 +59,12 @@ Controls XP cost behaviour when a player uses an Orb of Origin or Orb of Class.
 | `mode` | enum | `DISABLED` | | When to randomly assign origins. `DISABLED`: players choose normally. `FIRST_JOIN`: origins are randomly assigned on first join (no selection screen). `EVERY_DEATH`: origins are randomly re-assigned on each respawn. |
 | `rerolls` | int | `0` | -1 – 100 | Intended as the number of times a player may reroll after random assignment (`0` none, `-1` unlimited). **Currently has no effect:** the value is defined but no code reads it. |
 
+## `[upgrade_announcements]`: origin upgrade announcements
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `mode` | enum | `SERVER` | Who sees the `announcement` of an origin's `upgrades` entry when it switches a player to a new origin. `SERVER`: broadcast to every player online. `PLAYER`: only the upgraded player sees it, as in Origins. `OFF`: never shown. In every mode a `%s` in the announcement is replaced by the player's name. |
+
 ## `[evolution]`: essence evolution
 
 Origins evolve through 3 tiers (Evolved, then Ascended, then Apex) by

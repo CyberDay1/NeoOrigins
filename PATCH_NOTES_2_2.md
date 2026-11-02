@@ -2,6 +2,24 @@
 
 ---
 
+## v2.2.34
+
+> Origin upgrades now happen for advancements written without a `display` block, and their announcements go to the whole server and name the player who upgraded. A new `gameplay.toml` option chooses who sees them.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Changes
+
+- **Origin upgrade announcements reach the whole server.** When an origin's `upgrades` entry switches a player to a new origin, its `announcement` used to be shown only to that player. It is now broadcast to everyone online. To keep the old behaviour, set `mode = "PLAYER"` under the new `[upgrade_announcements]` section of `gameplay.toml`, or `"OFF"` to hide announcements entirely. An existing config gains the section, set to `SERVER`, the next time the game starts. See [Gameplay config](docs/GAMEPLAY_CONFIG.md#upgrade_announcements-origin-upgrade-announcements).
+
+### Bug Fixes
+
+- **`%s` in an upgrade announcement names the player.** The web editor's own example, `%s has ascended to Archmage!`, expects the player's name in place of `%s`, but no name was ever passed in, so the line showed a literal `%s`. The upgraded player's name now fills it, whether the announcement is plain text or a translation key. Announcements without a `%s` read as before. See [Pack format](docs/PACK_FORMAT.md).
+
+- **Origin upgrades happen for advancements without a `display` block.** An upgrade waited for the game's advancement-earned event, which NeoForge sends only for advancements that have a `display` block, so an upgrade tied to a hidden trigger advancement written without one never happened. Upgrades now take effect on the criterion that completes the advancement, with or without a display, and a further criterion granted to an advancement that is already complete does not set them off again.
+
+---
+
 ## v2.2.33
 
 > Three fixes for phasing through walls: Spectral Form no longer slips out through the world border, portals work while phasing, and limited sight follows the player's eyes in both F5 views. The four summoning abilities cost half the hunger they had been taking, and fifteen ability descriptions stop naming a resource cost that was never charged. For pack authors, seven more active power types now charge `resource_cost`, and `neoorigins:toggle` can pay its own hunger or resource upkeep without a separate charging power. Older origin packs have more of their 1.20 data and commands rewritten into the current format as they are read, including the loot data that stopped a 26.3 server from starting, and on 26.3 an origin pack file that still cannot be read is now skipped with a warning instead.
