@@ -1199,6 +1199,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Черный список измерений для способностей",
   "neoorigins.configuration.random_assignment.mode": "Режим назначения",
   "neoorigins.configuration.random_assignment.rerolls": "Разрешено перевыборов",
+  "neoorigins.configuration.upgrade_announcements": "Объявления об улучшении",
+  "neoorigins.configuration.upgrade_announcements.mode": "Получатели объявления",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Мин. коэффициент загрузки сил",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Появление в океане",
   "neoorigins.configuration.ocean_origins.dries_out": "Высыхание на суше",

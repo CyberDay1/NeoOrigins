@@ -560,10 +560,7 @@ public class PlayerLifecycleEvents {
                 ActiveOriginService.applyOriginPowers(sp, layerId, currentOriginId, upgrade.origin());
                 NeoOriginsNetwork.syncToPlayer(sp);
 
-                String announcement = upgrade.announcement();
-                if (announcement != null && !announcement.isEmpty()) {
-                    sp.sendSystemMessage(Component.translatable(announcement));
-                }
+                announceUpgrade(sp, upgrade.announcement());
 
                 NeoOrigins.LOGGER.info(
                     "Upgraded {}'s origin on layer {}: {} → {} (via advancement {})",
@@ -846,6 +843,17 @@ public class PlayerLifecycleEvents {
         for (var kept : stash) {
             if (restoreToOriginalSlot(inv, kept.slot(), kept.stack())) continue;
             if (!inv.add(kept.stack())) sp.drop(kept.stack(), false, net.minecraft.util.Prediction.SERVER_ONLY);
+        }
+    }
+
+    /** Shows an upgrade's announcement to the audience the config picks; %s becomes the player's name. */
+    static void announceUpgrade(ServerPlayer sp, String announcement) {
+        if (announcement == null || announcement.isEmpty()) return;
+        Component msg = Component.translatable(announcement, sp.getDisplayName());
+        switch (GameplayConfig.upgradeAnnounceMode()) {
+            case SERVER -> sp.level().getServer().getPlayerList().broadcastSystemMessage(msg, false);
+            case PLAYER -> sp.sendSystemMessage(msg);
+            case OFF -> {}
         }
     }
 }

@@ -1326,6 +1326,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Per-power dimension deny list",
   "neoorigins.configuration.random_assignment.mode": "Assignment mode",
   "neoorigins.configuration.random_assignment.rerolls": "Rerolls allowed",
+  "neoorigins.configuration.upgrade_announcements": "Upgrade announcements",
+  "neoorigins.configuration.upgrade_announcements.mode": "Announcement audience",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Min power-load ratio",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Spawn in ocean",
   "neoorigins.configuration.ocean_origins.dries_out": "Dries out on land",
