@@ -1254,6 +1254,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Lista de dimensiones vetadas por poder",
   "neoorigins.configuration.random_assignment.mode": "Modo de asignación",
   "neoorigins.configuration.random_assignment.rerolls": "Reintentos permitidos",
+  "neoorigins.configuration.upgrade_announcements": "Anuncios de mejora",
+  "neoorigins.configuration.upgrade_announcements.mode": "Destinatarios del anuncio",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Proporción mínima de carga de poderes",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Aparecer en el océano",
   "neoorigins.configuration.ocean_origins.dries_out": "Se reseca en tierra",

@@ -1253,6 +1253,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Lista zakazanych wymiarów dla mocy",
   "neoorigins.configuration.random_assignment.mode": "Tryb przydzielania",
   "neoorigins.configuration.random_assignment.rerolls": "Dozwolone ponowne losowania",
+  "neoorigins.configuration.upgrade_announcements": "Ogłoszenia o ulepszeniu",
+  "neoorigins.configuration.upgrade_announcements.mode": "Odbiorcy ogłoszenia",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Min. współczynnik wczytanych mocy",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Odradzanie w oceanie",
   "neoorigins.configuration.ocean_origins.dries_out": "Wysychanie na lądzie",

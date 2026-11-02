@@ -1253,6 +1253,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "按能力的维度禁用列表",
   "neoorigins.configuration.random_assignment.mode": "分配模式",
   "neoorigins.configuration.random_assignment.rerolls": "允许重新随机",
+  "neoorigins.configuration.upgrade_announcements": "升级公告",
+  "neoorigins.configuration.upgrade_announcements.mode": "公告接收范围",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "最小能力加载比率",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "在海洋中生成",
   "neoorigins.configuration.ocean_origins.dries_out": "在陆地上干涸",

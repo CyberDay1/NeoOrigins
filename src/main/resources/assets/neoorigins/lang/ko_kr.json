@@ -1253,6 +1253,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "능력별 차원 차단 목록",
   "neoorigins.configuration.random_assignment.mode": "배정 모드",
   "neoorigins.configuration.random_assignment.rerolls": "허용된 다시 뽑기 횟수",
+  "neoorigins.configuration.upgrade_announcements": "업그레이드 알림",
+  "neoorigins.configuration.upgrade_announcements.mode": "알림 대상",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "최소 능력 로드 비율",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "바다에서 생성",
   "neoorigins.configuration.ocean_origins.dries_out": "뭍에서 건조",

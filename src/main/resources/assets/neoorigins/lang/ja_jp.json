@@ -1253,6 +1253,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "パワーごとのディメンション拒否リスト",
   "neoorigins.configuration.random_assignment.mode": "割り当てモード",
   "neoorigins.configuration.random_assignment.rerolls": "引き直し許可回数",
+  "neoorigins.configuration.upgrade_announcements": "アップグレードの告知",
+  "neoorigins.configuration.upgrade_announcements.mode": "告知の対象",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "最小パワー読み込み率",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "海にスポーン",
   "neoorigins.configuration.ocean_origins.dries_out": "陸上で乾燥",
