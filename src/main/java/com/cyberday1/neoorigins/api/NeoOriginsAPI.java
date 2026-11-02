@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.api;
 
+import com.cyberday1.neoorigins.api.power.GrantPowerResult;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
@@ -9,6 +10,7 @@ import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.OriginChangeService;
+import com.cyberday1.neoorigins.service.PowerGrantService;
 import com.cyberday1.neoorigins.service.MinionTracker;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.LivingEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -143,6 +146,58 @@ public final class NeoOriginsAPI {
      */
     public static boolean clearOrigin(ServerPlayer player, Identifier layer) {
         return OriginChangeService.clear(player, layer);
+    }
+
+    // ---------------------------------------------------------------------
+    // Runtime power grants
+    // ---------------------------------------------------------------------
+
+    /**
+     * Grants a power by id on behalf of {@code source} (your mod's id, e.g. {@code mymod:quest_reward}),
+     * until revoked. The grant persists across relog, death and restart; a full origin reset keeps it.
+     * The same power granted by two sources stays until both revoke it. Datapack and
+     * {@link #registerPower registered} powers both work; a {@code multiple} grants its sub-powers.
+     */
+    public static GrantPowerResult grantPower(ServerPlayer player, Identifier power, Identifier source) {
+        return PowerGrantService.grant(player, power, source, null);
+    }
+
+    /**
+     * As {@link #grantPower(ServerPlayer, Identifier, Identifier)}, but tied to {@code layer}:
+     * the grant ends when that layer's origin changes, is cleared or is reset. The layer may be empty
+     * now; the grant then ends at its next change. Granting again with another layer moves it.
+     */
+    public static GrantPowerResult grantPower(ServerPlayer player, Identifier power, Identifier source,
+                                              Identifier layer) {
+        return PowerGrantService.grant(player, power, source, layer);
+    }
+
+    /** Ends {@code source}'s grant of {@code power}. @return false if it held no such grant. */
+    public static boolean revokePower(ServerPlayer player, Identifier power, Identifier source) {
+        return PowerGrantService.revoke(player, power, source);
+    }
+
+    /** Ends every grant {@code source} holds. @return how many were removed. */
+    public static int revokePowers(ServerPlayer player, Identifier source) {
+        return PowerGrantService.revokeMatching(player, source, holder -> true);
+    }
+
+    /**
+     * Ends {@code source}'s grants whose power matches {@code filter}. Only this source's API grants
+     * are considered; origin, command and global powers are never touched. @return how many were removed.
+     */
+    public static int revokePowers(ServerPlayer player, Identifier source, Predicate<PowerHolder<?>> filter) {
+        return PowerGrantService.revokeMatching(player, source, filter);
+    }
+
+    /** The power ids {@code source} currently grants, as they were granted. */
+    public static Set<Identifier> grantedPowers(ServerPlayer player, Identifier source) {
+        return PowerGrantService.granted(player, source);
+    }
+
+    /** True if the player holds {@code power} from any origin, command, global set or API grant. */
+    public static boolean hasPower(ServerPlayer player, Identifier power) {
+        return ActiveOriginService.activePowerIds(player).contains(power);
     }
 
     // ---------------------------------------------------------------------

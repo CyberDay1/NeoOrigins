@@ -947,6 +947,7 @@ public final class BuiltinActions {
                         var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                         if (origin != null && origin.powers().contains(pid)) { fromOrigin = true; break; }
                     }
+                    if (com.cyberday1.neoorigins.service.PowerGrantService.isGranted(data, pid)) fromOrigin = true;
                     if (fromOrigin) {
                         data.addDynamicGrant(pid);
                         return;
@@ -989,6 +990,7 @@ public final class BuiltinActions {
                             var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
                             if (origin != null && origin.powers().contains(pid)) { stillGranted = true; break; }
                         }
+                        if (com.cyberday1.neoorigins.service.PowerGrantService.isGranted(data, pid)) stillGranted = true;
                         if (!stillGranted) {
                             holder.onRevoked(player);
                             net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
