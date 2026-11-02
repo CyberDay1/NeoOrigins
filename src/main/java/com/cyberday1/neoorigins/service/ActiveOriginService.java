@@ -205,6 +205,22 @@ public final class ActiveOriginService {
                 originActive.add(holder);
             }
         }
+        // API grants: a class-layer grant takes a class hotkey slot, any other an origin slot.
+        for (var grant : data.getPowerGrants()) {
+            boolean classSlot = CLASS_LAYER.equals(grant.layer());
+            for (Identifier powerId : PowerGrantService.expand(grant.power())) {
+                if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
+                if (!seen.add(powerId)) continue;
+                PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+                if (holder == null) continue;
+                all.add(holder);
+                if (holder.occupiesHotkeySlot()
+                        && !com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.isNativeHotkeyPower(powerId)) {
+                    if (classSlot) classActive.add(holder);
+                    else originActive.add(holder);
+                }
+            }
+        }
 
         CacheEntry fresh = new CacheEntry(player, dim, dv, omv, pmv, rv,
             List.copyOf(all),
@@ -397,6 +413,13 @@ public final class ActiveOriginService {
                 if (holder != null) holder.onRevoked(player);
             }
         }
+        // API grants: revoke them all, drop the layer-bound ones, re-grant the rest after the sweep.
+        for (Identifier powerId : PowerGrantService.grantedLeafIds(data)) {
+            if (!revoked.add(powerId)) continue;
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder != null) holder.onRevoked(player);
+        }
+        data.removePowerGrants(g -> g.layer() != null);
         // Also revoke dynamic grants.
         for (Identifier powerId : new java.util.ArrayList<>(data.getDynamicGrantedPowers())) {
             if (!revoked.add(powerId)) {
@@ -431,6 +454,11 @@ public final class ActiveOriginService {
         // food_restriction / action_on_event handlers don't persist.
         com.cyberday1.neoorigins.service.EventPowerIndex.clearAll(player.getUUID());
         com.cyberday1.neoorigins.power.builtin.ActionOnEventPower.clearTokens(player.getUUID());
+        // Unattached API grants outlive a reset: put them back after the sweep.
+        for (Identifier powerId : PowerGrantService.grantedLeafIds(data)) {
+            PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
+            if (holder != null) holder.onGranted(player);
+        }
         // Clamp health to the new max now that all attribute modifiers are gone.
         if (player.getHealth() > player.getMaxHealth()) {
             player.setHealth(player.getMaxHealth());
@@ -465,7 +493,13 @@ public final class ActiveOriginService {
             ids.addAll(effectivePowers);
         }
         ids.addAll(data.getDynamicGrantedPowers());
+        ids.addAll(PowerGrantService.grantedLeafIds(data));
         return ids;
+    }
+
+    /** Every power id the player holds right now: all layers, dynamic grants and API grants. */
+    public static java.util.Set<Identifier> activePowerIds(ServerPlayer player) {
+        return collectActivePowerIds(player, null, null);
     }
 
     /**
@@ -480,12 +514,21 @@ public final class ActiveOriginService {
         // but never touch current health, so picking a +HP origin would otherwise
         // leave the bonus hearts empty until natural regen.
         float maxHealthBefore = player.getMaxHealth();
+        PlayerOriginData data = player.getData(OriginAttachments.originData());
+        // API grants tied to this layer end when its origin changes or is cleared.
+        List<PlayerOriginData.PowerGrant> layerGrants = java.util.Objects.equals(oldOriginId, newOriginId)
+            ? List.of() : data.removePowerGrants(g -> layerId.equals(g.layer()));
+        java.util.Set<Identifier> stillGranted = PowerGrantService.grantedLeafIds(data);
+        java.util.Set<Identifier> revokedHere = new java.util.HashSet<>();
         if (oldOriginId != null) {
             Origin oldOrigin = OriginDataManager.INSTANCE.getOrigin(oldOriginId);
             if (oldOrigin != null) {
                 for (Identifier powerId : oldOrigin.powers()) {
+                    // An API grant still holds it: leave it in place.
+                    if (stillGranted.contains(powerId)) continue;
                     PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                     if (holder != null) {
+                        revokedHere.add(powerId);
                         holder.onRevoked(player);
                         NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, powerId));
                         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
@@ -506,9 +549,19 @@ public final class ActiveOriginService {
             com.cyberday1.neoorigins.power.builtin.AttributeModifierPower
                 .purgeOriginModifiersExcept(player, activePowers);
         }
+        if (!layerGrants.isEmpty()) {
+            java.util.Set<Identifier> active = collectActivePowerIds(player, layerId, newOriginId);
+            for (var grant : layerGrants) {
+                for (Identifier powerId : PowerGrantService.expand(grant.power())) {
+                    if (!active.contains(powerId) && revokedHere.add(powerId)) PowerGrantService.fireRevoked(player, powerId);
+                }
+            }
+        }
         Origin newOrigin = OriginDataManager.INSTANCE.getOrigin(newOriginId);
         if (newOrigin != null) {
             for (Identifier powerId : newOrigin.powers()) {
+                // Already granted through the API: no second onGranted.
+                if (stillGranted.contains(powerId)) continue;
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null) {
                     holder.onGranted(player);
@@ -580,6 +633,7 @@ public final class ActiveOriginService {
         // A power another layer still grants must not be revoked out from under it.
         java.util.Set<Identifier> active = collectActivePowerIds(player, null, null);
         revoke.removeAll(active);
+        grant.removeAll(PowerGrantService.grantedLeafIds(data));
         for (Identifier powerId : revoke) {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;
