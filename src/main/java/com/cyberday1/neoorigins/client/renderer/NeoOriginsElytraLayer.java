@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.client.renderer;
 
 import com.cyberday1.neoorigins.client.ClientElytraFlightState;
+import com.cyberday1.neoorigins.client.NeoOriginsClientConfig;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
@@ -48,6 +49,7 @@ public class NeoOriginsElytraLayer<T extends LivingEntity, M extends EntityModel
         return shouldDrawWings(entity.isFallFlying(),
                                ClientElytraFlightState.shouldRenderElytra(id),
                                ClientElytraFlightState.alwaysRendersElytra(id),
+                               NeoOriginsClientConfig.isHideFoldedWings(),
                                stack,
                                ClientElytraFlightState.textureFor(id));
     }
@@ -59,13 +61,14 @@ public class NeoOriginsElytraLayer<T extends LivingEntity, M extends EntityModel
      * nothing else.
      *
      * <p>{@code chest} holding a real elytra means vanilla's own {@link ElytraLayer}
-     * is already drawing — bail rather than double up.
+     * is already drawing — bail rather than double up. {@code hideFolded} is this
+     * client's {@code hide_folded_wings}: it drops the "always" draw outside a glide.
      */
     static boolean shouldDrawWings(boolean isFallFlying, boolean renderFlag, boolean always,
-                                   ItemStack chest, @Nullable ResourceLocation texture) {
+                                   boolean hideFolded, ItemStack chest, @Nullable ResourceLocation texture) {
         if (chest.is(Items.ELYTRA)) return false;
         if (!renderFlag) return false;
-        if (!isFallFlying && !always) return false;
+        if (!isFallFlying && (!always || hideFolded)) return false;
         return texture != null;
     }
 

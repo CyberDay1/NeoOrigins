@@ -128,6 +128,12 @@ registers the KeyMapping, which happens at client startup, before any datapack
 (or the server) has loaded. So a pre-bound default has to come from the client,
 which is what this option is for.
 
+## `[wings]`: power-granted wings
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `hide_folded_wings` | bool | `false` | Hide wings that a power draws folded on the back while the player is not gliding (`render_elytra: "always"`, such as the Elytrian's). They still appear while gliding. It changes how every player's wings look on your screen only; other players see whatever their own setting says. |
+
 ## `[compat]`: cross-mod behaviour
 
 | Option | Type | Default | Description |

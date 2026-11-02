@@ -33,6 +33,7 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> HOTKEY_SLOT_DEFAULTS;
     public static final ModConfigSpec.EnumValue<DragonScreenPolicy> DRAGON_SPECIES_SCREENS;
+    public static final ModConfigSpec.BooleanValue HIDE_FOLDED_WINGS;
 
     /** Arrangement of the origin/class selection screen. Independent of the colour skin. */
     public enum PickerLayout {
@@ -211,6 +212,16 @@ public final class NeoOriginsClientConfig {
             .defineEnum("dragon_species_screens", DragonScreenPolicy.DEFER);
 
         BUILDER.pop();
+
+        BUILDER.comment("How power-granted wings look on this client.").push("wings");
+
+        HIDE_FOLDED_WINGS = BUILDER
+            .comment("Hide wings that a power draws folded on the back while not gliding",
+                     "(render_elytra: \"always\", e.g. the Elytrian). They still appear",
+                     "while gliding. Affects every player's wings, on this screen only.")
+            .define("hide_folded_wings", false);
+
+        BUILDER.pop();
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
@@ -235,6 +246,9 @@ public final class NeoOriginsClientConfig {
 
     /** Opacity (0–100 percent) of the countdown number on cooldown icons. */
     public static int cooldownCountdownOpacity() { return COOLDOWN_COUNTDOWN_OPACITY.get(); }
+
+    /** True if folded power wings should only be drawn while gliding, on this client. */
+    public static boolean isHideFoldedWings() { return HIDE_FOLDED_WINGS.get(); }
 
     /** What the ability HUD cluster shows besides live cooldowns. */
     public static HudAbilityDisplay hudAbilityDisplay() { return HUD_ABILITY_DISPLAY.get(); }
