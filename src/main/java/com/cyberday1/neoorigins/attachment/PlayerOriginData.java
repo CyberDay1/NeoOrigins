@@ -40,6 +40,8 @@ public class PlayerOriginData {
      *  global system owns, so it can reconcile (revoke powers no longer offered by any
      *  matching global set) without disturbing action-granted dynamics. Persisted. */
     private final Set<ResourceLocation> globalGrantedPowers = new HashSet<>();
+    /** Powers granted through the Java API, one entry per (power, source). Persisted. */
+    private final List<PowerGrant> powerGrants = new ArrayList<>();
     /** Named UUID sets (entity_set power + in_set / add_to_set / remove_from_set verbs). Persisted as Map&lt;String, List&lt;String&gt;&gt;. */
     private final Map<String, Set<UUID>> entitySets = new HashMap<>();
     /** Generic keyed float storage for power types that need persisted numeric state (e.g. SlimeMoisturePower). */
@@ -107,7 +109,21 @@ public class PlayerOriginData {
      *  origin reset or a stray skill keypress. */
     private boolean nightVisionEnabled = true;
 
-    public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+    /**
+     * A power granted through the Java API by {@code source} (an addon id). A non-null {@code layer}
+     * ties the grant to that layer: it is removed when the layer's origin changes or is cleared.
+     */
+    public record PowerGrant(ResourceLocation power, ResourceLocation source, @org.jetbrains.annotations.Nullable ResourceLocation layer) {
+        public static final Codec<PowerGrant> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+            ResourceLocation.CODEC.fieldOf("power").forGetter(PowerGrant::power),
+            ResourceLocation.CODEC.fieldOf("source").forGetter(PowerGrant::source),
+            ResourceLocation.CODEC.optionalFieldOf("layer").forGetter(g -> java.util.Optional.ofNullable(g.layer()))
+        ).apply(inst, (power, source, layer) -> new PowerGrant(power, source, layer.orElse(null))));
+    }
+
+    // DFU groups top out at 16 fields; BASE holds the first 15 and CODEC adds the rest
+    // beside it, so the saved map stays flat and old saves still load.
+    private static final com.mojang.serialization.MapCodec<PlayerOriginData> BASE = RecordCodecBuilder.mapCodec(inst -> inst.group(
         Codec.unboundedMap(ResourceLocation.CODEC, ResourceLocation.CODEC)
             .optionalFieldOf("origins", Map.of())
             .forGetter(d -> Map.copyOf(d.origins)),
@@ -200,6 +216,16 @@ public class PlayerOriginData {
         data.declinedEvolutionTier = declinedTier;
         data.pickerAbandoned = abandoned;
         data.nightVisionEnabled = nightVision;
+        return data;
+    }));
+
+    public static final Codec<PlayerOriginData> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+        BASE.forGetter(d -> d),
+        PowerGrant.CODEC.listOf()
+            .optionalFieldOf("power_grants", List.of())
+            .forGetter(d -> List.copyOf(d.powerGrants))
+    ).apply(inst, (data, grants) -> {
+        data.powerGrants.addAll(grants);
         return data;
     }));
 
@@ -458,6 +484,66 @@ public class PlayerOriginData {
         return removed;
     }
 
+    // ── API power grants ────────────────────────────────────────────────
+
+    public List<PowerGrant> getPowerGrants() {
+        return Collections.unmodifiableList(powerGrants);
+    }
+
+    /** The distinct power ids the API grants hold, in grant order. */
+    public Set<ResourceLocation> getPowerGrantIds() {
+        Set<ResourceLocation> ids = new LinkedHashSet<>();
+        for (PowerGrant g : powerGrants) ids.add(g.power());
+        return ids;
+    }
+
+    public boolean hasPowerGrant(ResourceLocation power) {
+        for (PowerGrant g : powerGrants) if (g.power().equals(power)) return true;
+        return false;
+    }
+
+    public java.util.Optional<PowerGrant> getPowerGrant(ResourceLocation power, ResourceLocation source) {
+        for (PowerGrant g : powerGrants) {
+            if (g.power().equals(power) && g.source().equals(source)) return java.util.Optional.of(g);
+        }
+        return java.util.Optional.empty();
+    }
+
+    /** Adds or re-layers the (power, source) grant. @return true if the ledger changed. */
+    public boolean addPowerGrant(PowerGrant grant) {
+        for (int i = 0; i < powerGrants.size(); i++) {
+            PowerGrant g = powerGrants.get(i);
+            if (g.power().equals(grant.power()) && g.source().equals(grant.source())) {
+                if (g.equals(grant)) return false;
+                powerGrants.set(i, grant);
+                version++;
+                return true;
+            }
+        }
+        powerGrants.add(grant);
+        version++;
+        return true;
+    }
+
+    /** @return true if the (power, source) grant existed. */
+    public boolean removePowerGrant(ResourceLocation power, ResourceLocation source) {
+        boolean removed = powerGrants.removeIf(g -> g.power().equals(power) && g.source().equals(source));
+        if (removed) version++;
+        return removed;
+    }
+
+    /** Removes every grant matching {@code filter}. @return the removed grants. */
+    public List<PowerGrant> removePowerGrants(java.util.function.Predicate<PowerGrant> filter) {
+        List<PowerGrant> removed = new ArrayList<>();
+        powerGrants.removeIf(g -> {
+            if (!filter.test(g)) return false;
+            removed.add(g);
+            return true;
+        });
+        if (!removed.isEmpty()) version++;
+        return removed;
+    }
+
     // ---- Named UUID sets (entity_set power + in_set / add_to_set / remove_from_set verbs) ----
 
     /**
@@ -522,6 +608,8 @@ public class PlayerOriginData {
         toggledOffPowers.clear();
         dynamicGrantedPowers.clear();
         globalGrantedPowers.clear();
+        // Layer-bound API grants go with the layers; unattached ones stay until revoked.
+        powerGrants.removeIf(g -> g.layer() != null);
         entitySets.clear();
         activeCooldowns.clear();
         // nightVisionEnabled is deliberately NOT reset: it's a player preference

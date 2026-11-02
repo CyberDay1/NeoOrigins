@@ -102,7 +102,7 @@ public final class GlobalPowerService {
             var origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin != null && origin.powers().contains(powerId)) return true;
         }
-        return false;
+        return PowerGrantService.isGranted(data, powerId);
     }
 
     /**

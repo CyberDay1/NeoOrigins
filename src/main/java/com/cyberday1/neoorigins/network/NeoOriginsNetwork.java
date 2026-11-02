@@ -1918,8 +1918,12 @@ public class NeoOriginsNetwork {
                 }
             }
         }
-        // Also include dynamically-granted powers (via /power grant or grant_power actions).
-        for (ResourceLocation powerId : data.getDynamicGrantedPowers()) {
+        // Also include dynamically-granted powers (via /power grant or grant_power actions)
+        // and API grants.
+        java.util.Set<ResourceLocation> extra = new java.util.LinkedHashSet<>(data.getDynamicGrantedPowers());
+        extra.addAll(com.cyberday1.neoorigins.service.PowerGrantService.grantedLeafIds(data));
+        for (ResourceLocation powerId : extra) {
+            if (powerMapOut.containsKey(powerId)) continue;
             if (AdminConfig.isPowerRestrictedInDimension(powerId, dim)) continue;
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;

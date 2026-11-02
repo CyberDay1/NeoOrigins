@@ -576,7 +576,7 @@ public class OriginsCompatCommands {
             var origin = com.cyberday1.neoorigins.data.OriginDataManager.INSTANCE.getOrigin(entry.getValue());
             if (origin != null && origin.powers().contains(id)) return true;
         }
-        return false;
+        return com.cyberday1.neoorigins.service.PowerGrantService.isGranted(data, id);
     }
 
     /**
