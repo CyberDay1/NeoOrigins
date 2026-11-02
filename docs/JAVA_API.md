@@ -112,6 +112,12 @@ Full method list:
 | `getOrigins(player)` | Every layer the player holds an origin on, mapped to that origin. Unmodifiable copy. |
 | `setOrigin(player, layer, origin)` | Change the player's origin on a layer. Returns a `SetOriginResult`. See [Changing a player's origin](#changing-a-players-origin). |
 | `clearOrigin(player, layer)` | Empty one layer, revoking only that layer's powers. Returns `false` if it held nothing. |
+| `grantPower(player, power, source[, layer])` | Grant a power by id on behalf of your mod, optionally tied to a layer. Returns a `GrantPowerResult`. See [Granting powers at runtime](#granting-powers-at-runtime). |
+| `revokePower(player, power, source)` | End your mod's grant of one power. |
+| `revokePowers(player, source[, filter])` | End all of your mod's grants, or those whose power matches a `Predicate<PowerHolder<?>>`. |
+| `grantedPowers(player, source)` | The power ids your mod currently grants the player. |
+| `hasPower(player, power)` | True if the player holds the power from any origin, command, global set or API grant. |
+| `registerPower(id, type, config, display)` | Register a power built in code rather than JSON. See [Powers registered in code](#powers-registered-in-code). |
 | `registerResourceBacking(id, backing)` | Register an external pool that resource bars can name with `"backing"`. See [Resource backings](#resource-backings). |
 
 Call these on the logical server: the player-facing methods take a
@@ -145,12 +151,92 @@ cancel the change or redirect it to another origin.
 - It doesn't ask the player to confirm, open the picker or change the evolution
   tier.
 - `clearOrigin(player, layer)` empties one layer and revokes only its powers.
-  Other layers, and powers granted by `/power grant` or the `grant_power`
-  action, are kept. It fires no event.
+  Other layers, powers granted by `/power grant` or the `grant_power` action,
+  and API grants not tied to that layer are kept. It fires no event.
 - `OriginChangedEvent` fires when an origin is set by the picker,
   `/origin set`, an advancement upgrade, random assignment, auto-human or this
   API. `/origin set`, random assignment and auto-human ignore a listener's
   cancel or redirect. Emptying a layer fires nothing.
+- An advancement upgrade into a unique origin another player holds doesn't
+  happen.
+
+---
+
+## Granting powers at runtime
+
+```java
+ResourceLocation source = ResourceLocation.fromNamespaceAndPath("mymod", "quest_reward");
+GrantPowerResult result = NeoOriginsAPI.grantPower(player,
+    ResourceLocation.fromNamespaceAndPath("mypack", "fire_immunity"), source);
+// later
+NeoOriginsAPI.revokePower(player, ResourceLocation.fromNamespaceAndPath("mypack", "fire_immunity"), source);
+```
+
+A granted power behaves exactly like one from an origin: its effects, toggles,
+upkeep, resource bar, keybind slot and client display all work. `source` is an
+id in your mod's namespace. Each mod's grants are kept apart, so a power that
+two sources grant stays until both revoke it, and no other mod, `/power revoke`
+or `revoke_power` action can remove yours.
+
+| Result | Meaning |
+|---|---|
+| `GRANTED` | The source now grants the power. |
+| `UPDATED` | The source already granted it; its layer moved to the one given. |
+| `ALREADY_GRANTED` | The source already granted it on that layer. Nothing changed. |
+| `UNKNOWN_POWER` | No power with that id is loaded. Nothing was stored. |
+
+How long a grant lasts:
+
+- It is saved with the player, so it survives relog, death and a server restart.
+- `grantPower(player, power, source, layer)` ties it to a layer. It ends when
+  that layer's origin changes, is cleared or is reset. If the layer holds no
+  origin yet, it ends at the layer's next change.
+- A grant with no layer lasts until revoked, including through a full
+  `/origin reset`.
+- If a datapack reload removes the power, the grant is kept but does nothing,
+  and it works again if the power comes back.
+- Granting a power the player already has from an origin doesn't apply it
+  twice. Changing away from that origin leaves it in place while the grant holds.
+- A `multiple` power id grants all its sub-powers.
+
+`revokePowers(player, source, filter)` only ever looks at the given source's
+grants, so a filter like `holder -> holder.type() instanceof MyPowerType` can't
+remove origin powers or another mod's grants.
+
+---
+
+## Powers registered in code
+
+To grant a power that has no JSON, register it once with an id, then grant it
+by that id:
+
+```java
+// In your mod's constructor or FMLCommonSetupEvent, on every launch:
+NeoOriginsAPI.registerPower(
+    ResourceLocation.fromNamespaceAndPath("mymod", "stone_skin"),
+    MyPowerTypes.STONE_SKIN.get(),
+    new StoneSkinConfig(4.0),
+    PowerDisplay.of(Component.literal("Stone Skin"), Component.literal("Take less damage.")));
+
+// Whenever needed:
+NeoOriginsAPI.grantPower(player, ResourceLocation.fromNamespaceAndPath("mymod", "stone_skin"), source);
+```
+
+This is how to add a power from a `PowerType` and a configuration at runtime:
+grants are saved by id, so the id has to resolve again after a relog or restart.
+
+- The type must be registered in the `neoorigins:power_type` registry (see
+  [Custom power types](#custom-power-types)), or be a built-in type.
+- A registered power works like a datapack one: origins can list it, it syncs
+  to clients with its `PowerDisplay` name, description and hidden flag, and a
+  datapack reload doesn't drop it.
+- Registering the same id twice throws `IllegalStateException`. A datapack
+  power with the same id overrides the registered one, with a warning, so pack
+  authors can still replace it.
+- The configuration is used as given. What a JSON power gets from the loader
+  isn't set for you: a resource bar's own id, and the upkeep fields
+  (`hunger_cost`, `resource_cost`, `upkeep_interval`, ...) that toggles read from
+  their JSON.
 
 ---
 
