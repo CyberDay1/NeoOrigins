@@ -48,6 +48,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     private Map<ResourceLocation, JsonObject> rawPowerJson = new HashMap<>();
     /** Route B powers injected by OriginsCompatPowerLoader after native loading. */
     private Map<ResourceLocation, PowerHolder<?>> injectedPowers = new HashMap<>();
+    /** Route B definition fingerprints (see {@link Definitions#fingerprint}). */
+    private Map<ResourceLocation, String> injectedFingerprints = new HashMap<>();
     /** Powers other mods register in code. Never cleared by a reload; a datapack power with the same id wins. */
     private final Map<ResourceLocation, PowerHolder<?>> codePowers = new java.util.concurrent.ConcurrentHashMap<>();
     /** Bumped on every datapack reload and Route-B injection so per-player power caches can invalidate. */
@@ -109,6 +111,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
+        // Before anything is replaced: what online players hold, under which definitions.
+        com.cyberday1.neoorigins.service.PowerReloadReconciler.captureBeforeReload();
         CompatTranslationLog.open();
         OriginsMultipleExpander.reset();
         com.cyberday1.neoorigins.command.CommandPowerGuard.clearParseMemory();
@@ -221,6 +225,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         this.powers = Collections.unmodifiableMap(loaded);
         this.rawPowerJson = Collections.unmodifiableMap(rawSnapshot);
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
+        this.injectedFingerprints = new HashMap<>();
         this.version++;
         warnCodePowerOverrides(loaded.keySet());
         registerVariableDeclarations(loaded);
@@ -573,7 +578,14 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */
     public void injectExternalPowers(Map<ResourceLocation, PowerHolder<?>> external) {
+        injectExternalPowers(external, Map.of());
+    }
+
+    /** As above, with each power's definition fingerprint (its JSON) for reload diffing. */
+    public void injectExternalPowers(Map<ResourceLocation, PowerHolder<?>> external,
+                                     Map<ResourceLocation, String> fingerprints) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
+        this.injectedFingerprints = Map.copyOf(fingerprints);
         this.version++;
         warnCodePowerOverrides(external.keySet());
         recomputeUltiminePowerInUse();
@@ -631,6 +643,46 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             if (datapackIds.contains(id)) {
                 NeoOrigins.LOGGER.warn("Datapack power {} overrides the power a mod registered under the same id", id);
             }
+        }
+    }
+
+    /** The definitions loaded right now, kept as a generation for {@link Definitions} diffs. */
+    public Definitions definitions() {
+        return new Definitions(powers, rawPowerJson, injectedPowers, injectedFingerprints, Map.copyOf(codePowers));
+    }
+
+    /**
+     * One generation of power definitions. Every reload rebuilds every holder, so
+     * holder identity can't tell a changed power from an unchanged one; the
+     * fingerprint can: datapack powers compare their parsed JSON, Route B powers the
+     * JSON their loader read, and code powers the registered object, which no reload
+     * replaces.
+     */
+    public record Definitions(Map<ResourceLocation, PowerHolder<?>> datapack,
+                              Map<ResourceLocation, JsonObject> raw,
+                              Map<ResourceLocation, PowerHolder<?>> injected,
+                              Map<ResourceLocation, String> injectedPrints,
+                              Map<ResourceLocation, PowerHolder<?>> code) {
+
+        /** The holder {@link #getPower} would return in this generation. */
+        public PowerHolder<?> holder(ResourceLocation id) {
+            PowerHolder<?> h = datapack.get(id);
+            if (h == null) h = injected.get(id);
+            return h != null ? h : code.get(id);
+        }
+
+        /** Equal across two generations exactly when the definition is unchanged; null if absent. */
+        public String fingerprint(ResourceLocation id) {
+            if (datapack.containsKey(id)) {
+                JsonObject json = raw.get(id);
+                return "datapack:" + (json != null ? json.toString() : "?");
+            }
+            if (injected.containsKey(id)) {
+                String print = injectedPrints.get(id);
+                return "compat:" + (print != null ? print : injected.get(id).type().getClass().getName());
+            }
+            PowerHolder<?> h = code.get(id);
+            return h != null ? "code@" + System.identityHashCode(h) : null;
         }
     }
 
