@@ -70,9 +70,10 @@ claimed by only one player on the server.
 | Key | `unique_origin_layers`, a list of layer IDs. Default `[]`. |
 | Scope | Per-layer: only the layer IDs listed are affected. Example: `["neoorigins:origin"]`. |
 | Effect | Once a player picks an origin in a listed layer, no one else can pick that same origin there. |
-| Release | Claims are released only by `/neoorigins unlock`, an Orb of Origin re-pick, `/neoorigins reset`, or an `every_death` random reroll. |
+| Release | A claim is released when its holder's origin on that layer changes (an upgrade, `/neoorigins set`, or another mod through the API) or the layer is cleared, and by `/neoorigins unlock`, an Orb of Origin re-pick, `/neoorigins reset`, or an `every_death` random reroll. |
 | Picker | An origin another player holds stays listed but is marked claimed, with the holder's name. Confirm is disabled on it and the Random button skips it. The server refuses it either way. |
 | Random assignment | `random_assignment` never hands out an origin someone else holds, and claims the one it hands out. |
+| Upgrades | An origin's `upgrades` entry does not switch a player to an origin another player holds; the upgrade and its announcement are skipped. An upgrade into an unclaimed origin claims it. |
 | Bypass | Operators in creative mode (and `/neoorigins set`) bypass the lock and take over the claim. |
 
 ## `[compat_filtering]`: hide broken addon origins

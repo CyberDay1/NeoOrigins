@@ -241,7 +241,8 @@ grants are saved by id, so the id has to resolve again after a relog or restart.
   datapack reload doesn't drop it.
 - Registering the same id twice throws `IllegalStateException`. A datapack
   power with the same id overrides the registered one, with a warning, so pack
-  authors can still replace it.
+  authors can still replace it. Players already holding it switch to the
+  datapack version at that reload.
 - The configuration is used as given. What a JSON power gets from the loader
   isn't set for you: a resource bar's own id, and the upkeep fields
   (`hunger_cost`, `resource_cost`, `upkeep_interval`, ...) that toggles read from
