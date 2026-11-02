@@ -4,7 +4,6 @@ import com.cyberday1.neoorigins.config.ContentTogglesConfig;
 import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.config.GameplayConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
-import com.cyberday1.neoorigins.api.event.OriginChangedEvent;
 import com.cyberday1.neoorigins.api.origin.OriginLayer;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
@@ -58,7 +57,6 @@ import java.util.HashSet;
 import java.util.Set;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -1061,15 +1059,11 @@ public class NeoOriginsNetwork {
                 return;
             }
 
-            OriginChangedEvent event = new OriginChangedEvent(sp, layerId, oldOrigin, originId);
-            if (NeoForge.EVENT_BUS.post(event).isCanceled()) return;
-
-            data.setOrigin(layerId, event.getNewOrigin());
-            if (uniqueLayer) {
-                OriginClaimsData.get(sp.getServer()).claim(layerId, event.getNewOrigin(), sp.getUUID());
-                syncClaimsToAll(sp.getServer());
-            }
-            ActiveOriginService.applyOriginPowers(sp, layerId, oldOrigin, event.getNewOrigin());
+            // Event, data, claims and this layer's powers; the handler syncs once below.
+            var outcome = com.cyberday1.neoorigins.service.OriginChangeService.change(sp, layerId, originId,
+                com.cyberday1.neoorigins.service.OriginChangeService.Mode.NORMAL, false);
+            if (outcome.origin() == null) return;
+            final ResourceLocation chosenOrigin = outcome.origin();
             // CHOSEN runs the origin's entity_action_chosen callbacks
             // (action_on_callback). During the initial multi-layer walkthrough
             // this is DEFERRED until every layer is picked (fired in the
@@ -1083,14 +1077,14 @@ public class NeoOriginsNetwork {
             // already true) still fire immediately.
             if (data.isHadAllOrigins()) {
                 com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
-                    sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, event.getNewOrigin());
+                    sp, com.cyberday1.neoorigins.service.EventPowerIndex.Event.CHOSEN, chosenOrigin);
             }
             // KubeJS: originChosen is UI-specific (first pick via the picker).
             // originChanged is fired from inside applyOriginPowers so admin /set,
             // /reset, and cascade invalidation all cover it.
             if (oldOrigin == null) {
                 com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.fireOriginChosen(
-                    sp, layerId, event.getNewOrigin());
+                    sp, layerId, chosenOrigin);
             }
 
             // Cascade invalidation: if the player changed a parent layer,

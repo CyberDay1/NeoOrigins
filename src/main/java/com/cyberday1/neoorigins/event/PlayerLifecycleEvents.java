@@ -577,9 +577,10 @@ public class PlayerLifecycleEvents {
                     continue;
                 }
 
-                data.setOrigin(layerId, upgrade.origin());
-                ActiveOriginService.applyOriginPowers(sp, layerId, currentOriginId, upgrade.origin());
-                NeoOriginsNetwork.syncToPlayer(sp);
+                // An OriginChangedEvent listener may cancel or redirect the upgrade.
+                var outcome = com.cyberday1.neoorigins.service.OriginChangeService.change(
+                    sp, layerId, upgrade.origin(), com.cyberday1.neoorigins.service.OriginChangeService.Mode.NORMAL, true);
+                if (outcome.origin() == null) break;
 
                 announceUpgrade(sp, upgrade.announcement());
 
@@ -599,9 +600,8 @@ public class PlayerLifecycleEvents {
         ResourceLocation humanOrigin = ResourceLocation.parse("neoorigins:human");
 
         if (!data.hasOriginForLayer(originLayer) && OriginDataManager.INSTANCE.hasOrigin(humanOrigin)) {
-            data.setOrigin(originLayer, humanOrigin);
-            ActiveOriginService.applyOriginPowers(sp, originLayer, null, humanOrigin);
-            NeoOriginsNetwork.syncToPlayer(sp);
+            com.cyberday1.neoorigins.service.OriginChangeService.change(
+                sp, originLayer, humanOrigin, com.cyberday1.neoorigins.service.OriginChangeService.Mode.ADMIN, true);
             NeoOrigins.LOGGER.info("Auto-assigned human origin to {}", sp.getName().getString());
         }
 
@@ -678,11 +678,8 @@ public class PlayerLifecycleEvents {
             ResourceLocation picked = pickRandomOrigin(layer, data.getOrigins(),
                 id -> isOffered(id) && !heldByOther.test(id), sp.getRandom()::nextInt);
             if (picked == null) continue;
-            data.setOrigin(layerId, picked);
-            if (AdminConfig.isUniqueLayer(layerId)) {
-                OriginClaimsData.get(sp.getServer()).claim(layerId, picked, sp.getUUID());
-            }
-            ActiveOriginService.applyOriginPowers(sp, layerId, null, picked);
+            com.cyberday1.neoorigins.service.OriginChangeService.change(
+                sp, layerId, picked, com.cyberday1.neoorigins.service.OriginChangeService.Mode.ADMIN, false);
             assigned.add(picked.toString());
         }
 
