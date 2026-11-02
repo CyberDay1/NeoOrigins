@@ -1199,6 +1199,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Список заборонених вимірів для сил",
   "neoorigins.configuration.random_assignment.mode": "Режим призначення",
   "neoorigins.configuration.random_assignment.rerolls": "Дозволені повторні кидки",
+  "neoorigins.configuration.upgrade_announcements": "Оголошення про покращення",
+  "neoorigins.configuration.upgrade_announcements.mode": "Отримувачі оголошення",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Мін. частка завантажених сил",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Поява в океані",
   "neoorigins.configuration.ocean_origins.dries_out": "Висихання на суходолі",
