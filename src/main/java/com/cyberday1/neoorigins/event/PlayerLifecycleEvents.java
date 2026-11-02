@@ -19,6 +19,8 @@ import com.cyberday1.neoorigins.api.origin.OriginUpgrade;
 import com.cyberday1.neoorigins.network.NeoOriginsNetwork;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.MinionTracker;
+import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -536,10 +538,16 @@ public class PlayerLifecycleEvents {
      * <p>Runs every origin-layer the player currently has — so the same advancement
      * can drive different swaps on different layers (e.g. an origin evolution on the
      * origin layer and an unrelated class promotion on the class layer).
+     *
+     * <p>Listens to criterion grants rather than {@code AdvancementEarnEvent}, which
+     * NeoForge fires only for advancements with a {@code display} block.
      */
     @SubscribeEvent
-    public static void onAdvancementEarned(AdvancementEvent.AdvancementEarnEvent event) {
+    public static void onAdvancementProgress(AdvancementEvent.AdvancementProgressEvent event) {
+        if (event.getProgressType() != AdvancementEvent.AdvancementProgressEvent.ProgressType.GRANT) return;
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
+        if (!justCompleted(event.getAdvancement().value().requirements(),
+                event.getAdvancementProgress(), event.getCriterionName())) return;
         Identifier earnedId = event.getAdvancement().id();
 
         // ADVANCEMENT_EARNED action — fires for every earned advancement so
@@ -855,6 +863,19 @@ public class PlayerLifecycleEvents {
             if (restoreToOriginalSlot(inv, kept.slot(), kept.stack())) continue;
             if (!inv.add(kept.stack())) sp.drop(kept.stack(), false);
         }
+    }
+
+    /**
+     * True when granting {@code criterion} is what completed the advancement. A grant to an
+     * advancement that was already done (a spare criterion of an any-of) must not fire again.
+     */
+    static boolean justCompleted(AdvancementRequirements requirements, AdvancementProgress progress, String criterion) {
+        if (!progress.isDone()) return false;
+        return !requirements.test(name -> {
+            if (name.equals(criterion)) return false;
+            var p = progress.getCriterion(name);
+            return p != null && p.isDone();
+        });
     }
 
     /** Shows an upgrade's announcement to the audience the config picks; %s becomes the player's name. */
