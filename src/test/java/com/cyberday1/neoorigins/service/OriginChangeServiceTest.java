@@ -160,6 +160,23 @@ class OriginChangeServiceTest {
     }
 
     @Test
+    void anUpgradeDoesNotTakeAUniqueOriginAnotherPlayerHolds() {
+        AdminConfig.UNIQUE_ORIGIN_LAYERS.set(List.of(ORIGIN.toString()));
+        UUID rival = UUID.randomUUID();
+        claims.claim(ORIGIN, MERLING, rival);
+        ServerPlayer sp = join();
+        NeoOriginsAPI.setOrigin(sp, ORIGIN, HUMAN);
+
+        // Advancement upgrades go through change(NORMAL).
+        var outcome = OriginChangeService.change(sp, ORIGIN, MERLING, OriginChangeService.Mode.NORMAL, true);
+        assertEquals(SetOriginResult.CLAIMED, outcome.result());
+        assertEquals(null, outcome.origin());
+        assertEquals(Optional.of(HUMAN), NeoOriginsAPI.getOrigin(sp, ORIGIN));
+        assertEquals(rival, claims.getOwner(ORIGIN, MERLING), "the upgrade took another player's claim");
+        assertEquals(sp.getUUID(), claims.getOwner(ORIGIN, HUMAN), "the refused upgrade dropped the player's own claim");
+    }
+
+    @Test
     void clearingOneLayerKeepsTheOtherLayerAndDynamicGrants() {
         ServerPlayer sp = join();
         NeoOriginsAPI.setOrigin(sp, ORIGIN, HUMAN);
