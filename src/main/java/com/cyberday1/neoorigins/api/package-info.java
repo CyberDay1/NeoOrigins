@@ -22,7 +22,9 @@
  * power type or a capability tag, visit every configuration of a type) and
  * about summoned minions (who summoned an entity, whether it is a minion).
  * It also reads a player's origin per layer ({@code getOrigin}, {@code getOrigins})
- * and changes it ({@code setOrigin}, {@code clearOrigin}). A custom power type is
+ * and changes it ({@code setOrigin}, {@code clearOrigin}), grants and revokes
+ * powers on behalf of a mod ({@code grantPower}, {@code revokePower}) and registers
+ * powers built in code ({@code registerPower}). A custom power type is
  * registered through NeoForge's {@code RegisterEvent} against the
  * {@code neoorigins:power_type} registry, and origin changes arrive as the
  * events in {@code api.event} on the NeoForge event bus.
@@ -33,7 +35,8 @@
  *       OriginUpgrade, constructed by pack JSON and readable by mods, plus
  *       {@code SetOriginResult}.</li>
  *   <li>{@code api.power} — {@link com.cyberday1.neoorigins.api.power.PowerType}
- *       (extend for custom power types) and {@link com.cyberday1.neoorigins.api.power.PowerConfiguration}.</li>
+ *       (extend for custom power types), {@link com.cyberday1.neoorigins.api.power.PowerConfiguration},
+ *       and {@code GrantPowerResult} / {@code PowerDisplay} for runtime grants and code-registered powers.</li>
  *   <li>{@code api.event} — NeoForge-bus events fired by the mod
  *       (OriginChanged, OriginsLoaded, PowerGranted, PowerRevoked).</li>
  *   <li>{@code api.condition} — types useful when implementing custom
