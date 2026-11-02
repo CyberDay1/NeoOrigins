@@ -446,10 +446,10 @@ public final class ConditionParser {
                 }
                 return false;
             }
-            // Mana-backed resources read live from the Iron's pool (authoritative)
+            // Backed resources read live from their pool (authoritative)
             // rather than the internal store — checked at test-time because the
             // backing registration happens at grant, after parse.
-            if (com.cyberday1.neoorigins.compat.CompatAttachments.isManaBacked(powerId)) {
+            if (com.cyberday1.neoorigins.compat.ResourceBackingRouter.isBacked(powerId)) {
                 var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(powerId);
                 int manaCur = com.cyberday1.neoorigins.compat.ResourceBackingRouter.read(
                     player, powerId, meta != null ? meta.min() : 0);

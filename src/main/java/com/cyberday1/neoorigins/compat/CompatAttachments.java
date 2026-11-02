@@ -251,15 +251,15 @@ public class CompatAttachments {
     public static void clearResourceMeta() { RESOURCE_META.clear(); RESOURCE_RENDER_CONDITIONS.clear(); RESOURCE_BACKING.clear(); }
 
     // ---- External resource backing (neoorigins:resource `backing` field) ----
-    // A native resource power may declare `"backing": "irons_spellbooks:mana"`,
+    // A native resource power may declare `"backing": "<id>"` (e.g. irons_spellbooks:mana),
     // which makes its value AUTHORITATIVE against another mod's pool rather than
     // the internal ResourceState attachment. Registered here (keyed by the
     // power's canonical resource id) at grant/login so EVERY read/write path —
     // getValue, deduct, the `resource` condition, change_resource/set_resource,
     // and the HUD sync — can branch uniformly without threading the power Config
-    // through the action/condition parsers. The only supported backing today is
-    // "irons_spellbooks:mana"; unknown values are recorded but treated as
-    // unbacked (internal ResourceState) by the routing helpers.
+    // through the action/condition parsers. Backings are registered in
+    // ResourceBackingRouter; an unregistered id is recorded but treated as
+    // unbacked (internal ResourceState).
     public static final String BACKING_IRONS_MANA = "irons_spellbooks:mana";
     private static final Map<String, String> RESOURCE_BACKING = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -271,8 +271,6 @@ public class CompatAttachments {
     /** The backing id for a resource key, or null when the resource is internally stored.
      *  Resolves legacy slash-form synthetic ids, same rationale as getResourceMeta. */
     public static String resourceBacking(String key) { return RESOURCE_BACKING.get(resolveLegacySyntheticId(key)); }
-    /** True when the resource key is backed by the Iron's Spells mana pool. */
-    public static boolean isManaBacked(String key) { return BACKING_IRONS_MANA.equals(resourceBacking(key)); }
 
     /**
      * True when this player holds the power behind a resource key. The backing
@@ -435,10 +433,9 @@ public class CompatAttachments {
             var rcond = getResourceRenderCondition(key);
             if (rcond != null && !rcond.test(player)) continue;
             int val = ResourceBackingRouter.read(player, key, meta.min());
-            // A mana-backed bar auto-scales: ignore the author min/max and use
-            // 0..(Iron's live max mana). The router falls back to the author max
-            // when Iron's is absent / max is unreadable, so the denominator is
-            // always sane.
+            // A backed bar auto-scales: 0..(the backing's live max). The router
+            // falls back to the author max when the backing is unusable or reports
+            // no max, so the denominator is always sane.
             int min = ResourceBackingRouter.isBacked(key) ? 0 : meta.min();
             int max = ResourceBackingRouter.maxValue(player, key, meta.max());
             entries.put(key, new com.cyberday1.neoorigins.network.payload.SyncResourcePayload.Entry(
@@ -463,7 +460,7 @@ public class CompatAttachments {
         var state = player.getData(resourceState());
         var values = new HashMap<String, Integer>();
         // Dynamic-max overrides — populated ONLY for externally-backed bars whose
-        // max is attribute-driven (irons_spellbooks:mana). Left empty otherwise so
+        // max comes from the backing (e.g. irons_spellbooks:mana). Left empty otherwise so
         // internally-stored bars keep their last full-sync max and the payload wire
         // shape is unchanged for them.
         var maxes = new HashMap<String, Integer>();
@@ -483,7 +480,7 @@ public class CompatAttachments {
             var rcond = getResourceRenderCondition(key);
             if (rcond != null && !rcond.test(player)) continue;
             values.put(key, ResourceBackingRouter.read(player, key, meta.min()));
-            // Carry the LIVE max so the HUD re-scales when Iron's max mana moves
+            // Carry the LIVE max so the HUD re-scales when the backing's max moves
             // (gear/level/effects) between full syncs.
             if (ResourceBackingRouter.isBacked(key)) {
                 maxes.put(key, ResourceBackingRouter.maxValue(player, key, meta.max()));

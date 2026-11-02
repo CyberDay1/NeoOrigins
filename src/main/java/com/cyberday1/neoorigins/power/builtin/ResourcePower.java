@@ -110,10 +110,9 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 int regenRate = obj.has("regen_rate") ? obj.get("regen_rate").getAsInt() : 0;
                 int regenInterval = Math.max(1, obj.has("regen_interval") ? obj.get("regen_interval").getAsInt() : 20);
                 String t = obj.has("type") ? obj.get("type").getAsString() : "neoorigins:resource";
-                // Optional external backing: when set to "irons_spellbooks:mana"
-                // the bar's value is read from / written to the player's Iron's
-                // Spells mana pool (additive-only) instead of the internal
-                // ResourceState store. Empty/absent = internally stored.
+                // Optional external backing: a registered backing id (e.g.
+                // "irons_spellbooks:mana") whose pool the bar reads and writes instead
+                // of the internal ResourceState store. Empty/absent = internally stored.
                 String backing = obj.has("backing") ? obj.get("backing").getAsString() : "";
 
                 EntityCondition regenCond = ConditionParser.parseField(obj, "regen_condition", t);
@@ -211,10 +210,10 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         if (ContentTogglesConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);
         registerShared(key, config);
-        // A mana-backed bar has no internal store to seed — its value lives in
-        // the Iron's pool, which is authoritative. Only seed start_value for
+        // A backed bar has no internal store to seed: its value lives in the
+        // backing's pool, which is authoritative. Only seed start_value for
         // internally-stored resources.
-        if (!CompatAttachments.isManaBacked(key)) {
+        if (!ResourceBackingRouter.isBacked(key)) {
             player.getData(CompatAttachments.resourceState()).set(key, config.startValue());
         }
         CompatAttachments.syncResourcesToClient(player);
@@ -248,9 +247,9 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         // syncResourcesToClient iterates state.getAll() and skips the bar
         // entirely — symptom is "energy bar disappeared, abilities won't fire
         // because cur=0". GitHub #90 follow-up to f1c492fe.
-        // A mana-backed bar has no internal store — skip seeding entirely; its
-        // value is read live from the Iron's pool by the sync/read paths.
-        if (!CompatAttachments.isManaBacked(key)) {
+        // A backed bar has no internal store: skip seeding entirely; its value
+        // is read live from the backing's pool by the sync/read paths.
+        if (!ResourceBackingRouter.isBacked(key)) {
             var state = player.getData(CompatAttachments.resourceState());
             if (!state.has(key)) {
                 state.set(key, config.startValue());
@@ -286,14 +285,14 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
     public void onTick(ServerPlayer player, Config config) {
         if (ContentTogglesConfig.isResourceBarsDisabled()) return;
         String key = storageKey(player, config);
-        boolean manaBacked = CompatAttachments.isManaBacked(key);
+        boolean backed = ResourceBackingRouter.isBacked(key);
         var state = player.getData(CompatAttachments.resourceState());
 
         // Regen
         if (config.regenRate() != 0 && player.tickCount % config.regenInterval() == 0) {
             if (config.regenCondition().test(player)) {
-                if (manaBacked) {
-                    // Additive grant into the Iron's pool (Iron's clamps the top).
+                if (backed) {
+                    // Additive grant into the backing's pool (the pool clamps the top).
                     ResourceBackingRouter.add(player, key, config.regenRate());
                 } else {
                     state.clampedAdd(key, config.regenRate(), config.min(), config.max());
@@ -303,8 +302,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
         // Threshold actions — edge-triggered: only fire when the value
         // transitions TO the boundary, not every tick while sitting on it. For a
-        // mana-backed bar the current value is the live pool reading.
-        int cur = manaBacked
+        // backed bar the current value is the live pool reading.
+        int cur = backed
             ? ResourceBackingRouter.read(player, key, config.min())
             : state.get(key, config.startValue());
         String edgeKey = player.getUUID() + ":" + key;
@@ -314,8 +313,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
             if (cur >= config.max() && prev < config.max()) config.maxAction().execute(player);
         }
 
-        if (manaBacked) {
-            // The Iron's pool changes out from under us (regen, spellcasting), so
+        if (backed) {
+            // A backing's pool changes out from under us (regen, spellcasting), so
             // the internal dirty flag never trips. Push the value on the same
             // 10-tick cadence so the bar tracks the live pool.
             if (player.tickCount % 10 == 0) {
@@ -334,9 +333,9 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
     /** Get the current value of a resource by power ID. */
     public static int getValue(ServerPlayer player, String key) {
-        // Mana-backed resources read live from the Iron's pool (authoritative);
-        // fall back to the bar's min (or 0 when unknown) when Iron's is absent.
-        if (CompatAttachments.isManaBacked(key)) {
+        // Backed resources read live from their pool (authoritative); fall back
+        // to the bar's min (or 0 when unknown) when the backing is unusable.
+        if (ResourceBackingRouter.isBacked(key)) {
             var meta = CompatAttachments.getResourceMeta(key);
             return ResourceBackingRouter.read(player, key, meta != null ? meta.min() : 0);
         }
@@ -350,9 +349,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
     /** Deduct amount from a resource. Returns true if sufficient, false if not. */
     public static boolean deduct(ServerPlayer player, String key, int amount) {
-        // Mana-backed: gate on the live pool, then add a negative delta (the
-        // router floor-clamps so mana can't go below 0). No internal store.
-        if (CompatAttachments.isManaBacked(key)) {
+        // Backed: gate on the live pool, then add a negative delta. No internal store.
+        if (ResourceBackingRouter.isBacked(key)) {
             var meta = CompatAttachments.getResourceMeta(key);
             int cur = ResourceBackingRouter.read(player, key, meta != null ? meta.min() : 0);
             if (cur < amount) return false;

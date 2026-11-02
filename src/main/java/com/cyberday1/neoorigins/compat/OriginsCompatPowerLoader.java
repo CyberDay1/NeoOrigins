@@ -1940,7 +1940,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         int interval     = Math.max(1, json.has("interval") ? json.get("interval").getAsInt() : 20);
         int offset       = (idStr.hashCode() & Integer.MAX_VALUE) % interval;
         // NeoOrigins extension, also honoured on the compat path: bind the bar's
-        // value to an external pool (today only "irons_spellbooks:mana"). A backed
+        // value to a registered external pool (e.g. "irons_spellbooks:mana"). A backed
         // resource reads/writes the pool instead of the internal ResourceState.
         final String backing = json.has("backing") ? json.get("backing").getAsString() : "";
 
@@ -2028,7 +2028,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         return CompatPower.Config.builder()
             .onGranted(player -> {
                 // Backed bars have no internal store to seed; the pool is authoritative.
-                if (!CompatAttachments.isManaBacked(key)) {
+                if (!ResourceBackingRouter.isBacked(key)) {
                     player.getData(CompatAttachments.resourceState()).set(key, startValue);
                 }
                 CompatAttachments.syncResourcesToClient(player);
@@ -2039,7 +2039,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // nothing round-tripped. Without this the whole bar went back to
                 // start_value on every world join, which also made any power reading
                 // it read the floor. Mirrors ResourcePower.onLogin (GitHub #90).
-                if (!CompatAttachments.isManaBacked(key)) {
+                if (!ResourceBackingRouter.isBacked(key)) {
                     var state = player.getData(CompatAttachments.resourceState());
                     if (!state.has(key)) state.set(key, startValue);
                 }
@@ -2052,7 +2052,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 CompatAttachments.syncResourcesToClient(player);
             })
             .onTick(player -> {
-                boolean manaBacked = CompatAttachments.isManaBacked(key);
+                boolean backed = ResourceBackingRouter.isBacked(key);
                 var state = player.getData(CompatAttachments.resourceState());
                 if (player.level().getServer() != null && (player.level().getServer().getTickCount() + offset) % interval == 0) {
                     tickAction.execute(player);
@@ -2062,7 +2062,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // PREV_RESOURCE_VALUES map for edge detection. On first tick
                 // (prev == null), assume previous was startValue so boundary
                 // actions fire if the resource was persisted at min/max.
-                int cur = manaBacked
+                int cur = backed
                     ? ResourceBackingRouter.read(player, key, min)
                     : state.get(key, startValue);
                 String edgeKey = player.getUUID() + ":" + key;
@@ -2075,7 +2075,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // Sync to client every 10 ticks. A backed bar's pool changes out
                 // from under us (regen/casting), so sync unconditionally on the
                 // cadence; an internal bar syncs only when its dirty flag trips.
-                if (manaBacked) {
+                if (backed) {
                     if (player.tickCount % 10 == 0) {
                         CompatAttachments.syncResourceValuesToClient(player);
                     }

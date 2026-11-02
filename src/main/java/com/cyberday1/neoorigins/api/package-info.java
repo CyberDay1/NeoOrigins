@@ -36,6 +36,8 @@
  *       (OriginChanged, OriginsLoaded, PowerGranted, PowerRevoked).</li>
  *   <li>{@code api.condition} — types useful when implementing custom
  *       conditions.</li>
+ *   <li>{@code api.resource} — {@link com.cyberday1.neoorigins.api.resource.ResourceBacking},
+ *       an external pool a resource bar can read and write.</li>
  * </ul>
  */
 package com.cyberday1.neoorigins.api;
