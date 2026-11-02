@@ -1200,6 +1200,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Lista de bloqueio de dimensões por poder",
   "neoorigins.configuration.random_assignment.mode": "Modo de atribuição",
   "neoorigins.configuration.random_assignment.rerolls": "Rerrolagens permitidas",
+  "neoorigins.configuration.upgrade_announcements": "Anúncios de aprimoramento",
+  "neoorigins.configuration.upgrade_announcements.mode": "Destinatários do anúncio",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Proporção mínima de carga de poder",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Surgir no oceano",
   "neoorigins.configuration.ocean_origins.dries_out": "Resseca em terra",

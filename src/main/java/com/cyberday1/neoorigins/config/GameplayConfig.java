@@ -164,6 +164,29 @@ public final class GameplayConfig {
 
     public static RandomMode getRandomMode() { return RANDOM_MODE.get(); }
 
+    // ── Origin Upgrade Announcements ────────────────────────────────────
+    public static final ModConfigSpec.EnumValue<UpgradeAnnounceMode> UPGRADE_ANNOUNCE_MODE;
+
+    public enum UpgradeAnnounceMode { SERVER, PLAYER, OFF }
+
+    static {
+        BUILDER.comment(
+            "Who sees an origin upgrade's announcement message (the upgrade's",
+            "\"announcement\" field; %s in it becomes the player's name).",
+            "SERVER: broadcast to every player on the server.",
+            "PLAYER: only the upgraded player sees it (classic Origins behaviour).",
+            "OFF: never shown."
+        ).push("upgrade_announcements");
+
+        UPGRADE_ANNOUNCE_MODE = BUILDER
+            .comment("Audience for origin upgrade announcements.")
+            .defineEnum("mode", UpgradeAnnounceMode.SERVER);
+
+        BUILDER.pop();
+    }
+
+    public static UpgradeAnnounceMode upgradeAnnounceMode() { return UPGRADE_ANNOUNCE_MODE.get(); }
+
     // ── Essence Evolution ───────────────────────────────────────────────
     public static final ModConfigSpec.BooleanValue EVOLUTION_ENABLED;
     public static final ModConfigSpec.IntValue EVOLUTION_TIER_1_KILLS;

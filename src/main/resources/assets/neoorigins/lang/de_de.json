@@ -1200,6 +1200,8 @@
   "neoorigins.configuration.dimension_restrictions.dimension_restrictions": "Dimensions-Sperrliste pro Kraft",
   "neoorigins.configuration.random_assignment.mode": "Zuweisungsmodus",
   "neoorigins.configuration.random_assignment.rerolls": "Neuwürfe erlaubt",
+  "neoorigins.configuration.upgrade_announcements": "Upgrade-Ankündigungen",
+  "neoorigins.configuration.upgrade_announcements.mode": "Empfänger der Ankündigung",
   "neoorigins.configuration.compat_filtering.compat_min_power_ratio": "Min. Kraftlade-Verhältnis",
   "neoorigins.configuration.ocean_origins.spawn_in_ocean": "Im Ozean spawnen",
   "neoorigins.configuration.ocean_origins.dries_out": "Trocknet an Land aus",
