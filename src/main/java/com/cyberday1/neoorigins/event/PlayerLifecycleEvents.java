@@ -339,6 +339,10 @@ public class PlayerLifecycleEvents {
      */
     @SubscribeEvent
     public static void onDatapackSync(OnDatapackSyncEvent event) {
+        // A reload (no single joining player): move holders onto changed definitions first.
+        if (event.getPlayer() == null) {
+            com.cyberday1.neoorigins.service.PowerReloadReconciler.afterReload(event.getRelevantPlayers().toList());
+        }
         event.getRelevantPlayers().forEach(sp -> {
             // Re-apply global power sets so a /reload that added or removed an
             // apoli:global set immediately grants/revokes for online players.
