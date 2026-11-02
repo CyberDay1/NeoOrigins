@@ -2,12 +2,14 @@ package com.cyberday1.neoorigins.api;
 
 import com.cyberday1.neoorigins.api.power.GrantPowerResult;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerDisplay;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.api.origin.SetOriginResult;
 import com.cyberday1.neoorigins.api.resource.ResourceBacking;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
+import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.OriginChangeService;
 import com.cyberday1.neoorigins.service.PowerGrantService;
@@ -146,6 +148,24 @@ public final class NeoOriginsAPI {
      */
     public static boolean clearOrigin(ServerPlayer player, ResourceLocation layer) {
         return OriginChangeService.clear(player, layer);
+    }
+
+    // ---------------------------------------------------------------------
+    // Powers registered in code
+    // ---------------------------------------------------------------------
+
+    /**
+     * Registers a power built in code under {@code id} (your mod's namespace), from a power type and a
+     * configuration instead of JSON. Call it on every launch, from your mod's constructor or
+     * {@code FMLCommonSetupEvent}. The power then works like a datapack power: origins can list it and
+     * {@link #grantPower} can grant it. A datapack power with the same id overrides it, with a warning.
+     *
+     * @throws IllegalStateException if {@code id} is already registered in code
+     */
+    public static <C extends PowerConfiguration> void registerPower(ResourceLocation id, PowerType<C> type, C config,
+                                                                  PowerDisplay display) {
+        PowerDataManager.INSTANCE.registerCodePower(
+            new PowerHolder<>(id, type, config, display.name(), display.description(), display.hidden()));
     }
 
     // ---------------------------------------------------------------------

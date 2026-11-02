@@ -48,6 +48,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     private Map<ResourceLocation, JsonObject> rawPowerJson = new HashMap<>();
     /** Route B powers injected by OriginsCompatPowerLoader after native loading. */
     private Map<ResourceLocation, PowerHolder<?>> injectedPowers = new HashMap<>();
+    /** Powers other mods register in code. Never cleared by a reload; a datapack power with the same id wins. */
+    private final Map<ResourceLocation, PowerHolder<?>> codePowers = new java.util.concurrent.ConcurrentHashMap<>();
     /** Bumped on every datapack reload and Route-B injection so per-player power caches can invalidate. */
     private int version = 0;
     public int version() { return version; }
@@ -220,6 +222,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         this.rawPowerJson = Collections.unmodifiableMap(rawSnapshot);
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
         this.version++;
+        warnCodePowerOverrides(loaded.keySet());
         registerVariableDeclarations(loaded);
         recomputeUltiminePowerInUse();
         NeoOrigins.LOGGER.info("Loaded {} powers", loaded.size());
@@ -572,6 +575,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     public void injectExternalPowers(Map<ResourceLocation, PowerHolder<?>> external) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
         this.version++;
+        warnCodePowerOverrides(external.keySet());
         recomputeUltiminePowerInUse();
     }
 
@@ -581,10 +585,11 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         AllPowersView cached = allPowersView;
         if (cached != null && cached.version() == v) return cached.map();
         Map<ResourceLocation, PowerHolder<?>> map;
-        if (injectedPowers.isEmpty()) {
+        if (injectedPowers.isEmpty() && codePowers.isEmpty()) {
             map = powers;
         } else {
-            Map<ResourceLocation, PowerHolder<?>> all = new HashMap<>(powers);
+            Map<ResourceLocation, PowerHolder<?>> all = new HashMap<>(codePowers);
+            all.putAll(powers);
             all.putAll(injectedPowers);
             map = Collections.unmodifiableMap(all);
         }
@@ -600,11 +605,33 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     public PowerHolder<?> getPower(ResourceLocation id) {
         PowerHolder<?> holder = powers.get(id);
-        return holder != null ? holder : injectedPowers.get(id);
+        if (holder == null) holder = injectedPowers.get(id);
+        return holder != null ? holder : codePowers.get(id);
     }
 
     public boolean hasPower(ResourceLocation id) {
-        return powers.containsKey(id) || injectedPowers.containsKey(id);
+        return powers.containsKey(id) || injectedPowers.containsKey(id) || codePowers.containsKey(id);
+    }
+
+    /** Registers a power defined in code. Throws if another mod already registered the id. */
+    public void registerCodePower(PowerHolder<?> holder) {
+        if (codePowers.putIfAbsent(holder.id(), holder) != null) {
+            throw new IllegalStateException("A power is already registered as '" + holder.id() + "'");
+        }
+        this.version++;
+    }
+
+    /** Drops a code-registered power. Internal: for tests that must not leak into other suites. */
+    public void unregisterCodePower(ResourceLocation id) {
+        if (codePowers.remove(id) != null) this.version++;
+    }
+
+    private void warnCodePowerOverrides(java.util.Set<ResourceLocation> datapackIds) {
+        for (ResourceLocation id : codePowers.keySet()) {
+            if (datapackIds.contains(id)) {
+                NeoOrigins.LOGGER.warn("Datapack power {} overrides the power a mod registered under the same id", id);
+            }
+        }
     }
 
     /** Post-translation raw power JSON for the creator's template loader.
