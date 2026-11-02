@@ -50,7 +50,22 @@ class ElytraDrawGateTest {
     }
 
     private static boolean draw(boolean fallFlying, boolean flag, boolean always, ItemStack chest) {
-        return NeoOriginsElytraLayer.shouldDrawWings(fallFlying, flag, always, chest, TEXTURE);
+        return NeoOriginsElytraLayer.shouldDrawWings(fallFlying, flag, always, false, chest, TEXTURE);
+    }
+
+    private static boolean drawHidingFolded(boolean fallFlying, boolean always) {
+        return NeoOriginsElytraLayer.shouldDrawWings(fallFlying, true, always, true, ItemStack.EMPTY, TEXTURE);
+    }
+
+    @Test
+    void hideFoldedWingsDropsAlwaysWingsOnTheGround() {
+        assertFalse(drawHidingFolded(false, true));
+    }
+
+    @Test
+    void hideFoldedWingsKeepsWingsWhileGliding() {
+        assertTrue(drawHidingFolded(true, true));
+        assertTrue(drawHidingFolded(true, false));
     }
 
     private static ItemStack empty()       { return ItemStack.EMPTY; }
@@ -109,7 +124,7 @@ class ElytraDrawGateTest {
     // 26.1, where the texture arrives through a render-data key that can be absent.
     @Test
     void noResolvedTextureDoesNotDraw() {
-        assertFalse(NeoOriginsElytraLayer.shouldDrawWings(true, true, false, empty(), null));
+        assertFalse(NeoOriginsElytraLayer.shouldDrawWings(true, true, false, false, empty(), null));
     }
 
     /**
@@ -133,7 +148,7 @@ class ElytraDrawGateTest {
                         for (int tx = 0; tx < 2; tx++) {
                             ItemStack chest = c == 0 ? empty() : c == 1 ? chestplate() : realElytra();
                             boolean drawn = NeoOriginsElytraLayer.shouldDrawWings(
-                                ff == 1, fl == 1, al == 1, chest, tx == 1 ? TEXTURE : null);
+                                ff == 1, fl == 1, al == 1, false, chest, tx == 1 ? TEXTURE : null);
                             // Explicit LF, never %n -- the literal below must not be platform-dependent.
                             sb.append(String.format("fly=%d flag=%d always=%d chest=%-10s tex=%d -> %s",
                                 ff, fl, al, chestNames[c], tx, drawn ? "DRAW" : "----")).append("\n");

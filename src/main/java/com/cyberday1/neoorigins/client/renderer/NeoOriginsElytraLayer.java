@@ -1,6 +1,7 @@
 package com.cyberday1.neoorigins.client.renderer;
 
 import com.cyberday1.neoorigins.client.ClientElytraFlightState;
+import com.cyberday1.neoorigins.client.NeoOriginsClientConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.EntityModelSet;
@@ -72,6 +73,7 @@ public class NeoOriginsElytraLayer<S extends AvatarRenderState, M extends Entity
         if (!shouldDrawWings(state.isFallFlying,
                              ClientElytraFlightState.shouldRenderElytra(state.id),
                              ClientElytraFlightState.alwaysRendersElytra(state.id),
+                             NeoOriginsClientConfig.isHideFoldedWings(),
                              state.chestEquipment,
                              texture)) {
             return;
@@ -97,13 +99,14 @@ public class NeoOriginsElytraLayer<S extends AvatarRenderState, M extends Entity
      * already drawing — bail rather than double up. The test is the item, not the
      * EQUIPPABLE asset id {@code WingsLayer} enters on: every chestplate carries one,
      * and vanilla enters and then draws nothing, where bailing here draws nothing at
-     * all. That was issue #130's second sentence.
+     * all. That was issue #130's second sentence. {@code hideFolded} is this client's
+     * {@code hide_folded_wings}: it drops the "always" draw outside a glide.
      */
     static boolean shouldDrawWings(boolean isFallFlying, boolean renderFlag, boolean always,
-                                   ItemStack chest, @Nullable Identifier texture) {
+                                   boolean hideFolded, ItemStack chest, @Nullable Identifier texture) {
         if (chest.is(Items.ELYTRA)) return false;
         if (!renderFlag) return false;
-        if (!isFallFlying && !always) return false;
+        if (!isFallFlying && (!always || hideFolded)) return false;
         return texture != null;
     }
 }
