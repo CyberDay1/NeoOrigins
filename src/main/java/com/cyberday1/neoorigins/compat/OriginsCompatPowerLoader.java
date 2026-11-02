@@ -241,6 +241,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         Map<Identifier, JsonObject> expanded = inlineExpand(data);
 
         Map<Identifier, PowerHolder<?>> injected = new HashMap<>();
+        // Each power's JSON as read, so a reload can tell an edited definition from an unchanged one.
+        Map<Identifier, String> fingerprints = new HashMap<>();
         // Track new synthetic IDs to add to MULTIPLE_EXPANSION_MAP
         Map<Identifier, List<Identifier>> newExpansions = new HashMap<>();
 
@@ -271,6 +273,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 Component powerDesc = extractComponent(json, "description");
                 boolean powerHidden = readHiddenFlag(json);
                 injected.put(id, new PowerHolder<>(id, CompatPower.INSTANCE, config, powerName, powerDesc, powerHidden));
+                fingerprints.put(id, json.toString());
                 CompatTranslationLog.pass(id, type + " -> Route B compiled");
                 NeoOrigins.LOGGER.debug("[CompatB] loaded {} ({})", id, type);
 
@@ -305,7 +308,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // Inject synthetic powers for well-known Origins built-in power IDs.
         injectWellKnownPowers(injected);
 
-        PowerDataManager.INSTANCE.injectExternalPowers(injected);
+        PowerDataManager.INSTANCE.injectExternalPowers(injected, fingerprints);
         // Bind native (Route A) active powers that declare a pack named-hotkey
         // (e.g. origins:inventory -> neoorigins:extra_inventory) to that key
         // instead of letting them occupy a skill slot. Runs after both routes
