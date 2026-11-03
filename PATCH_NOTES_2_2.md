@@ -2,6 +2,22 @@
 
 ---
 
+## v2.2.36
+
+> Powers that other mods register in code can now be gated by a condition, pay toggle upkeep and carry their own resource bars, the same as powers written in a datapack. Mods can also read NeoOrigins conditions directly, either to check one in their own code or to let pack authors set one inside their own power types.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Mod Developer API
+
+- **Code-registered powers take a condition gate.** A power added with `registerPower` had no way to be limited by a condition, so it could not do what `power_condition` does for a datapack power. `registerPower` now takes a `CodePowerOptions`, built with `CodePowerOptions.builder()`, whose `condition` accepts any `Predicate<ServerPlayer>`. By default the power only works while the condition is true; pass `ConditionMode.DENY` to block it while true instead. The gate covers ticking, activation, `onHit`, `onKill` and the power lookups on `NeoOriginsAPI`, exactly as `power_condition` does. The four-argument `registerPower` is unchanged. See [Condition gate, upkeep and toggle messages](docs/JAVA_API.md#condition-gate-upkeep-and-toggle-messages).
+
+- **Code-registered toggles and resource bars work like datapack ones.** Toggle upkeep and `toggle_messages` were read only from a power's JSON, so a toggle registered in code could not charge hunger or a resource while on, and a resource bar registered in code had no id of its own. The same options now set `hungerCost`, `resourceCost`, `upkeepInterval`, `upkeepCondition` and `toggleMessages`. A resource or variable power stores its value under the id it is registered with, and `resource` conditions and `change_resource` can find it. These settings survive `/reload`, and a datapack power with the same id uses its own settings while it overrides the registered one. New `registerPowerFromJson` takes the config as the JSON a datapack power file would hold, and reads it the same way, `power_condition` included. See [Config from JSON](docs/JAVA_API.md#config-from-json).
+
+- **Mods can use NeoOrigins conditions.** `parseCondition` turns the JSON of any NeoOrigins entity condition, such as `neoorigins:submerged_in`, into a `Predicate<ServerPlayer>` a mod can test in its own code or pass to a code-registered power. `conditionCodec` gives a mod's own power config a condition field, so pack authors writing that power type in JSON can set conditions in it. The field takes one condition or a list that must all pass. A condition that cannot be read evaluates false and is logged with the power it belongs to. See [Conditions in your own code](docs/JAVA_API.md#conditions-in-your-own-code).
+
+---
+
 ## v2.2.35
 
 > Other mods can now build on NeoOrigins: they can back a resource bar with their own pool, read and change a player's origin, grant and revoke powers at runtime, and register powers in code. Resetting one layer with `/origin reset` no longer takes away the powers of the player's other layers, and an origin upgrade no longer hands out a unique origin that another player already holds. Editing a power and running `/reload` now updates the players who already hold it. Players can also hide the folded wings that powers such as the Elytrian's draw on their back.
