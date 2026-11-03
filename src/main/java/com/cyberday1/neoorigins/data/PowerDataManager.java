@@ -7,6 +7,7 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.compat.action.ActionParser;
+import com.cyberday1.neoorigins.compat.condition.ApiConditions;
 import com.cyberday1.neoorigins.compat.condition.ConditionParser;
 import com.cyberday1.neoorigins.compat.condition.EntityCondition;
 import net.minecraft.network.chat.Component;
@@ -454,7 +455,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         // Inject power ID for types that need it at codec-decode time (e.g. ResourcePower).
         configJson.addProperty("_power_id", id.toString());
 
-        type.codec().parse(JsonOps.INSTANCE, configJson)
+        ApiConditions.withContext(id.toString(), () -> type.codec().parse(JsonOps.INSTANCE, configJson))
             .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err))
             .ifPresent(config -> {
                 target.put(id, new PowerHolder<>(id, type, config, name, desc, hidden, finalCondition, finalConditionMode));
