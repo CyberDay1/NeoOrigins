@@ -424,23 +424,46 @@ public class MyBoostPower extends PowerType<MyBoostPower.Config> {
 }
 ```
 
-Register during `RegisterEvent` for `PowerType` at your mod's
-initialisation:
+Register it in the `neoorigins:power_type` registry from your mod's
+constructor. NeoOriginsAPI exposes no constant for the registry, so build the key
+yourself. A `DeferredRegister` is the simplest way, and it is how NeoOrigins
+registers its own types:
 
 ```java
-// The power-type registry id is neoorigins:power_type. NeoOriginsAPI exposes no
-// constant for it, so build the key yourself.
-private static final ResourceKey<Registry<PowerType<?>>> POWER_TYPES =
+public static final ResourceKey<Registry<PowerType<?>>> POWER_TYPE_KEY =
     ResourceKey.createRegistryKey(Identifier.fromNamespaceAndPath("neoorigins", "power_type"));
+public static final DeferredRegister<PowerType<?>> POWER_TYPES =
+    DeferredRegister.create(POWER_TYPE_KEY, "mymod");
+public static final DeferredHolder<PowerType<?>, MyBoostPower> MY_BOOST =
+    POWER_TYPES.register("my_boost", MyBoostPower::new);
 
-@SubscribeEvent
-public static void onRegister(RegisterEvent event) {
-    event.register(POWER_TYPES,
+// In your mod's constructor:
+public MyMod(IEventBus modEventBus) {
+    POWER_TYPES.register(modEventBus);
+}
+```
+
+To use `RegisterEvent` instead, add the listener to the same mod event bus.
+`RegisterEvent` fires only on the mod bus, not on `NeoForge.EVENT_BUS`:
+
+```java
+public MyMod(IEventBus modEventBus) {
+    modEventBus.addListener(MyMod::onRegister);
+}
+
+private static void onRegister(RegisterEvent event) {
+    event.register(POWER_TYPE_KEY,
         helper -> helper.register(
             Identifier.fromNamespaceAndPath("mymod", "my_boost"),
             new MyBoostPower()));
 }
 ```
+
+`modEventBus.register(this)` only finds non-static `@SubscribeEvent` methods, so
+a static handler registered that way fails at startup. Use `addListener`, or
+`register(MyMod.class)` for a class of static handlers.
+
+`MY_BOOST.get()` is the type to pass to [`registerPower`](#powers-registered-in-code).
 
 Pack authors can now use `"type": "mymod:my_boost"` in their power JSONs.
 
