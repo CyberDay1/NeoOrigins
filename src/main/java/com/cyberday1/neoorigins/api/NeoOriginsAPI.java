@@ -9,11 +9,14 @@ import com.cyberday1.neoorigins.api.origin.SetOriginResult;
 import com.cyberday1.neoorigins.api.resource.ResourceBacking;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
+import com.cyberday1.neoorigins.compat.condition.ApiConditions;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.OriginChangeService;
 import com.cyberday1.neoorigins.service.PowerGrantService;
 import com.cyberday1.neoorigins.service.MinionTracker;
+import com.google.gson.JsonObject;
+import com.mojang.serialization.Codec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -166,6 +169,28 @@ public final class NeoOriginsAPI {
                                                                   PowerDisplay display) {
         PowerDataManager.INSTANCE.registerCodePower(
             new PowerHolder<>(id, type, config, display.name(), display.description(), display.hidden()));
+    }
+
+    // ---------------------------------------------------------------------
+    // Conditions
+    // ---------------------------------------------------------------------
+
+    /**
+     * Parses a NeoOrigins entity condition, the JSON a datapack writes in a {@code condition} field,
+     * e.g. {@code {"type": "neoorigins:submerged_in", "fluid": "minecraft:water"}}. An unknown or
+     * malformed condition is logged with {@code contextId} and evaluates false, as in a datapack.
+     */
+    public static Predicate<ServerPlayer> parseCondition(JsonObject json, String contextId) {
+        return ApiConditions.parse(json, contextId);
+    }
+
+    /**
+     * A codec for an entity condition field in your own power config: an object, or an array whose
+     * conditions must all pass. Use {@code conditionCodec().optionalFieldOf("condition", p -> true)}
+     * for an optional one. Only conditions decoded from JSON can be encoded back.
+     */
+    public static Codec<Predicate<ServerPlayer>> conditionCodec() {
+        return ApiConditions.CODEC;
     }
 
     // ---------------------------------------------------------------------
