@@ -117,7 +117,10 @@ Full method list:
 | `revokePowers(player, source[, filter])` | End all of your mod's grants, or those whose power matches a `Predicate<PowerHolder<?>>`. |
 | `grantedPowers(player, source)` | The power ids your mod currently grants the player. |
 | `hasPower(player, power)` | True if the player holds the power from any origin, command, global set or API grant. |
-| `registerPower(id, type, config, display)` | Register a power built in code rather than JSON. See [Powers registered in code](#powers-registered-in-code). |
+| `registerPower(id, type, config, display[, options])` | Register a power built in code rather than JSON, optionally with a condition gate and toggle upkeep. See [Powers registered in code](#powers-registered-in-code). |
+| `registerPowerFromJson(id, type, config, display[, options])` | Register a code power whose config is the JSON a datapack power file would hold. |
+| `parseCondition(json, contextId)` | Parse a NeoOrigins entity condition into a `Predicate<ServerPlayer>`. See [Conditions in your own code](#conditions-in-your-own-code). |
+| `conditionCodec()` | A `Codec` for a condition field in your own power config. |
 | `registerResourceBacking(id, backing)` | Register an external pool that resource bars can name with `"backing"`. See [Resource backings](#resource-backings). |
 
 Call these on the logical server: the player-facing methods take a
@@ -234,10 +237,84 @@ grants are saved by id, so the id has to resolve again after a relog or restart.
   power with the same id overrides the registered one, with a warning, so pack
   authors can still replace it. Players already holding it switch to the
   datapack version at that reload.
-- The configuration is used as given. What a JSON power gets from the loader
-  isn't set for you: a resource bar's own id, and the upkeep fields
-  (`hunger_cost`, `resource_cost`, `upkeep_interval`, ...) that toggles read from
-  their JSON.
+- A resource or variable power stores its value under the power's own id,
+  whatever `powerId` the config you pass carries.
+
+### Condition gate, upkeep and toggle messages
+
+Pass a `CodePowerOptions` to set what a JSON power gets from `power_condition`,
+`power_condition_mode`, the toggle upkeep fields and `toggle_messages`:
+
+```java
+NeoOriginsAPI.registerPower(id, type, config, display,
+    CodePowerOptions.builder()
+        .condition(player -> player.isUnderWater())   // only works underwater
+        .hungerCost(1)                                // toggle upkeep while on
+        .upkeepInterval(40)
+        .toggleMessages(false)
+        .build());
+```
+
+- `condition(predicate)` defaults to `ALLOW`: the power only works while the
+  predicate is true. `condition(predicate, ConditionMode.DENY)` blocks it while
+  true instead, which is what a JSON `power_condition` does by default. The gate
+  covers the same hooks as `power_condition`: `onTick`, activation, `onHit`,
+  `onKill`, and the power queries on `NeoOriginsAPI`.
+- The predicate can be a lambda or a condition from `parseCondition`.
+- `hungerCost`, `resourceCost(resource, amount)`, `upkeepInterval` (default 20)
+  and `upkeepCondition` are the toggle upkeep fields. Types with no toggle ignore
+  them, with a warning.
+- These settings survive `/reload`. A datapack power with the same id uses its
+  own settings while it overrides the registered one.
+
+### Config from JSON
+
+`registerPowerFromJson(id, type, config, display[, options])` takes the config
+as the JSON a datapack power file would hold, without `name` and `description`,
+and decodes it the same way: the power's id is injected (resource bars and the
+other types keyed by their own id need it), the upkeep fields and
+`toggle_messages` are read, and `power_condition` / `power_condition_mode` gate
+the power with the datapack default of `DENY`. Anything set in `options`
+replaces the matching JSON fields. JSON that doesn't decode throws
+`IllegalArgumentException`.
+
+```java
+NeoOriginsAPI.registerPowerFromJson(
+    ResourceLocation.fromNamespaceAndPath("mymod", "focus"),
+    resourceType, // neoorigins:resource, looked up in the neoorigins:power_type registry
+    JsonParser.parseString("{\"max\": 50, \"hud_render\": {\"label\": \"Focus\"}}").getAsJsonObject(),
+    PowerDisplay.of(Component.literal("Focus"), Component.literal("A focus bar.")));
+```
+
+### Conditions in your own code
+
+`parseCondition(json, contextId)` turns the JSON of any NeoOrigins entity
+condition into a `Predicate<ServerPlayer>`:
+
+```java
+Predicate<ServerPlayer> submerged = NeoOriginsAPI.parseCondition(
+    JsonParser.parseString("{\"type\": \"neoorigins:submerged_in\", \"fluid\": \"minecraft:water\"}").getAsJsonObject(),
+    "mymod:stone_skin");
+```
+
+`conditionCodec()` lets pack authors set conditions inside your own power
+type's config:
+
+```java
+public record StoneSkinConfig(double armor, Predicate<ServerPlayer> condition) implements PowerConfiguration {
+    public static final Codec<StoneSkinConfig> CODEC = RecordCodecBuilder.create(i -> i.group(
+        Codec.DOUBLE.fieldOf("armor").forGetter(StoneSkinConfig::armor),
+        NeoOriginsAPI.conditionCodec().optionalFieldOf("condition", p -> true).forGetter(StoneSkinConfig::condition)
+    ).apply(i, StoneSkinConfig::new));
+}
+```
+
+- The field takes a condition object, or an array of them that must all pass.
+- An unknown or malformed condition evaluates false and is logged with its
+  context: the `contextId` you pass, or the power being loaded when the codec
+  decodes a datapack power.
+- Only conditions decoded from JSON can be encoded back; encoding a lambda is a
+  codec error.
 
 ---
 
