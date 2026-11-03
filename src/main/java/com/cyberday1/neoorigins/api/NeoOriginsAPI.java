@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.api;
 
+import com.cyberday1.neoorigins.api.power.CodePowerOptions;
 import com.cyberday1.neoorigins.api.power.GrantPowerResult;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerDisplay;
@@ -167,8 +168,39 @@ public final class NeoOriginsAPI {
      */
     public static <C extends PowerConfiguration> void registerPower(Identifier id, PowerType<C> type, C config,
                                                                   PowerDisplay display) {
-        PowerDataManager.INSTANCE.registerCodePower(
-            new PowerHolder<>(id, type, config, display.name(), display.description(), display.hidden()));
+        registerPower(id, type, config, display, CodePowerOptions.NONE);
+    }
+
+    /**
+     * As {@link #registerPower(Identifier, PowerType, PowerConfiguration, PowerDisplay)}, with a
+     * condition gate, toggle upkeep and {@code toggle_messages} set through {@code options}. A gate set
+     * with {@code condition(predicate)} defaults to {@code ALLOW}: the power only works while it is true.
+     *
+     * @throws IllegalStateException if {@code id} is already registered in code
+     */
+    public static <C extends PowerConfiguration> void registerPower(Identifier id, PowerType<C> type, C config,
+                                                                  PowerDisplay display, CodePowerOptions options) {
+        PowerDataManager.INSTANCE.registerCodePower(id, type, config, display, options);
+    }
+
+    /** As {@link #registerPowerFromJson(Identifier, PowerType, JsonObject, PowerDisplay, CodePowerOptions)} with no options. */
+    public static void registerPowerFromJson(Identifier id, PowerType<?> type, JsonObject config,
+                                             PowerDisplay display) {
+        registerPowerFromJson(id, type, config, display, CodePowerOptions.NONE);
+    }
+
+    /**
+     * Registers a power whose config is given as the JSON a datapack power file would hold, decoded
+     * the same way: the power's id is injected, toggle upkeep fields and {@code toggle_messages} are
+     * read, and {@code power_condition} / {@code power_condition_mode} gate it (default {@code DENY},
+     * as in a datapack). Anything set in {@code options} replaces the matching JSON fields.
+     *
+     * @throws IllegalArgumentException if the JSON does not decode as {@code type}'s config
+     * @throws IllegalStateException if {@code id} is already registered in code
+     */
+    public static void registerPowerFromJson(Identifier id, PowerType<?> type, JsonObject config,
+                                             PowerDisplay display, CodePowerOptions options) {
+        PowerDataManager.INSTANCE.registerCodePowerFromJson(id, type, config, display, options);
     }
 
     // ---------------------------------------------------------------------

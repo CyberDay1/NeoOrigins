@@ -3,7 +3,9 @@ package com.cyberday1.neoorigins.data;
 import com.cyberday1.neoorigins.config.PowerOverridesConfig;
 import com.cyberday1.neoorigins.config.AdminConfig;
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.api.power.CodePowerOptions;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerDisplay;
 import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.compat.action.ActionParser;
@@ -16,9 +18,14 @@ import com.cyberday1.neoorigins.compat.CompatTranslationLog;
 import com.cyberday1.neoorigins.compat.OriginsFormatDetector;
 import com.cyberday1.neoorigins.compat.OriginsMultipleExpander;
 import com.cyberday1.neoorigins.compat.OriginsPowerTranslator;
+import com.cyberday1.neoorigins.power.builtin.ResourcePower;
+import com.cyberday1.neoorigins.power.builtin.TogglePower;
+import com.cyberday1.neoorigins.power.builtin.VariablePower;
+import com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle;
 import com.cyberday1.neoorigins.power.registry.BuiltinPowers;
 import com.cyberday1.neoorigins.power.registry.LegacyPowerTypeAliases;
 import com.cyberday1.neoorigins.power.registry.PowerTypes;
+import com.cyberday1.neoorigins.power.util.PowerUpkeep;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -239,6 +246,10 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         this.injectedFingerprints = new HashMap<>();
         this.version++;
         warnCodePowerOverrides(loaded.keySet());
+        // clearTable above dropped code powers' upkeep too; datapack ids that override one keep their own.
+        for (Identifier codeId : codePowers.keySet()) {
+            if (!shadowed(codeId)) applyCodeSetup(codeId);
+        }
         registerVariableDeclarations(loaded);
         recomputeUltiminePowerInUse();
         if (ultiminePowerInUse) warnUltimineUnavailable();
@@ -556,8 +567,11 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
      * only same-key case is a variable and a resource declared under the same id,
      * which we warn about (the map already deduped to one survivor by then).
      */
-    private void registerVariableDeclarations(Map<Identifier, PowerHolder<?>> loaded) {
+    private void registerVariableDeclarations(Map<Identifier, PowerHolder<?>> datapack) {
         CompatAttachments.clearVariables();
+        // Code powers declare too, unless a datapack power overrides the id.
+        Map<Identifier, PowerHolder<?>> loaded = new HashMap<>(codePowers);
+        loaded.putAll(datapack);
         java.util.Set<String> resourceKeys = new java.util.HashSet<>();
         for (var entry : loaded.entrySet()) {
             if (entry.getValue().type() instanceof com.cyberday1.neoorigins.power.builtin.ResourcePower) {
@@ -572,12 +586,16 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
                 NeoOrigins.LOGGER.warn("neoorigins:variable {} shares an id with a resource of the same name; "
                     + "they would share one stored value. Rename one.", key);
             }
-            var cfg = (com.cyberday1.neoorigins.power.builtin.VariablePower.Config) entry.getValue().config();
-            CompatAttachments.registerVariable(key,
-                new CompatAttachments.VariableDecl(cfg.start(), cfg.min(), cfg.max()));
+            declareVariable(entry.getValue());
             count++;
         }
         if (count > 0) NeoOrigins.LOGGER.info("Registered {} neoorigins:variable declaration(s)", count);
+    }
+
+    private static void declareVariable(PowerHolder<?> holder) {
+        if (!(holder.config() instanceof VariablePower.Config cfg)) return;
+        CompatAttachments.registerVariable(holder.id().toString(),
+            new CompatAttachments.VariableDecl(cfg.start(), cfg.min(), cfg.max()));
     }
 
     /** Called by OriginsCompatPowerLoader after its apply() to inject Route B powers. */
@@ -633,17 +651,143 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Identif
         return powers.containsKey(id) || injectedPowers.containsKey(id) || codePowers.containsKey(id);
     }
 
+    /**
+     * A code power's toggle upkeep and toggle_messages flag. PowerUpkeep's table is cleared on
+     * every reload, so these are kept here and re-applied each time.
+     */
+    public record CodeSetup(PowerUpkeep.Upkeep upkeep, boolean toggleMessages) {}
+
+    private final Map<Identifier, CodeSetup> codeSetups = new java.util.concurrent.ConcurrentHashMap<>();
+
     /** Registers a power defined in code. Throws if another mod already registered the id. */
     public void registerCodePower(PowerHolder<?> holder) {
+        registerCodePower(holder, null);
+    }
+
+    /** As above, with the toggle setup to apply while no datapack power overrides the id. */
+    public void registerCodePower(PowerHolder<?> holder, CodeSetup setup) {
         if (codePowers.putIfAbsent(holder.id(), holder) != null) {
             throw new IllegalStateException("A power is already registered as '" + holder.id() + "'");
+        }
+        if (setup != null) codeSetups.put(holder.id(), setup);
+        if (!shadowed(holder.id())) {
+            applyCodeSetup(holder.id());
+            declareVariable(holder);
         }
         this.version++;
     }
 
+    /** Builds and registers a code power from a typed config and the API options. */
+    public <C extends PowerConfiguration> void registerCodePower(Identifier id, PowerType<C> type, C config,
+                                                               PowerDisplay display, CodePowerOptions options) {
+        EntityCondition condition = options.condition().map(ApiConditions::toEntityCondition).orElse(null);
+        PowerHolder<C> holder = new PowerHolder<>(id, type, withOwnId(id, config),
+            display.name(), display.description(), display.hidden(), condition, options.conditionMode());
+        registerCodePower(holder, codeSetup(id, type,
+            options.hasUpkeep() ? upkeepFrom(options) : null, options.toggleMessages().orElse(null)));
+    }
+
+    /**
+     * Builds and registers a code power from config JSON the way a datapack power is parsed:
+     * {@code _power_id} injected, upkeep and toggle_messages read off the JSON, and
+     * {@code power_condition}/{@code power_condition_mode} honoured. Options override the JSON.
+     */
+    public <C extends PowerConfiguration> void registerCodePowerFromJson(Identifier id, PowerType<C> type,
+            JsonObject config, PowerDisplay display, CodePowerOptions options) {
+        JsonObject json = config.deepCopy();
+        EntityCondition condition = null;
+        PowerHolder.ConditionMode mode = PowerHolder.ConditionMode.DENY;
+        if (options.condition().isPresent()) {
+            condition = ApiConditions.toEntityCondition(options.condition().get());
+            mode = options.conditionMode();
+        } else if (json.has("power_condition") && json.get("power_condition").isJsonObject()) {
+            condition = ConditionParser.parse(json.getAsJsonObject("power_condition"), id.toString());
+            if (json.has("power_condition_mode") && json.get("power_condition_mode").isJsonPrimitive()
+                    && "ALLOW".equalsIgnoreCase(json.get("power_condition_mode").getAsString())) {
+                mode = PowerHolder.ConditionMode.ALLOW;
+            }
+        }
+        for (String key : List.of("name", "description", "power_condition", "power_condition_mode", "required_mods")) {
+            json.remove(key);
+        }
+        if (!json.has("type")) {
+            Identifier typeId = PowerTypes.getId(type);
+            if (typeId != null) json.addProperty("type", typeId.toString());
+        }
+        json.addProperty("_power_id", id.toString());
+
+        Optional<C> parsed;
+        try {
+            parsed = ApiConditions.withContext(id.toString(), () -> type.codec().parse(JsonOps.INSTANCE, json))
+                .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err));
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Power " + id + ": its config JSON did not decode: " + e.getMessage(), e);
+        }
+        if (parsed.isEmpty()) {
+            throw new IllegalArgumentException("Power " + id + ": its config JSON did not decode, see the log");
+        }
+        PowerUpkeep.Upkeep upkeep = options.hasUpkeep() ? upkeepFrom(options) : PowerUpkeep.parse(json, id.toString());
+        Boolean messages = options.toggleMessages().orElse(json.has("toggle_messages")
+            ? PowerUpkeep.parseToggleMessages(json, id.toString()) : null);
+        registerCodePower(new PowerHolder<>(id, type, parsed.get(), display.name(), display.description(),
+            display.hidden(), condition, mode), codeSetup(id, type, upkeep, messages));
+    }
+
+    /** The setup a toggle type reads; null for a type with no toggle, which can't use one. */
+    static CodeSetup codeSetup(Identifier id, PowerType<?> type, PowerUpkeep.Upkeep upkeep, Boolean messages) {
+        boolean hasUpkeep = upkeep != null && !upkeep.isFree();
+        if (!(type instanceof OffFlagToggle<?>) && !(type instanceof TogglePower)) {
+            if (hasUpkeep || messages != null) {
+                NeoOrigins.LOGGER.warn("Power {}: its type has no toggle, so upkeep and toggle_messages are ignored", id);
+            }
+            return null;
+        }
+        boolean shared = !(type instanceof OffFlagToggle<?> toggle) || toggle.readsSharedUpkeep();
+        if (!shared && hasUpkeep) {
+            NeoOrigins.LOGGER.warn("Power {}: its type keeps its own cost fields, so the shared upkeep is ignored", id);
+        }
+        return new CodeSetup(shared && upkeep != null ? upkeep : PowerUpkeep.Upkeep.FREE, messages == null || messages);
+    }
+
+    private static PowerUpkeep.Upkeep upkeepFrom(CodePowerOptions o) {
+        return new PowerUpkeep.Upkeep(o.hungerCost(), o.resourceCost().map(Identifier::toString).orElse(""),
+            o.resourceCostAmount(), o.upkeepInterval(),
+            o.upkeepCondition().map(ApiConditions::toEntityCondition).orElse(null));
+    }
+
+    /** Resource and variable powers store their value under their own id; a typed config may carry another. */
+    @SuppressWarnings("unchecked")
+    static <C extends PowerConfiguration> C withOwnId(Identifier id, C config) {
+        String key = id.toString();
+        if (config instanceof ResourcePower.Config rc && !key.equals(rc.powerId())) return (C) rc.withPowerId(key);
+        if (config instanceof VariablePower.Config vc && !key.equals(vc.powerId())) return (C) vc.withPowerId(key);
+        return config;
+    }
+
+    private boolean shadowed(Identifier id) {
+        return powers.containsKey(id) || injectedPowers.containsKey(id);
+    }
+
+    private void applyCodeSetup(Identifier id) {
+        CodeSetup setup = codeSetups.get(id);
+        if (setup == null) return;
+        PowerUpkeep.register(id, setup.upkeep());
+        PowerUpkeep.registerToggleMessages(id, setup.toggleMessages());
+    }
+
     /** Drops a code-registered power. Internal: for tests that must not leak into other suites. */
     public void unregisterCodePower(Identifier id) {
-        if (codePowers.remove(id) != null) this.version++;
+        PowerHolder<?> holder = codePowers.remove(id);
+        CodeSetup setup = codeSetups.remove(id);
+        if (holder == null) return;
+        if (!shadowed(id)) {
+            if (setup != null) {
+                PowerUpkeep.register(id, null);
+                PowerUpkeep.registerToggleMessages(id, true);
+            }
+            if (holder.config() instanceof VariablePower.Config) CompatAttachments.unregisterVariable(id.toString());
+        }
+        this.version++;
     }
 
     private void warnCodePowerOverrides(java.util.Set<Identifier> datapackIds) {

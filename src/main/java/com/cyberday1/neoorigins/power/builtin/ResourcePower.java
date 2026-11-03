@@ -88,6 +88,12 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
                 CompatAttachments.ResourceMeta.DEFAULT_TEXT_COLOR, false);
         }
 
+        /** This config stored under {@code id}, for a power registered in code. */
+        public Config withPowerId(String id) {
+            return new Config(id, min, max, startValue, regenRate, regenInterval, regenCondition, minAction, maxAction,
+                label, color, hidden, animated, tint, tintEnd, alwaysShow, dynamic, type, backing, textColor, textOutline);
+        }
+
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
             public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {

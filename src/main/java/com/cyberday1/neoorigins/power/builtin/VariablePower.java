@@ -49,6 +49,9 @@ public class VariablePower extends PowerType<VariablePower.Config> {
 
     public record Config(String powerId, int start, int min, int max) implements PowerConfiguration {
 
+        /** This config stored under {@code id}, for a power registered in code. */
+        public Config withPowerId(String id) { return new Config(id, start, min, max); }
+
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
             public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
