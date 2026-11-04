@@ -132,6 +132,25 @@ public final class PowerSchemaGenerator {
         requiredMods.add("items", requiredModsItems);
         properties.add("required_mods", requiredMods);
 
+        // power_condition / power_condition_mode: the whole-power gate the datapack
+        // loader reads for EVERY power type, so both are common properties too.
+        JsonObject powerCondition = new JsonObject();
+        powerCondition.addProperty("description",
+            "Whole-power gate: an entity condition checked whenever the power would act. "
+            + "Works on every power type. Pair with power_condition_mode.");
+        powerCondition.addProperty("$ref", "condition.schema.json");
+        properties.add("power_condition", powerCondition);
+        JsonObject powerConditionMode = new JsonObject();
+        powerConditionMode.addProperty("description",
+            "How power_condition gates: ALLOW makes the power active while the condition is "
+            + "true; DENY (the default) disables it while the condition is true.");
+        powerConditionMode.addProperty("type", "string");
+        JsonArray modes = new JsonArray();
+        modes.add("ALLOW");
+        modes.add("DENY");
+        powerConditionMode.add("enum", modes);
+        properties.add("power_condition_mode", powerConditionMode);
+
         root.add("properties", properties);
 
         // ── 3. oneOf — one branch per registered power, sorted by id, with the
@@ -144,7 +163,11 @@ public final class PowerSchemaGenerator {
         // Generated branches from BuiltinPowers descriptors.
         for (var entry : BuiltinPowers.descriptors().entrySet()) {
             String id = entry.getKey().toString();
-            branches.add(new Branch(id, buildPowerBranch(id, entry.getValue().fields())));
+            JsonObject branch = buildPowerBranch(id, entry.getValue().fields());
+            if (entry.getValue().fields().stream().noneMatch(f -> "condition".equals(f.name()))) {
+                branch.getAsJsonObject("properties").add("condition", conditionAlias());
+            }
+            branches.add(new Branch(id, branch));
         }
 
         // Generated branches for the 2.0 legacy alias ids. These are authorable
@@ -284,6 +307,20 @@ public final class PowerSchemaGenerator {
         ids.addAll(OriginsPowerTranslator.SCHEMA_RECOGNIZED_IMPORT_IDS);
         ids.addAll(com.cyberday1.neoorigins.compat.OriginsFormatDetector.legacyPowerTypeSurface());
         return new ArrayList<>(ids); // TreeSet → alphabetical
+    }
+
+    /**
+     * The top-level {@code condition} alias PowerDataManager accepts on a type that
+     * does not claim {@code condition} itself. A single object only: the loader
+     * ignores an array there, so it is not widened like a native condition field.
+     */
+    private static JsonObject conditionAlias() {
+        JsonObject node = new JsonObject();
+        node.addProperty("description",
+            "Alias for power_condition with mode ALLOW: the power only acts while this "
+            + "condition holds. Takes one condition object. Prefer power_condition in new packs.");
+        node.addProperty("$ref", "condition.schema.json");
+        return node;
     }
 
     /**

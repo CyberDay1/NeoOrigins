@@ -634,6 +634,18 @@
       "items": {
         "type": "string"
       }
+    },
+    "power_condition": {
+      "description": "Whole-power gate: an entity condition checked whenever the power would act. Works on every power type. Pair with power_condition_mode.",
+      "$ref": "condition.schema.json"
+    },
+    "power_condition_mode": {
+      "description": "How power_condition gates: ALLOW makes the power active while the condition is true; DENY (the default) disables it while the condition is true.",
+      "type": "string",
+      "enum": [
+        "ALLOW",
+        "DENY"
+      ]
     }
   },
   "oneOf": [
@@ -1741,6 +1753,10 @@
               }
             }
           ]
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2231,6 +2247,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2342,6 +2362,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2494,6 +2518,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2551,6 +2579,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2582,6 +2614,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2618,6 +2654,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2679,6 +2719,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2718,6 +2762,10 @@
             "type": "string",
             "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2872,6 +2920,10 @@
           "description": "Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe.",
           "type": "string",
           "default": "minecraft:stone_pickaxe"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2892,6 +2944,10 @@
           "description": "Dragon Survival growth stage to start at, e.g. dragonsurvival:newborn. Optional; defaults to dragonsurvival:newborn.",
           "type": "string",
           "default": "dragonsurvival:newborn"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -2997,6 +3053,10 @@
           "description": "Cap on the upward launch speed (blocks/tick) so terminal-velocity falls don't fling the player absurdly high (default 1.6).",
           "type": "number",
           "default": 1.6
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3022,6 +3082,10 @@
           "description": "Only apply while the main-hand item is a correct tool for the block (a pickaxe on stone). Default false.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3057,6 +3121,10 @@
           "description": "Legacy alias for drain_interval_ticks (ticks between drains, NOT units per second — the naming that caused the original confusion). Lowest priority: only read when neither air_loss_per_second nor drain_interval_ticks is set. Prefer drain_interval_ticks in new packs.",
           "type": "integer",
           "minimum": 1
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3092,6 +3160,10 @@
           "description": "Legacy alias for drain_interval_ticks (ticks between drains, NOT units per second). Lowest priority: only read when neither air_loss_per_second nor drain_interval_ticks is set. Prefer drain_interval_ticks in new packs.",
           "type": "integer",
           "minimum": 1
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3113,6 +3185,10 @@
           "description": "Ticks of fire set on the player each application (20 = 1s; default 100).",
           "type": "integer",
           "default": 100
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3153,6 +3229,10 @@
           "description": "If true, any cobweb the player is inside works as a ladder: jump to climb, sneak to hold (default false).",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3189,6 +3269,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3353,6 +3437,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:conduit_power_on_land"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3374,6 +3462,10 @@
           "description": "Extra copies of the output added per craft (default 4; skipped if <=0).",
           "type": "integer",
           "default": 4
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3482,6 +3574,10 @@
           "description": "Number of random nearby crops bone-mealed each interval (default 1).",
           "type": "integer",
           "default": 1
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3498,6 +3594,10 @@
           "description": "Extra copies of the block's own loot when breaking crops/logs (default 1).",
           "type": "integer",
           "default": 1
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3599,6 +3699,10 @@
           "description": "Probability 0.0-1.0 to fully cancel an incoming damage event (default 0.15).",
           "type": "number",
           "default": 0.15
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3683,6 +3787,10 @@
         "consume_sound": {
           "description": "Optional sound-event id played on consumption; omit to use the default eat sound.",
           "type": "string"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3704,6 +3812,10 @@
           "description": "When true, the list becomes an exception list: immune to every effect EXCEPT those listed. true with an empty list = immune to all effects.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3875,6 +3987,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3908,6 +4024,10 @@
           "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra draws wings at all; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
           "type": "string",
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3919,6 +4039,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:ender_gaze_immunity"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3937,6 +4061,10 @@
           "default": 0.7,
           "minimum": 0.0,
           "maximum": 1.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -3996,6 +4124,10 @@
           "description": "Outline blue channel, 0.0 to 1.0 (default 1.0).",
           "type": "number",
           "default": 1.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4012,6 +4144,10 @@
           "description": "Entity-group id. Built-in: undead, arthropod, water, illager, piglin, skeleton. A bare name resolves to neoorigins:<name>; a datapack may define more via data/<ns>/neoorigins/entity_groups/<name>.json. Changes effect/enchant interactions and which mobs ignore, hunt, or flee you. undefined = no classification.",
           "type": "string",
           "default": "undefined"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4145,6 +4281,10 @@
               "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
             }
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4161,6 +4301,10 @@
           "description": "Named UUID set this power declares the player a member of; namespace it (e.g. 'mypack:kill_streak') to avoid collisions. Read/mutated by the in_set / add_to_set / remove_from_set verbs.",
           "type": "string",
           "default": ""
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4180,6 +4324,10 @@
             "type": "string",
             "pattern": "^#?[A-Za-z0-9_.:/-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4229,6 +4377,10 @@
           "type": "integer",
           "default": 20,
           "minimum": 1
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4314,6 +4466,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4382,6 +4538,10 @@
           "description": "Block tag the bonus applies to (default #c:ores; ancient debris excluded).",
           "type": "string",
           "default": "#c:ores"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4450,6 +4610,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4584,6 +4748,10 @@
             "breath"
           ],
           "default": "hunger"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4610,6 +4778,10 @@
           "description": "Ticks a tamed mob must avoid damage before it can heal (default 100).",
           "type": "integer",
           "default": 100
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4657,6 +4829,10 @@
             "type": "string",
             "pattern": "^#?([a-z0-9_.-]+:)?[a-z0-9_./\\-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4668,6 +4844,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:ignore_water"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4684,6 +4864,10 @@
           "description": "When true (default) the player turns invisible but worn armor stays visible (vanilla behaviour). When false, worn armor is also hidden client-side for true invisibility. The base invisibility rides the vanilla invisibility effect, so it is gated by the power's top-level condition like any passive.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4719,6 +4903,10 @@
             "type": "string",
             "pattern": "^#?[A-Za-z0-9_.:/-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4787,6 +4975,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4827,6 +5019,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4843,6 +5039,10 @@
         "js_id": {
           "description": "ID of the JS handler. Register from JS via NeoOrigins.registerPower(id, {onGranted, onRevoked, onTick}).",
           "type": "string"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4876,6 +5076,10 @@
             "type": "string",
             "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4935,6 +5139,10 @@
               "item"
             ]
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4976,6 +5184,10 @@
         "end": {
           "description": "Absolute fog end in blocks, i.e. how far you see through lava; overrides strength for the far plane (Origins 'v').",
           "type": "number"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -4997,6 +5209,10 @@
           "description": "Movement-speed bonus while using the item, as a fraction of base (default 0.5).",
           "type": "number",
           "default": 0.5
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5037,6 +5253,10 @@
           "description": "Whether the effect's HUD icon is shown (default false).",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5049,6 +5269,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:like_air"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5124,6 +5348,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5147,6 +5375,10 @@
           "description": "List of {effect, amplifier} entries applied while below the threshold.",
           "type": "array",
           "items": {}
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5200,6 +5432,10 @@
           "description": "When retaliating, alert nearby same-type mobs (vanilla pack aggro). Default false.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5232,6 +5468,10 @@
           "description": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5264,6 +5504,10 @@
           "description": "How far (in blocks) a matching mob can be and still start hunting the player. Default 16.",
           "type": "number",
           "default": 16.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5406,6 +5650,10 @@
         "value": {
           "description": "Amount applied to creative/hover flight speed (vanilla base 0.05). multiply_base 1.0 doubles it, -0.5 halves it, -0.25 ≈ Pehkui flight scale 0.75. Does not affect elytra gliding.",
           "type": "number"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5431,6 +5679,10 @@
         "food_tag": {
           "description": "Optional item tag; only matching foods are overridden.",
           "type": "string"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5456,6 +5708,10 @@
         "value": {
           "description": "Amount applied to lava movement speed (vanilla factor is 0.02; addition ~0.04 ≈ water-swim pace).",
           "type": "number"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5534,6 +5790,10 @@
           "description": "When true also overrides the player's bed/respawn-anchor spawn point, not just the post-death respawn position (default false).",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5568,6 +5828,10 @@
           "description": "Multiplier for smoker-cooking XP (default 2.0).",
           "type": "number",
           "default": 2.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5629,6 +5893,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5645,6 +5913,10 @@
           "description": "Fraction of emitted game-event vibrations suppressed (0.0-1.0); 1.0 = sculk sensors and wardens never hear you (default 1.0).",
           "type": "number",
           "default": 1.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5678,6 +5950,10 @@
           "description": "Optional custom texture id for the rendered elytra, e.g. mymod:textures/entity/my_wings.png. Only applies when render_elytra draws wings at all; the model is always the vanilla elytra (texture swap only). Omit to use the vanilla elytra texture.",
           "type": "string",
           "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5779,6 +6055,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5790,6 +6070,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:no_natural_regen"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5801,6 +6085,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:no_projectile_divergence"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5816,6 +6104,10 @@
         "block_tag": {
           "description": "Block tag to limit slowdown immunity to; omit for immunity to all slowdown.",
           "type": "string"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -5836,6 +6128,10 @@
           "description": "Overlay opacity, 0.0 invisible to 1.0 opaque (default 1.0).",
           "type": "number",
           "default": 1.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6072,6 +6368,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6145,6 +6445,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6235,6 +6539,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6316,6 +6624,10 @@
           "description": "ARMOR_EQUIP only: when true, block equipping items in the boots slot. Ignored for other actions (default false).",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6402,6 +6714,10 @@
               }
             }
           ]
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6421,6 +6737,10 @@
             "type": "string",
             "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6457,6 +6777,10 @@
           "description": "Max teleport distance in blocks on a dodge when enabled (default 16).",
           "type": "integer",
           "default": 16
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6481,6 +6805,10 @@
           "description": "Extra damage taken per hit, added even when the projectile normally deals none (default 3.0).",
           "type": "number",
           "default": 3.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6521,6 +6849,10 @@
             "type": "string",
             "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6542,6 +6874,10 @@
           "description": "Probability 0.0-1.0 a rare treasure trade is also offered (default 0.25).",
           "type": "number",
           "default": 0.25
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6822,6 +7158,10 @@
               "default": false
             }
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6838,6 +7178,10 @@
           "description": "List of slot restrictions, each {slot, item?, tag?}: when a matching item (by id and/or #tag) is equipped in that EquipmentSlot (head/chest/legs/feet/mainhand/offhand) it is ejected back to the inventory. An entry with neither item nor tag bars the whole slot. Empty list (default) restricts nothing.",
           "type": "array",
           "items": {}
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6925,6 +7269,10 @@
             "type": "string",
             "pattern": "^#?[A-Za-z0-9_.:/-]+$"
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -6940,6 +7288,10 @@
         "shader": {
           "description": "Resource location of the post shader to apply (e.g. minecraft:spider).",
           "type": "string"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7003,6 +7355,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7014,6 +7370,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:simple"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7040,6 +7400,10 @@
           "description": "Flat reach (blocks) added to both block and entity interaction range, on top of modify_reach scaling. Keeps shrunk origins usable (default 0).",
           "type": "number",
           "default": 0.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7076,6 +7440,10 @@
           "description": "Ticks for reduced max HP to ease back to normal (20 = 1s; default 2400).",
           "type": "integer",
           "default": 2400
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7097,6 +7465,10 @@
           "description": "Cap on total bonus max HP granted, in half-hearts (default 20).",
           "type": "integer",
           "default": 20
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7158,6 +7530,10 @@
           "description": "Ticks between drying-out damage ticks (20 = 1s; default 40).",
           "type": "integer",
           "default": 40
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7174,6 +7550,10 @@
           "description": "Mob detection range multiplier; lower = sneakier (default 0.3).",
           "type": "number",
           "default": 0.3
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7386,6 +7766,10 @@
               "item"
             ]
           }
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7575,6 +7959,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7724,6 +8112,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7822,6 +8214,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7848,6 +8244,10 @@
           "description": "Block radius around the player scanned for tamed animals (default 32).",
           "type": "number",
           "default": 32.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7864,6 +8264,10 @@
           "description": "Block radius for sharing positive potion effects with tamed animals.",
           "type": "number",
           "default": 16.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7919,6 +8323,10 @@
           "description": "Ticks the attacker is set on fire on reflect (0 = none; 20 = 1s).",
           "type": "integer",
           "default": 0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -7945,6 +8353,10 @@
             "none"
           ],
           "default": "none"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8012,6 +8424,10 @@
           "description": "If true, this power's cooldown_icon stays on the ability HUD cluster even while the power is idle / off cooldown (default false: idle icons disappear). Only applies when cooldown_icon is set; players can force this for every power via the always_show_ability_icons client config.",
           "type": "boolean",
           "default": false
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8070,6 +8486,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8091,6 +8511,10 @@
           "description": "Block radius around the player whose villager trades refresh (default 8).",
           "type": "number",
           "default": 8.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8112,6 +8536,10 @@
           "description": "Fell only when the log is broken with an axe: an item that can do an axe's digging, or an empty hand with an axe bare_hand_tool (default true). false fells with any tool or none.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8128,6 +8556,10 @@
           "description": "Probability 0.0-1.0 of an extra baby when animals breed (default 1.0).",
           "type": "number",
           "default": 1.0
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8139,6 +8571,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:ultimine"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8150,6 +8586,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:underwater_mining_speed"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8174,6 +8614,10 @@
         "max": {
           "description": "Upper clamp applied to additive (change_resource) writes; omit for an unbounded counter.",
           "type": "integer"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8195,6 +8639,10 @@
             "both"
           ],
           "default": "both"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8206,6 +8654,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:wall_climbing"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8222,6 +8674,10 @@
           "description": "Kill switch for this power: when false the power stays attached to the origin but does nothing (no effects, no flight, no periodic action). Absent or true = active. Primarily written by the power_overrides config so a server admin can disable one power of an origin without editing the origin, but a datapack may set it directly.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8314,6 +8770,10 @@
           "description": "Whether switching the toggle on or off prints the green \"on\" / red \"off\" chat message (default true). false keeps the toggle silent, including when an upkeep it can't pay switches it off. A neoorigins:toggle has no key and prints only that upkeep off message.",
           "type": "boolean",
           "default": true
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
@@ -8325,6 +8785,10 @@
       "properties": {
         "type": {
           "const": "neoorigins:xeno_passive"
+        },
+        "condition": {
+          "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
+          "$ref": "condition.schema.json"
         }
       },
       "required": [
