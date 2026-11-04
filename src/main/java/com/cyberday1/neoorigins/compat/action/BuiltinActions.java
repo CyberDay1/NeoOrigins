@@ -3221,20 +3221,7 @@ public final class BuiltinActions {
      */
     private static void clampedAddBounded(
             com.cyberday1.neoorigins.compat.CompatAttachments.ResourceState state, String key, int delta) {
-        var meta = com.cyberday1.neoorigins.compat.CompatAttachments.getResourceMeta(key);
-        int lo, hi;
-        if (meta != null) {
-            lo = meta.min();
-            hi = meta.max();
-        } else {
-            var vd = com.cyberday1.neoorigins.compat.CompatAttachments.getVariable(key);
-            lo = vd != null ? vd.min() : Integer.MIN_VALUE;
-            hi = vd != null ? vd.max() : Integer.MAX_VALUE;
-            if (vd != null && !state.has(key) && vd.start() != 0) {
-                state.set(key, vd.start());
-            }
-        }
-        state.clampedAdd(key, delta, lo, hi);
+        com.cyberday1.neoorigins.power.builtin.ResourcePower.clampedAdd(state, key, delta);
     }
 
     /**
