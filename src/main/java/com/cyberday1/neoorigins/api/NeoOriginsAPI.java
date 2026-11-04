@@ -10,6 +10,7 @@ import com.cyberday1.neoorigins.api.origin.SetOriginResult;
 import com.cyberday1.neoorigins.api.resource.ResourceBacking;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
 import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
+import com.cyberday1.neoorigins.compat.action.ApiActions;
 import com.cyberday1.neoorigins.compat.condition.ApiConditions;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
@@ -223,6 +224,30 @@ public final class NeoOriginsAPI {
      */
     public static Codec<Predicate<ServerPlayer>> conditionCodec() {
         return ApiConditions.CODEC;
+    }
+
+    // ---------------------------------------------------------------------
+    // Actions
+    // ---------------------------------------------------------------------
+
+    /**
+     * Parses a NeoOrigins entity action, the JSON a datapack writes in an {@code entity_action} field,
+     * e.g. {@code {"type": "neoorigins:heal", "amount": 4}}. An unknown or malformed action is logged
+     * with {@code contextId} and does nothing, as in a datapack. Run it on the server thread.
+     * Actions that read the triggering event (the attacker, the hit block) do nothing outside a
+     * NeoOrigins event.
+     */
+    public static Consumer<ServerPlayer> parseAction(JsonObject json, String contextId) {
+        return ApiActions.parse(json, contextId);
+    }
+
+    /**
+     * A codec for an entity action field in your own power config: an object, or an array whose
+     * actions run in order. Use {@code actionCodec().optionalFieldOf("action", p -> {})} for an
+     * optional one. Only actions decoded from JSON can be encoded back.
+     */
+    public static Codec<Consumer<ServerPlayer>> actionCodec() {
+        return ApiActions.CODEC;
     }
 
     // ---------------------------------------------------------------------
