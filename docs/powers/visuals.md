@@ -315,6 +315,24 @@ Set `hitbox` to `false` for a look-only morph: the player keeps their own box an
 
 A morph target far larger than a player (an ender dragon, a ravager) is not rejected, but in practice it will rarely find room, so expect it to spend most of its time held back. Very large morphs are better authored with `hitbox` set to `false`.
 
+### Shapeshifting
+
+Give `entity_model` a `condition` and the morph follows it as you play: the player takes the form while the condition holds and changes back when it stops. The condition is checked every tick, and a change reaches other players within a quarter of a second, so a condition that flickers can't flood the network. Growing still waits for room, as described under [Morph hitbox](#morph-hitbox).
+
+This werewolf turns at night:
+
+```json
+{
+  "type": "neoorigins:entity_model",
+  "entity_type": "minecraft:wolf",
+  "condition": { "type": "neoorigins:daytime", "inverted": true },
+  "name": "Nightfall",
+  "description": "Takes the shape of a wolf after dark."
+}
+```
+
+For a form the player picks, point the condition at a toggle with `neoorigins:power_active`, and turn the toggle with an `active_ability`. The morph no longer has to be granted and revoked to change.
+
 ### Morph definitions
 
 `morph` refers to a reusable definition: the same entity type, variant NBT and scale used across several origins, written once. The built-ins are `slime`, `magma_cube`, `sheep`, `cat`, `villager`, `creeper`, `zombie`, `skeleton`, `enderman` and `spider`.
