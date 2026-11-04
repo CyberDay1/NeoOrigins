@@ -2,6 +2,24 @@
 
 ---
 
+## v2.2.37
+
+> An `entity_model` power with a condition now changes the player's form as they play, so a werewolf can turn at night and change back at dawn. Mods can now run NeoOrigins actions in their own code, and the power grant and revoke events now tell a mod which type of power changed and how it was configured.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Changes
+
+- **An `entity_model` condition now changes the morph as you play (#141).** The player takes the form while the condition holds and changes back when it stops. Before, the condition was only checked when the player's powers were synced, such as on an origin change, so a werewolf could not turn at night. A morph change is sent at most every five ticks, and growing into a tight space still waits for room. See [Shapeshifting](docs/powers/visuals.md#shapeshifting).
+
+### Mod Developer API
+
+- **Mods can use NeoOrigins actions.** `parseAction` turns the JSON of any NeoOrigins entity action, such as `neoorigins:heal`, into a `Consumer<ServerPlayer>` a mod can run in its own code. `actionCodec` gives a mod's own power config an action field, so pack authors writing that power type in JSON can set actions in it. The field takes one action or a list that runs in order. An action that cannot be read does nothing and is logged with the power it belongs to. Actions that act on the triggering event, such as `damage_attacker` or `strip`, do nothing when a mod runs them outside a NeoOrigins event. See [Actions in your own code](docs/JAVA_API.md#actions-in-your-own-code).
+
+- **Grant and revoke events carry the power.** `PowerGrantedEvent` and `PowerRevokedEvent` gave only the power's id, so a mod could not tell what type of power changed or read its settings. Both now give the full power with `getPower()`, its type with `getPowerType()` and `getPowerTypeId()`, and its config with `getConfig()`. A revoked power still carries the config it had. The events table in the API docs also now lists every path that fires them, including `/power grant`, the `grant_power` action and datapack reloads. See [Events](docs/JAVA_API.md#events-apievent).
+
+---
+
 ## v2.2.36
 
 > Powers that other mods register in code can now be gated by a condition, pay toggle upkeep and carry their own resource bars, the same as powers written in a datapack. Mods can also read NeoOrigins conditions directly, either to check one in their own code or to let pack authors set one inside their own power types.
