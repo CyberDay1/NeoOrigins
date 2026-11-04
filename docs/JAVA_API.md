@@ -130,6 +130,8 @@ Full method list:
 | `registerPowerFromJson(id, type, config, display[, options])` | Register a code power whose config is the JSON a datapack power file would hold. |
 | `parseCondition(json, contextId)` | Parse a NeoOrigins entity condition into a `Predicate<ServerPlayer>`. See [Conditions in your own code](#conditions-in-your-own-code). |
 | `conditionCodec()` | A `Codec` for a condition field in your own power config. |
+| `parseAction(json, contextId)` | Parse a NeoOrigins entity action into a `Consumer<ServerPlayer>`. See [Actions in your own code](#actions-in-your-own-code). |
+| `actionCodec()` | A `Codec` for an action field in your own power config. |
 | `registerResourceBacking(id, backing)` | Register an external pool that resource bars can name with `"backing"`. See [Resource backings](#resource-backings). |
 
 Call these on the logical server: the player-facing methods take a
@@ -324,6 +326,48 @@ public record StoneSkinConfig(double armor, Predicate<ServerPlayer> condition) i
   decodes a datapack power.
 - Only conditions decoded from JSON can be encoded back; encoding a lambda is a
   codec error.
+
+### Actions in your own code
+
+`parseAction(json, contextId)` turns the JSON of any NeoOrigins entity action
+into a `Consumer<ServerPlayer>`:
+
+```java
+Consumer<ServerPlayer> burst = NeoOriginsAPI.parseAction(
+    JsonParser.parseString("{\"type\": \"neoorigins:heal\", \"amount\": 4}").getAsJsonObject(),
+    "mymod:second_wind");
+burst.accept(player);
+```
+
+`actionCodec()` lets pack authors set actions inside your own power type's
+config:
+
+```java
+public record SecondWindConfig(int cooldown, Consumer<ServerPlayer> action) implements PowerConfiguration {
+    public static final Codec<SecondWindConfig> CODEC = RecordCodecBuilder.create(i -> i.group(
+        Codec.INT.fieldOf("cooldown").forGetter(SecondWindConfig::cooldown),
+        NeoOriginsAPI.actionCodec().optionalFieldOf("action", p -> {}).forGetter(SecondWindConfig::action)
+    ).apply(i, SecondWindConfig::new));
+}
+```
+
+- The field takes an action object, or an array of them that run in order.
+- An unknown or malformed action does nothing and is logged with its context:
+  the `contextId` you pass, or the power being loaded when the codec decodes a
+  datapack power.
+- Only actions decoded from JSON can be encoded back; encoding a lambda is a
+  codec error.
+- Run actions on the server thread.
+
+Some actions read the event that triggered them: the `*_attacker` actions,
+`target_action`, `add_to_set` and the other target actions, `cancel_event`, and
+the block actions such as `strip` and `grow`. Run from your own code, outside a
+NeoOrigins event, these find no event and do nothing. Actions with a fallback
+use it instead: `set_block`, `execute_command` and the spawn actions act at the
+player, `offset` runs its inner action unshifted, and `tame_target` tames the
+mob the player is looking at. A `raycast` still hands its hit to the actions
+inside it. Actions name the power whose state they change (`"power": "..."`),
+so they work the same from your code.
 
 ---
 
