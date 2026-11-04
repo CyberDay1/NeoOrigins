@@ -49,6 +49,8 @@
   "gui.neoorigins.info.your_origin": "你的起源",
   "gui.neoorigins.info.debug": "调试",
   "gui.neoorigins.info.edit": "编辑",
+  "gui.neoorigins.info.other_powers": "其他能力",
+  "gui.neoorigins.info.other_powers.description": "并非来自你的起源的能力，例如由命令、服务器或其他模组授予的能力。",
   "gui.neoorigins.info.evolution_path": "进化路线",
   "gui.neoorigins.info.evolution_progress": "下一次进化：%s / %s",
   "gui.neoorigins.info.evolution_apex": "已达巅峰",

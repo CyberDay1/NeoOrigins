@@ -49,6 +49,8 @@
   "gui.neoorigins.info.your_origin": "Dein Ursprung",
   "gui.neoorigins.info.debug": "Debug",
   "gui.neoorigins.info.edit": "Bearbeiten",
+  "gui.neoorigins.info.other_powers": "Weitere Kräfte",
+  "gui.neoorigins.info.other_powers.description": "Kräfte, die nicht von deinen Ursprüngen stammen, etwa verliehen durch einen Befehl, den Server oder eine andere Mod.",
   "gui.neoorigins.info.evolution_path": "Entwicklungspfad",
   "gui.neoorigins.info.evolution_progress": "Nächste Entwicklung: %s / %s",
   "gui.neoorigins.info.evolution_apex": "Gipfel erreicht",

@@ -49,6 +49,8 @@
   "gui.neoorigins.info.your_origin": "Ваше походження",
   "gui.neoorigins.info.debug": "Налагодження",
   "gui.neoorigins.info.edit": "Редагувати",
+  "gui.neoorigins.info.other_powers": "Інші сили",
+  "gui.neoorigins.info.other_powers.description": "Сили, отримані не від ваших походжень, наприклад надані командою, сервером або іншим модом.",
   "gui.neoorigins.info.evolution_path": "Шлях еволюції",
   "gui.neoorigins.info.evolution_progress": "Наступна еволюція: %s / %s",
   "gui.neoorigins.info.evolution_apex": "Досягнуто вершини",
