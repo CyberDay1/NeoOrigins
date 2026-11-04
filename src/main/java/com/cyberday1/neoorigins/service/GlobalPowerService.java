@@ -59,7 +59,7 @@ public final class GlobalPowerService {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (data.removeDynamicGrant(powerId) && holder != null) {
                     holder.onRevoked(player);
-                    NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, powerId));
+                    NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, holder));
                 }
             } else {
                 // Power survives via an origin — just relinquish the dynamic flag.
@@ -84,7 +84,7 @@ public final class GlobalPowerService {
             }
             if (data.addDynamicGrant(powerId)) {
                 holder.onGranted(player);
-                NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, powerId));
+                NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, holder));
                 changed = true;
             }
         }

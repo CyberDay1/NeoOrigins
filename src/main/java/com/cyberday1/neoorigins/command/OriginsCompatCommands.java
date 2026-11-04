@@ -470,7 +470,7 @@ public class OriginsCompatCommands {
                     if (data.addDynamicGrant(id)) {
                         holder.onGranted(player);
                         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                            new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, id));
+                            new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, holder));
                         changed = true;
                     }
                 }
@@ -507,7 +507,7 @@ public class OriginsCompatCommands {
                         if (!isFromOrigin(data, id)) {
                             holder.onRevoked(player);
                             net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                                new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, id));
+                                new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, holder));
                         }
                         changed = true;
                     }
