@@ -135,7 +135,7 @@ public final class PowerGrantService {
         PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(id);
         if (holder == null) return;
         holder.onGranted(player);
-        NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, id));
+        NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, holder));
         EventPowerIndex.dispatch(player, EventPowerIndex.Event.GAINED, id);
     }
 
@@ -143,7 +143,7 @@ public final class PowerGrantService {
         PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(id);
         if (holder == null) return;
         holder.onRevoked(player);
-        NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, id));
+        NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, holder));
         EventPowerIndex.dispatch(player, EventPowerIndex.Event.LOST, id);
     }
 
