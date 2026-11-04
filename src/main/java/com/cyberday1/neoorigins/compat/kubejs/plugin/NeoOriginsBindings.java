@@ -3,7 +3,6 @@ package com.cyberday1.neoorigins.compat.kubejs.plugin;
 import com.cyberday1.neoorigins.compat.kubejs.JsActivePower;
 import com.cyberday1.neoorigins.compat.kubejs.JsPassivePower;
 import com.cyberday1.neoorigins.compat.kubejs.JsPowerRegistry;
-import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.kubejs.KubeJSCallbacks;
 import com.cyberday1.neoorigins.power.builtin.ResourcePower;
 import net.minecraft.server.level.ServerPlayer;
@@ -115,8 +114,7 @@ public final class NeoOriginsBindings {
      * so it counts when the player holds the power with that id.
      */
     public boolean hasResource(ServerPlayer player, String id) {
-        if (player.getData(CompatAttachments.resourceState()).has(id)) return true;
-        return com.cyberday1.neoorigins.compat.ResourceBackingRouter.isBacked(id) && CompatAttachments.holdsResourcePower(player, id);
+        return ResourcePower.has(player, id);
     }
 
     /**

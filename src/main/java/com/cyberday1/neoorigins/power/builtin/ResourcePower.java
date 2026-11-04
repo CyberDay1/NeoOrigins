@@ -345,6 +345,56 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         return player.getData(CompatAttachments.resourceState()).get(key, 0);
     }
 
+    /**
+     * True if the player has this resource: a {@code neoorigins:resource} bar, a variable or an
+     * Apoli resource. A backed bar keeps no stored value, so it counts when the player holds the
+     * power with that id.
+     */
+    public static boolean has(ServerPlayer player, String key) {
+        if (player.getData(CompatAttachments.resourceState()).has(key)) return true;
+        return ResourceBackingRouter.isBacked(key) && CompatAttachments.holdsResourcePower(player, key);
+    }
+
+    /**
+     * Adds {@code delta} (negative to spend) within the bar's min and max, or a variable's declared
+     * bounds, as {@code change_resource} does. A backed resource takes the delta through its pool.
+     */
+    public static void change(ServerPlayer player, String key, int delta) {
+        if (!ResourceBackingRouter.add(player, key, delta)) {
+            clampedAdd(player.getData(CompatAttachments.resourceState()), key, delta);
+        }
+        CompatAttachments.syncResourceValuesToClient(player);
+    }
+
+    /**
+     * Sets the value without clamping, as {@code set_resource} does. A backed resource takes it
+     * through its pool, or ignores it with one warning when the pool only takes additive changes.
+     */
+    public static void set(ServerPlayer player, String key, int value) {
+        if (!ResourceBackingRouter.handleAbsoluteSet(player, key, value)) {
+            player.getData(CompatAttachments.resourceState()).set(key, value);
+        }
+        CompatAttachments.syncResourceValuesToClient(player);
+    }
+
+    /** Adds {@code delta} to a stored key within its bar's bounds, or its variable's declared bounds and start. */
+    public static void clampedAdd(CompatAttachments.ResourceState state, String key, int delta) {
+        var meta = CompatAttachments.getResourceMeta(key);
+        int lo, hi;
+        if (meta != null) {
+            lo = meta.min();
+            hi = meta.max();
+        } else {
+            var vd = CompatAttachments.getVariable(key);
+            lo = vd != null ? vd.min() : Integer.MIN_VALUE;
+            hi = vd != null ? vd.max() : Integer.MAX_VALUE;
+            if (vd != null && !state.has(key) && vd.start() != 0) {
+                state.set(key, vd.start());
+            }
+        }
+        state.clampedAdd(key, delta, lo, hi);
+    }
+
     public static void clearPlayer(java.util.UUID uuid) {
         String prefix = uuid.toString() + ":";
         PREV_VALUES.keySet().removeIf(k -> k.startsWith(prefix));
