@@ -435,13 +435,26 @@ All four are posted on `NeoForge.EVENT_BUS`.
 |---|---|---|
 | `OriginChangedEvent` | A player picks an origin in the selection screen (the server's handler for the pick packet). Not posted for `/neoorigins set`, reset, advancement upgrades, or automatic/random assignment. Cancellable: cancelling prevents the set. | `getEntity()` (`ServerPlayer`), `getLayer()`, `getOldOrigin()` (nullable), `getNewOrigin()`, `setNewOrigin(id)` |
 | `OriginsLoadedEvent` | After the origin JSONs are applied, on every datapack load, including the first one at server start. Layers are reloaded after it, so layer data is not yet current when it fires. | None: it extends `Event` and has no getters. |
-| `PowerGrantedEvent` | A power was granted through an origin change or a global power. | `getEntity()` (`ServerPlayer`), `getPowerId()` |
-| `PowerRevokedEvent` | A power was revoked through an origin change or a global power. | `getEntity()` (`ServerPlayer`), `getPowerId()` |
+| `PowerGrantedEvent` | A power was granted through an origin change, a global power, an API grant, `/power grant`, the `grant_power` action, or a datapack reload that added it to an origin. | `getEntity()` (`ServerPlayer`), `getPowerId()`, `getPower()` (`PowerHolder`), `getPowerType()`, `getPowerTypeId()`, `getConfig()` |
+| `PowerRevokedEvent` | A power was revoked through an origin change, a global power, an API revoke, `/power revoke`, the `revoke_power` action, or a datapack reload that removed it from an origin. | `getEntity()` (`ServerPlayer`), `getPowerId()`, `getPower()` (`PowerHolder`), `getPowerType()`, `getPowerTypeId()`, `getConfig()` |
 
 `PowerGrantedEvent` / `PowerRevokedEvent` are not posted on every path that
 runs a power's `onGranted` / `onRevoked`: an evolution-tier change and a
 full tear-down (origin reset, profile re-apply, random-origin-on-death) call
 the hooks without posting the events.
+
+To read your own power's config from either event, check the type first,
+then cast:
+
+```java
+@SubscribeEvent
+public static void onPowerGranted(PowerGrantedEvent event) {
+    if (event.getPowerType() == MY_BOOST.get()
+            && event.getConfig() instanceof MyBoostPower.Config config) {
+        // config.amount() is the value this power was written with.
+    }
+}
+```
 
 ---
 
