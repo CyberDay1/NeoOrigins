@@ -9,10 +9,12 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.api.origin.SetOriginResult;
 import com.cyberday1.neoorigins.api.resource.ResourceBacking;
 import com.cyberday1.neoorigins.attachment.OriginAttachments;
+import com.cyberday1.neoorigins.compat.CompatAttachments;
 import com.cyberday1.neoorigins.compat.ResourceBackingRouter;
 import com.cyberday1.neoorigins.compat.action.ApiActions;
 import com.cyberday1.neoorigins.compat.condition.ApiConditions;
 import com.cyberday1.neoorigins.data.PowerDataManager;
+import com.cyberday1.neoorigins.power.builtin.ResourcePower;
 import com.cyberday1.neoorigins.service.ActiveOriginService;
 import com.cyberday1.neoorigins.service.OriginChangeService;
 import com.cyberday1.neoorigins.service.PowerGrantService;
@@ -27,6 +29,7 @@ import net.minecraft.world.entity.LivingEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -300,6 +303,50 @@ public final class NeoOriginsAPI {
     /** True if the player holds {@code power} from any origin, command, global set or API grant. */
     public static boolean hasPower(ServerPlayer player, ResourceLocation power) {
         return ActiveOriginService.activePowerIds(player).contains(power);
+    }
+
+    // ---------------------------------------------------------------------
+    // Resource values
+    // ---------------------------------------------------------------------
+
+    // `resource` is the resource power's id, as `/resource get` takes it: mypack:mana, or
+    // mypack:parent_subkey for a sub-power of a multiple. Variables use the same calls.
+
+    /** True if the player has this resource: a {@code neoorigins:resource} bar, a variable or an Apoli resource. */
+    public static boolean hasResource(ServerPlayer player, ResourceLocation resource) {
+        return ResourcePower.has(player, resource.toString());
+    }
+
+    /**
+     * The resource's current value, or empty if the player doesn't have it, so a missing resource
+     * never reads as an empty one. A backed bar reports its live pool.
+     */
+    public static OptionalInt getResource(ServerPlayer player, ResourceLocation resource) {
+        String key = resource.toString();
+        return ResourcePower.has(player, key) ? OptionalInt.of(ResourcePower.getValue(player, key)) : OptionalInt.empty();
+    }
+
+    /** Adds {@code delta} (negative to take away), kept within the bar's min and max, as {@code change_resource} does. */
+    public static void changeResource(ServerPlayer player, ResourceLocation resource, int delta) {
+        ResourcePower.change(player, resource.toString(), delta);
+    }
+
+    /**
+     * Sets the value directly, without clamping, as {@code set_resource} does. A backed resource
+     * whose pool only takes additive changes ignores it; use {@link #changeResource} for those.
+     */
+    public static void setResource(ServerPlayer player, ResourceLocation resource, int value) {
+        ResourcePower.set(player, resource.toString(), value);
+    }
+
+    /**
+     * Takes {@code amount} if the player has at least that much, the way a {@code resource_cost}
+     * is paid. @return false, taking nothing, when they have less.
+     */
+    public static boolean spendResource(ServerPlayer player, ResourceLocation resource, int amount) {
+        if (!ResourcePower.deduct(player, resource.toString(), amount)) return false;
+        CompatAttachments.syncResourceValuesToClient(player);
+        return true;
     }
 
     // ---------------------------------------------------------------------
