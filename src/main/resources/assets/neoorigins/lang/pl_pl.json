@@ -49,6 +49,8 @@
   "gui.neoorigins.info.your_origin": "Twoje pochodzenie",
   "gui.neoorigins.info.debug": "Debug",
   "gui.neoorigins.info.edit": "Edytuj",
+  "gui.neoorigins.info.other_powers": "Inne moce",
+  "gui.neoorigins.info.other_powers.description": "Moce, które nie pochodzą z twoich pochodzeń, np. nadane przez polecenie, serwer lub inny mod.",
   "gui.neoorigins.info.evolution_path": "Ścieżka ewolucji",
   "gui.neoorigins.info.evolution_progress": "Następna ewolucja: %s / %s",
   "gui.neoorigins.info.evolution_apex": "Osiągnięto szczyt",

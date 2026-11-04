@@ -49,6 +49,8 @@
   "gui.neoorigins.info.your_origin": "Votre origine",
   "gui.neoorigins.info.debug": "Débogage",
   "gui.neoorigins.info.edit": "Modifier",
+  "gui.neoorigins.info.other_powers": "Autres pouvoirs",
+  "gui.neoorigins.info.other_powers.description": "Pouvoirs qui ne viennent pas de vos origines, comme ceux accordés par une commande, le serveur ou un autre mod.",
   "gui.neoorigins.info.evolution_path": "Voie d'évolution",
   "gui.neoorigins.info.evolution_progress": "Prochaine évolution : %s / %s",
   "gui.neoorigins.info.evolution_apex": "Apogée atteinte",
