@@ -213,6 +213,39 @@ class PowerGrantServiceTest {
         assertEquals(Map.of(ORIGIN, HUMAN), fromOld.getOrigins(), "an old save must still load its origins");
     }
 
+    @Test
+    void grantAndRevokeEventsCarryThePowersTypeAndConfig() {
+        List<com.cyberday1.neoorigins.api.event.PowerGrantedEvent> granted = new java.util.ArrayList<>();
+        List<com.cyberday1.neoorigins.api.event.PowerRevokedEvent> revoked = new java.util.ArrayList<>();
+        java.util.function.Consumer<com.cyberday1.neoorigins.api.event.PowerGrantedEvent> onGrant = granted::add;
+        java.util.function.Consumer<com.cyberday1.neoorigins.api.event.PowerRevokedEvent> onRevoke = revoked::add;
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(com.cyberday1.neoorigins.api.event.PowerGrantedEvent.class, onGrant);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(com.cyberday1.neoorigins.api.event.PowerRevokedEvent.class, onRevoke);
+        try {
+            ServerPlayer sp = join();
+            var plusSix = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(PLUS_SIX);
+            NeoOriginsAPI.grantPower(sp, PLUS_SIX, MOD_A);
+            var g = granted.stream().filter(e -> e.getPowerId().equals(PLUS_SIX)).findFirst().orElseThrow();
+            assertTrue(g.getPower() == plusSix);
+            assertTrue(g.getPowerType() == plusSix.type());
+            assertTrue(g.getConfig() == plusSix.config());
+
+            NeoOriginsAPI.revokePower(sp, PLUS_SIX, MOD_A);
+            var r = revoked.stream().filter(e -> e.getPowerId().equals(PLUS_SIX)).findFirst().orElseThrow();
+            assertTrue(r.getConfig() == plusSix.config(), "a revoke must still carry the config");
+
+            // The origin-change path: abyssal's armor is granted, then revoked on a switch to human.
+            var armor = com.cyberday1.neoorigins.data.PowerDataManager.INSTANCE.getPower(ABYSSAL_ARMOR);
+            NeoOriginsAPI.setOrigin(sp, ORIGIN, ABYSSAL);
+            assertTrue(granted.stream().anyMatch(e -> e.getPower() == armor && e.getConfig() == armor.config()));
+            NeoOriginsAPI.setOrigin(sp, ORIGIN, HUMAN);
+            assertTrue(revoked.stream().anyMatch(e -> e.getPower() == armor && e.getPowerType() == armor.type()));
+        } finally {
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.unregister(onGrant);
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.unregister(onRevoke);
+        }
+    }
+
     private ServerPlayer join() {
         ServerPlayer sp = PlayerLifecycle.realPlayer(server);
         // 26.2+ throws on getId() before the level assigns one; the morph sync reads it.
