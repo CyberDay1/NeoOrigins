@@ -1451,6 +1451,8 @@ public class NeoOriginsNetwork {
         // mid-session would otherwise leave the client predicting phasing while
         // the server has dropped the capability, re-introducing the #109 spasm.
         LAST_PHASE_GATE.put(player.getUUID(), phaseGateSignature(capabilities));
+        LAST_MORPH.put(player.getUUID(), morphPowerFrom(activeHolders));
+        LAST_MORPH_TICK.put(player.getUUID(), player.tickCount);
         PacketDistributor.sendToPlayer(player, new SyncActivePowersPayload(powerMap, capabilities));
         // Keep the HUD ability-slot roster in lockstep with the active-powers
         // map — same change triggers, same connection ordering.
@@ -1658,6 +1660,14 @@ public class NeoOriginsNetwork {
      * powers are somehow active at once the first one wins — stacking morphs
      * has no coherent meaning.
      */
+    /** The power behind the player's current morph, so a swap between two morphs counts as a change. */
+    private static java.util.Optional<Identifier> morphPowerFrom(List<PowerHolder<?>> activeHolders) {
+        for (PowerHolder<?> holder : activeHolders) {
+            if (holder.type() instanceof EntityModelPower) return java.util.Optional.of(holder.id());
+        }
+        return java.util.Optional.empty();
+    }
+
     private static java.util.Optional<MorphSpec> morphSpecFrom(List<PowerHolder<?>> activeHolders) {
         for (PowerHolder<?> holder : activeHolders) {
             if (holder.type() instanceof EntityModelPower
@@ -2019,6 +2029,17 @@ public class NeoOriginsNetwork {
     private static final Map<java.util.UUID, Integer> LAST_PHASE_GATE = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
+     * The entity_model power each player was last synced with, and the tick it
+     * was sent on. A conditioned morph (issue #141) flips with no other sync
+     * trigger, so the per-tick check watches it too.
+     */
+    private static final Map<java.util.UUID, java.util.Optional<Identifier>> LAST_MORPH = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<java.util.UUID, Integer> LAST_MORPH_TICK = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Fewest ticks between two morph-driven syncs, so a flickering condition can't spam packets. */
+    static final int MORPH_RESYNC_TICKS = 5;
+
+    /**
      * A tiny signature of just the phasing-relevant capabilities in a set. Only
      * client-authoritative movement caps ({@code wall_phase}, {@code no_physics},
      * {@code wall_climb}) can cause the #109-style position desync when the
@@ -2060,10 +2081,20 @@ public class NeoOriginsNetwork {
     public static void resyncIfPhaseGateFlipped(ServerPlayer player) {
         Map<Identifier, Boolean> powerMap = new HashMap<>();
         Set<String> capabilities = new HashSet<>();
-        collectActivePowers(player, powerMap, capabilities);
+        List<PowerHolder<?>> activeHolders = new ArrayList<>();
+        collectActivePowers(player, powerMap, capabilities, activeHolders);
         int sig = phaseGateSignature(capabilities);
         Integer prev = LAST_PHASE_GATE.get(player.getUUID());
-        if (prev != null && prev == sig) return;
+        if (prev != null && prev == sig) {
+            // Phasing is unchanged: resync only for a morph change, at most once
+            // every MORPH_RESYNC_TICKS. A skipped change is still pending, so a
+            // later tick sends it.
+            java.util.Optional<Identifier> morph = morphPowerFrom(activeHolders);
+            if (morph.equals(LAST_MORPH.getOrDefault(player.getUUID(), java.util.Optional.empty()))) return;
+            Integer last = LAST_MORPH_TICK.get(player.getUUID());
+            // tickCount restarts on respawn, so a count behind the last one is a new entity.
+            if (last != null && player.tickCount >= last && player.tickCount - last < MORPH_RESYNC_TICKS) return;
+        }
         // Full sync keeps HUD slots / morph / armor-hide in lockstep and also
         // updates LAST_PHASE_GATE.
         syncActivePowersToPlayer(player);
@@ -2072,6 +2103,8 @@ public class NeoOriginsNetwork {
     /** Drop the cached phasing-gate signature when a player leaves. */
     public static void clearPhaseGate(java.util.UUID uuid) {
         LAST_PHASE_GATE.remove(uuid);
+        LAST_MORPH.remove(uuid);
+        LAST_MORPH_TICK.remove(uuid);
     }
 
     /** Open the origin selection screen on the client. */
