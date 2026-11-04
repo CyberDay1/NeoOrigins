@@ -43,7 +43,13 @@ public final class ApiConditions {
         return predicate::test;
     }
 
-    /** Runs {@code body} with {@code contextId} as the log context of any condition the codec decodes. */
+    /** The log context for a codec decode: the power being loaded, or a generic label. */
+    public static String decodeContext() {
+        String ctx = CONTEXT.get();
+        return ctx != null ? ctx : DEFAULT_CONTEXT;
+    }
+
+    /** Runs {@code body} with {@code contextId} as the log context of any condition or action the codec decodes. */
     public static <T> T withContext(String contextId, Supplier<T> body) {
         String prev = CONTEXT.get();
         CONTEXT.set(contextId);
@@ -63,8 +69,7 @@ public final class ApiConditions {
             if (!json.isJsonObject() && !json.isJsonArray()) {
                 return DataResult.error(() -> "condition: expected an object or an array of objects, got " + json);
             }
-            String ctx = CONTEXT.get();
-            return DataResult.success(Pair.of(ApiConditions.parse(json, ctx != null ? ctx : DEFAULT_CONTEXT), ops.empty()));
+            return DataResult.success(Pair.of(ApiConditions.parse(json, decodeContext()), ops.empty()));
         }
 
         @Override
