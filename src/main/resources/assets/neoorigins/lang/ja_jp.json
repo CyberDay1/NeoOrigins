@@ -116,6 +116,8 @@
   "gui.neoorigins.info.your_origin": "あなたのオリジン",
   "gui.neoorigins.info.debug": "デバッグ",
   "gui.neoorigins.info.edit": "編集",
+  "gui.neoorigins.info.other_powers": "その他の能力",
+  "gui.neoorigins.info.other_powers.description": "オリジン以外から得た能力です。コマンド、サーバー、他のModによって付与されたものなどが含まれます。",
   "gui.neoorigins.info.evolution_path": "進化の道",
   "gui.neoorigins.info.evolution_progress": "次の進化: %s / %s",
   "gui.neoorigins.info.evolution_apex": "頂点に到達",

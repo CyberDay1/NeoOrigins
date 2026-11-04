@@ -37,6 +37,9 @@ public record OriginDetailViewModel(
     public static final OriginDetailViewModel EMPTY =
         new OriginDetailViewModel(null, List.of(), List.of(), List.of());
 
+    /** Id of the stand-in origin the info screen's Other Powers tab is drawn from. */
+    public static final ResourceLocation OTHER_POWERS_ID = ResourceLocation.fromNamespaceAndPath("neoorigins", "other_powers");
+
     /**
      * Base-tier detail: an origin's powers as the pack ships them, ignoring
      * whatever tier the viewing player has reached. What the pickers want.
@@ -63,6 +66,62 @@ public record OriginDetailViewModel(
         Origin origin = OriginDataManager.INSTANCE.getOrigin(selectedId);
         if (origin == null) return EMPTY;
 
+        // Skill-slot assignment, shared with the HUD cluster: actives in
+        // powersForTier(tier) order get slots 0–5 (class layer: first active only).
+        // Tier-granted actives (e.g. Sword Immortal's Heavenly Sword Formation at
+        // tier 2) only earn a slot and show their keybind at the caller's tier, so
+        // tier 0 lists base powers alone.
+        Map<ResourceLocation, Integer> slotMap = AbilitySlotKeys.assignSlots(origin, classLayer, tier);
+        List<ResourceLocation> effectivePowers = classLayer
+            ? origin.powers()
+            : origin.powersForTier(tier);
+        return build(origin, effectivePowers, slotMap);
+    }
+
+    /**
+     * The powers the player holds that none of their origins gave them (API and
+     * command grants, global powers), as a stand-in origin for the info screen's
+     * Other Powers tab. Sorted by name; they hold no skill slot, so only a named
+     * hotkey shows as a key tag.
+     */
+    public static OriginDetailViewModel computeOtherPowers(List<ResourceLocation> powerIds) {
+        List<ResourceLocation> sorted = new ArrayList<>(powerIds);
+        sorted.sort(Comparator.comparing(id -> {
+            Component name = resolvePowerName(id);
+            String s = name != null ? name.getString() : "";
+            return (s.isEmpty() ? formatPowerId(id) : s).toLowerCase(Locale.ROOT);
+        }));
+        Origin origin = new Origin(OTHER_POWERS_ID, sorted,
+            new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.NETHER_STAR),
+            com.cyberday1.neoorigins.api.origin.Impact.NONE, 0, true, false,
+            Component.translatable("gui.neoorigins.info.other_powers"),
+            Component.translatable("gui.neoorigins.info.other_powers.description"),
+            List.of(), Optional.empty(), List.of(), Optional.empty(), Optional.empty());
+        return build(origin, sorted, Map.of());
+    }
+
+    /**
+     * The {@code held} powers that none of the player's {@code origins} grant: class layer
+     * at its base powers, every other layer at {@code tier}, as the server collects them.
+     */
+    public static List<ResourceLocation> heldOutsideOrigins(Map<ResourceLocation, ResourceLocation> origins,
+                                                            Collection<ResourceLocation> held, int tier,
+                                                            ResourceLocation classLayer) {
+        Set<ResourceLocation> fromOrigins = new HashSet<>();
+        for (var entry : origins.entrySet()) {
+            Origin origin = OriginDataManager.INSTANCE.getOrigin(entry.getValue());
+            if (origin == null) continue;
+            fromOrigins.addAll(classLayer.equals(entry.getKey()) ? origin.powers() : origin.powersForTier(tier));
+        }
+        List<ResourceLocation> out = new ArrayList<>();
+        for (ResourceLocation id : held) {
+            if (!fromOrigins.contains(id)) out.add(id);
+        }
+        return out;
+    }
+
+    private static OriginDetailViewModel build(Origin origin, List<ResourceLocation> effectivePowers,
+                                               Map<ResourceLocation, Integer> slotMap) {
         Map<ResourceLocation, ResourceLocation> subToParent = new HashMap<>();
         for (var entry : OriginsMultipleExpander.MULTIPLE_EXPANSION_MAP.entrySet())
             for (ResourceLocation subId : entry.getValue())
@@ -73,16 +132,6 @@ public record OriginDetailViewModel(
         List<String> names = new ArrayList<>();
         List<String> descs = new ArrayList<>();
         List<String> keyTags = new ArrayList<>();
-
-        // Skill-slot assignment, shared with the HUD cluster: actives in
-        // powersForTier(tier) order get slots 0–5 (class layer: first active only).
-        // Tier-granted actives (e.g. Sword Immortal's Heavenly Sword Formation at
-        // tier 2) only earn a slot and show their keybind at the caller's tier, so
-        // tier 0 lists base powers alone.
-        Map<ResourceLocation, Integer> slotMap = AbilitySlotKeys.assignSlots(origin, classLayer, tier);
-        List<ResourceLocation> effectivePowers = classLayer
-            ? origin.powers()
-            : origin.powersForTier(tier);
 
         for (ResourceLocation powerId : effectivePowers) {
             // Skip internal/capability-only power types from the info panel —

@@ -43,6 +43,8 @@
   "gui.neoorigins.info.your_origin": "Ваше происхождение",
   "gui.neoorigins.info.debug": "Отладка",
   "gui.neoorigins.info.edit": "Редактировать",
+  "gui.neoorigins.info.other_powers": "Другие способности",
+  "gui.neoorigins.info.other_powers.description": "Способности, полученные не от ваших происхождений, например выданные командой, сервером или другим модом.",
   "screen.neoorigins.origin_editor": "Редактор происхождений",
   "gui.neoorigins.editor.layers_header": "Слои происхождений",
   "gui.neoorigins.editor.powers_header": "Переключение способностей",

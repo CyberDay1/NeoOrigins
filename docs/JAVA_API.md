@@ -123,6 +123,11 @@ Full method list:
 | `conditionCodec()` | A `Codec` for a condition field in your own power config. |
 | `parseAction(json, contextId)` | Parse a NeoOrigins entity action into a `Consumer<ServerPlayer>`. See [Actions in your own code](#actions-in-your-own-code). |
 | `actionCodec()` | A `Codec` for an action field in your own power config. |
+| `getResource(player, resource)` | A resource's current value as an `OptionalInt`, empty if the player doesn't have it. See [Resource values](#resource-values). |
+| `hasResource(player, resource)` | True if the player has the resource. |
+| `changeResource(player, resource, delta)` | Add to a resource, or take away with a negative delta, within the bar's min and max. |
+| `setResource(player, resource, value)` | Set a resource's value directly. |
+| `spendResource(player, resource, amount)` | Take an amount only if the player has that much. Returns `false`, taking nothing, otherwise. |
 | `registerResourceBacking(id, backing)` | Register an external pool that resource bars can name with `"backing"`. See [Resource backings](#resource-backings). |
 
 Call these on the logical server: the player-facing methods take a
@@ -203,6 +208,10 @@ How long a grant lasts:
 - Granting a power the player already has from an origin doesn't apply it
   twice. Changing away from that origin leaves it in place while the grant holds.
 - A `multiple` power id grants all its sub-powers.
+- The player sees it in the origin info screen's Other Powers tab, which lists
+  every power they hold that none of their origins gives: API grants,
+  `/power grant`, the `grant_power` action and global powers. A power with
+  `"hidden": true`, or a code power whose `PowerDisplay` is hidden, stays off it.
 
 `revokePowers(player, source, filter)` only ever looks at the given source's
 grants, so a filter like `holder -> holder.type() instanceof MyPowerType` can't
@@ -359,6 +368,51 @@ player, `offset` runs its inner action unshifted, and `tame_target` tames the
 mob the player is looking at. A `raycast` still hands its hit to the actions
 inside it. Actions name the power whose state they change (`"power": "..."`),
 so they work the same from your code.
+
+---
+
+## Resource values
+
+A power can read and change any resource the player has: a
+`neoorigins:resource` bar, a `neoorigins:variable` or an Apoli resource. Name
+it by its power's id, as `/resource get` does: `mypack:mana`, or
+`mypack:parent_subkey` for a sub-power of a `multiple`.
+
+```java
+ResourceLocation mana = ResourceLocation.fromNamespaceAndPath("mypack", "mana");
+int value = NeoOriginsAPI.getResource(player, mana).orElse(0);
+if (NeoOriginsAPI.spendResource(player, mana, 5)) {
+    // the player had at least 5 and paid it
+}
+NeoOriginsAPI.changeResource(player, mana, 2);
+```
+
+To let pack authors drive a value from a resource, give your config an
+optional field holding the resource's id and read it when the power acts:
+
+```java
+public record FuryConfig(float amount, Optional<ResourceLocation> resource) implements PowerConfiguration {
+    public static final Codec<FuryConfig> CODEC = RecordCodecBuilder.create(i -> i.group(
+        Codec.FLOAT.optionalFieldOf("amount", 2f).forGetter(FuryConfig::amount),
+        ResourceLocation.CODEC.optionalFieldOf("resource").forGetter(FuryConfig::resource)
+    ).apply(i, FuryConfig::new));
+}
+
+// The resource's value when one is named, the fixed amount otherwise.
+float amount = config.resource()
+    .map(id -> (float) NeoOriginsAPI.getResource(player, id).orElse(0))
+    .orElse(config.amount());
+```
+
+- `getResource` is empty when the player doesn't have the resource, so a
+  missing one never reads as an empty bar.
+- `changeResource` keeps the value within the bar's `min` and `max`, or a
+  variable's declared bounds, as the `change_resource` action does.
+- `setResource` sets the value without clamping, as `set_resource` does.
+- A resource with a `backing` reads and writes its pool. A pool that only
+  takes additive changes ignores `setResource`; use `changeResource` there.
+- Each change is sent to the player's HUD straight away. Call these on the
+  server thread.
 
 ---
 

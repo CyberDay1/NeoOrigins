@@ -116,6 +116,8 @@
   "gui.neoorigins.info.your_origin": "당신의 기원",
   "gui.neoorigins.info.debug": "디버그",
   "gui.neoorigins.info.edit": "편집",
+  "gui.neoorigins.info.other_powers": "기타 능력",
+  "gui.neoorigins.info.other_powers.description": "기원이 아닌 곳에서 얻은 능력입니다. 명령어, 서버 또는 다른 모드로 부여된 능력 등이 포함됩니다.",
   "gui.neoorigins.info.evolution_path": "진화의 길",
   "gui.neoorigins.info.evolution_progress": "다음 진화: %s / %s",
   "gui.neoorigins.info.evolution_apex": "정점 도달",

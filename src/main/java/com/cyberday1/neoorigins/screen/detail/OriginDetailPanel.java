@@ -261,7 +261,9 @@ public final class OriginDetailPanel {
         var nameC = UIThemeUtils.themedBold(origin.name());
         g.drawString(font, nameC, cx - font.width(nameC) / 2, hy, theme.nameColor(), false);
         hy += 9 + 4;
-        drawImpactRow(g, cx, hy, origin.impact());
+        if (!OriginDetailViewModel.OTHER_POWERS_ID.equals(origin.id())) {
+            drawImpactRow(g, cx, hy, origin.impact());
+        }
     }
 
     /** Scissored scroll region plus the scroll rail. */

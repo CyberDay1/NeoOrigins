@@ -116,6 +116,8 @@
   "gui.neoorigins.info.your_origin": "La tua origine",
   "gui.neoorigins.info.debug": "Debug",
   "gui.neoorigins.info.edit": "Modifica",
+  "gui.neoorigins.info.other_powers": "Altri poteri",
+  "gui.neoorigins.info.other_powers.description": "Poteri che non provengono dalle tue origini, come quelli concessi da un comando, dal server o da un'altra mod.",
   "gui.neoorigins.info.evolution_path": "Percorso di evoluzione",
   "gui.neoorigins.info.evolution_progress": "Prossima evoluzione: %s / %s",
   "gui.neoorigins.info.evolution_apex": "Apice raggiunto",

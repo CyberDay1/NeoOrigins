@@ -42,15 +42,22 @@ public class OriginInfoScreen extends Screen {
         final boolean classLayer;
         final List<ResourceLocation> originIds;
         final int ownIndex;
+        /** Set only on the Other Powers tab, which shows this instead of an origin. */
+        final OriginDetailViewModel fixedVm;
         int browseIndex;
         TabEntry(ResourceLocation layerId, String layerName, boolean classLayer,
                  List<ResourceLocation> originIds, int ownIndex) {
+            this(layerId, layerName, classLayer, originIds, ownIndex, null);
+        }
+        TabEntry(ResourceLocation layerId, String layerName, boolean classLayer,
+                 List<ResourceLocation> originIds, int ownIndex, OriginDetailViewModel fixedVm) {
             this.layerId = layerId;
             this.layerName = layerName;
             this.classLayer = classLayer;
             this.originIds = originIds;
             this.ownIndex = ownIndex;
             this.browseIndex = ownIndex;
+            this.fixedVm = fixedVm;
         }
         String layerName()                 { return layerName; }
         ResourceLocation currentOriginId() { return originIds.get(browseIndex); }
@@ -115,6 +122,15 @@ public class OriginInfoScreen extends Screen {
             Integer remembered = browseMemory.get(layer.id());
             if (remembered != null) tab.browseIndex = Mth.clamp(remembered, 0, ids.size() - 1);
             tabs.add(tab);
+        }
+        // Powers held from outside any origin get a tab of their own, shown only
+        // when at least one of them is listable (not hidden).
+        OriginDetailViewModel other = OriginDetailViewModel.computeOtherPowers(OriginDetailViewModel.heldOutsideOrigins(
+            origins, com.cyberday1.neoorigins.client.ClientActivePowers.all().keySet(),
+            ClientEvolutionConfig.getCurrentTier(), CLASS_LAYER_ID));
+        if (!other.powerNames().isEmpty()) {
+            tabs.add(new TabEntry(OriginDetailViewModel.OTHER_POWERS_ID, other.origin().name().getString(),
+                false, List.of(OriginDetailViewModel.OTHER_POWERS_ID), 0, other));
         }
 
         panelW = Math.min(width - 40, 400);
@@ -266,6 +282,12 @@ public class OriginInfoScreen extends Screen {
             return;
         }
         TabEntry tab = tabs.get(currentTab);
+        if (tab.fixedVm != null) {
+            viewingOwn = false;
+            currentVm = tab.fixedVm;
+            detail.setOrigin(currentVm);
+            return;
+        }
         // viewingOwn gates liveProgress, so it must be set before setOrigin()
         // measures the evolution section.
         viewingOwn = tab.viewingOwn();
