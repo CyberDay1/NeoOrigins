@@ -57,11 +57,22 @@ public record OriginDetailViewModel(
      * powers and their keybinds appear. For the info screen, not the pickers.
      */
     public static OriginDetailViewModel computeForPlayer(Identifier selectedId, boolean classLayer) {
+        return computeForPlayer(selectedId, classLayer, List.of());
+    }
+
+    /** As {@link #computeForPlayer(Identifier, boolean)}, with {@code granted} API powers listed after the origin's own. */
+    public static OriginDetailViewModel computeForPlayer(Identifier selectedId, boolean classLayer,
+                                                         List<Identifier> granted) {
         int tier = classLayer ? 0 : com.cyberday1.neoorigins.client.ClientEvolutionConfig.getCurrentTier();
-        return compute(selectedId, classLayer, tier);
+        return compute(selectedId, classLayer, tier, granted);
     }
 
     private static OriginDetailViewModel compute(Identifier selectedId, boolean classLayer, int tier) {
+        return compute(selectedId, classLayer, tier, List.of());
+    }
+
+    private static OriginDetailViewModel compute(Identifier selectedId, boolean classLayer, int tier,
+                                                 List<Identifier> granted) {
         if (selectedId == null) return EMPTY;
         Origin origin = OriginDataManager.INSTANCE.getOrigin(selectedId);
         if (origin == null) return EMPTY;
@@ -72,9 +83,12 @@ public record OriginDetailViewModel(
         // tier 2) only earn a slot and show their keybind at the caller's tier, so
         // tier 0 lists base powers alone.
         Map<Identifier, Integer> slotMap = AbilitySlotKeys.assignSlots(origin, classLayer, tier);
-        List<Identifier> effectivePowers = classLayer
+        List<Identifier> effectivePowers = new ArrayList<>(classLayer
             ? origin.powers()
-            : origin.powersForTier(tier);
+            : origin.powersForTier(tier));
+        for (Identifier id : granted) {
+            if (!effectivePowers.contains(id)) effectivePowers.add(id);
+        }
         return build(origin, effectivePowers, slotMap);
     }
 
@@ -116,6 +130,26 @@ public record OriginDetailViewModel(
         List<Identifier> out = new ArrayList<>();
         for (Identifier id : held) {
             if (!fromOrigins.contains(id)) out.add(id);
+        }
+        return out;
+    }
+
+    /**
+     * Which layer tab lists each API-granted power in {@code outside} (held, but from no
+     * origin): the layer its grant names, or {@code defaultLayer} when it names none or
+     * names a layer with no tab. Powers not API-granted are left for the Other Powers tab,
+     * and so is everything when there is no tab at all ({@code defaultLayer} null).
+     */
+    public static Map<Identifier, List<Identifier>> grantsByLayer(Map<Identifier, Optional<Identifier>> grantLayers,
+                                                    List<Identifier> outside, Collection<Identifier> tabLayers,
+                                                    Identifier defaultLayer) {
+        Map<Identifier, List<Identifier>> out = new LinkedHashMap<>();
+        if (defaultLayer == null) return out;
+        for (Identifier id : outside) {
+            Optional<Identifier> layer = grantLayers.get(id);
+            if (layer == null) continue;
+            Identifier target = layer.filter(tabLayers::contains).orElse(defaultLayer);
+            out.computeIfAbsent(target, k -> new ArrayList<>()).add(id);
         }
         return out;
     }

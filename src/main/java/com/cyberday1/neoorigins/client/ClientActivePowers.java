@@ -24,10 +24,17 @@ public final class ClientActivePowers {
 
     private static Map<Identifier, Boolean> powers = Map.of();
     private static Set<String> capabilities = Set.of();
+    private static Map<Identifier, java.util.Optional<Identifier>> grantLayers = Map.of();
     private static com.cyberday1.neoorigins.power.builtin.PhaseBlacklist phaseBlacklist =
         com.cyberday1.neoorigins.power.builtin.PhaseBlacklist.EMPTY;
 
     public static void set(Map<Identifier, Boolean> powersData, Set<String> capData) {
+        set(powersData, capData, Map.of());
+    }
+
+    public static void set(Map<Identifier, Boolean> powersData, Set<String> capData,
+                           Map<Identifier, java.util.Optional<Identifier>> grantLayersData) {
+        grantLayers = Map.copyOf(grantLayersData);
         powers = Map.copyOf(powersData);
         capabilities = Set.copyOf(capData);
         // Pre-parse the phase blacklist carried as "phase_blocked:<entry>"
@@ -39,6 +46,7 @@ public final class ClientActivePowers {
     }
 
     public static void clear() {
+        grantLayers = Map.of();
         powers = Map.of();
         capabilities = Set.of();
         phaseBlacklist = com.cyberday1.neoorigins.power.builtin.PhaseBlacklist.EMPTY;
@@ -74,6 +82,11 @@ public final class ClientActivePowers {
     }
 
     /** True if the local player has power {@code id} granted, regardless of toggle state. */
+    /** Each API-granted power the local player holds, mapped to the layer its grant names. */
+    public static Map<Identifier, java.util.Optional<Identifier>> grantLayers() {
+        return grantLayers;
+    }
+
     public static boolean hasPower(Identifier id) {
         return powers.containsKey(id);
     }
