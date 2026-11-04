@@ -630,8 +630,25 @@ public class NeoOriginsNetwork {
 
     private static void handleSyncActivePowers(SyncActivePowersPayload payload, IPayloadContext ctx) {
         ctx.enqueueWork(() ->
-            com.cyberday1.neoorigins.client.ClientActivePowers.set(payload.powers(), payload.capabilities())
+            com.cyberday1.neoorigins.client.ClientActivePowers.set(
+                payload.powers(), payload.capabilities(), payload.grantLayers())
         );
+    }
+
+    /**
+     * The layer each API-granted leaf power belongs to on the info screen: its grant's
+     * layer, or empty when the grant names none. A layer-tied grant wins over an untied
+     * grant of the same power.
+     */
+    static Map<ResourceLocation, java.util.Optional<ResourceLocation>> apiGrantLayers(ServerPlayer player) {
+        Map<ResourceLocation, java.util.Optional<ResourceLocation>> out = new java.util.LinkedHashMap<>();
+        for (var grant : player.getData(OriginAttachments.originData()).getPowerGrants()) {
+            java.util.Optional<ResourceLocation> layer = java.util.Optional.ofNullable(grant.layer());
+            for (ResourceLocation id : com.cyberday1.neoorigins.service.PowerGrantService.expand(grant.power())) {
+                out.merge(id, layer, (a, b) -> a.isPresent() ? a : b);
+            }
+        }
+        return out;
     }
 
     private static void handleSyncAbilitySlots(SyncAbilitySlotsPayload payload, IPayloadContext ctx) {
@@ -1378,7 +1395,8 @@ public class NeoOriginsNetwork {
         LAST_PHASE_GATE.put(player.getUUID(), phaseGateSignature(capabilities));
         LAST_MORPH.put(player.getUUID(), morphPowerFrom(activeHolders));
         LAST_MORPH_TICK.put(player.getUUID(), player.tickCount);
-        PacketDistributor.sendToPlayer(player, new SyncActivePowersPayload(powerMap, capabilities));
+        PacketDistributor.sendToPlayer(player,
+            new SyncActivePowersPayload(powerMap, capabilities, apiGrantLayers(player)));
         // Keep the HUD ability-slot roster in lockstep with the active-powers
         // map — same change triggers, same connection ordering.
         syncAbilitySlotsToPlayer(player);

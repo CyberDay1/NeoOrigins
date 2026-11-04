@@ -12,11 +12,15 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** What the info screen's Other Powers tab lists: held powers no origin gave, minus hidden ones. */
+/**
+ * Where the info screen lists held powers no origin gave: an API grant joins its layer's tab,
+ * the rest go to the Other Powers tab, minus hidden ones.
+ */
 class OtherPowersTabTest {
 
     private static final ResourceLocation ORIGIN_LAYER = id("origin");
@@ -69,6 +73,42 @@ class OtherPowersTabTest {
     void nothingToListMeansNoRows() {
         assertTrue(OriginDetailViewModel.computeOtherPowers(List.of(HIDDEN)).powerNames().isEmpty(),
             "the screen adds the tab only when there is a row to show");
+    }
+
+    @Test
+    void anUntiedGrantJoinsTheMainOriginTab() {
+        var placed = OriginDetailViewModel.grantsByLayer(Map.of(APEX, Optional.empty()),
+            List.of(APEX, HIDDEN), List.of(ORIGIN_LAYER, CLASS_LAYER), ORIGIN_LAYER);
+        assertEquals(Map.of(ORIGIN_LAYER, List.of(APEX)), placed,
+            "the API grant joins the main tab; the non-grant is left for Other Powers");
+    }
+
+    @Test
+    void aTiedGrantJoinsItsLayersTab() {
+        var placed = OriginDetailViewModel.grantsByLayer(Map.of(APEX, Optional.of(CLASS_LAYER)),
+            List.of(APEX), List.of(ORIGIN_LAYER, CLASS_LAYER), ORIGIN_LAYER);
+        assertEquals(Map.of(CLASS_LAYER, List.of(APEX)), placed);
+    }
+
+    @Test
+    void aGrantOnALayerWithNoTabFallsBackToTheMainTab() {
+        var placed = OriginDetailViewModel.grantsByLayer(Map.of(APEX, Optional.of(id("missing"))),
+            List.of(APEX), List.of(ORIGIN_LAYER), ORIGIN_LAYER);
+        assertEquals(Map.of(ORIGIN_LAYER, List.of(APEX)), placed);
+    }
+
+    @Test
+    void withNoTabEveryGrantStaysForOtherPowers() {
+        assertTrue(OriginDetailViewModel.grantsByLayer(Map.of(APEX, Optional.empty()),
+            List.of(APEX), List.of(), null).isEmpty());
+    }
+
+    @Test
+    void grantedPowersJoinTheOriginsOwnList() {
+        int own = OriginDetailViewModel.computeForPlayer(ABYSSAL, false).powerNames().size();
+        var vm = OriginDetailViewModel.computeForPlayer(ABYSSAL, false, List.of(APEX, BASE));
+        assertEquals(own + 1, vm.powerNames().size(),
+            "apex_hp is added once; water_breathing is already abyssal's and is not repeated");
     }
 
     private static ResourceLocation id(String path) {

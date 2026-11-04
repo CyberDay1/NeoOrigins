@@ -44,6 +44,8 @@ public class OriginInfoScreen extends Screen {
         final int ownIndex;
         /** Set only on the Other Powers tab, which shows this instead of an origin. */
         final OriginDetailViewModel fixedVm;
+        /** API-granted powers listed with the player's own origin on this tab. */
+        List<ResourceLocation> granted = List.of();
         int browseIndex;
         TabEntry(ResourceLocation layerId, String layerName, boolean classLayer,
                  List<ResourceLocation> originIds, int ownIndex) {
@@ -65,6 +67,8 @@ public class OriginInfoScreen extends Screen {
         int total()                        { return originIds.size(); }
     }
 
+    private static final ResourceLocation ORIGIN_LAYER_ID =
+        ResourceLocation.fromNamespaceAndPath("neoorigins", "origin");
     private static final ResourceLocation CLASS_LAYER_ID =
         ResourceLocation.fromNamespaceAndPath("neoorigins", "class");
 
@@ -123,11 +127,24 @@ public class OriginInfoScreen extends Screen {
             if (remembered != null) tab.browseIndex = Mth.clamp(remembered, 0, ids.size() - 1);
             tabs.add(tab);
         }
-        // Powers held from outside any origin get a tab of their own, shown only
-        // when at least one of them is listable (not hidden).
-        OriginDetailViewModel other = OriginDetailViewModel.computeOtherPowers(OriginDetailViewModel.heldOutsideOrigins(
+        // Powers held from outside any origin: an API grant joins its layer's origin
+        // (the main origin when it names no layer); the rest get an Other Powers tab,
+        // shown only when at least one of them is listable (not hidden).
+        List<ResourceLocation> outside = OriginDetailViewModel.heldOutsideOrigins(
             origins, com.cyberday1.neoorigins.client.ClientActivePowers.all().keySet(),
-            ClientEvolutionConfig.getCurrentTier(), CLASS_LAYER_ID));
+            ClientEvolutionConfig.getCurrentTier(), CLASS_LAYER_ID);
+        List<ResourceLocation> tabLayers = new ArrayList<>();
+        for (TabEntry t : tabs) tabLayers.add(t.layerId);
+        ResourceLocation defaultLayer = tabLayers.contains(ORIGIN_LAYER_ID) ? ORIGIN_LAYER_ID
+            : tabLayers.isEmpty() ? null : tabLayers.get(0);
+        Map<ResourceLocation, List<ResourceLocation>> placed = OriginDetailViewModel.grantsByLayer(
+            com.cyberday1.neoorigins.client.ClientActivePowers.grantLayers(), outside, tabLayers, defaultLayer);
+        List<ResourceLocation> rest = new ArrayList<>(outside);
+        for (TabEntry t : tabs) {
+            t.granted = placed.getOrDefault(t.layerId, List.of());
+            rest.removeAll(t.granted);
+        }
+        OriginDetailViewModel other = OriginDetailViewModel.computeOtherPowers(rest);
         if (!other.powerNames().isEmpty()) {
             tabs.add(new TabEntry(OriginDetailViewModel.OTHER_POWERS_ID, other.origin().name().getString(),
                 false, List.of(OriginDetailViewModel.OTHER_POWERS_ID), 0, other));
@@ -294,7 +311,7 @@ public class OriginInfoScreen extends Screen {
         // Only the origin the player holds is drawn at their tier: a browsed one
         // shows its base powers, as the selection screens do.
         currentVm = viewingOwn
-            ? OriginDetailViewModel.computeForPlayer(tab.currentOriginId(), tab.classLayer)
+            ? OriginDetailViewModel.computeForPlayer(tab.currentOriginId(), tab.classLayer, tab.granted)
             : OriginDetailViewModel.compute(tab.currentOriginId(), tab.classLayer);
         detail.setOrigin(currentVm);
     }

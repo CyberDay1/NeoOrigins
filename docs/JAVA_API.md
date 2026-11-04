@@ -208,10 +208,12 @@ How long a grant lasts:
 - Granting a power the player already has from an origin doesn't apply it
   twice. Changing away from that origin leaves it in place while the grant holds.
 - A `multiple` power id grants all its sub-powers.
-- The player sees it in the origin info screen's Other Powers tab, which lists
-  every power they hold that none of their origins gives: API grants,
-  `/power grant`, the `grant_power` action and global powers. A power with
-  `"hidden": true`, or a code power whose `PowerDisplay` is hidden, stays off it.
+- The origin info screen lists it with the player's origin on the grant's
+  layer, or with their main origin when the grant names no layer or a layer
+  they have no origin on. Powers no origin gives that come from elsewhere
+  (`/power grant`, the `grant_power` action, global powers) get an Other Powers
+  tab. A power with `"hidden": true`, or a code power whose `PowerDisplay` is
+  hidden, is not listed.
 
 `revokePowers(player, source, filter)` only ever looks at the given source's
 grants, so a filter like `holder -> holder.type() instanceof MyPowerType` can't

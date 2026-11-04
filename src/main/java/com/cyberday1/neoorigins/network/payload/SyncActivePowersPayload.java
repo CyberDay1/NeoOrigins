@@ -6,6 +6,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -20,7 +21,9 @@ import java.util.Set;
  */
 public record SyncActivePowersPayload(
     Map<ResourceLocation, Boolean> powers,
-    Set<String> capabilities
+    Set<String> capabilities,
+    /** Each API-granted leaf power, mapped to the layer its grant names (empty for none). */
+    Map<ResourceLocation, Optional<ResourceLocation>> grantLayers
 ) implements CustomPacketPayload {
 
     public static final Type<SyncActivePowersPayload> TYPE =
@@ -34,6 +37,12 @@ public record SyncActivePowersPayload(
             FriendlyByteBuf::writeResourceLocation,
             FriendlyByteBuf::writeBoolean);
         NetworkCodecs.writeStringSet(buf, payload.capabilities());
+        buf.writeMap(payload.grantLayers(),
+            FriendlyByteBuf::writeResourceLocation,
+            (b, layer) -> {
+                b.writeBoolean(layer.isPresent());
+                layer.ifPresent(b::writeResourceLocation);
+            });
     }
 
     private static SyncActivePowersPayload decode(FriendlyByteBuf buf) {
@@ -41,7 +50,10 @@ public record SyncActivePowersPayload(
             FriendlyByteBuf::readResourceLocation,
             FriendlyByteBuf::readBoolean);
         Set<String> capabilities = NetworkCodecs.readStringSet(buf);
-        return new SyncActivePowersPayload(powers, capabilities);
+        Map<ResourceLocation, Optional<ResourceLocation>> grantLayers = buf.readMap(
+            FriendlyByteBuf::readResourceLocation,
+            b -> b.readBoolean() ? Optional.of(b.readResourceLocation()) : Optional.empty());
+        return new SyncActivePowersPayload(powers, capabilities, grantLayers);
     }
 
     @Override
