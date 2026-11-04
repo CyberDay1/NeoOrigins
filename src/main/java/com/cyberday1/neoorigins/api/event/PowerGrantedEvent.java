@@ -24,9 +24,7 @@ public class PowerGrantedEvent extends PlayerEvent {
     public PowerType<?> getPowerType() { return power.type(); }
 
     /** The power type's registry id, e.g. {@code neoorigins:natural_glide}. */
-    public ResourceLocation getPowerTypeId() {
-        return getEntity().server.registryAccess().registryOrThrow(PowerTypes.REGISTRY_KEY).getKey(power.type());
-    }
+    public ResourceLocation getPowerTypeId() { return PowerTypes.getId(power.type()); }
 
     /** The decoded config. Cast it to your own config class after checking {@link #getPowerType()}. */
     public PowerConfiguration getConfig() { return power.config(); }
