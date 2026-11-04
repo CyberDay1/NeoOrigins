@@ -530,7 +530,7 @@ public final class ActiveOriginService {
                     if (holder != null) {
                         revokedHere.add(powerId);
                         holder.onRevoked(player);
-                        NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, powerId));
+                        NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, holder));
                         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                             player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LOST, powerId);
                         com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerRevoked(player, powerId);
@@ -566,7 +566,7 @@ public final class ActiveOriginService {
                 PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
                 if (holder != null) {
                     holder.onGranted(player);
-                    NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, powerId));
+                    NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, holder));
                     com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                         player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.GAINED, powerId);
                     com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerGranted(player, powerId);
@@ -647,7 +647,7 @@ public final class ActiveOriginService {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;
             holder.onRevoked(player);
-            NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, powerId));
+            NeoForge.EVENT_BUS.post(new PowerRevokedEvent(player, holder));
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.LOST, powerId);
             com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerRevoked(player, powerId);
@@ -658,7 +658,7 @@ public final class ActiveOriginService {
             PowerHolder<?> holder = PowerDataManager.INSTANCE.getPower(powerId);
             if (holder == null) continue;
             holder.onGranted(player);
-            NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, powerId));
+            NeoForge.EVENT_BUS.post(new PowerGrantedEvent(player, holder));
             com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
                 player, com.cyberday1.neoorigins.service.EventPowerIndex.Event.GAINED, powerId);
             com.cyberday1.neoorigins.compat.kubejs.KubeJSEventBridge.firePowerGranted(player, powerId);

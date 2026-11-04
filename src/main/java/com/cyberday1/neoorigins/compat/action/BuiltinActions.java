@@ -955,7 +955,7 @@ public final class BuiltinActions {
                     if (data.addDynamicGrant(pid)) {
                         holder.onGranted(player);
                         net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                            new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, pid));
+                            new com.cyberday1.neoorigins.api.event.PowerGrantedEvent(player, holder));
                         com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
                     }
                 };
@@ -994,7 +994,7 @@ public final class BuiltinActions {
                         if (!stillGranted) {
                             holder.onRevoked(player);
                             net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(
-                                new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, pid));
+                                new com.cyberday1.neoorigins.api.event.PowerRevokedEvent(player, holder));
                         }
                         com.cyberday1.neoorigins.network.NeoOriginsNetwork.syncToPlayer(player);
                     }
