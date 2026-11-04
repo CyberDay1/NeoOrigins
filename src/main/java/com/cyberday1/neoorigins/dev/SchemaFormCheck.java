@@ -703,6 +703,10 @@ public final class SchemaFormCheck {
                 for (FormFieldSpec sf : model.formFor(typeId)) {
                     if (sf.name().equals("type")) continue;
                     if (commonNames.contains(sf.name())) continue;
+                    // The generator adds the top-level condition alias to every type
+                    // that does not claim "condition" itself; it is not a FieldSpec.
+                    if (sf.name().equals("condition") && !declaredNames.contains("condition")
+                            && sf.description().startsWith("Alias for power_condition")) continue;
                     if (!declaredNames.contains(sf.name())) {
                         System.out.println("[schema-check] FAIL  power-spec " + typeId
                             + ": schema branch field '" + sf.name()
