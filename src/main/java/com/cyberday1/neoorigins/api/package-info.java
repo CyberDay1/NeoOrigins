@@ -25,7 +25,8 @@
  * and changes it ({@code setOrigin}, {@code clearOrigin}), grants and revokes
  * powers on behalf of a mod ({@code grantPower}, {@code revokePower}), registers
  * powers built in code ({@code registerPower}) and parses entity conditions
- * ({@code parseCondition}, {@code conditionCodec}). A custom power type is
+ * ({@code parseCondition}, {@code conditionCodec}) and entity actions
+ * ({@code parseAction}, {@code actionCodec}). A custom power type is
  * registered through NeoForge's {@code RegisterEvent} against the
  * {@code neoorigins:power_type} registry, and origin changes arrive as the
  * events in {@code api.event} on the NeoForge event bus.
