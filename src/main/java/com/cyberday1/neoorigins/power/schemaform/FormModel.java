@@ -182,6 +182,13 @@ public final class FormModel {
             // every branch's field list from commonFields — but the codec
             // reflection fallback does NOT, which is why it prepends them too.
             base = withCommonFields(declaredSpecs(declared));
+            // The loader's alias is not a codec field, so it only exists in the
+            // generated schema. A native condition field keeps its own shape.
+            if (declared.stream().noneMatch(f -> "condition".equals(f.name()))) {
+                for (FormFieldSpec field : schema().formFor(key)) {
+                    if ("condition".equals(field.name())) base.add(field);
+                }
+            }
         } else if (schema().hasStructuredForm(key)) {
             base = schema().formFor(key);
         } else {
@@ -207,7 +214,7 @@ public final class FormModel {
     private static List<FormFieldSpec> declaredSpecs(
             java.util.List<com.cyberday1.neoorigins.compat.registry.FieldSpec> declared) {
         List<FormFieldSpec> out = new ArrayList<>(declared.size());
-        for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : declared) out.add(fs.toFormSpec());
+        for (com.cyberday1.neoorigins.compat.registry.FieldSpec fs : declared) out.add(fs.toFormSpec(true));
         return out;
     }
 

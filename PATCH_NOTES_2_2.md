@@ -2,6 +2,30 @@
 
 ---
 
+## Unreleased
+
+> Powers granted outside an origin now appear on the origin info screen. Mods can read and change a player's resources, and both editors expose whole-power condition gates.
+
+### Changes
+
+- **API-granted powers appear with the player's origin.** A power granted through the API is listed with the player's origin on the grant's layer. A grant without a layer, or on a layer where the player has no origin, appears with their main origin. Powers granted by `/power grant`, `grant_power` actions or global power sets appear in an **Other Powers** tab when no origin already lists them. Hidden powers stay hidden, and the tab only appears when it has powers to show. See [Granting powers at runtime](docs/JAVA_API.md#granting-powers-at-runtime).
+
+### Editors
+
+- **Web exports support all four Minecraft lines.** The origin and mob-origin editors now offer 26.2 and 26.3, with matching vanilla suggestions. The 26.1 export now writes datapack format 101 instead of resource-pack format 84; 26.2 uses 107 and 26.3 uses 121. Exports include the format range required by newer versions. Importing an older format-84 editor export still selects 26.1, so exporting it again corrects the metadata.
+
+- **Both editors offer whole-power condition gates.** `power_condition` and the `power_condition_mode` dropdown are available on every power. `ALLOW` enables the power while the condition passes; `DENY`, the default, disables it while the condition passes. Types that support the top-level `condition` alias also offer its single-condition picker, including in the in-game creator. A power type's own `condition` field keeps its existing format. See [Power types](docs/POWER_TYPES.md).
+
+- **The in-game creator offers lists where power actions and conditions accept them.** Native action and condition fields can now author either one entry or several, matching the web editor. Whole-power gates and the `condition` alias still take one condition object. Declared string choices, such as `effect_over_time.activation`, also appear as dropdowns in the web editor.
+
+- **The web editor's built-in powers and origin templates match the shipped data.** Refreshed both catalogs so loading a template or copying a built-in power uses the current definitions. Editor checks now verify these generated catalogs before building the GitHub Pages editor.
+
+### Mod Developer API
+
+- **Mods can read and change a player's resources.** `hasResource` checks whether the player has a resource, and `getResource` returns its current value or an empty result when it is missing. `changeResource`, `setResource` and `spendResource` use the same resource paths as NeoOrigins actions and costs, including resource backings registered by other mods. See [Resource values](docs/JAVA_API.md#resource-values).
+
+---
+
 ## v2.2.37
 
 > An `entity_model` power with a condition now changes the player's form as they play, so a werewolf can turn at night and change back at dawn. Mods can now run NeoOrigins actions in their own code, and the power grant and revoke events now tell a mod which type of power changed and how it was configured.
