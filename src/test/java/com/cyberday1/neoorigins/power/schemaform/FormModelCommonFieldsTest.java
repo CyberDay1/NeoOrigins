@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -44,6 +45,24 @@ class FormModelCommonFieldsTest {
         Set<String> names = new HashSet<>();
         for (FormFieldSpec s : FormModel.forPower(rl)) names.add(s.name());
         return names;
+    }
+
+    @Test
+    void conditionFieldsMatchTheSchemaUsedByTheWebEditor() {
+        SchemaFormModel schema = SchemaFormModel.loadFromClasspath();
+        for (String type : FormModel.creatorTypes()) {
+            List<FormFieldSpec> actual = FormModel.forPower(Identifier.parse(type));
+            for (FormFieldSpec expected : schema.formFor(type)) {
+                if (!Set.of("condition", "power_condition", "power_condition_mode").contains(expected.name())) continue;
+                List<FormFieldSpec> matches = actual.stream()
+                    .filter(f -> f.name().equals(expected.name())).toList();
+                assertEquals(1, matches.size(), type + " must offer " + expected.name() + " exactly once");
+                FormFieldSpec field = matches.getFirst();
+                assertEquals(expected.kind(), field.kind(), type + ": " + field.name());
+                assertEquals(expected.ref(), field.ref(), type + ": " + field.name());
+                assertEquals(expected.scalarOrArray(), field.scalarOrArray(), type + ": " + field.name());
+            }
+        }
     }
 
     /**

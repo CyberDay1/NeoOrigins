@@ -60,4 +60,10 @@ class MixedOptionsSchemaTest {
             node(new FieldSpec("operation", Kind.ENUM, false)
                 .options("add_value", "add_multiplied_base")));
     }
+
+    @Test
+    void stringFieldsWithDeclaredOptionsAlsoProduceDropdowns() {
+        assertEquals("{\"type\":\"string\",\"enum\":[\"passive\",\"active\"]}",
+            node(new FieldSpec("activation", Kind.STRING, false).options("passive", "active")));
+    }
 }

@@ -95,6 +95,10 @@ jobs:
           cp editor-src/docs/schema/*.json editor-src/website/static/schemas/
           ls -la editor-src/website/static/schemas/
 
+      - name: Verify editor forms, catalogs and datapack round trips
+        working-directory: editor-src/website
+        run: npm run check:editor
+
       - name: Build SvelteKit editor
         working-directory: editor-src/website
         env:
