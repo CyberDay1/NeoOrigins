@@ -2,27 +2,35 @@
 
 ---
 
-## Unreleased
+## v2.2.38
 
-> Powers granted outside an origin now appear on the origin info screen. Mods can read and change a player's resources, and both editors expose whole-power condition gates.
+> Powers granted outside an origin now appear on the origin info screen, and mods can read and change a player's resources. Both editors now offer the conditions that control whether a whole power works, and the in-game creator can add lists of actions and conditions to power fields that accept them. The web editors can export for Minecraft 26.2 and 26.3, and exports for 26.1 now use the correct datapack format.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
 
 ### Changes
 
-- **API-granted powers appear with the player's origin.** A power granted through the API is listed with the player's origin on the grant's layer. A grant without a layer, or on a layer where the player has no origin, appears with their main origin. Powers granted by `/power grant`, `grant_power` actions or global power sets appear in an **Other Powers** tab when no origin already lists them. Hidden powers stay hidden, and the tab only appears when it has powers to show. See [Granting powers at runtime](docs/JAVA_API.md#granting-powers-at-runtime).
+- **Powers granted outside an origin appear on the origin info screen.** The screen previously listed only powers given by the player's origins, leaving granted powers out. An API-granted power now appears with the player's origin on the grant's layer, or with their main origin when the grant names no layer or a layer where they have no origin. Powers from `/power grant`, `grant_power` actions and global power sets appear in an **Other Powers** tab when no origin already lists them. Hidden powers stay hidden, and the tab only appears when it has powers to show. See [Granting powers at runtime](docs/JAVA_API.md#granting-powers-at-runtime).
 
-### Editors
+### Bug Fixes
 
-- **Web exports support all four Minecraft lines.** The origin and mob-origin editors now offer 26.2 and 26.3, with matching vanilla suggestions. The 26.1 export now writes datapack format 101 instead of resource-pack format 84; 26.2 uses 107 and 26.3 uses 121. Exports include the format range required by newer versions. Importing an older format-84 editor export still selects 26.1, so exporting it again corrects the metadata.
+- **Web exports for Minecraft 26.1 use the correct datapack format.** The origin and mob-origin editors wrote format 84, which is 26.1's resource-pack format, into their datapacks. They now write datapack format 101 and include the format range required by newer Minecraft versions. Importing an older format-84 editor export still selects 26.1, so exporting it again corrects its metadata.
 
-- **Both editors offer whole-power condition gates.** `power_condition` and the `power_condition_mode` dropdown are available on every power. `ALLOW` enables the power while the condition passes; `DENY`, the default, disables it while the condition passes. Types that support the top-level `condition` alias also offer its single-condition picker, including in the in-game creator. A power type's own `condition` field keeps its existing format. See [Power types](docs/POWER_TYPES.md).
+- **Both editors offer the conditions that control a whole power.** The mod already read `power_condition` and `power_condition_mode`, but the editors did not offer them. Both fields now appear on every power: `ALLOW` enables the power while the condition passes, and `DENY`, the default for `power_condition`, disables it while the condition passes. Types without their own `condition` field also offer that field as an alias, including in the in-game creator; the alias defaults to `ALLOW`. Both the alias and `power_condition` take one condition object. A power type's own `condition` field keeps its existing meaning and format. See [Power types](docs/POWER_TYPES.md).
 
-- **The in-game creator offers lists where power actions and conditions accept them.** Native action and condition fields can now author either one entry or several, matching the web editor. Whole-power gates and the `condition` alias still take one condition object. Declared string choices, such as `effect_over_time.activation`, also appear as dropdowns in the web editor.
+- **The in-game creator can add several actions or conditions to a power field.** Fields that accept either one action or condition or a list were offered as single-entry pickers in the creator, even though the web editor could already author lists. The creator now offers either form for those fields. The whole-power condition and its `condition` alias still take a single condition.
 
-- **The web editor's built-in powers and origin templates match the shipped data.** Refreshed both catalogs so loading a template or copying a built-in power uses the current definitions. Editor checks now verify these generated catalogs before building the GitHub Pages editor.
+- **The web editor offers declared string choices as dropdowns.** A string field could declare a fixed set of choices, but those choices were left out of the editor's schema, so it offered a text box instead. Fields such as `effect_over_time.activation` now show their declared choices in a dropdown.
+
+- **The web editor's built-in powers and origin templates use the current definitions.** The editor kept copies of these definitions that had fallen behind the mod's data, so starting from a template or copying a built-in power could bring back older settings. Both catalogs now match the shipped data.
+
+### Pack Author Features
+
+- **The web editors can export for Minecraft 26.2 and 26.3.** The origin and mob-origin editors previously offered only 1.21.1 and 26.1. Both now include 26.2 and 26.3, with vanilla suggestions for each version. A 26.2 export uses datapack format 107 and a 26.3 export uses 121; importing either selects the matching target version.
 
 ### Mod Developer API
 
-- **Mods can read and change a player's resources.** `hasResource` checks whether the player has a resource, and `getResource` returns its current value or an empty result when it is missing. `changeResource`, `setResource` and `spendResource` use the same resource paths as NeoOrigins actions and costs, including resource backings registered by other mods. See [Resource values](docs/JAVA_API.md#resource-values).
+- **Mods can read and change a player's resources.** `NeoOriginsAPI` now provides `hasResource`, `getResource`, `changeResource`, `setResource` and `spendResource`. A read returns the current value, or an empty result when the player has no such resource. Changes stay within a resource's bounds, direct sets are unclamped, and spending takes nothing and returns false when the player cannot pay. These calls use the same resource paths as NeoOrigins actions and costs, including pools registered by other mods. A pool that accepts only additive changes ignores a direct set; use `changeResource` for it. See [Resource values](docs/JAVA_API.md#resource-values).
 
 ---
 
