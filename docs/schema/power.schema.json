@@ -3829,6 +3829,10 @@
         "activation": {
           "description": "Aura mode (default passive). 'passive' pulses entity_action every interval while granted (add toggleable:true for an on/off keybind). 'active' binds a keybind that toggles the aura on/off and starts off. Either mode may pay an upkeep (hunger_cost/resource_cost) each pulse: a toggleable aura that can't pay switches itself off, a plain passive one skips the pulse. ('toggle' is accepted as an alias for active.)",
           "type": "string",
+          "enum": [
+            "passive",
+            "active"
+          ],
           "default": "passive"
         },
         "toggleable": {
