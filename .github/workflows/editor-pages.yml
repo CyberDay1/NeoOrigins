@@ -26,6 +26,9 @@ on:
     paths:
       - 'website/**'
       - 'docs/schema/**'
+      - 'src/main/resources/data/neoorigins/origins/**'
+      - 'src/main/resources/assets/neoorigins/lang/en_us.json'
+      - 'src/main/resources/pack.mcmeta'
       - '.github/workflows/editor-pages.yml'
   workflow_dispatch:
 
@@ -70,6 +73,10 @@ jobs:
           else
             echo "::warning::website/static/schemas/ not yet committed; skipping drift check"
           fi
+
+      - name: Verify editor forms, catalogs and datapack round trips
+        working-directory: website
+        run: npm run check:editor
 
       - name: Build SvelteKit static site (CI check)
         working-directory: website

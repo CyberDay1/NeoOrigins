@@ -27,7 +27,9 @@ const outDir = resolve(here, '../src/lib/data/vanilla');
 // Map the editor's target-version id → the client jar that backs it.
 const VERSIONS = [
 	{ id: '1.21.1', jar: 'C:/Users/conno/curseforge/minecraft/Install/versions/1.21.1/1.21.1.jar' },
-	{ id: '26.1', jar: 'C:/Users/conno/curseforge/minecraft/Install/versions/26.1.2/26.1.2.jar' }
+	{ id: '26.1', jar: 'C:/Users/conno/curseforge/minecraft/Install/versions/26.1.2/26.1.2.jar' },
+	{ id: '26.2', jar: 'C:/Users/conno/curseforge/minecraft/Install/versions/26.2/26.2.jar' },
+	{ id: '26.3', jar: 'C:/Users/conno/curseforge/minecraft/Install/versions/26.3/26.3.jar' }
 ];
 
 const DIMENSIONS = ['minecraft:overworld', 'minecraft:the_nether', 'minecraft:the_end'];

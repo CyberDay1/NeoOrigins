@@ -36,7 +36,9 @@ const EMPTY: VanillaData = {
 
 const loaders: Record<TargetMcVersion, () => Promise<{ default: VanillaData }>> = {
 	'1.21.1': () => import('./vanilla/1.21.1.json'),
-	'26.1': () => import('./vanilla/26.1.json')
+	'26.1': () => import('./vanilla/26.1.json'),
+	'26.2': () => import('./vanilla/26.2.json'),
+	'26.3': () => import('./vanilla/26.3.json')
 };
 
 const cache = new Map<TargetMcVersion, VanillaData>();

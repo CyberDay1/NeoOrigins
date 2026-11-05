@@ -1,3 +1,4 @@
+import { TARGET_VERSIONS, DEFAULT_TARGET_VERSION, type TargetMcVersion } from '../datapack/versions';
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
@@ -169,30 +170,7 @@ export function fullId(draft: Pick<OriginDraft, 'namespace' | 'path'>): string {
 
 // ── target Minecraft version / pack_format ───────────────────────────────
 //
-// Phase 2 toggle: 1.21.1 → 48, 26.1 → 84. The editor is schema-driven and
-// does NOT translate power types between version lines — the user picks
-// their target version and is responsible for sticking to power types that
-// exist in that version. The choice is only used to stamp `pack.mcmeta`
-// in the export bundle (see `$lib/datapack/export.ts`).
-
-export type TargetMcVersion = '1.21.1' | '26.1';
-
-export interface TargetVersionOption {
-	id: TargetMcVersion;
-	label: string;
-	packFormat: number;
-}
-
-export const TARGET_VERSIONS: readonly TargetVersionOption[] = [
-	{ id: '1.21.1', label: 'MC 1.21.1', packFormat: 48 },
-	{ id: '26.1', label: 'MC 26.1', packFormat: 84 }
-] as const;
-
-export const DEFAULT_TARGET_VERSION: TargetMcVersion = '1.21.1';
-
-export function packFormatFor(version: TargetMcVersion): number {
-	return TARGET_VERSIONS.find((v) => v.id === version)?.packFormat ?? 48;
-}
+export { TARGET_VERSIONS, DEFAULT_TARGET_VERSION, packFormatFor, type TargetMcVersion, type TargetVersionOption } from '../datapack/versions';
 
 export const targetVersion = writable<TargetMcVersion>(DEFAULT_TARGET_VERSION);
 
@@ -256,7 +234,7 @@ interface PersistedShape {
 }
 
 function isTargetVersion(v: unknown): v is TargetMcVersion {
-	return v === '1.21.1' || v === '26.1';
+	return TARGET_VERSIONS.some((option) => option.id === v);
 }
 
 function isEditorTab(v: unknown): v is EditorTab {

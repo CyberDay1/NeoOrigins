@@ -71,6 +71,20 @@ function findField(fields: FormFieldSpec[], name: string): FormFieldSpec {
 
 console.log('parsePowerSchema');
 
+check('whole-power gates and the condition alias preserve their distinct shapes', () => {
+	for (const type of powerSchema.properties.type.enum as string[]) {
+		const fields = parsePowerSchema(powerSchema, fieldDocs, type);
+		const gate = findField(fields, 'power_condition');
+		assert(gate.kind === 'REF' && gate.refDoc === 'condition', `${type}: gate must be one condition`);
+		const mode = findField(fields, 'power_condition_mode');
+		assert(mode.kind === 'ENUM', `${type}: gate mode must be a dropdown`);
+	}
+	const alias = findField(parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:entity_model'), 'condition');
+	assert(alias.kind === 'REF' && alias.refDoc === 'condition', 'entity_model alias must be one condition');
+	const native = findField(parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:condition_passive'), 'condition');
+	assert(native.kind === 'ARRAY_REF' && native.scalarOrArray, 'native condition must still accept one or many');
+});
+
 check('neoorigins:starting_equipment — branch found, common + branch fields emitted', () => {
 	const fields = parsePowerSchema(powerSchema, fieldDocs, 'neoorigins:starting_equipment');
 	assert(fields.length > 0, 'empty field list');

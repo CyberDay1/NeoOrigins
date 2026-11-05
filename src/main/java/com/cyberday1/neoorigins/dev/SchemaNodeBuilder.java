@@ -116,7 +116,14 @@ public final class SchemaNodeBuilder {
         if (fs.description() != null) node.addProperty("description", fs.description());
 
         switch (kind) {
-            case STRING -> node.addProperty("type", "string");
+            case STRING -> {
+                node.addProperty("type", "string");
+                if (!fs.enumValues().isEmpty()) {
+                    JsonArray values = new JsonArray();
+                    for (String value : fs.enumValues()) values.add(value);
+                    node.add("enum", values);
+                }
+            }
             case INTEGER -> node.addProperty("type", "integer");
             case NUMBER -> node.addProperty("type", "number");
             case BOOLEAN -> node.addProperty("type", "boolean");

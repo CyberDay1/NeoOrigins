@@ -202,7 +202,7 @@
 			/>
 		</div>
 		<small class="hint" id="origin-id-hint">
-			<strong>Namespace</strong> defaults to <code>neoorigins</code>;
+			<strong>Namespace</strong> defaults to <code>neoorigins_custom</code>;
 			<strong>path</strong> is the origin's id within that namespace, e.g.
 			<code>wizard</code>.
 		</small>

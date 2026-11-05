@@ -12,6 +12,8 @@
 		"gen:powers": "tsx scripts/gen-builtin-powers-catalog.ts",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"check:editor": "npm run check && npm run check:catalogs && npm run check:schema && npm run check:seed && npm run check:export && npm run check:import && npm run check:mob && npm run check:templates && npm run check:blocks && npm run check:barstyles",
+		"check:templates": "tsx src/lib/datapack/__tests__/templates.test.ts",
 		"check:schema": "tsx src/lib/schema/__tests__/parse.test.ts",
 		"check:seed": "tsx src/lib/schema/__tests__/fieldSeed.test.ts",
 		"check:export": "tsx src/lib/datapack/__tests__/export.test.ts",

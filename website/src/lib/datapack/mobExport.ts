@@ -51,7 +51,7 @@ export function validateMobDraftIds(draft: MobOriginDraft): string[] {
 
 /**
  * Build a complete mob-origin datapack `.zip` Blob from the current draft.
- * `packFormat` defaults to 48 (MC 1.21.1); pass 84 for MC 26.1.
+ * `packFormat` defaults to 48 (MC 1.21.1); pass 101 for MC 26.1, 107 for MC 26.2 or 121 for MC 26.3.
  */
 export async function exportMobDatapack(
 	draft: MobOriginDraft,
@@ -65,7 +65,14 @@ export async function exportMobDatapack(
 		(draft.name?.trim() || 'Custom NeoOrigins mob origin') +
 		' — built with NeoOrigins Web Editor';
 
-	const mcmeta = { pack: { pack_format: packFormat, description } };
+	const mcmeta = {
+		pack: {
+			pack_format: packFormat,
+			min_format: packFormat,
+			max_format: packFormat,
+			description
+		}
+	};
 
 	const enc = new TextEncoder();
 	const entries: Zippable = {

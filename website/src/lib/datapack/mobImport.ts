@@ -9,6 +9,7 @@
 // Fatal problems (not a zip, or no mob-origin file) throw `MobImportError`.
 
 import { unzipSync, strFromU8 } from 'fflate';
+import { targetVersionForPackFormat } from './versions';
 
 import type { MobOriginDraft, DropRow, TargetMcVersion } from '$lib/stores/mobOriginDraft';
 
@@ -165,8 +166,8 @@ export function importMobDatapack(bytes: Uint8Array): MobImportResult {
 	if ('pack.mcmeta' in files) {
 		const meta = parseJson(files, 'pack.mcmeta') as { pack?: { pack_format?: unknown } } | undefined;
 		const fmt = meta?.pack?.pack_format;
-		if (fmt === 84) targetVersion = '26.1';
-		else if (fmt === 48) targetVersion = '1.21.1';
+		const inferred = targetVersionForPackFormat(fmt);
+		if (inferred) targetVersion = inferred;
 		else warnings.push(`Unrecognized pack_format ${JSON.stringify(fmt)}; defaulting to MC 1.21.1.`);
 	} else {
 		warnings.push('No pack.mcmeta found; defaulting target to MC 1.21.1.');

@@ -276,7 +276,19 @@ public record FieldSpec(
      * the creator renders the nested sub-form instead of a raw-JSON box.
      */
     public FormFieldSpec toFormSpec() {
+        return toFormSpec(false);
+    }
+
+    /** Power codecs accept one action/condition or a list, as the generated schema does. */
+    public FormFieldSpec toFormSpec(boolean widenActionConditionRefs) {
+        List<FormFieldSpec> childSpecs = children.stream()
+            .map(child -> child.toFormSpec(widenActionConditionRefs)).toList();
+        if (widenActionConditionRefs && kind == FormFieldSpec.Kind.REF
+                && ("action.schema.json".equals(ref) || "condition.schema.json".equals(ref))) {
+            return new FormFieldSpec(name, FormFieldSpec.Kind.ARRAY, required, defaultValue,
+                enumValues, min, max, description, null, ref, childSpecs, itemPattern, true, pattern, mixedTypes);
+        }
         return new FormFieldSpec(name, kind, required, defaultValue, enumValues, min, max, description, ref, itemsRef,
-            children.stream().map(FieldSpec::toFormSpec).toList(), itemPattern, false, pattern, mixedTypes);
+            childSpecs, itemPattern, false, pattern, mixedTypes);
     }
 }

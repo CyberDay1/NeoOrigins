@@ -10,7 +10,8 @@
 // reproduce the original draft (modulo the documented lossy spots), with
 // no warnings for a clean editor-produced pack.
 
-import { zipSync } from 'fflate';
+import { zipSync, unzipSync } from 'fflate';
+import { packFormatFor } from '../versions.js';
 
 import { exportDatapack } from '../export.js';
 import { importDatapack, ImportError } from '../import.js';
@@ -124,6 +125,19 @@ await check('infers target version 1.21.1 from pack_format 48', async () => {
 	const res = importDatapack(await exportBytes(makeDraft(), 48));
 	assert(res.targetVersion === '1.21.1', `got ${res.targetVersion}`);
 });
+
+for (const [version, format] of [['26.1', 101], ['26.2', 107], ['26.3', 121]] as const) {
+	await check(`round-trips MC ${version} with datapack format ${format}`, async () => {
+		assert(packFormatFor(version) === format, 'wrong version selector format');
+		const bytes = await exportBytes(makeDraft(), format);
+		const meta = JSON.parse(new TextDecoder().decode(unzipSync(bytes)['pack.mcmeta']));
+		assert(meta.pack.pack_format === format, 'wrong datapack format');
+		assert(meta.pack.min_format === format && meta.pack.max_format === format, 'missing modern format range');
+		const result = importDatapack(bytes);
+		assert(result.targetVersion === version, `got ${result.targetVersion}`);
+		assert(result.warnings.length === 0, result.warnings.join('; '));
+	});
+}
 
 await check('infers target version 26.1 from pack_format 84', async () => {
 	const res = importDatapack(await exportBytes(makeDraft(), 84));

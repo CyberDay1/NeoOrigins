@@ -36,6 +36,7 @@
 // Fatal problems (not a zip, or no origin file at all) throw `ImportError`.
 
 import { unzipSync, strFromU8 } from 'fflate';
+import { targetVersionForPackFormat } from './versions';
 
 import { MAPPED_ORIGIN_KEYS } from '$lib/schema/originSerializer';
 import type { OriginDraft, PowerDraft, TargetMcVersion } from '$lib/stores/originDraft';
@@ -50,7 +51,7 @@ export class ImportError extends Error {
 
 export interface ImportResult {
 	draft: OriginDraft;
-	/** Inferred from `pack.mcmeta` (`pack_format` 84 → 26.1, else 1.21.1). */
+	/** Inferred from `pack.mcmeta` (the supported datapack formats, including legacy editor exports). */
 	targetVersion: TargetMcVersion;
 	/** Non-fatal approximations the caller should surface to the user. */
 	warnings: string[];
@@ -211,15 +212,9 @@ export function buildDraft(files: Record<string, Uint8Array>): ImportResult {
 			| { pack?: { pack_format?: unknown } }
 			| undefined;
 		const fmt = meta?.pack?.pack_format;
-		if (fmt === 84) {
-			targetVersion = '26.1';
-		} else if (fmt === 48) {
-			targetVersion = '1.21.1';
-		} else {
-			warnings.push(
-				`Unrecognized pack_format ${JSON.stringify(fmt)}; defaulting target to MC 1.21.1.`
-			);
-		}
+		const inferred = targetVersionForPackFormat(fmt);
+		if (inferred) targetVersion = inferred;
+		else warnings.push(`Unrecognized pack_format ${JSON.stringify(fmt)}; defaulting to MC 1.21.1.`);
 	} else {
 		warnings.push('No pack.mcmeta found; defaulting target to MC 1.21.1.');
 	}
