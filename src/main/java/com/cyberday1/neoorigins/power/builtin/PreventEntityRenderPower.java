@@ -6,6 +6,7 @@ import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.compat.condition.TargetCondition;
 import com.cyberday1.neoorigins.compat.condition.TargetConditionParser;
 import com.cyberday1.neoorigins.network.payload.SyncHiddenEntitiesPayload;
+import com.cyberday1.neoorigins.power.util.PowerSlices;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -23,11 +24,9 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Native {@code neoorigins:prevent_entity_render} — the holder simply does not see
@@ -75,10 +74,19 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
     private static final int MAX_HIDDEN = 1024;
 
     /**
-     * Last set sent to each player, so a tick that changes nothing sends nothing.
-     * Keyed by player UUID; dropped on revoke.
+     * Each prevent_entity_render power's hidden ids per player. The client gets
+     * their union, and only when it changes.
      */
-    private static final Map<UUID, Set<Integer>> lastSent = new ConcurrentHashMap<>();
+    private static final PowerSlices<Set<Integer>> SLICES = new PowerSlices<>(slices -> {
+        Set<Integer> merged = new HashSet<>();
+        for (Set<Integer> slice : slices) {
+            for (Integer id : slice) {
+                if (merged.size() >= MAX_HIDDEN) return merged;
+                merged.add(id);
+            }
+        }
+        return merged;
+    });
 
     /**
      * Sentinel for "an {@code entity_condition} was authored but could not be
@@ -168,13 +176,13 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % EVAL_INTERVAL_TICKS != 0) return;
 
-        Set<Integer> hidden = matchingEntityIds(player, config);
+        send(player, SLICES.put(player.getUUID(), PowerSlices.currentKey(), matchingEntityIds(player, config)));
+    }
 
-        Set<Integer> previous = lastSent.get(player.getUUID());
-        if (hidden.equals(previous)) return;
-        lastSent.put(player.getUUID(), hidden);
-        PacketDistributor.sendToPlayer(player,
-            new SyncHiddenEntitiesPayload(new ArrayList<>(hidden)));
+    /** A power_condition that turns off must reveal this power's entities again. */
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
     }
 
     /** Ids of the living entities in the holder's view range that pass {@code entity_condition}, capped. */
@@ -207,21 +215,31 @@ public class PreventEntityRenderPower extends PowerType<PreventEntityRenderPower
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        // Drop the memo AND tell the client to forget, or a revoked Beholder keeps
-        // a stale hidden set until they relog.
-        lastSent.remove(player.getUUID());
-        PacketDistributor.sendToPlayer(player, new SyncHiddenEntitiesPayload(List.of()));
+        // Only this power's slice: another prevent_entity_render may still hide things.
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
     }
 
     @Override
     public void onRespawn(ServerPlayer player, Config config) {
-        // Entity ids are per-level, and death moves the player; force a resend by
-        // clearing the memo rather than re-running onGranted (which has no work).
-        lastSent.remove(player.getUUID());
+        // Entity ids are per level, and death moves the player; the next evaluation rebuilds the slice.
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
     }
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
-        lastSent.remove(player.getUUID());
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
+    }
+
+    /** After a reload: drop slices of powers the player no longer holds. */
+    public static void retainHeld(ServerPlayer player, java.util.function.Predicate<net.minecraft.resources.Identifier> held) {
+        send(player, SLICES.retain(player.getUUID(), held));
+    }
+
+    public static void clearPlayer(UUID uuid) {
+        SLICES.clearPlayer(uuid);
+    }
+
+    private static void send(ServerPlayer player, Set<Integer> merged) {
+        if (merged != null) PacketDistributor.sendToPlayer(player, new SyncHiddenEntitiesPayload(new ArrayList<>(merged)));
     }
 }

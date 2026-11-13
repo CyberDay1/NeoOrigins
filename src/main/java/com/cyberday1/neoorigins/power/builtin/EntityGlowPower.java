@@ -5,6 +5,7 @@ import com.cyberday1.neoorigins.api.power.PowerConfiguration;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.compat.condition.TargetConditionParser;
 import com.cyberday1.neoorigins.network.payload.SyncGlowingEntitiesPayload;
+import com.cyberday1.neoorigins.power.util.PowerSlices;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Pair;
@@ -20,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 
 /**
@@ -112,7 +112,12 @@ public class EntityGlowPower extends PowerType<EntityGlowPower.Config> {
         }
     }
 
-    private static final Map<UUID, Map<Integer, Integer>> lastSent = new ConcurrentHashMap<>();
+    /** Each entity_glow power's outlines per player; the client gets their merge. */
+    private static final PowerSlices<Map<Integer, Integer>> SLICES = new PowerSlices<>(slices -> {
+        Map<Integer, Integer> merged = new LinkedHashMap<>();
+        for (Map<Integer, Integer> slice : slices) slice.forEach(merged::putIfAbsent);
+        return merged;
+    });
 
     @Override public Codec<Config> codec() { return Config.CODEC; }
 
@@ -126,24 +131,41 @@ public class EntityGlowPower extends PowerType<EntityGlowPower.Config> {
             if (config.bientityCondition().isPresent() && !config.bientityCondition().get().test(player, target)) continue;
             glowing.put(id, config.colorFor(target));
         }
-        if (glowing.equals(lastSent.get(player.getUUID()))) return;
-        lastSent.put(player.getUUID(), glowing);
-        PacketDistributor.sendToPlayer(player, new SyncGlowingEntitiesPayload(glowing));
+        send(player, SLICES.put(player.getUUID(), PowerSlices.currentKey(), glowing));
+    }
+
+    /** A power_condition that turns off must clear this power's outlines too. */
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
     }
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
-        lastSent.remove(player.getUUID());
-        PacketDistributor.sendToPlayer(player, new SyncGlowingEntitiesPayload(Map.of()));
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
     }
 
     @Override
     public void onRespawn(ServerPlayer player, Config config) {
-        lastSent.remove(player.getUUID());
+        // Entity ids are per level; the next evaluation rebuilds the slice.
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
     }
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
-        lastSent.remove(player.getUUID());
+        send(player, SLICES.remove(player.getUUID(), PowerSlices.currentKey()));
+    }
+
+    /** After a reload: drop slices of powers the player no longer holds. */
+    public static void retainHeld(ServerPlayer player, java.util.function.Predicate<net.minecraft.resources.Identifier> held) {
+        send(player, SLICES.retain(player.getUUID(), held));
+    }
+
+    public static void clearPlayer(UUID uuid) {
+        SLICES.clearPlayer(uuid);
+    }
+
+    private static void send(ServerPlayer player, Map<Integer, Integer> merged) {
+        if (merged != null) PacketDistributor.sendToPlayer(player, new SyncGlowingEntitiesPayload(merged));
     }
 }

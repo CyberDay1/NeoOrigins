@@ -26,6 +26,9 @@ public abstract class PowerType<C extends PowerConfiguration> {
     /** Called every server tick while the player has this power. Default: no-op. */
     public void onTick(ServerPlayer player, C config) {}
 
+    /** Called instead of {@link #onTick} on a tick the power's top-level condition blocks. Default: no-op. */
+    public void onTickBlocked(ServerPlayer player, C config) {}
+
     /** Called when the player logs in with this power already active. */
     public void onLogin(ServerPlayer player, C config) {
         onGranted(player, config);
