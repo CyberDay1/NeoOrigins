@@ -454,6 +454,8 @@ Living entities matching `entity_condition` are drawn with the glowing outline f
 | `green` | float | no | `1.0` | As `red`. |
 | `blue` | float | no | `1.0` | As `red`. |
 
+**Several glow powers.** A player can hold more than one `entity_glow` power, and each outlines its own matches at the same time. When two powers outline the same entity, the power whose ID sorts first sets the colour. Removing one power, or its condition no longer passing, clears only that power's outlines. Several `prevent_entity_render` powers combine the same way: an entity stays hidden while any of them hides it.
+
 **Example: sense anything stuck in a web that is not a spider**
 ```json
 {
