@@ -8,6 +8,7 @@ import com.cyberday1.neoorigins.service.EntityExclusions;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 
 import java.util.List;
@@ -32,10 +33,16 @@ import java.util.List;
  * target the player normally even when {@code entity_types} matches them
  * (including the empty match-all case). See
  * {@link com.cyberday1.neoorigins.service.EntityExclusions}.
+ *
+ * <p>{@code include_boss_tier: true} lifts only the boss-tier exclusion, for
+ * whatever {@code entity_types} matches. The Warden's brain never fires
+ * {@code LivingChangeTargetEvent}, so {@code WardenCanTargetMixin} applies
+ * {@link #hidesFrom} to it directly.
  */
 public class MobsIgnorePlayerPower extends PowerType<MobsIgnorePlayerPower.Config> {
 
-    public record Config(List<String> entityTypes, List<String> entityBlacklist, boolean passive, String type) implements PowerConfiguration {
+    public record Config(List<String> entityTypes, List<String> entityBlacklist, boolean passive,
+                         boolean includeBossTier, String type) implements PowerConfiguration {
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             Codec.STRING.listOf().optionalFieldOf("entity_types", List.of()).forGetter(Config::entityTypes),
             // Per-power blocklist of entity ids ("minecraft:warden") and tag
@@ -46,6 +53,7 @@ public class MobsIgnorePlayerPower extends PowerType<MobsIgnorePlayerPower.Confi
             Codec.STRING.listOf().optionalFieldOf("entity_blacklist", List.of())
                 .forGetter(Config::entityBlacklist),
             Codec.BOOL.optionalFieldOf("passive", false).forGetter(Config::passive),
+            Codec.BOOL.optionalFieldOf("include_boss_tier", false).forGetter(Config::includeBossTier),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
     }
@@ -69,14 +77,25 @@ public class MobsIgnorePlayerPower extends PowerType<MobsIgnorePlayerPower.Confi
      * who has hit the mob still shouldn't make it bolt.
      */
     public static boolean suppressesAvoidance(ServerPlayer player, Mob mob) {
-        return ActiveOriginService.has(player, MobsIgnorePlayerPower.class, cfg -> {
-            boolean typeMatch = cfg.entityTypes().isEmpty()
-                || cfg.entityTypes().stream().anyMatch(id ->
-                    CombatPowerEvents.matchesEntityIdOrTag(mob, id));
-            if (typeMatch && EntityExclusions.isExcluded(mob, cfg.entityBlacklist())) {
-                typeMatch = false;
-            }
-            return typeMatch;
-        });
+        return ActiveOriginService.has(player, MobsIgnorePlayerPower.class, cfg -> matches(cfg, mob));
+    }
+
+    /** {@code entity_types} matches the mob and no exclusion applies (boss-tier only without include_boss_tier). */
+    public static boolean matches(Config cfg, LivingEntity mob) {
+        boolean typeMatch = cfg.entityTypes().isEmpty()
+            || cfg.entityTypes().stream().anyMatch(id -> CombatPowerEvents.matchesEntityIdOrTag(mob, id));
+        return typeMatch && !EntityExclusions.isExcluded(mob, cfg.entityBlacklist(), cfg.includeBossTier());
+    }
+
+    /**
+     * The target-event rule for AI that bypasses the event: a matching power hides
+     * the player unless they hit the mob recently, which {@code passive} overrides.
+     */
+    public static boolean hidesFrom(ServerPlayer player, LivingEntity mob) {
+        if (ActiveOriginService.has(player, MobsIgnorePlayerPower.class, cfg -> cfg.passive() && matches(cfg, mob))) {
+            return true;
+        }
+        return mob.getLastHurtByMob() != player
+            && ActiveOriginService.has(player, MobsIgnorePlayerPower.class, cfg -> matches(cfg, mob));
     }
 }

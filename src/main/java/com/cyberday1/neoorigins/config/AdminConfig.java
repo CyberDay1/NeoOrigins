@@ -204,8 +204,9 @@ public final class AdminConfig {
     // Global blacklist for the mob-control power family: tame_mob,
     // scare_entities and mobs_ignore_player. Entities listed here can never
     // be tamed, scared or made to ignore a player by ANY power, on top of
-    // the hardcoded boss-tier exclusion (Warden, Ender Dragon, Wither) and
-    // any per-power entity_blacklist. Shared matching lives in
+    // the boss-tier exclusion (Warden, Ender Dragon, Wither; only
+    // mobs_ignore_player's include_boss_tier lifts it) and any per-power
+    // entity_blacklist. Shared matching lives in
     // EntityExclusions.
 
     public static final ModConfigSpec.ConfigValue<List<? extends String>> TAME_SCARE_ENTITY_BLACKLIST;
@@ -215,7 +216,8 @@ public final class AdminConfig {
             "Global entity exclusions for taming and scare powers (tame_mob,",
             "scare_entities, mobs_ignore_player). Listed entities can never be",
             "tamed, scared, or made to ignore a player by any power. The Warden,",
-            "Ender Dragon and Wither are ALWAYS excluded and need not be listed.",
+            "Ender Dragon and Wither are excluded without being listed; only a",
+            "mobs_ignore_player power with include_boss_tier can opt them back in.",
             "Format: entity ids (e.g. \"minecraft:elder_guardian\") or entity-type",
             "tags (e.g. \"#mymod:untameable\")."
         ).push("entity_exclusions");
