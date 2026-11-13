@@ -342,6 +342,7 @@ public class PlayerLifecycleEvents {
         // A reload (no single joining player): move holders onto changed definitions first.
         if (event.getPlayer() == null) {
             com.cyberday1.neoorigins.service.PowerReloadReconciler.afterReload(event.getRelevantPlayers().toList());
+            event.getRelevantPlayers().forEach(PlayerLifecycleEvents::dropUnheldEntitySlices);
         }
         event.getRelevantPlayers().forEach(sp -> {
             // Re-apply global power sets so a /reload that added or removed an
@@ -353,6 +354,19 @@ public class PlayerLifecycleEvents {
             NeoOriginsNetwork.syncKeybindRegistryToPlayer(sp);
             NeoOriginsNetwork.syncActiveThemeToPlayer(sp);
         });
+    }
+
+    /** Glow/hide slices of powers a reload took away; embedded children follow their parent. */
+    private static void dropUnheldEntitySlices(ServerPlayer sp) {
+        var held = ActiveOriginService.activePowerIds(sp);
+        java.util.function.Predicate<net.minecraft.resources.Identifier> keep = id -> {
+            if (held.contains(id)) return true;
+            int split = id.getPath().indexOf(com.cyberday1.neoorigins.data.EmbeddedPowerLoading.SEGMENT);
+            return split > 0 && held.contains(net.minecraft.resources.Identifier.fromNamespaceAndPath(
+                id.getNamespace(), id.getPath().substring(0, split)));
+        };
+        com.cyberday1.neoorigins.power.builtin.EntityGlowPower.retainHeld(sp, keep);
+        com.cyberday1.neoorigins.power.builtin.PreventEntityRenderPower.retainHeld(sp, keep);
     }
 
     @SubscribeEvent
@@ -395,6 +409,8 @@ public class PlayerLifecycleEvents {
         com.cyberday1.neoorigins.power.util.PowerUpkeep.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.ShadowOrbPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.power.builtin.StealthPower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.power.builtin.EntityGlowPower.clearPlayer(uuid);
+        com.cyberday1.neoorigins.power.builtin.PreventEntityRenderPower.clearPlayer(uuid);
         com.cyberday1.neoorigins.compat.OriginsCompatPowerLoader.clearAmplifierModifiers(uuid);
         com.cyberday1.neoorigins.service.JumpActionRegistry.clearPlayer(uuid);
     }
