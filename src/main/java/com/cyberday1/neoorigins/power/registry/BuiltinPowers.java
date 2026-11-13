@@ -632,9 +632,11 @@ public final class BuiltinPowers {
                 .doc("Entity ids or #tags of mobs that never aggro or target this player. Empty/omitted = matches every mob."),
             new FieldSpec("entity_blacklist", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)
-                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they target the player normally even when entity_types matches (including the empty match-all case). The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list."),
+                .doc("Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they target the player normally even when entity_types matches (including the empty match-all case). The tame_scare_entity_blacklist config list is always excluded, and the Warden, Ender Dragon and Wither are excluded unless include_boss_tier is set."),
             new FieldSpec("passive", Kind.BOOLEAN, false)
-                .def(false).doc("When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).")));
+                .def(false).doc("When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit)."),
+            new FieldSpec("include_boss_tier", Kind.BOOLEAN, false)
+                .def(false).doc("When true, the Warden, Ender Dragon and Wither are no longer excluded: whichever of them entity_types matches (all three for an empty list) ignores the player like any other mob. Both blacklists still apply. Works fully on the Warden; the Wither's side heads and the Ender Dragon still attack.")));
         define("mobs_target_player", MobsTargetPlayerPower.class, List.of(
             new FieldSpec("entity_types", Kind.ARRAY, false)
                 .itemPattern(TOKEN_OR_ID_PATTERN)

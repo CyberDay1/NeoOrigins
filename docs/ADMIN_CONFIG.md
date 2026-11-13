@@ -123,6 +123,6 @@ and the `feared_by` flee sweep of `entity_group`.
 |---|---|
 | Key | `tame_scare_entity_blacklist`, a list. Default `[]`. |
 | Format | Entity ids (e.g. `"minecraft:elder_guardian"`) or entity-type tags (e.g. `"#mymod:untameable"`). |
-| Always excluded | The Warden, Ender Dragon and Wither are hardcoded exclusions and need not be listed. |
+| Boss-tier | The Warden, Ender Dragon and Wither are hardcoded exclusions and need not be listed. Only a `mobs_ignore_player` power with `include_boss_tier` lifts it, and this list still applies to that power. |
 
 Source of truth: `config/AdminConfig.java`.

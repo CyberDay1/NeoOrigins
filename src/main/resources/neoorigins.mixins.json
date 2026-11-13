@@ -16,6 +16,7 @@
     "FoodDataNoRegenMixin",
     "EnderManLookMixin",
     "AvoidEntityGoalMixin",
+    "WardenCanTargetMixin",
     "EntityMakeStuckInBlockMixin",
     "EntityBlockSpeedFactorMixin",
     "PlayerStartFallFlyingMixin",
