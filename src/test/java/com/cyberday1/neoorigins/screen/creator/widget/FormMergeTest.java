@@ -10,6 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 /** What a form edit keeps and what it overwrites, one case per rule. */
 class FormMergeTest {
 
+    @Test
+    void anAddonActionWithoutAFormKeepsItsNamespaceAndConfig() {
+        expect("{\"type\":\"addon:heal\",\"destination\":{\"x\":2},\"amount\":4}",
+            "{\"type\":\"addon:heal\",\"destination\":{\"x\":2},\"amount\":4}",
+            "{\"type\":\"addon:heal\"}", "{\"type\":\"addon:heal\"}");
+    }
+
     private static JsonElement j(String s) { return s == null ? null : JsonParser.parseString(s); }
 
     private static void expect(String want, String orig, String before, String after) {

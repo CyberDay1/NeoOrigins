@@ -1,0 +1,14 @@
+{
+  "type": "api_smoke:wrapper",
+  "name": "Resource wrapper",
+  "managed": true,
+  "child": {
+    "type": "neoorigins:resource",
+    "name": "Embedded Focus",
+    "description": "An explicitly granted inline resource with its own HUD state.",
+    "min": 0,
+    "max": 100,
+    "start_value": 42,
+    "hud_render": {"label": "Embedded Focus", "color": "#55AAFF"}
+  }
+}

@@ -104,8 +104,35 @@ public final class CompatRegistries {
     }
 
     // ── Lookups ───────────────────────────────────────────────────────────────
+    private static final java.util.Map<Identifier, ActionType> ADDON_ACTIONS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Startup registrations from the stable Java API, also available to headless parsing. */
+    public static <C> void registerEntityAction(Identifier id,
+            com.mojang.serialization.Codec<C> codec,
+            java.util.function.BiConsumer<net.minecraft.server.level.ServerPlayer, C> handler) {
+        java.util.Objects.requireNonNull(id, "id");
+        java.util.Objects.requireNonNull(codec, "codec");
+        java.util.Objects.requireNonNull(handler, "handler");
+        if (Set.of("minecraft", "neoorigins", "origins", "apoli", "apace", "apugli").contains(id.getNamespace())) {
+            throw new IllegalArgumentException("Register actions in your own mod namespace: " + id);
+        }
+        ActionType descriptor = new ActionType(id, (json, context) -> {
+            C config = codec.parse(com.mojang.serialization.JsonOps.INSTANCE, json).getOrThrow();
+            return player -> handler.accept(player, config);
+        }, java.util.List.of());
+        if ((ACTION_REGISTRY != null && ACTION_REGISTRY.containsKey(id))
+                || ADDON_ACTIONS.putIfAbsent(id, descriptor) != null) {
+            throw new IllegalStateException("An entity action is already registered as '" + id + "'");
+        }
+    }
+
+    /** Internal test cleanup; registrations normally last for the process lifetime. */
+    public static void unregisterAddonAction(Identifier id) { ADDON_ACTIONS.remove(id); }
+
     public static ActionType action(Identifier id) {
-        return ACTION_REGISTRY == null ? null
+        ActionType addon = ADDON_ACTIONS.get(id);
+        return addon != null ? addon : ACTION_REGISTRY == null ? null
             : ACTION_REGISTRY.get(id).map(net.minecraft.core.Holder.Reference::value).orElse(null);
     }
     public static ConditionType condition(Identifier id) {
@@ -123,7 +150,9 @@ public final class CompatRegistries {
 
     // ── Key sets (the future source for the parsers' KNOWN_TYPES) ───────────────
     public static Set<Identifier> actionKeys() {
-        return ACTION_REGISTRY == null ? Set.of() : ACTION_REGISTRY.keySet();
+        Set<Identifier> ids = new java.util.HashSet<>(ADDON_ACTIONS.keySet());
+        if (ACTION_REGISTRY != null) ids.addAll(ACTION_REGISTRY.keySet());
+        return Set.copyOf(ids);
     }
     public static Set<Identifier> conditionKeys() {
         return CONDITION_REGISTRY == null ? Set.of() : CONDITION_REGISTRY.keySet();

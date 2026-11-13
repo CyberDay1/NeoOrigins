@@ -1,0 +1,11 @@
+{
+  "type": "api_smoke:wrapper",
+  "child": {
+    "type": "neoorigins:active_ability",
+    "cooldown_ticks": 0,
+    "entity_action": {
+      "type": "neoorigins:and",
+      "actions": [{"type": "api_smoke:heal", "amount": 3}]
+    }
+  }
+}

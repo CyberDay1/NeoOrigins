@@ -1,0 +1,76 @@
+// Run with: ./gradlew -PapiSmoke runApiSmoke
+sourceSets {
+    apiSmoke {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+
+neoForge {
+    mods {
+        api_smoke { sourceSet sourceSets.apiSmoke }
+    }
+    runs {
+        apiUi {
+            client()
+            sourceSet = sourceSets.apiSmoke
+            gameDirectory = file('runs/api-ui')
+            programArgument '--quickPlaySingleplayer'
+            programArgument 'world'
+            programArgument '--width'
+            programArgument '1280'
+            programArgument '--height'
+            programArgument '800'
+            systemProperty 'neoorigins.apiSmoke.client', 'true'
+            systemProperty 'forge.logging.console.level', 'info'
+        }
+        apiSmoke {
+            server()
+            sourceSet = sourceSets.apiSmoke
+            gameDirectory = file('runs/api-smoke')
+            programArgument '--nogui'
+            systemProperty 'forge.logging.console.level', 'info'
+        }
+    }
+}
+
+def prepareApiSmoke = tasks.register('prepareApiSmoke') {
+    doLast {
+        def runDir = file('runs/api-smoke')
+        runDir.mkdirs()
+        def result = new File(runDir, 'result.txt')
+        if (result.exists()) result.delete()
+        new File(runDir, 'server.properties').text = '''server-ip=127.0.0.1
+server-port=0
+online-mode=false
+level-name=world
+level-type=minecraft:flat
+generate-structures=false
+view-distance=2
+simulation-distance=2
+max-tick-time=120000
+'''
+        // Reset only our fixture definition so repeated runs start from the same state.
+        def pack = new File(runDir, 'world/datapacks/api_smoke_override')
+        copy {
+            from 'src/main/resources/pack.mcmeta'
+            into pack
+        }
+        copy {
+            from 'src/apiSmoke/resources'
+            include 'data/api_smoke/origins/powers/managed.json'
+            into pack
+        }
+    }
+}
+
+tasks.matching { it.name == 'runApiSmoke' }.configureEach {
+    dependsOn prepareApiSmoke
+    doLast {
+        def result = file('runs/api-smoke/result.txt')
+        if (!result.exists() || result.text.trim() != 'PASS') {
+            throw new GradleException('API server smoke test failed: ' +
+                (result.exists() ? result.text : 'no result; inspect runs/api-smoke/logs/latest.log'))
+        }
+    }
+}

@@ -109,7 +109,7 @@ public final class DebugCommand {
         ctx.getSource().sendSuccess(() -> Component.literal(
             "action " + type + " executed")
             .withStyle(ChatFormatting.GREEN)
-            .append(Component.literal("  [known=" + ActionParser.KNOWN_TYPES.contains(type) + "]")
+            .append(Component.literal("  [known=" + ActionParser.knownTypes().contains(type) + "]")
                 .withStyle(ChatFormatting.GRAY)), false);
         return 1;
     }
@@ -122,7 +122,7 @@ public final class DebugCommand {
 
         String type = canonicalType(json);
         boolean known = isAction
-            ? ActionParser.KNOWN_TYPES.contains(type)
+            ? ActionParser.knownTypes().contains(type)
             : ConditionParser.KNOWN_TYPES.contains(type);
 
         boolean parsedOk;
