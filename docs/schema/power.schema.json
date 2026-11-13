@@ -5461,7 +5461,7 @@
           }
         },
         "entity_blacklist": {
-          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they target the player normally even when entity_types matches (including the empty match-all case). The Warden, Ender Dragon and Wither plus the tame_scare_entity_blacklist config list are always excluded regardless of this list.",
+          "description": "Entity ids (\"minecraft:warden\") and tag refs (\"#mymod:relentless\") this power never affects — they target the player normally even when entity_types matches (including the empty match-all case). The tame_scare_entity_blacklist config list is always excluded, and the Warden, Ender Dragon and Wither are excluded unless include_boss_tier is set.",
           "type": "array",
           "items": {
             "type": "string",
@@ -5470,6 +5470,11 @@
         },
         "passive": {
           "description": "When true, the ignore is unconditional — even hitting the mob does not provoke retaliation. Default false (the mob may target back briefly after being hit).",
+          "type": "boolean",
+          "default": false
+        },
+        "include_boss_tier": {
+          "description": "When true, the Warden, Ender Dragon and Wither are no longer excluded: whichever of them entity_types matches (all three for an empty list) ignores the player like any other mob. Both blacklists still apply. Works fully on the Warden; the Wither's side heads and the Ender Dragon still attack.",
           "type": "boolean",
           "default": false
         },

@@ -14,9 +14,9 @@ import java.util.Set;
  *
  * <p>An entity is excluded from mob-control effects when ANY of these hold:
  * <ol>
- *   <li><b>Boss-tier</b> — Warden, Ender Dragon, Wither. Hardcoded, never
- *       overridable: bosses can't be tamed, scared, or made to ignore the
- *       player. The Ender Dragon and Wither were historically caught by
+ *   <li><b>Boss-tier</b> — Warden, Ender Dragon, Wither. Hardcoded: bosses
+ *       can't be tamed or scared, and only a {@code mobs_ignore_player} with
+ *       {@code include_boss_tier} can make them ignore the player. The Ender Dragon and Wither were historically caught by
  *       {@code tame_mob}'s {@code canUsePortal} gate; the Warden slipped
  *       through (it can use portals), hence the explicit set.</li>
  *   <li><b>Global config blacklist</b> — the {@code tame_scare_entity_blacklist}
@@ -78,7 +78,12 @@ public final class EntityExclusions {
      * calls the parts separately so it can show distinct actionbar messages.
      */
     public static boolean isExcluded(LivingEntity entity, List<String> perPowerBlacklist) {
-        return isBossTier(entity)
+        return isExcluded(entity, perPowerBlacklist, false);
+    }
+
+    /** As above; {@code includeBossTier} drops only the boss-tier part, both blacklists still apply. */
+    public static boolean isExcluded(LivingEntity entity, List<String> perPowerBlacklist, boolean includeBossTier) {
+        return (!includeBossTier && isBossTier(entity))
             || isConfigBlacklisted(entity)
             || matchesAny(entity, perPowerBlacklist);
     }

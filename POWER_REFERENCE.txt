@@ -5101,7 +5101,7 @@
 
   neoorigins:mobs_ignore_player
     Passive | Shipped powers: 6 | MobsIgnorePlayerPower
-    Fields: entity_blacklist, entity_types, passive
+    Fields: entity_blacklist, entity_types, include_boss_tier, passive
 
   neoorigins:mobs_target_player
     Passive | Shipped powers: 0 | MobsTargetPlayerPower
