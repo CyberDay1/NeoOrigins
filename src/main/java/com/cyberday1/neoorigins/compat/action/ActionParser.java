@@ -702,6 +702,9 @@ public final class ActionParser {
         // action per activation (an explode each), reachable without typing a number.
         final float  blockRadius       = json.has("radius") ? radius : BLOCK_SWEEP_DEFAULT_RADIUS;
         final boolean finalIncludeSelf = includeSelf;
+        // The pack takes over target selection: skips every [friendly_fire] filter below.
+        final boolean finalIgnoreFriendlyFire = json.has("ignore_friendly_fire")
+            && json.get("ignore_friendly_fire").getAsBoolean();
         final String  finalShape       = shape;
         final double  finalConeCos     = coneCos;
         final BiEntityAction finalBiAction = biAction;
@@ -776,19 +779,9 @@ public final class ActionParser {
                     // golems protected; passive animals (sheep, cow, pig, ...) NOT
                     // protected so active combat AOEs (Hiveling Sting, Inferno Burst,
                     // ...) can actually hit livestock.
+                    // ignore_friendly_fire skips all five filters, never the caster check.
                     if (entity == source) continue;
-                    if (GameplayConfig.ffProtectOwnedPets()
-                            && entity instanceof net.minecraft.world.entity.TamableAnimal tame
-                            && tame.getOwnerReference() != null
-                            && tame.getOwnerReference().getUUID().equals(casterUuid)) continue;
-                    if (GameplayConfig.ffProtectMinions()
-                            && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(entity, casterUuid)) continue;
-                    if (GameplayConfig.ffProtectAnimals()
-                            && entity instanceof net.minecraft.world.entity.animal.Animal) continue;
-                    if (GameplayConfig.ffProtectVillagers()
-                            && entity instanceof net.minecraft.world.entity.npc.villager.AbstractVillager) continue;
-                    if (GameplayConfig.ffProtectIronGolems()
-                            && entity instanceof net.minecraft.world.entity.animal.golem.IronGolem) continue;
+                    if (!finalIgnoreFriendlyFire && friendlyFireProtected(entity, casterUuid)) continue;
                 }
 
                 if (finalBiAction != null) {
@@ -828,6 +821,23 @@ public final class ActionParser {
                 }
             }
         };
+    }
+
+    /** The [friendly_fire] filters in gameplay.toml; area_of_effect's ignore_friendly_fire skips them. */
+    private static boolean friendlyFireProtected(net.minecraft.world.entity.LivingEntity entity, java.util.UUID casterUuid) {
+        if (GameplayConfig.ffProtectOwnedPets()
+                && entity instanceof net.minecraft.world.entity.TamableAnimal tame
+                && tame.getOwnerReference() != null
+                && tame.getOwnerReference().getUUID().equals(casterUuid)) return true;
+        if (GameplayConfig.ffProtectMinions()
+                && com.cyberday1.neoorigins.service.MinionTracker.isTrackedMinionOf(entity, casterUuid)) return true;
+        if (GameplayConfig.ffProtectAnimals()
+                && entity instanceof net.minecraft.world.entity.animal.Animal) return true;
+        if (GameplayConfig.ffProtectVillagers()
+                && entity instanceof net.minecraft.world.entity.npc.villager.AbstractVillager) return true;
+        if (GameplayConfig.ffProtectIronGolems()
+                && entity instanceof net.minecraft.world.entity.animal.golem.IronGolem) return true;
+        return false;
     }
 
     // ---- Phase 0: filled stubs ----
