@@ -1,0 +1,10 @@
+{
+  "type": "api_smoke:wrapper",
+  "managed": true,
+  "child": {
+    "type": "neoorigins:attribute_modifier",
+    "attribute": "minecraft:max_health",
+    "amount": 6,
+    "operation": "add_value"
+  }
+}
