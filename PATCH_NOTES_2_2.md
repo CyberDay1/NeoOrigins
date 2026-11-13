@@ -1,5 +1,29 @@
 # NeoOrigins 2.2 — Patch Notes
 
+## v2.2.39
+
+> Several `entity_glow` powers on one player now show at the same time, and glow and hiding powers clear as soon as their condition stops passing. Pack authors can let an `area_of_effect` reach villagers and other mobs the server protects, and let `mobs_ignore_player` include the Warden and the other bosses. Mods can now add their own entity actions and build power types that contain other powers.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **`entity_glow` and `prevent_entity_render` follow their condition as it changes (#143).** When the condition controlling the whole power stopped passing, such as a toggle being switched off, the entities it outlined kept glowing and the entities it hid stayed hidden, and its `bientity_condition` was no longer checked. They now clear as soon as the condition stops passing, and return when it passes again.
+
+- **Several `entity_glow` powers on one player now work together (#144).** Each power replaced the others' outlines, so only one power's targets glowed at a time, and removing any of them cleared them all. All of a player's glow powers now show at once, and removing one clears only its own outlines. When two powers outline the same entity, the power whose ID sorts first sets the colour. `prevent_entity_render` had the same problem and is fixed too. See [`entity_glow`](docs/powers/visuals.md#neooriginsentity_glow).
+
+### Pack Author Features
+
+- **`area_of_effect` can ignore the server's friendly-fire settings (#146).** The new `ignore_friendly_fire` field skips all five [`[friendly_fire]`](docs/GAMEPLAY_CONFIG.md#friendly_fire-aoe-target-filtering) filters in `gameplay.toml` for that action: `protect_owned_pets`, `protect_minions`, `protect_animals`, `protect_villagers` and `protect_iron_golems`. This lets a helpful area effect, such as healing nearby villagers, reach the mobs those settings protect. It defaults to false, and `include_source` still decides whether the caster is affected. See [`area_of_effect`](docs/actions/meta.md#neooriginsarea_of_effect).
+
+- **`mobs_ignore_player` can include boss-tier mobs (#145).** The Warden, Ender Dragon and Wither were always excluded. The new `include_boss_tier` field lifts that exclusion for whichever bosses `entity_types` matches, while both blacklists (the power's own and [`[entity_exclusions]`](docs/ADMIN_CONFIG.md#entity_exclusions-taming-and-scare-blacklist)), `passive` and the retaliation window still apply. The Warden then gains no anger from the player and does not hunt them, though its Darkness pulse still reaches them and sculk shriekers still summon it. The Wither's main head stops targeting the player but its side heads still fire, and the Ender Dragon is unaffected. See [`mobs_ignore_player`](docs/powers/mobs.md#neooriginsmobs_ignore_player).
+
+### Mod Developer API
+
+- **Mods can register their own entity actions (#142).** `NeoOriginsAPI.registerEntityAction` takes an id in the mod's own namespace, a codec for the action's config and a handler that receives the player and that config. Pack authors can then use the action in any `entity_action`, including inside `and`, `if_else` and `delay`, and `parseAction` and `actionCodec` read it too. A registered id takes priority over the legacy namespace fallback, and a config that cannot be read is logged and does nothing. These actions act on players only. A mod that also registers its action on the client gets it in the in-game action picker, where its fields are written as JSON. See [Registering your own entity actions](docs/JAVA_API.md#registering-your-own-entity-actions).
+
+- **Custom power types can contain other powers (#142).** `NeoOriginsAPI.powerCodec` gives a mod's power config a field that holds another power, written inline or named by id. Named powers are found after loading, so file order does not matter, and a missing power or a loop disables the powers that depend on it. The mod decides how the inner power runs: it can pass along the hooks it needs, such as activation, or grant the inner power with `grantPower` so it gets its own hotkey, HUD bar and saved state. When a `/reload` changes an inner power, players who hold it are updated the same way as for any other power. See [Powers inside a custom power](docs/JAVA_API.md#powers-inside-a-custom-power).
+
 ---
 
 ## v2.2.38
