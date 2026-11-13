@@ -163,6 +163,17 @@ public final class NeoOriginsAPI {
     // ---------------------------------------------------------------------
 
     /**
+     * A child power config field: a named power ID or an inline power object. Use a unique,
+     * stable slot for each field, e.g. {@code powerCodec("child").fieldOf("child")}. Inline
+     * IDs are parent/_embedded/slot. A slot codec must not be used as a list element codec.
+     * Loading a definition does not grant or tick it; forward hooks yourself OR grant its
+     * id through the normal API. Codec probes outside power loading preserve JSON only.
+     */
+    public static Codec<com.cyberday1.neoorigins.api.power.EmbeddedPower> powerCodec(String slot) {
+        return com.cyberday1.neoorigins.data.EmbeddedPowerLoading.codec(slot);
+    }
+
+    /**
      * Registers a power built in code under {@code id} (your mod's namespace), from a power type and a
      * configuration instead of JSON. Call it on every launch, from your mod's constructor or
      * {@code FMLCommonSetupEvent}. The power then works like a datapack power: origins can list it and
@@ -232,6 +243,18 @@ public final class NeoOriginsAPI {
     // ---------------------------------------------------------------------
     // Actions
     // ---------------------------------------------------------------------
+
+    /**
+     * Registers a player-targeted entity action in your mod's namespace. Call once during
+     * mod construction or common setup, before datapacks load, on both physical sides.
+     * The codec reads the action object (including its type field); the handler executes
+     * on the server thread. Duplicate ids and reserved namespaces are rejected.
+     * Registrations survive datapack reloads. No automatic mob-target adaptation is made.
+     */
+    public static <C> void registerEntityAction(ResourceLocation id, Codec<C> codec,
+            java.util.function.BiConsumer<ServerPlayer, C> handler) {
+        com.cyberday1.neoorigins.compat.registry.CompatRegistries.registerEntityAction(id, codec, handler);
+    }
 
     /**
      * Parses a NeoOrigins entity action, the JSON a datapack writes in an {@code entity_action} field,

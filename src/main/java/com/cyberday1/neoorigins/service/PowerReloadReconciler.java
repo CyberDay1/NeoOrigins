@@ -27,6 +27,16 @@ public final class PowerReloadReconciler {
 
     private PowerReloadReconciler() {}
 
+    private record LifecycleKey(UUID player, ResourceLocation power) {}
+    private record LifecyclePass(Set<LifecycleKey> grants, Set<LifecycleKey> revokes) {}
+    private static final ThreadLocal<LifecyclePass> PASS = new ThreadLocal<>();
+
+    /** A parent may forward a hook or grant/revoke a child during reconciliation. Run each once. */
+    public static boolean dispatchLifecycle(ServerPlayer player, ResourceLocation id, boolean grant) {
+        LifecyclePass pass = PASS.get();
+        return pass == null || (grant ? pass.grants() : pass.revokes()).add(new LifecycleKey(player.getUUID(), id));
+    }
+
     private static Definitions before;
     private static Map<UUID, Set<ResourceLocation>> heldBefore;
 
@@ -71,28 +81,48 @@ public final class PowerReloadReconciler {
     public static int reconcile(ServerPlayer player, Definitions before, Definitions after,
                                 Set<ResourceLocation> heldBefore, Set<ResourceLocation> heldNow) {
         float maxHealthBefore = player.getMaxHealth();
-        int changed = 0;
+        Set<ResourceLocation> changedIds = new java.util.LinkedHashSet<>();
         for (ResourceLocation id : heldBefore) {
             PowerHolder<?> old = before.holder(id);
             PowerHolder<?> now = after.holder(id);
             if (old == null && now == null) continue;
             if (now == null) {
-                old.onRevoked(player);
-                changed++;
+                changedIds.add(id);
                 continue;
             }
             // An id the player stopped holding (an origin dropped it) is not a definition change.
             if (!heldNow.contains(id)) continue;
             if (old == null) {
-                now.onGranted(player);
-                changed++;
+                changedIds.add(id);
                 continue;
             }
             if (Objects.equals(before.fingerprint(id), after.fingerprint(id))) continue;
-            old.onRevoked(player);
-            now.onGranted(player);
-            changed++;
+            changedIds.add(id);
         }
+        Set<ResourceLocation> actualBefore = Set.copyOf(ActiveOriginService.activePowerIds(player));
+        LifecyclePass previous = PASS.get();
+        PASS.set(new LifecyclePass(new java.util.HashSet<>(), new java.util.HashSet<>()));
+        try {
+            // Finish old effects before applying any new effects. Nested API revocations
+            // must see the old definitions too, not just EmbeddedPower.holder().
+            com.cyberday1.neoorigins.data.EmbeddedPowerLoading.withGeneration(before, () -> {
+                for (ResourceLocation id : changedIds) {
+                    PowerHolder<?> old = before.holder(id);
+                    if (old != null) old.onRevoked(player);
+                }
+            });
+            for (ResourceLocation id : changedIds) {
+                PowerHolder<?> now = after.holder(id);
+                if (now == null || !heldNow.contains(id)) continue;
+                // A parent's revoke may have ended its child grant. The parent's new
+                // onGranted can recreate it; applying it again here would leak effects.
+                if (actualBefore.contains(id) && !ActiveOriginService.activePowerIds(player).contains(id)) continue;
+                now.onGranted(player);
+            }
+        } finally {
+            if (previous == null) PASS.remove(); else PASS.set(previous);
+        }
+        int changed = changedIds.size();
         if (changed > 0) {
             ActiveOriginService.invalidate(player.getUUID());
             // Same health reconcile as an origin change: fill gained hearts, clamp lost ones.

@@ -108,8 +108,8 @@ public final class PowerHolder<C extends PowerConfiguration> {
     }
 
     // Lifecycle methods that are NOT condition-gated (power is still owned):
-    public void onGranted(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onRevoked(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRevoked(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onGranted(ServerPlayer player)          { if (!com.cyberday1.neoorigins.service.PowerReloadReconciler.dispatchLifecycle(player, id, true)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onRevoked(ServerPlayer player)          { if (!com.cyberday1.neoorigins.service.PowerReloadReconciler.dispatchLifecycle(player, id, false)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRevoked(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onLogin(ServerPlayer player)            { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onLogin(player, config);   } finally { CURRENT_DISPATCH_ID.set(prev); } }
     public void onRespawn(ServerPlayer player)          { ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRespawn(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
 

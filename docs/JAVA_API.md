@@ -373,6 +373,129 @@ so they work the same from your code.
 
 ---
 
+### Registering your own entity actions
+
+Call `registerEntityAction` once from your mod constructor or common setup, before
+datapacks load, on both physical sides. Use your own namespace. The codec reads
+the entire action object; the handler receives the player and decoded config on
+the server thread. For example:
+
+```java
+NeoOriginsAPI.registerEntityAction(
+    ResourceLocation.fromNamespaceAndPath("mymod", "add_fall_distance"),
+    Codec.FLOAT.fieldOf("amount").codec(),
+    (player, amount) -> player.fallDistance += amount);
+```
+
+Pack authors can then use
+`{"type":"mymod:add_fall_distance","amount":2}` in an `entity_action`,
+including inside `and`, `if_else` and `delay`. `parseAction` and `actionCodec`
+resolve it too, and codec encoding keeps its original JSON. Exact registered IDs
+win over the legacy namespace fallback, so `mymod:heal` can have its own meaning.
+Malformed configs are logged and do nothing; they never fall back to a different
+action. Duplicate registrations and reserved Minecraft/NeoOrigins/Origins-family
+namespaces are rejected. Registrations survive `/reload`.
+
+This API targets players. It does not turn a player handler into a mob, block,
+item or bientity handler. Register on the client too for the in-game action picker;
+custom fields are authored in JSON and preserved when an existing form is edited.
+The static web editor cannot discover an installed mod's action fields.
+
+### Powers inside a custom power
+
+`NeoOriginsAPI.powerCodec("child")` gives a custom config an embedded power field.
+The field accepts either a full power object or a string naming a loaded power:
+
+```java
+public record Config(EmbeddedPower child) implements PowerConfiguration {
+    public static final Codec<Config> CODEC = RecordCodecBuilder.create(i -> i.group(
+        NeoOriginsAPI.powerCodec("child").fieldOf("child").forGetter(Config::child)
+    ).apply(i, Config::new));
+}
+```
+
+```json
+{
+  "type": "mymod:wrapper",
+  "child": {
+    "type": "neoorigins:active_ability",
+    "cooldown_ticks": 20,
+    "entity_action": {"type": "neoorigins:heal", "amount": 2}
+  }
+}
+```
+
+Alternatively, `"child": "mypack:healing"` refers to that named definition.
+Named references resolve after loading, so file order does not matter. Missing
+references and cycles disable the dependent powers with a log message. An inline
+child uses its parent's namespace and the path `parent/_embedded/child`. That path
+segment is reserved for generated definitions. Use a distinct, stable slot key for
+each field, containing only lowercase letters, digits, underscores, dots or hyphens.
+Do not put a single slot codec in a list: duplicate slots are rejected. Nested
+inline powers are supported up to 32 levels. Inline objects use registered power
+codecs and the legacy translations that resolve to them. For a legacy Origins
+type handled only by the compatibility loader, load it as a standalone power
+and reference its ID. A `multiple` bundle is not a single power holder; reference
+its individual loaded child powers.
+
+The child is a definition, not an automatic grant. The custom power author decides
+how it operates. For a wrapper that activates its child, explicitly forward:
+
+```java
+@Override
+public void onActivated(ServerPlayer player, Config config) {
+    config.child().holder().onActivated(player);
+}
+```
+
+`holder()` also exposes grant, revoke, tick, login, respawn, hit and kill hooks.
+Forward the hooks the child's type needs, including cleanup. The ordinary
+`PowerHolder` condition and suppression gates still apply. Forwarding hooks alone
+does not put the child in the player's active power indexes, hotkey slots or HUD;
+types that depend on those services should receive a normal grant instead:
+
+```java
+NeoOriginsAPI.grantPower(player, config.child().id(),
+    ResourceLocation.fromNamespaceAndPath("mymod", "reward"));
+```
+
+Choose lifecycle forwarding **or** a normal grant for a given child/player.
+Do not manually tick or apply effects for a child already managed by a normal
+grant. A normal grant receives all the usual lifecycle dispatch, display, resource,
+cooldown and persistence behavior. It is source-owned, can be tied to a layer,
+and persists independently of the parent being held. To tie it to the parent's
+ownership, explicitly grant it under a parent-specific source in `onGranted` and
+revoke that source in `onRevoked`. Sharing a named child means sharing its state;
+separate inline slots produce separate IDs and state.
+
+For code-defined parents with embedded fields, use `registerPowerFromJson` so the
+loader has the parent's ID while decoding. Ordinary codec probes, including editor
+validation, preserve inline JSON without registering anything; their inline handles
+cannot be executed until loaded with a parent ID. Do not cache `holder()` across
+reloads. Resolve it when forwarding a hook: the API uses the old definition during
+reload revocation, then the new one. Changes to a referenced child also reconcile
+its held parent. A removed child definition revokes its old effects; a saved grant
+still naming that ID is dormant until a valid definition returns.
+
+### Running the addon integration example
+
+`src/apiSmoke` contains a complete addon using both APIs, including its mod
+metadata and power JSON. It is excluded from release JARs. To run it, accept
+Minecraft's server EULA in `runs/api-smoke/eula.txt`, then run:
+
+```sh
+./gradlew -PapiSmoke runApiSmoke
+```
+
+The task starts a dedicated server on localhost with a temporary port and its
+own world under `runs/api-smoke`. A NeoForge fake player exercises real addon
+registration, datapack decoding, action dispatch, child grants and a resource
+reload that changes the child's attribute modifier. Since the fake player has
+no online connection, the fixture explicitly reconciles its old/new definitions
+after the real reload. It checks cleanup, writes `result.txt`, and stops the
+server; a missing or failed result fails the Gradle task. This supplements the
+JUnit suite; it does not exercise the client UI or network connection lifecycle.
+
 ## Resource values
 
 A power can read and change any resource the player has: a

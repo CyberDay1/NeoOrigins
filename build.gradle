@@ -12,6 +12,11 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Opt-in dedicated-server integration fixture; never included in release jars.
+if (providers.gradleProperty('apiSmoke').isPresent()) {
+    apply from: 'gradle/api-smoke.gradle'
+}
+
 // Figura soft-dep jar (compileOnly). Prefer a jar checked into libs/ (so CI /
 // a fresh checkout can compile the compat/figura module); otherwise fall back to
 // the local CurseForge instance where the dev already has it installed. The file

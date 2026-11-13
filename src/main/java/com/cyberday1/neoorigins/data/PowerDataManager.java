@@ -60,6 +60,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     private Map<ResourceLocation, String> injectedFingerprints = new HashMap<>();
     /** Powers other mods register in code. Never cleared by a reload; a datapack power with the same id wins. */
     private final Map<ResourceLocation, PowerHolder<?>> codePowers = new java.util.concurrent.ConcurrentHashMap<>();
+    private Map<ResourceLocation, List<ResourceLocation>> embeddedLinks = Map.of();
+    private final Map<ResourceLocation, List<ResourceLocation>> codeEmbeddedLinks = new HashMap<>();
+    private Set<ResourceLocation> invalidEmbeddedPowers = Set.of();
     /** Bumped on every datapack reload and Route-B injection so per-player power caches can invalidate. */
     private int version = 0;
     public int version() { return version; }
@@ -184,9 +187,14 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
         Map<ResourceLocation, PowerHolder<?>> loaded = new HashMap<>();
         Map<ResourceLocation, JsonObject> rawSnapshot = new HashMap<>();
+        Map<ResourceLocation, List<ResourceLocation>> loadedLinks = new HashMap<>();
         for (Map.Entry<ResourceLocation, JsonElement> entry : working.entrySet()) {
             ResourceLocation id = entry.getKey();
             try {
+                if (id.getPath().contains(EmbeddedPowerLoading.SEGMENT)) {
+                    NeoOrigins.LOGGER.error("Power {} uses the reserved embedded power path", id);
+                    continue;
+                }
                 if (!entry.getValue().isJsonObject()) continue;
                 JsonObject json = entry.getValue().getAsJsonObject();
                 if (!json.has("type")) {
@@ -213,9 +221,15 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                     }
                     continue;
                 }
-                int beforeSize = loaded.size();
-                parsePower(id, typeId, type, json, loaded);
-                if (loaded.size() > beforeSize) {
+                JsonObject resolvedJson = json;
+                var captured = EmbeddedPowerLoading.capture(id, () -> {
+                    parsePower(id, typeId, type, resolvedJson, loaded);
+                    return loaded.containsKey(id);
+                });
+                if (captured.value()) {
+                    loaded.putAll(captured.scope().holders);
+                    rawSnapshot.putAll(captured.scope().raw);
+                    loadedLinks.putAll(captured.scope().links);
                     // Power parsed cleanly — keep the post-translation body for
                     // the creator's template loader. Stored by REFERENCE: every
                     // pipeline mutation (canonicalize, translate, config
@@ -225,6 +239,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                     // read instead, shifting the cost from every datapack reload
                     // (~840 copies) to the rare creator-open path.
                     rawSnapshot.put(id, json);
+                } else {
+                    captured.scope().rollback();
                 }
             } catch (Exception e) {
                 NeoOrigins.LOGGER.error("Error loading power {}", id, e);
@@ -232,8 +248,10 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         }
         this.powers = Collections.unmodifiableMap(loaded);
         this.rawPowerJson = Collections.unmodifiableMap(rawSnapshot);
+        this.embeddedLinks = Map.copyOf(loadedLinks);
         this.injectedPowers = new HashMap<>(); // cleared; Route B will re-inject after us
         this.injectedFingerprints = new HashMap<>();
+        validateEmbeddedGraph();
         this.version++;
         warnCodePowerOverrides(loaded.keySet());
         // clearTable above dropped code powers' upkeep too; datapack ids that override one keep their own.
@@ -471,6 +489,67 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             });
     }
 
+    /** Decode an inline child through the same metadata, condition and typed-config path. */
+    JsonObject decodeEmbedded(ResourceLocation id, JsonObject json, Map<ResourceLocation, PowerHolder<?>> target) {
+        if (!ModGate.satisfied(json.get("required_mods"))) {
+            throw new IllegalArgumentException("Embedded power " + id + " requires a missing mod");
+        }
+        Resolved resolved = resolvePowerType(id, json);
+        PowerType<?> type = resolved == null ? null : PowerTypes.get(resolved.typeId());
+        if (type == null) throw new IllegalArgumentException("Unknown embedded power type at " + id);
+        parsePower(id, resolved.typeId(), type, resolved.json(), target);
+        return resolved.json();
+    }
+
+    private Map<ResourceLocation, List<ResourceLocation>> allEmbeddedLinks() {
+        Map<ResourceLocation, List<ResourceLocation>> links = new HashMap<>(codeEmbeddedLinks);
+        // An overriding datapack definition may have no children at all.
+        powers.keySet().forEach(links::remove);
+        injectedPowers.keySet().forEach(links::remove);
+        links.putAll(embeddedLinks);
+        return Map.copyOf(links);
+    }
+
+    private void validateEmbeddedGraph() {
+        Map<ResourceLocation, PowerHolder<?>> available = new HashMap<>(codePowers);
+        available.putAll(injectedPowers);
+        available.putAll(powers);
+        var links = allEmbeddedLinks();
+        Set<ResourceLocation> bad = new HashSet<>();
+        int previousSize;
+        do {
+            previousSize = bad.size();
+            Map<ResourceLocation, PowerHolder<?>> usable = new HashMap<>(available);
+            bad.forEach(usable::remove);
+            bad.addAll(EmbeddedPowerLoading.invalid(usable, links));
+            // Rejected/overridden parents must not leave grantable orphan definitions.
+            for (ResourceLocation id : available.keySet()) {
+                String path = id.getPath();
+                int split = path.indexOf(EmbeddedPowerLoading.SEGMENT);
+                while (split >= 0) {
+                    ResourceLocation ancestor = ResourceLocation.fromNamespaceAndPath(id.getNamespace(), path.substring(0, split));
+                    boolean overriddenCodeChild = codePowers.containsKey(id) && !powers.containsKey(id)
+                        && !injectedPowers.containsKey(id) && shadowed(ancestor);
+                    if (bad.contains(ancestor) || overriddenCodeChild) { bad.add(id); break; }
+                    split = path.indexOf(EmbeddedPowerLoading.SEGMENT, split + 1);
+                }
+            }
+        } while (bad.size() != previousSize);
+        invalidEmbeddedPowers = Set.copyOf(bad);
+        for (ResourceLocation id : bad) {
+            if (available.containsKey(id)) NeoOrigins.LOGGER.error(
+                "Power {} disabled: missing or cyclic embedded dependency {}", id,
+                links.getOrDefault(id, List.of()));
+        }
+    }
+
+    private Map<ResourceLocation, PowerHolder<?>> validDefinitions(Map<ResourceLocation, PowerHolder<?>> source) {
+        if (invalidEmbeddedPowers.isEmpty()) return source;
+        Map<ResourceLocation, PowerHolder<?>> valid = new HashMap<>(source);
+        invalidEmbeddedPowers.forEach(valid::remove);
+        return Map.copyOf(valid);
+    }
+
     /**
      * Records a toggle's shared upkeep fields (hunger_cost, resource_cost,
      * resource_cost_amount, upkeep_interval, upkeep_condition) and its
@@ -605,6 +684,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                                      Map<ResourceLocation, String> fingerprints) {
         this.injectedPowers = Collections.unmodifiableMap(new HashMap<>(external));
         this.injectedFingerprints = Map.copyOf(fingerprints);
+        validateEmbeddedGraph();
         this.version++;
         warnCodePowerOverrides(external.keySet());
         recomputeUltiminePowerInUse();
@@ -624,6 +704,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             all.putAll(injectedPowers);
             map = Collections.unmodifiableMap(all);
         }
+        map = validDefinitions(map);
         allPowersView = new AllPowersView(v, map);
         return map;
     }
@@ -632,16 +713,19 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     private record AllPowersView(int version, Map<ResourceLocation, PowerHolder<?>> map) {}
     private volatile AllPowersView allPowersView = null;
 
-    public Map<ResourceLocation, PowerHolder<?>> getPowers() { return powers; }
+    public Map<ResourceLocation, PowerHolder<?>> getPowers() { return validDefinitions(powers); }
 
     public PowerHolder<?> getPower(ResourceLocation id) {
+        var generation = EmbeddedPowerLoading.generation();
+        if (generation != null) return generation.holder(id);
+        if (invalidEmbeddedPowers.contains(id)) return null;
         PowerHolder<?> holder = powers.get(id);
         if (holder == null) holder = injectedPowers.get(id);
         return holder != null ? holder : codePowers.get(id);
     }
 
     public boolean hasPower(ResourceLocation id) {
-        return powers.containsKey(id) || injectedPowers.containsKey(id) || codePowers.containsKey(id);
+        return getPower(id) != null;
     }
 
     /**
@@ -652,13 +736,20 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     private final Map<ResourceLocation, CodeSetup> codeSetups = new java.util.concurrent.ConcurrentHashMap<>();
 
+    private static void requireAuthoredPowerId(ResourceLocation id) {
+        if (id.getPath().contains(EmbeddedPowerLoading.SEGMENT)) {
+            throw new IllegalArgumentException("Power " + id + " uses the reserved embedded-power path");
+        }
+    }
+
     /** Registers a power defined in code. Throws if another mod already registered the id. */
     public void registerCodePower(PowerHolder<?> holder) {
         registerCodePower(holder, null);
     }
 
     /** As above, with the toggle setup to apply while no datapack power overrides the id. */
-    public void registerCodePower(PowerHolder<?> holder, CodeSetup setup) {
+    public synchronized void registerCodePower(PowerHolder<?> holder, CodeSetup setup) {
+        requireAuthoredPowerId(holder.id());
         if (codePowers.putIfAbsent(holder.id(), holder) != null) {
             throw new IllegalStateException("A power is already registered as '" + holder.id() + "'");
         }
@@ -667,6 +758,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             applyCodeSetup(holder.id());
             declareVariable(holder);
         }
+        validateEmbeddedGraph();
         this.version++;
     }
 
@@ -685,8 +777,9 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
      * {@code _power_id} injected, upkeep and toggle_messages read off the JSON, and
      * {@code power_condition}/{@code power_condition_mode} honoured. Options override the JSON.
      */
-    public <C extends PowerConfiguration> void registerCodePowerFromJson(ResourceLocation id, PowerType<C> type,
+    public synchronized <C extends PowerConfiguration> void registerCodePowerFromJson(ResourceLocation id, PowerType<C> type,
             JsonObject config, PowerDisplay display, CodePowerOptions options) {
+        requireAuthoredPowerId(id);
         JsonObject json = config.deepCopy();
         EntityCondition condition = null;
         PowerHolder.ConditionMode mode = PowerHolder.ConditionMode.DENY;
@@ -710,18 +803,39 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
         json.addProperty("_power_id", id.toString());
 
         Optional<C> parsed;
+        EmbeddedPowerLoading.Scope children;
+        if (codePowers.containsKey(id)) throw new IllegalStateException("A power is already registered as '" + id + "'");
         try {
-            parsed = ApiConditions.withContext(id.toString(), () -> type.codec().parse(JsonOps.INSTANCE, json))
-                .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err));
+            var captured = EmbeddedPowerLoading.capture(id, () ->
+                ApiConditions.withContext(id.toString(), () -> type.codec().parse(JsonOps.INSTANCE, json))
+                    .resultOrPartial(err -> NeoOrigins.LOGGER.error("Failed to parse power config {}: {}", id, err)));
+            parsed = captured.value();
+            children = captured.scope();
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Power " + id + ": its config JSON did not decode: " + e.getMessage(), e);
         }
         if (parsed.isEmpty()) {
+            children.rollback();
             throw new IllegalArgumentException("Power " + id + ": its config JSON did not decode, see the log");
         }
         PowerUpkeep.Upkeep upkeep = options.hasUpkeep() ? upkeepFrom(options) : PowerUpkeep.parse(json, id.toString());
         Boolean messages = options.toggleMessages().orElse(json.has("toggle_messages")
             ? PowerUpkeep.parseToggleMessages(json, id.toString()) : null);
+        for (ResourceLocation child : children.holders.keySet()) {
+            if (codePowers.containsKey(child)) {
+                children.rollback();
+                throw new IllegalStateException("An embedded power is already registered as '" + child + "'");
+            }
+        }
+        codeEmbeddedLinks.putAll(children.links);
+        codePowers.putAll(children.holders);
+        children.holders.forEach((childId, holder) -> {
+            JsonObject body = children.raw.get(childId);
+            CodeSetup setup = codeSetup(childId, holder.type(), PowerUpkeep.parse(body, childId.toString()),
+                body.has("toggle_messages") ? PowerUpkeep.parseToggleMessages(body, childId.toString()) : null);
+            if (setup != null) codeSetups.put(childId, setup);
+            if (!shadowed(childId)) declareVariable(holder);
+        });
         registerCodePower(new PowerHolder<>(id, type, parsed.get(), display.name(), display.description(),
             display.hidden(), condition, mode), codeSetup(id, type, upkeep, messages));
     }
@@ -769,7 +883,12 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
     }
 
     /** Drops a code-registered power. Internal: for tests that must not leak into other suites. */
-    public void unregisterCodePower(ResourceLocation id) {
+    public synchronized void unregisterCodePower(ResourceLocation id) {
+        for (ResourceLocation child : List.copyOf(codePowers.keySet())) {
+            if (child.getNamespace().equals(id.getNamespace())
+                    && child.getPath().startsWith(id.getPath() + EmbeddedPowerLoading.SEGMENT)) unregisterCodePower(child);
+        }
+        codeEmbeddedLinks.remove(id);
         PowerHolder<?> holder = codePowers.remove(id);
         CodeSetup setup = codeSetups.remove(id);
         if (holder == null) return;
@@ -780,6 +899,7 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
             }
             if (holder.config() instanceof VariablePower.Config) CompatAttachments.unregisterVariable(id.toString());
         }
+        validateEmbeddedGraph();
         this.version++;
     }
 
@@ -793,7 +913,8 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
     /** The definitions loaded right now, kept as a generation for {@link Definitions} diffs. */
     public Definitions definitions() {
-        return new Definitions(powers, rawPowerJson, injectedPowers, injectedFingerprints, Map.copyOf(codePowers));
+        return new Definitions(validDefinitions(powers), rawPowerJson, validDefinitions(injectedPowers),
+            injectedFingerprints, Map.copyOf(validDefinitions(codePowers)), allEmbeddedLinks());
     }
 
     /**
@@ -807,7 +928,14 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
                               Map<ResourceLocation, JsonObject> raw,
                               Map<ResourceLocation, PowerHolder<?>> injected,
                               Map<ResourceLocation, String> injectedPrints,
-                              Map<ResourceLocation, PowerHolder<?>> code) {
+                              Map<ResourceLocation, PowerHolder<?>> code,
+                              Map<ResourceLocation, List<ResourceLocation>> embedded) {
+
+        public Definitions(Map<ResourceLocation, PowerHolder<?>> datapack, Map<ResourceLocation, JsonObject> raw,
+                Map<ResourceLocation, PowerHolder<?>> injected, Map<ResourceLocation, String> injectedPrints,
+                Map<ResourceLocation, PowerHolder<?>> code) {
+            this(datapack, raw, injected, injectedPrints, code, Map.of());
+        }
 
         /** The holder {@link #getPower} would return in this generation. */
         public PowerHolder<?> holder(ResourceLocation id) {
@@ -818,6 +946,38 @@ public class PowerDataManager extends SimplePreparableReloadListener<Map<Resourc
 
         /** Equal across two generations exactly when the definition is unchanged; null if absent. */
         public String fingerprint(ResourceLocation id) {
+            record Step(ResourceLocation id, boolean expanded) {}
+            Map<ResourceLocation, String> memo = new HashMap<>();
+            Deque<Step> pending = new ArrayDeque<>();
+            pending.push(new Step(id, false));
+            while (!pending.isEmpty()) {
+                Step step = pending.pop();
+                if (memo.containsKey(step.id())) continue;
+                String base = ownFingerprint(step.id());
+                if (base == null) { memo.put(step.id(), null); continue; }
+                var children = embedded.getOrDefault(step.id(), List.of());
+                if (children.isEmpty()) { memo.put(step.id(), base); continue; }
+                if (!step.expanded()) {
+                    pending.push(new Step(step.id(), true));
+                    for (ResourceLocation child : children) pending.push(new Step(child, false));
+                    continue;
+                }
+                StringBuilder result = new StringBuilder(base);
+                for (ResourceLocation child : children) {
+                    result.append("|child:").append(child).append('=').append(memo.get(child));
+                }
+                try {
+                    byte[] hash = java.security.MessageDigest.getInstance("SHA-256").digest(
+                        result.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    memo.put(step.id(), java.util.HexFormat.of().formatHex(hash));
+                } catch (java.security.NoSuchAlgorithmException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            return memo.get(id);
+        }
+
+        private String ownFingerprint(ResourceLocation id) {
             if (datapack.containsKey(id)) {
                 JsonObject json = raw.get(id);
                 return "datapack:" + (json != null ? json.toString() : "?");
