@@ -120,7 +120,13 @@ public final class PowerHolder<C extends PowerConfiguration> {
     public void removeFromMob(LivingEntity mob)         { type.removeFromMob(mob, config); }
 
     // Condition-gated methods — skipped when the top-level condition is not satisfied:
-    public void onTick(ServerPlayer player)             { if (!isConditionSatisfied(player)) return; ResourceLocation prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onTick(player, config);    } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onTick(ServerPlayer player) {
+        boolean open = isConditionSatisfied(player);
+        ResourceLocation prev = CURRENT_DISPATCH_ID.get();
+        CURRENT_DISPATCH_ID.set(id);
+        try { if (open) type.onTick(player, config); else type.onTickBlocked(player, config); }
+        finally { CURRENT_DISPATCH_ID.set(prev); }
+    }
     // Every activation path funnels through here — the keybind packet, the
     // activate_power action, and the compat loader's programmatic fire — so the
     // neoorigins:suppression gate sits here rather than in AbstractActivePower.
