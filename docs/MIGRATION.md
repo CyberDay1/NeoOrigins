@@ -898,7 +898,7 @@ These legacy types kept their standalone classes because the DSL can't express t
 - `neoorigins:water_breathing`, `neoorigins:less_item_use_slowdown`, `neoorigins:active_dash`, `neoorigins:active_swap`, `neoorigins:active_fireball`, `neoorigins:active_bolt`
 
 **Non-tick-based condition interceptors:**
-- `neoorigins:mobs_ignore_player`: `LivingChangeTargetEvent` interceptor
+- `neoorigins:mobs_ignore_player`: `LivingChangeTargetEvent` interceptor, plus a Warden targeting hook for `include_boss_tier`
 - `neoorigins:no_mob_spawns_nearby`: `MobSpawnEvent.FinalizeSpawn` interceptor
 - `neoorigins:item_magnetism`: item-entity pull, no DSL verb yet
 - `neoorigins:breath_in_fluid`: air-supply drain, no DSL verb yet
