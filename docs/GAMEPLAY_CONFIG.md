@@ -131,7 +131,9 @@ costs no helmet durability.
 Controls which entity types are excluded from origin area-of-effect actions
 (poison sting, fire burst, ink shot, etc.). When a toggle is true, that
 category of mob is excluded from the AOE target list and will not take
-effects or damage from the player's own abilities.
+effects or damage from the player's own abilities. An `area_of_effect` action
+that sets `ignore_friendly_fire: true` skips all five filters (see
+[`area_of_effect`](actions/meta.md#neooriginsarea_of_effect)).
 
 | Option | Type | Default | Description |
 |---|---|---|---|
