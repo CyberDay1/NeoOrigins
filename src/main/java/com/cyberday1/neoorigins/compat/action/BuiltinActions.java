@@ -2814,6 +2814,8 @@ public final class BuiltinActions {
                     .doc("Include the caster in the AoE. Defaults true for the entity_action form, false for the bientity_action form (Apoli's default)."),
                 new FieldSpec("include_target", FormFieldSpec.Kind.BOOLEAN, false).def(false)
                     .doc("Apoli spelling of include_source."),
+                new FieldSpec("ignore_friendly_fire", FormFieldSpec.Kind.BOOLEAN, false).def(false)
+                    .doc("Skip the server's friendly-fire filters (protect_owned_pets, protect_minions, protect_animals, protect_villagers, protect_iron_golems in gameplay.toml) so this AoE hits those mobs too. Does not change whether the caster is included (see include_source)."),
                 new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Apoli block fan-out: action run at every BLOCK position in radius (centered on the context block when one resolves, else the source's feet), each published as the context block. Sweep radius is radius when set (capped at 16), else 2."),
                 new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false).ref("block_condition.schema.json")
