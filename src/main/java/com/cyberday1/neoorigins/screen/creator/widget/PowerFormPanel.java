@@ -231,7 +231,7 @@ public final class PowerFormPanel {
     private void openTypePicker(String kind, java.util.function.Consumer<String> sink) {
         push();
         java.util.List<String> src = new ArrayList<>("action".equals(kind)
-            ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
+            ? com.cyberday1.neoorigins.compat.action.ActionParser.knownTypes()
             : "block_condition".equals(kind)
                 ? com.cyberday1.neoorigins.power.schemaform.FormModel.blockConditionTypes()
                 : "item_condition".equals(kind)
@@ -294,7 +294,7 @@ public final class PowerFormPanel {
         java.util.List<String> src;
         if (dsl) {
             src = new ArrayList<>("action".equals(kind)
-                ? com.cyberday1.neoorigins.compat.action.ActionParser.KNOWN_TYPES
+                ? com.cyberday1.neoorigins.compat.action.ActionParser.knownTypes()
                 : "block_condition".equals(kind)
                     ? com.cyberday1.neoorigins.power.schemaform.FormModel.blockConditionTypes()
                     : "item_condition".equals(kind)

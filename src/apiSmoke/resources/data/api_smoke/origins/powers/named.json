@@ -1,0 +1,4 @@
+{
+  "type": "api_smoke:wrapper",
+  "child": "api_smoke:inline/_embedded/child"
+}

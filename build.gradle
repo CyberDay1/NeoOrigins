@@ -12,6 +12,11 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
+// Opt-in dedicated-server integration fixture; never included in release jars.
+if (providers.gradleProperty('apiSmoke').isPresent()) {
+    apply from: 'gradle/api-smoke.gradle'
+}
+
 neoForge {
     version = property('deps.neoforge')
 

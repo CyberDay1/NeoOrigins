@@ -80,7 +80,19 @@ public final class ActionParser {
         if (json == null) {
             return failNoop("root", contextId, "missing action object");
         }
+        if (json.has("type") && (!json.get("type").isJsonPrimitive()
+                || !json.getAsJsonPrimitive("type").isString())) {
+            return failNoop("root", contextId, "action type must be a string");
+        }
         String type = json.has("type") ? json.get("type").getAsString() : "";
+        // Exact addon ids precede legacy fallback, including ids whose path matches a built-in.
+        Identifier exactId = Identifier.tryParse(type);
+        ActionType exact = exactId == null ? null
+            : com.cyberday1.neoorigins.compat.registry.CompatRegistries.action(exactId);
+        if (exact != null) {
+            try { return exact.factory().create(json, contextId); }
+            catch (Exception e) { return failNoop(type, contextId, "parse error: " + e.getMessage()); }
+        }
         // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:/apoli:
         // prefixes (the Origins/Apoli ecosystem aliases — these verbs share schemas)
         // get a one-shot [2.0-legacy] warning then are rewritten to neoorigins: for
@@ -101,17 +113,7 @@ public final class ActionParser {
             type = canonical;
         }
         try {
-            // Registry-refactor migration (D1): verbs that have moved to a
-            // registered descriptor dispatch here; the switch below holds only
-            // the not-yet-migrated arms. Behaviour is identical — the factory is
-            // the lift-and-shift of the old case body.
-            // Registry-refactor migration complete (D1): every built-in action verb
-            // is now a registered descriptor (see BuiltinActions). The former
-            // type-switch is retired — dispatch is a single descriptor lookup, and
-            // an unknown verb falls through to the unsupported-action no-op (which
-            // records a CompatWarningCollector entry, preserving the old default
-            // arm's behaviour). Addon-contributed verbs resolve through the same
-            // BuiltinActions.get path once their descriptors are registered.
+            // Static descriptors also work before the NeoForge registries are available.
             ActionType descriptor = BuiltinActions.get(type);
             if (descriptor != null) {
                 return descriptor.factory().create(json, contextId);
@@ -120,6 +122,15 @@ public final class ActionParser {
         } catch (Exception e) {
             return failNoop(type, contextId, "parse error: " + e.getMessage());
         }
+    }
+
+    /** Picker/discovery surface; the built-in golden-master set stays deterministic. */
+    public static java.util.Set<String> knownTypes() {
+        java.util.Set<String> ids = new java.util.TreeSet<>(KNOWN_TYPES);
+        for (Identifier id : com.cyberday1.neoorigins.compat.registry.CompatRegistries.actionKeys()) {
+            ids.add(id.toString());
+        }
+        return java.util.Collections.unmodifiableSet(ids);
     }
 
     /**

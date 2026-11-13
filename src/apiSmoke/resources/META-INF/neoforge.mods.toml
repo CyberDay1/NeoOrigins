@@ -1,0 +1,15 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mods]]
+modId = "api_smoke"
+version = "1.0.0"
+displayName = "NeoOrigins API server smoke fixture"
+
+[[dependencies.api_smoke]]
+modId = "neoorigins"
+type = "required"
+versionRange = "[2.2.38,)"
+ordering = "AFTER"
+side = "BOTH"

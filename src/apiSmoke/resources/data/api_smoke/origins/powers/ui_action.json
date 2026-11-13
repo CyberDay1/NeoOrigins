@@ -1,0 +1,11 @@
+{
+  "type": "api_smoke:wrapper",
+  "name": "Action wrapper",
+  "child": {
+    "type": "neoorigins:active_ability",
+    "name": "Embedded Action",
+    "description": "Runs a registered addon action. Cooldown: two seconds.",
+    "cooldown_ticks": 40,
+    "entity_action": {"type": "api_smoke:heal", "amount": 3}
+  }
+}
