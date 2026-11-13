@@ -166,7 +166,7 @@ The `max_tamed` cap and death-damage backlash stay correct across all of the abo
 
 All taming and scare powers (`tame_mob`, `scare_entities` and `mobs_ignore_player`) share one exclusion rule. An entity is excluded when **any** of these hold:
 
-1. **Boss-tier**: the Warden, Ender Dragon and Wither. Hardcoded; cannot be overridden.
+1. **Boss-tier**: the Warden, Ender Dragon and Wither. Hardcoded; only `mobs_ignore_player` can opt back in, with `include_boss_tier` (see [`mobs_ignore_player`](#neooriginsmobs_ignore_player)).
 2. **Global config blacklist**: the `tame_scare_entity_blacklist` list in the `[entity_exclusions]` section of `config/neoorigins/admin.toml`. Lets a server or pack operator extend the exclusion to arbitrary mobs across every taming and scare power at once:
 
 ```toml
@@ -300,8 +300,26 @@ briefly. Set `passive: true` to make the ignore unconditional.
 | `entity_types` | list of Identifier or `#tag` | no | `[]` | Entity types that will ignore the player. Accepts raw ids (`"minecraft:zombie"`) and tag references (`"#minecraft:skeletons"`). When empty, every mob ignores. |
 | `entity_blacklist` | string[] | no | `[]` | Entity ids and tag refs this power never affects; they target the player normally even when `entity_types` matches (including the empty match-all case). Checked on top of the built-in exclusions below. |
 | `passive` | bool | no | `false` | When true, the ignore is unconditional: even attacking the mob does not provoke retaliation. |
+| `include_boss_tier` | bool | no | `false` | When true, boss-tier mobs that `entity_types` matches ignore the player too (see below). |
 
-Boss-tier mobs (the Warden, Ender Dragon and Wither) never ignore the player, regardless of `entity_types` (an empty match-all list won't make the Warden docile). Server operators can extend that exclusion via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)).
+By default, boss-tier mobs (the Warden, Ender Dragon and Wither) never ignore the player, regardless of `entity_types` (an empty match-all list won't make the Warden docile). Server operators can extend that exclusion via the `tame_scare_entity_blacklist` config list (see [Global taming/scare exclusions](#global-tamingscare-exclusions)).
+
+**Boss-tier opt-in.** Set `include_boss_tier: true` to lift the boss-tier exclusion for this power. It then covers whichever bosses `entity_types` matches: list `"minecraft:warden"` for the Warden alone, or leave `entity_types` empty to include all three. Both blacklists still apply, and so do `passive` and the retaliation window. How far it reaches differs per boss:
+
+- **Warden:** fully covered. It gains no anger from the player, does not roar at, chase, attack or sonic-boom them, and ignores their vibrations and scent, though a projectile they fire can still draw it to where it lands. Its Darkness pulse is unchanged and still reaches the player, and sculk shriekers still summon a Warden when triggered.
+- **Wither:** the main head stops targeting the player, but the two side heads pick their own targets and can still fire at them.
+- **Ender Dragon:** unaffected. Its flight phases choose players directly, without a target change this power can stop.
+
+**Example: the Warden leaves you be**
+```json
+{
+  "type": "neoorigins:mobs_ignore_player",
+  "entity_types": ["minecraft:warden"],
+  "include_boss_tier": true,
+  "name": "Deep Dark Kin",
+  "description": "The Warden does not notice you unless you strike it."
+}
+```
 
 **Example: only creepers ignore (with retaliation)**
 ```json

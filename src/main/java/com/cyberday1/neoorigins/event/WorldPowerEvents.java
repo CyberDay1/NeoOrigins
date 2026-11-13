@@ -75,17 +75,9 @@ public class WorldPowerEvents {
         // can honor it.
         boolean[] passiveMatch = {false};
         boolean matched = ActiveOriginService.has(sp, MobsIgnorePlayerPower.class, cfg -> {
-            boolean typeMatch = cfg.entityTypes().isEmpty()
-                || cfg.entityTypes().stream().anyMatch(id ->
-                    com.cyberday1.neoorigins.event.CombatPowerEvents.matchesEntityIdOrTag(event.getEntity(), id));
-            // Shared exclusions (boss-tier / global config / per-power
-            // entity_blacklist) override the match — the mob targets normally.
-            // Matters especially for the empty match-all entity_types case,
-            // which would otherwise let a player stand in front of the Warden.
-            if (typeMatch && com.cyberday1.neoorigins.service.EntityExclusions.isExcluded(
-                    event.getEntity(), cfg.entityBlacklist())) {
-                typeMatch = false;
-            }
+            // Shared exclusions (boss-tier unless include_boss_tier / global config /
+            // per-power entity_blacklist) override the match: the mob targets normally.
+            boolean typeMatch = MobsIgnorePlayerPower.matches(cfg, event.getEntity());
             if (typeMatch && cfg.passive()) passiveMatch[0] = true;
             return typeMatch;
         });
