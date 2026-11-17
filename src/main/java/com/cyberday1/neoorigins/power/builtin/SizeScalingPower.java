@@ -79,6 +79,19 @@ public class SizeScalingPower extends PowerType<SizeScalingPower.Config> {
         clearOwnModifiers(player, PowerHolder.currentDispatchId());
     }
 
+    // The modifiers are attached once at grant, so a top-level power_condition
+    // would otherwise never shrink or grow the player back. applyModifiers only
+    // adds what is missing, so the open-gate tick costs a lookup per attribute.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        applyModifiers(player, config, true);
+    }
+
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        applyModifiers(player, config, false);
+    }
+
     /**
      * Removes the scale and interaction-range modifiers owned by this power, and
      * only those. Clearing every {@code neoorigins:size_*} id here instead also
