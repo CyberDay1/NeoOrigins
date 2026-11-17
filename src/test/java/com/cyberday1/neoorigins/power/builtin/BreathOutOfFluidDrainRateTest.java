@@ -78,14 +78,16 @@ class BreathOutOfFluidDrainRateTest {
 
     @Test
     void airLossPerSecondWinsOverBothAliases() {
-        assertEquals(5, decode("""
+        // A rate of its own now (BreathOutOfFluidRateTest), so it wins in the
+        // per-tick drain rather than by overwriting the interval.
+        assertEquals(4.0 / 20.0, decode("""
             {
               "type": "neoorigins:breath_out_of_fluid",
               "air_loss_per_second": 4,
               "drain_interval_ticks": 99,
               "drain_rate": 77
             }
-            """).drainIntervalTicks());
+            """).airPerTick(CONFIG), 1e-9);
     }
 
     @Test
@@ -100,11 +102,11 @@ class BreathOutOfFluidDrainRateTest {
     }
 
     @Test
-    void airLossPerSecondClampsToAtLeastOneTick() {
-        // 20 / 40 would floor to 0 and make `tickCount % interval` divide by zero.
-        assertEquals(1, decode("""
+    void airLossPerSecondAboveTwentyDrainsFasterThanOncePerTick() {
+        // Used to clamp to one point a tick; a rate drains two a tick here.
+        assertEquals(2.0, decode("""
             { "type": "neoorigins:breath_out_of_fluid", "air_loss_per_second": 40 }
-            """).drainIntervalTicks());
+            """).airPerTick(CONFIG), 1e-9);
     }
 
     @Test
