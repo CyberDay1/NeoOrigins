@@ -569,7 +569,7 @@ Performs a block and/or entity raycast from the player's eye position along thei
 | `block` | bool | no | `true` | Include block hits |
 | `entity` | bool | no | `false` | Include entity hits |
 | `fluid_handling` | enum | no | `none` | How fluids are treated: `none` / `source_only` / `any` |
-| `shape_type` | enum | no | `visual` | Block shape used for the trace: `visual`, `outline` or `collider`. `visual` and `collider` both pass through blocks that have no collision, such as crops, saplings, short grass and flowers, and hit the block behind them. `outline` is the shape your crosshair targets, so use it when the ray should stop at plants |
+| `shape_type` | enum | no | `visual` | Block shape used for the trace: `visual`, `outline` or `collider`. `visual` and `collider` both pass through blocks that have no collision, such as crops, saplings, short grass and flowers, and hit the block behind them. `visual` also passes through glass, glass panes and iron bars. `outline` is the shape your crosshair targets, so use it when the ray should stop at plants |
 | `block_action` | object | no | — | Action to run at the hit block position (dispatched with `RaycastBlockContext` so `~ ~ ~` resolves to the hit block) |
 | `bientity_action` | object | no | — | Entity action run on the **caster** when a living entity is hit, with the hit entity published as the context target: wrap target-side effects in `target_action` (a bare `origins:damage` here hurts the caster). Entity hits are checked before blocks |
 | `miss_action` | object | no | — | Action to run when nothing is hit within range |

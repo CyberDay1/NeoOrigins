@@ -547,7 +547,7 @@ Because every vanilla fluid behaviour reads those same values, they all fall awa
 
 Naming any fluid of a fluid type ignores the whole type, so `"minecraft:water"` also covers `minecraft:flowing_water` — that is what makes poured buckets and modded fluids work. Entries without a namespace get `minecraft:` (so `"lava"` means `"minecraft:lava"`). If neither key is given the power defaults to water and lava, so a marker-only entry is never a silent no-op. Unknown or misspelled ids are dropped quietly rather than failing the datapack load: the power simply ignores nothing for that entry.
 
-Emits the `ignore_fluid` capability tag plus one `ignore_fluid:<id>` tag per entry, so the client and server agree without any extra sync.
+Emits the `ignore_fluid` capability tag plus one `ignore_fluid:<id>` tag per entry, so the client and server agree, and a condition that switches the power reaches the client straight away.
 
 **Not covered.** A mod that runs its own `level.getFluidState(pos)` check per tick — rather than asking the entity whether it is in a fluid — is doing its own detection and cannot be intercepted from here; it will still see the fluid. The same goes for anything keyed off the block state rather than the fluid state (a mod checking `state.is(Blocks.LAVA)` directly). Fluid **rendering** is untouched: the fluid is still drawn normally, you simply pass through it as if it were air.
 
@@ -578,7 +578,7 @@ One deliberate side effect: the `entityInside` guard is keyed on the block's flu
 <a id="ignore-fluid-physics-mode"></a>
 **Physics mode.** With `"mode": "physics"` the fluid is still there for the player. They see the fog and the underwater overlay, drown, get their fire put out, and match `in_water`, `submerged_in`, `fluid_height` and every other fluid condition. What goes is the fluid's hold on their movement: no current push, no buoyancy or drag, and no swim pose. They sink, walk along the bottom at their land speed, and jump off it the same height they would on land. This is how Origins' `ignore_water` behaved.
 
-Because the fluid still counts, physics mode pairs with fluid-gated powers. To sink slower than you fall through air, add slow falling or a speed penalty gated on `in_water`. That doesn't work in `full` mode, where `in_water` is never true for an ignored fluid.
+Because the fluid still counts, physics mode pairs with fluid-gated powers. To sink slower than you fall through air, add slow falling gated on `in_water`. A `movement_speed` penalty gated the same way slows walking along the bottom instead. That doesn't work in `full` mode, where `in_water` is never true for an ignored fluid.
 
 Bubble columns still push you in physics mode. They move you from the block itself, not through the fluid, and only `full` mode switches that off.
 

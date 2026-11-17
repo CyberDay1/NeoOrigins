@@ -7,7 +7,7 @@ to the per-topic detail doc.
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
 - [Power types](#power-types): 122 registered types plus the `multiple` container, and 29 retired ids
-- [Condition verbs](#condition-verbs): 108 conditions
+- [Condition verbs](#condition-verbs): 109 conditions
 - [Action verbs](#action-verbs): 95 actions
 - [Event keys](#event-keys): 51 events
 - [Named keybinds](concepts/keybinds.md)
