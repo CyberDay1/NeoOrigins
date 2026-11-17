@@ -126,11 +126,11 @@ public final class ActiveOriginService {
      * entity_model resolves against MorphDataManager, so their
      * {@code capabilities(config)} answers depend on live state the cache's
      * version tuple does not track — caching either in the union would serve a
-     * stale answer. model_color, pose and compat override
+     * stale answer. model_color, pose, compat and prevent_action override
      * {@code capabilities(ServerPlayer, Config)}: model_color returns an empty
      * static set whenever a condition is present while its player-aware variant
-     * returns the real tag, pose narrows by its own toggle, and compat only ever
-     * narrows. None can be folded into a union that is supposed to bound the
+     * returns the real tag, pose narrows by its own toggle, and compat and
+     * prevent_action (swim, by active_when) only ever narrow. None can be folded into a union that is supposed to bound the
      * player-aware result, and CapabilityIndexTest holds that line for any type
      * added later.
      */
@@ -144,7 +144,8 @@ public final class ActiveOriginService {
             || com.cyberday1.neoorigins.compat.CompatPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.power.builtin.EnhancedVisionPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.power.builtin.EntityModelPower.class.isAssignableFrom(type)
-            || com.cyberday1.neoorigins.power.builtin.PosePower.class.isAssignableFrom(type);
+            || com.cyberday1.neoorigins.power.builtin.PosePower.class.isAssignableFrom(type)
+            || com.cyberday1.neoorigins.power.builtin.PreventActionPower.class.isAssignableFrom(type);
     }
 
     private static CacheEntry getOrBuild(ServerPlayer player) {

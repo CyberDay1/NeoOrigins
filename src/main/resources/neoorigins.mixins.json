@@ -44,6 +44,8 @@
     "CraftingMenuCraftAmountMixin",
     "FolderPackDetectorMixin",
     "EntityForcedSwimmingMixin",
+    "EntityPreventSwimMixin",
+    "LivingEntityPreventSwimMixin",
     "BlockStateBaseCobwebShapeMixin",
     "BeaconBlockEntityLevelsAccessor",
     "ServerPlayerGameModeMiningAccessor",
