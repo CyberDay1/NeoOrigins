@@ -166,10 +166,12 @@ public class ResourceHudOverlay {
                 drawBarText(g, mc.font, label, x + (barW - labelW) / 2, y - ResourceBarStacking.LINE,
                     res.textColor(), res.textOutline());
             }
-            String readout = res.value() + "/" + res.max();
-            int readoutW = mc.font.width(readout);
-            drawBarText(g, mc.font, readout, x + (barW - readoutW) / 2, y + bar.box().readoutY(),
-                res.textColor(), res.textOutline());
+            if (bar.readout()) {
+                String readout = res.value() + "/" + res.max();
+                int readoutW = mc.font.width(readout);
+                drawBarText(g, mc.font, readout, x + (barW - readoutW) / 2, y + bar.box().readoutY(),
+                    res.textColor(), res.textOutline());
+            }
 
             if (scaled) {
                 g.pose().popMatrix();
@@ -189,9 +191,13 @@ public class ResourceHudOverlay {
         else if (fx != null) box = ResourceBarStacking.Box.ANIMATED;
         else if (res.barIndex() >= 0) box = ResourceBarStacking.Box.SPRITE;
         else box = ResourceBarStacking.Box.PLAIN;
-        boolean label = res.label() != null && !res.label().isEmpty();
+        // The client switches feed the stack too, so a bar drawn without its text
+        // lines gives their room back instead of leaving gaps between bars.
+        boolean label = NeoOriginsClientConfig.isShowResourceLabels()
+            && res.label() != null && !res.label().isEmpty();
+        boolean readout = NeoOriginsClientConfig.isShowResourceValues();
         return new ResourceBarStacking.Bar(key, drawn, ResourceHudPositions.get(key) != null,
-            box, label, true, ResourceHudPositions.getBarScale(key));
+            box, label, readout, ResourceHudPositions.getBarScale(key));
     }
 
     /**
