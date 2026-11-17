@@ -611,7 +611,7 @@ Prevents a specific harmful action or event from affecting the player.
 | `chestplate_equip` | Legacy alias of `armor_equip` with `chest: true`. Kept for back-compat with packs that pre-date `armor_equip`. |
 | `eye_damage` | Accepted, but currently has no effect: nothing reads it |
 | `water_damage` | Accepted, but currently has no effect: nothing reads it |
-| `swim` | Prevents swimming (velocity-sinks the player in water) |
+| `swim` | Prevents swimming in water: no swim pose (so no sprint-swim speed) and no swimming upward while jump is held in deep water. The player sinks instead, sprinting or not, and walks along the bottom at their land speed, `movement_speed` changes included, through full `water_movement_efficiency` while the prevention is active. Sprinting on the bottom gives land sprint speed. Jumping still works where the water is shallow enough to jump out of. Lava is unaffected, so the player can still swim up out of it. `active_when` and `power_condition` switch all of it on and off together |
 | `sleep` | Prevents sleeping (bed use returns a "no sleep" message). Clicking a vanilla bed still sets the respawn point before the sleep is refused. |
 | `elytra` | Prevents elytra flight (player is stopped from gliding each tick) |
 

@@ -1,13 +1,19 @@
 package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 
 import java.util.Locale;
+import java.util.Set;
 
 public class PreventActionPower extends PowerType<PreventActionPower.Config> {
 
@@ -99,7 +105,64 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
     // Actual prevention is handled by OriginEventHandler routing to this type
     // These methods are intentionally no-op; the event handler checks the action field
     @Override public void onGranted(ServerPlayer player, Config config) {}
-    @Override public void onRevoked(ServerPlayer player, Config config) {}
+
+    @Override
+    public void onRevoked(ServerPlayer player, Config config) {
+        if (config.action() == Action.SWIM) setSwimWalk(player, false);
+    }
+
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        if (config.action() == Action.SWIM) setSwimWalk(player, false);
+    }
+
+    /**
+     * Synced capability behind {@code action: swim}. The swim pose and the
+     * swim-up are decided by client-predicted movement, so they are blocked by
+     * {@code EntityPreventSwimMixin} and {@code LivingEntityPreventSwimMixin} on
+     * both sides from this tag; a server-only reset loses to the client every tick.
+     */
+    public static final String PREVENT_SWIM = "prevent_swim";
+
+    @Override
+    public Set<String> capabilities(Config config) {
+        return config.action() == Action.SWIM ? Set.of(PREVENT_SWIM) : Set.of();
+    }
+
+    /** {@code active_when} decides whether the swim block is on right now. */
+    @Override
+    public Set<String> capabilities(ServerPlayer player, Config config) {
+        return config.action() == Action.SWIM && isGateOpen(player, config)
+            ? Set.of(PREVENT_SWIM) : Set.of();
+    }
+
+    /** Per-power id, so two swim-blocking powers don't remove each other's modifier. */
+    private static Identifier swimWalkModId() {
+        Identifier powerId = PowerHolder.currentDispatchId();
+        String key = powerId != null
+            ? (powerId.getNamespace() + "_" + powerId.getPath()).replace('/', '_')
+            : "anon";
+        return Identifier.fromNamespaceAndPath("neoorigins", "prevent_swim_" + key + "_walk");
+    }
+
+    /**
+     * A player who can't swim walks the bottom instead, at their land speed.
+     * Full {@code water_movement_efficiency} is the vanilla way to get that (it is
+     * what Depth Strider III sets): on the ground, water speed and friction become
+     * land speed and friction, so {@code movement_speed} changes carry over.
+     */
+    private static void setSwimWalk(ServerPlayer player, boolean on) {
+        AttributeInstance inst = player.getAttribute(Attributes.WATER_MOVEMENT_EFFICIENCY);
+        if (inst == null) return;
+        Identifier id = swimWalkModId();
+        if (on) {
+            if (inst.getModifier(id) == null) {
+                inst.addPermanentModifier(new AttributeModifier(id, 1.0, AttributeModifier.Operation.ADD_VALUE));
+            }
+        } else {
+            inst.removeModifier(id);
+        }
+    }
 
     // Clear residual fire ticks for FIRE-immune players so the burning visual
     // doesn't flicker on contact with lava / fire sources — damage is already
@@ -111,48 +174,31 @@ public class PreventActionPower extends PowerType<PreventActionPower.Config> {
                 && player.getRemainingFireTicks() > 0) {
             player.setRemainingFireTicks(0);
         }
-        // SWIM and ELYTRA enforcement moved to {@link
+        if (config.action() == Action.SWIM) setSwimWalk(player, isGateOpen(player, config));
+        // ELYTRA enforcement lives in {@link
         // com.cyberday1.neoorigins.event.PreventActionPostTickHandler}
-        // (subscribed to PlayerTickEvent.Post). holder.onTick is dispatched
-        // from PlayerLifecycleEvents.onPlayerTick(PlayerTickEvent.Pre), so
-        // it runs *before* vanilla's travel() and swim-flag update — a
-        // reset applied here gets overwritten the same tick. Earth Mage's
-        // can't-swim ability was a no-op for that reason. The .Post phase
-        // runs after the physics, so the reset is authoritative.
+        // (subscribed to PlayerTickEvent.Post). The .Pre path here runs
+        // *before* vanilla's travel(), so a reset applied here gets
+        // overwritten the same tick. .Post fires after the physics, so the
+        // reset is authoritative.
     }
 
     /**
-     * Apply SWIM / ELYTRA enforcement. Called from
+     * Apply ELYTRA enforcement. Called from
      * {@link com.cyberday1.neoorigins.event.PreventActionPostTickHandler}
      * after vanilla physics has run. Public so the post-tick handler can
      * call this without duplicating the gate / state logic.
+     *
+     * <p>SWIM used to be enforced here too, by clamping the player's velocity
+     * and marking it for resend every tick. That resend overwrote the client's
+     * own horizontal motion with the server's, so the player crawled underwater
+     * whatever their speed, and the client still predicted the swim pose
+     * (issue #149). It is now {@link #PREVENT_SWIM} plus two mixins.
      */
     public static void enforceMovementBlock(ServerPlayer player, Config config) {
         if (config.action() == Action.ELYTRA && isGateOpen(player, config)
                 && player.isFallFlying()) {
             player.stopFallFlying();
-        }
-        if (config.action() == Action.SWIM && isGateOpen(player, config)
-                && player.isInWater()) {
-            // Three things to enforce so vanilla can't put the player back
-            // into a swim state mid-tick:
-            //   1. Constant strong downward velocity so buoyancy can't push
-            //      them up between our resets.
-            //   2. Clear the swimming flag — vanilla sets it true whenever
-            //      sprint + (underwater or canStartSwimming) holds, and
-            //      once true, travel() applies horizontal swim physics
-            //      that overpower a tiny downward delta.
-            //   3. hurtMarked so the position update syncs immediately.
-            // The client may briefly predict a swim frame on its own input —
-            // that's a single-frame visual glitch, not behaviour; a
-            // client-side mixin would close it but isn't required.
-            var v = player.getDeltaMovement();
-            double clampedY = Math.min(v.y, -0.16);
-            if (clampedY != v.y || player.isSwimming()) {
-                player.setDeltaMovement(v.x, clampedY, v.z);
-                if (player.isSwimming()) player.setSwimming(false);
-                player.syncVelocity = true;
-            }
         }
     }
 }

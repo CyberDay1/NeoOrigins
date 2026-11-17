@@ -46,6 +46,8 @@
     "RegistryElementLoadMixin",
     "RegistryLoadTaskAccessor",
     "EntityForcedSwimmingMixin",
+    "EntityPreventSwimMixin",
+    "LivingEntityPreventSwimMixin",
     "BlockStateBaseCobwebShapeMixin",
     "BeaconBlockEntityLevelsAccessor",
     "ServerPlayerGameModeMiningAccessor",
