@@ -61,4 +61,16 @@ public class UnderwaterMiningSpeedPower extends PowerType<UnderwaterMiningSpeedP
         if (instance == null) return;
         instance.removeModifier(modId());
     }
+
+    // Attached once at grant: follow a top-level power_condition like the
+    // capability already does, rather than keeping the bonus while gated off.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        onGranted(player, config);
+    }
+
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        onRevoked(player, config);
+    }
 }

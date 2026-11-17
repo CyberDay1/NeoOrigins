@@ -63,4 +63,17 @@ public class IgnoreWaterPower extends PowerType<IgnoreWaterPower.Config> {
         AttributeInstance inst = player.getAttribute(Attributes.WATER_MOVEMENT_EFFICIENCY);
         if (inst != null) inst.removeModifier(modWaterSpeed());
     }
+
+    // A top-level power_condition gates the current-push capability already, but
+    // the speed modifier is attached once at grant: these two make it follow the
+    // gate as well, instead of staying on while the power is meant to be off.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        onGranted(player, config);
+    }
+
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        onRevoked(player, config);
+    }
 }
