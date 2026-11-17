@@ -9,7 +9,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 /**
- * Runs {@link PreventActionPower#enforceMovementBlock} for SWIM and ELYTRA
+ * Runs {@link PreventActionPower#enforceMovementBlock} for ELYTRA
  * holders on {@link PlayerTickEvent.Post}. Separate from the main tick
  * handler because the .Post phase fires *after* vanilla's travel() and
  * swim-flag update — which is the only point at which our reset can

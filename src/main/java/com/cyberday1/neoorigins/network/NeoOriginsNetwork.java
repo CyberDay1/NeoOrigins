@@ -2011,6 +2011,10 @@ public class NeoOriginsNetwork {
         if (capabilities.contains("forced_pose_swimming")) sig |= 32;
         if (capabilities.contains("forced_pose_crouching")) sig |= 64;
         if (capabilities.contains("forced_pose_standing")) sig |= 128;
+        // Fluid movement predicted on both sides from the synced set: a
+        // power_condition or active_when flip must reach the client before it
+        // moves on a stale view.
+        if (capabilities.contains("prevent_swim")) sig |= 1024;
         return sig;
     }
 

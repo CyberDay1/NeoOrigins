@@ -118,4 +118,42 @@ class PowerConditionGrantGateTest {
         assertFalse(sp.hasEffect(MobEffects.SLOW_FALLING),
             "an infinite effect outlived its power_condition");
     }
+
+    @Test
+    void preventSwimWalkSpeedFollowsTheGate() {
+        AtomicBoolean open = new AtomicBoolean(true);
+        var holder = gated(new PreventActionPower(), """
+            { "action": "swim" }
+            """, open);
+        ServerPlayer sp = PlayerLifecycle.realPlayer();
+        holder.onGranted(sp);
+        tick(holder, sp);
+        assertEquals(1.0, modifierTotal(sp, Attributes.WATER_MOVEMENT_EFFICIENCY), 1e-9,
+            "a player who can't swim should walk the bottom at land speed");
+
+        open.set(false);
+        tick(holder, sp);
+        assertEquals(0.0, modifierTotal(sp, Attributes.WATER_MOVEMENT_EFFICIENCY), 1e-9);
+
+        open.set(true);
+        tick(holder, sp);
+        holder.onRevoked(sp);
+        assertEquals(0.0, modifierTotal(sp, Attributes.WATER_MOVEMENT_EFFICIENCY), 1e-9,
+            "the walk-speed modifier outlived the power");
+    }
+
+    @Test
+    void preventSwimCapabilityFollowsActiveWhen() {
+        var power = new PreventActionPower();
+        var config = power.codec().parse(JsonOps.INSTANCE, JsonParser.parseString("""
+            { "action": "swim", "active_when": "not_sneaking" }
+            """).getAsJsonObject()).getOrThrow();
+        ServerPlayer sp = PlayerLifecycle.realPlayer();
+        assertTrue(power.capabilities(sp, config).contains(PreventActionPower.PREVENT_SWIM));
+        sp.setShiftKeyDown(true);
+        assertFalse(power.capabilities(sp, config).contains(PreventActionPower.PREVENT_SWIM),
+            "active_when must switch the swim block off for the client too");
+        assertTrue(power.capabilities(config).contains(PreventActionPower.PREVENT_SWIM),
+            "the static set must still bound the player-aware one");
+    }
 }
