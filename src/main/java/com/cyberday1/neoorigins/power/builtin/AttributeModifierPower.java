@@ -186,7 +186,13 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % 5 != 0) return;
         if (config.resource().isEmpty()) {
-            if (isUnconditional(config)) return;
+            if (isUnconditional(config)) {
+                // onGranted attached it, but a top-level power_condition that
+                // closed since then took it off in onTickBlocked: put it back
+                // now the gate is open again.
+                if (!hasActiveModifier(player, config)) applyModifier(player, config, true);
+                return;
+            }
             boolean shouldBeActive = evaluateAll(player, config);
             boolean isActive = hasActiveModifier(player, config);
             if (shouldBeActive && !isActive) applyModifier(player, config, true);
@@ -202,6 +208,17 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
         if (shouldBeActive && !isActive) applyModifier(player, config, true);
         else if (!shouldBeActive && isActive) applyModifier(player, config, false);
         else if (shouldBeActive) resyncResourceValue(player, config);
+    }
+
+    /**
+     * A top-level {@code power_condition} that is closed stops {@link #onTick} from
+     * running at all, so without this the modifier {@link #onGranted} attached (or
+     * the last open tick left on) would stay for as long as the gate stayed shut.
+     */
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        if (player.tickCount % 5 != 0) return;
+        if (hasActiveModifier(player, config)) applyModifier(player, config, false);
     }
 
     /**
