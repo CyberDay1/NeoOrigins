@@ -465,7 +465,8 @@ public final class BuiltinPowers {
             new FieldSpec("tool", Kind.STRING, false)
                 .def("minecraft:stone_pickaxe").doc("Vanilla tool item id the empty hand emulates for tier/break speed; default stone_pickaxe.")));
         // Mirrors breath_in_fluid's priority ladder (see the note above that
-        // power's define): one real component plus two key-aliased specs. There
+        // power's define): two real components (drain_interval_ticks,
+        // air_loss_per_second) plus the key-aliased drain_rate. There
         // is deliberately NO .def() on any of the three drain keys — omitting
         // all three resolves to BreathOutOfFluidPower.UNSET, which defers to the
         // `[ocean_origins] drain_rate_ticks` config rather than to a literal.
@@ -478,9 +479,9 @@ public final class BuiltinPowers {
             new FieldSpec("drain_interval_ticks", Kind.INTEGER, false)
                 .range(1.0, null)
                 .doc("Ticks between each 1-point air drain while out of the fluid; higher = slower drain (20 = 1s). Read second, after air_loss_per_second. When it and both aliases are omitted, the [ocean_origins] drain_rate_ticks config supplies the value."),
-            new FieldSpec("air_loss_per_second", Kind.INTEGER, false).boundTo("drainIntervalTicks")
-                .range(1.0, null)
-                .doc("Alias, highest priority: air points lost per SECOND while out of the fluid (higher = faster drain). Converted internally to 20/value ticks between drains, clamped to at least 1 tick. When set it overrides drain_interval_ticks and drain_rate."),
+            new FieldSpec("air_loss_per_second", Kind.NUMBER, false)
+                .range(0.0, null)
+                .doc("Highest priority: air points lost per SECOND while out of the fluid (higher = faster drain). Air runs from 300 (full) to 0, so 20 empties a full bar in 15 seconds. Decimals work and the fraction carries over between ticks. When set above 0 it overrides drain_interval_ticks and drain_rate."),
             new FieldSpec("drain_rate", Kind.INTEGER, false).boundTo("drainIntervalTicks")
                 .range(1.0, null)
                 .doc("Legacy alias for drain_interval_ticks (ticks between drains, NOT units per second). Lowest priority: only read when neither air_loss_per_second nor drain_interval_ticks is set. Prefer drain_interval_ticks in new packs.")));
@@ -1091,14 +1092,14 @@ public final class BuiltinPowers {
         //     legitimately self-ref via "#" because they live IN the
         //     action/condition doc), a power field must point at the sibling
         //     condition schema so both editors render a nested condition form.
-        //   • breath_in_fluid's codec ALSO accepts two alias input keys
-        //     (air_loss_per_second, drain_rate) that are not record components —
-        //     reflection never surfaced them as form fields, so they were
-        //     originally left in field_docs.json as docs-only aliases. That hid
-        //     air_loss_per_second from every editor even though the power's own
-        //     documented example uses it, so both are now declared as key-aliased
-        //     specs (.boundTo("drainIntervalTicks")) and their field_docs.json
-        //     entries have been dropped.
+        //   • breath_in_fluid's codec ALSO accepts the alias input key
+        //     drain_rate, which is not a record component. Reflection never
+        //     surfaced it (or air_loss_per_second, an alias back then) as a form
+        //     field, so both sat in field_docs.json as docs-only aliases, hiding
+        //     air_loss_per_second from every editor although the power's own
+        //     documented example uses it. Both are declared now: drain_rate as a
+        //     key-aliased spec (.boundTo("drainIntervalTicks")), and
+        //     air_loss_per_second as its own airLossPerSecond component.
         define("active_swap", ActiveSwapPower.class, List.of(
             new FieldSpec("range", Kind.NUMBER, false)
                 .def(20.0).doc("Max distance in blocks to find the looked-at entity to swap with; default 20.0."),
@@ -1263,18 +1264,15 @@ public final class BuiltinPowers {
                 .options("water", "lava")
                 .def("water").doc("Fluid that suffocates the player, \"water\" or \"lava\"; default water."),
             new FieldSpec("drain_interval_ticks", Kind.INTEGER, false)
-                .def(20).doc("Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Read second, after air_loss_per_second; default 20."),
-            // Two documented ALIAS keys the codec reads into the SAME
-            // drainIntervalTicks component (see BreathInFluidPower.Config.CODEC's
-            // priority ladder). They are not record components of their own, so
-            // both bind to drainIntervalTicks via .boundTo — otherwise the drift
-            // audit's clause (a) would reject them. Declaring them here is what
-            // finally puts air_loss_per_second — the key this power's OWN
-            // documented example uses — in front of the editors; their
-            // field_docs.json entries collapse onto these specs.
-            new FieldSpec("air_loss_per_second", Kind.INTEGER, false).boundTo("drainIntervalTicks")
-                .range(1.0, null)
-                .doc("Alias, highest priority: air points lost per SECOND while submerged (higher = faster drain). Converted internally to 20/value ticks between drains, clamped to at least 1 tick. When set it overrides drain_interval_ticks and drain_rate."),
+                .def(20).doc("Ticks between each 1-point air drain while submerged; higher = slower drain (20 = 1s). Air runs from 300 (full) to 0, so the default empties a full bar in 5 minutes. Read second, after air_loss_per_second; default 20."),
+            // air_loss_per_second is its own record component (airLossPerSecond)
+            // since it stopped being converted to whole ticks. drain_rate is still
+            // an ALIAS key the codec reads into drainIntervalTicks, so it binds
+            // there via .boundTo — otherwise the drift audit's clause (a) would
+            // reject it.
+            new FieldSpec("air_loss_per_second", Kind.NUMBER, false)
+                .range(0.0, null)
+                .doc("Highest priority: air points lost per SECOND while submerged (higher = faster drain). Air runs from 300 (full) to 0, and vanilla drowning loses 20 a second, so 20 empties a full bar in 15 seconds and 1 takes 5 minutes. Decimals work and the fraction carries over between ticks. When set above 0 it overrides drain_interval_ticks and drain_rate."),
             new FieldSpec("drain_rate", Kind.INTEGER, false).boundTo("drainIntervalTicks")
                 .range(1.0, null)
                 .doc("Legacy alias for drain_interval_ticks (ticks between drains, NOT units per second — the naming that caused the original confusion). Lowest priority: only read when neither air_loss_per_second nor drain_interval_ticks is set. Prefer drain_interval_ticks in new packs.")));
