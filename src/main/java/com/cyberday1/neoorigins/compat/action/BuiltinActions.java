@@ -2835,8 +2835,8 @@ public final class BuiltinActions {
                     .options("none", "source_only", "any")
                     .doc("How fluids are treated (default none)."),
                 new FieldSpec("shape_type", FormFieldSpec.Kind.ENUM, false).def("visual")
-                    .options("visual", "collider")
-                    .doc("Block shape for the trace: visual (default) or collider."),
+                    .options("visual", "outline", "collider")
+                    .doc("Block shape for the trace: visual (default), outline or collider. visual and collider pass through blocks with no collision (crops, saplings, short grass, flowers); use outline, the crosshair's shape, to hit those."),
                 new FieldSpec("block_action", FormFieldSpec.Kind.REF, false).ref("#")
                     .doc("Action when a block is hit; ~ ~ ~ resolves to the hit block."),
                 new FieldSpec("bientity_action", FormFieldSpec.Kind.REF, false).ref("#")

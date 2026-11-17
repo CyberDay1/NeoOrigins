@@ -114,7 +114,7 @@ Alias spellings (dispatch to the same verb, not counted above): `riding` → `pa
 [`neoorigins:nearby_entities`](conditions/entity.md#neooriginsnearby_entities) • [`neoorigins:near_villager`](conditions/entity.md#neooriginsnear_villager) •
 [`neoorigins:near_block`](conditions/entity.md#neooriginsnear_block) • [`neoorigins:in_block_anywhere`](conditions/entity.md#neooriginsin_block_anywhere) •
 [`neoorigins:distance_from_coordinates`](conditions/entity.md#neooriginsdistance_from_coordinates) • [`neoorigins:cover`](conditions/entity.md#neooriginscover-alias-neooriginscovered_by_block) •
-[`neoorigins:hardness`](conditions/entity.md#neooriginshardness) • [`neoorigins:replacable`](conditions/entity.md#neooriginsreplacable-alias-neooriginsreplaceable) • [`neoorigins:night`](conditions/entity.md#neooriginsnight) •
+[`neoorigins:hardness`](conditions/entity.md#neooriginshardness) • [`neoorigins:raycast`](conditions/entity.md#neooriginsraycast) • [`neoorigins:replacable`](conditions/entity.md#neooriginsreplacable-alias-neooriginsreplaceable) • [`neoorigins:night`](conditions/entity.md#neooriginsnight) •
 [`neoorigins:thundering`](conditions/entity.md#neooriginsthundering)
 
 ### Player state

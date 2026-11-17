@@ -164,6 +164,7 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 | <a id="neooriginsin_block"></a>[`neoorigins:in_block`](conditions/entity.md#neooriginsin_block) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsin_block_anywhere"></a><a id="when-a-block-condition-cannot-be-read"></a>[`neoorigins:in_block_anywhere`](conditions/entity.md#neooriginsin_block_anywhere) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginshardness"></a>[`neoorigins:hardness`](conditions/entity.md#neooriginshardness) | [Entity conditions](conditions/entity.md) |
+| <a id="neooriginsraycast"></a>[`neoorigins:raycast`](conditions/entity.md#neooriginsraycast) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsentity_type"></a>[`neoorigins:entity_type`](conditions/entity.md#neooriginsentity_type) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsequipped_item"></a>[`neoorigins:equipped_item`](conditions/entity.md#neooriginsequipped_item) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsinventory"></a>[`neoorigins:inventory`](conditions/entity.md#neooriginsinventory) | [Entity conditions](conditions/entity.md) |
