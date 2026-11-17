@@ -40,7 +40,12 @@ import java.util.Set;
  * { "type": "neoorigins:ignore_fluid", "fluid": "minecraft:lava" }
  * { "type": "neoorigins:ignore_fluid", "fluids": ["minecraft:water", "minecraft:lava"] }
  * { "type": "neoorigins:ignore_fluid", "fluid": "#c:milk" }
+ * { "type": "neoorigins:ignore_fluid", "fluid": "minecraft:water", "mode": "physics" }
  * }</pre>
+ *
+ * <p>{@code "mode": "physics"} skips the detection mixins entirely and instead
+ * strips the movement effects one by one in {@code EntityIgnoreFluidPhysicsMixin}
+ * and {@code LivingEntityIgnoreFluidPhysicsMixin}.
  */
 public class IgnoreFluidPower extends PowerType<IgnoreFluidPower.Config> {
 
@@ -58,19 +63,36 @@ public class IgnoreFluidPower extends PowerType<IgnoreFluidPower.Config> {
             either -> either.map(List::of, List::copyOf),
             list -> list.size() == 1 ? Either.left(list.get(0)) : Either.right(list));
 
-    public record Config(List<String> fluid, List<String> fluids, String type)
+    /** The default: the fluid stops existing for the player. */
+    public static final String MODE_FULL = "full";
+
+    /**
+     * The fluid stays detected (you still see it, drown in it and match
+     * {@code in_water}) but stops moving you: no current, no buoyancy or drag, no
+     * swimming. What Origins' {@code ignore_water} felt like.
+     */
+    public static final String MODE_PHYSICS = "physics";
+
+    public record Config(List<String> fluid, List<String> fluids, String mode, String type)
             implements PowerConfiguration {
 
         public Config {
             fluid = fluid == null ? List.of() : List.copyOf(fluid);
             fluids = fluids == null ? List.of() : List.copyOf(fluids);
+            // Unknown modes fall back to full rather than failing the load, the
+            // same way an unknown fluid id degrades instead of throwing.
+            mode = mode != null && MODE_PHYSICS.equals(mode.trim().toLowerCase(Locale.ROOT))
+                ? MODE_PHYSICS : MODE_FULL;
         }
 
         public static final Codec<Config> CODEC = RecordCodecBuilder.create(inst -> inst.group(
             STRING_OR_LIST.optionalFieldOf("fluid", List.of()).forGetter(Config::fluid),
             STRING_OR_LIST.optionalFieldOf("fluids", List.of()).forGetter(Config::fluids),
+            Codec.STRING.optionalFieldOf("mode", MODE_FULL).forGetter(Config::mode),
             Codec.STRING.optionalFieldOf("type", "").forGetter(Config::type)
         ).apply(inst, Config::new));
+
+        public boolean physicsOnly() { return MODE_PHYSICS.equals(mode); }
 
         /**
          * The author's entries, normalised to canonical {@code namespace:path} (or
@@ -141,11 +163,15 @@ public class IgnoreFluidPower extends PowerType<IgnoreFluidPower.Config> {
     @Override
     public Set<String> capabilities(Config config) {
         LinkedHashSet<String> caps = new LinkedHashSet<>();
+        // Physics mode has its own tag family so the detection mixins, which
+        // only read the full-mode tags, leave the fluid detectable.
+        boolean physics = config.physicsOnly();
+        String prefix = physics ? IgnoreFluidCapabilities.PHYSICS_PREFIX : IgnoreFluidCapabilities.PREFIX;
         // Cheap gate the hot mixins test first, so a player without this power
         // never pays for the per-fluid resolution below.
-        caps.add(IgnoreFluidCapabilities.MARKER);
+        caps.add(physics ? IgnoreFluidCapabilities.PHYSICS_MARKER : IgnoreFluidCapabilities.MARKER);
         for (String entry : config.resolvedEntries()) {
-            caps.add(IgnoreFluidCapabilities.PREFIX + entry);
+            caps.add(prefix + entry);
         }
         return Set.copyOf(caps);
     }

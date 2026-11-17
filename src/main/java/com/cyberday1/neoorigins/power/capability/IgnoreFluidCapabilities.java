@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
+import net.neoforged.neoforge.fluids.FluidType;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -51,15 +52,27 @@ public final class IgnoreFluidCapabilities {
     /** Prefix of the per-fluid capability tags, e.g. {@code ignore_fluid:minecraft:lava}. */
     public static final String PREFIX = "ignore_fluid:";
 
-    private static final String[] NO_TAGS = new String[0];
+    /**
+     * {@code "mode": "physics"} counterparts of {@link #MARKER} and {@link #PREFIX}.
+     * Kept as separate tags so the detection mixins never see a physics-mode power:
+     * in that mode the fluid stays detected and only its movement effects go.
+     */
+    public static final String PHYSICS_MARKER = "ignore_fluid_physics";
+    public static final String PHYSICS_PREFIX = "ignore_fluid_physics:";
+
+    private static final String[] NO_IDS = new String[0];
+    private static final Fluid[] NO_FLUIDS = new Fluid[0];
 
     /**
-     * Fluid → every {@code ignore_fluid:<id>} string that should match it (one per
-     * fluid sharing its {@link net.neoforged.neoforge.fluids.FluidType}). Built
-     * once, lazily, off the frozen fluid registry. Volatile + benign-race: two
-     * threads may both build it, but the result is identical and immutable.
+     * Fluid → the id of every fluid sharing its {@link FluidType}, unprefixed so
+     * both modes' tags can be formed from it. Built once, lazily, off the frozen
+     * fluid registry. Volatile + benign-race: two threads may both build it, but
+     * the result is identical and immutable.
      */
     private static volatile Map<Fluid, String[]> byFluid;
+
+    /** Fluid type → its fluids, for the physics-mode mixins that only see a type. */
+    private static volatile Map<FluidType, Fluid[]> byType;
 
     /**
      * True if {@code entity} is a player who currently ignores {@code state}'s fluid.
@@ -73,16 +86,44 @@ public final class IgnoreFluidCapabilities {
         if (!(entity instanceof Player player)) return false;
         // Single cheap lookup rejects every player without the power.
         if (!PowerCapabilities.hasActive(player, MARKER)) return false;
+        return matches(player, state.getType(), PREFIX);
+    }
 
-        Fluid fluid = state.getType();
-        for (String tag : capabilityTagsFor(fluid)) {
-            if (PowerCapabilities.hasActive(player, tag)) return true;
+    /**
+     * True if {@code entity} is a player whose {@code "mode": "physics"} power
+     * covers {@code type}: the fluid is still there for them, it just does not
+     * move them.
+     */
+    public static boolean ignoresPhysics(Entity entity, FluidType type) {
+        if (type == null || type.isAir()) return false;
+        if (!(entity instanceof Player player)) return false;
+        if (!PowerCapabilities.hasActive(player, PHYSICS_MARKER)) return false;
+        for (Fluid fluid : fluidsOf(type)) {
+            if (matches(player, fluid, PHYSICS_PREFIX)) return true;
         }
-        return matchesFluidTag(player, fluid);
+        return false;
+    }
+
+    /**
+     * True if {@code entity} is in any fluid its physics-mode power covers. Reads
+     * the body scan's fluid heights, so it agrees with {@code isInWater()} and the
+     * other fluid checks.
+     */
+    public static boolean inPhysicsIgnoredFluid(Entity entity) {
+        if (!(entity instanceof Player player)) return false;
+        if (!PowerCapabilities.hasActive(player, PHYSICS_MARKER)) return false;
+        return entity.isInFluidType((e, type, height) -> ignoresPhysics(entity, type));
+    }
+
+    private static boolean matches(Player player, Fluid fluid, String prefix) {
+        for (String id : idsFor(fluid)) {
+            if (PowerCapabilities.hasActive(player, prefix + id)) return true;
+        }
+        return matchesFluidTag(player, fluid, prefix);
     }
 
     /** {@code "#c:milk"}-style entries, resolved live because tags rebind on reload. */
-    private static boolean matchesFluidTag(Player player, Fluid fluid) {
+    private static boolean matchesFluidTag(Player player, Fluid fluid, String prefix) {
         Iterator<TagKey<Fluid>> tags;
         try {
             tags = fluid.builtInRegistryHolder().tags().iterator();
@@ -91,48 +132,61 @@ public final class IgnoreFluidCapabilities {
             return false;
         }
         while (tags.hasNext()) {
-            if (PowerCapabilities.hasActive(player, PREFIX + "#" + tags.next().location())) {
+            if (PowerCapabilities.hasActive(player, prefix + "#" + tags.next().location())) {
                 return true;
             }
         }
         return false;
     }
 
-    private static String[] capabilityTagsFor(Fluid fluid) {
-        Map<Fluid, String[]> map = byFluid;
-        if (map == null) {
-            map = build();
-            // A failed build is NOT cached — retry next call rather than pinning
-            // an empty map for the rest of the session.
-            if (map == null) return NO_TAGS;
-            byFluid = map;
-        }
-        String[] tags = map.get(fluid);
-        return tags == null ? NO_TAGS : tags;
+    private static String[] idsFor(Fluid fluid) {
+        if (!ensureBuilt()) return NO_IDS;
+        String[] ids = byFluid.get(fluid);
+        return ids == null ? NO_IDS : ids;
     }
 
-    private static Map<Fluid, String[]> build() {
-        Map<Object, List<String>> perType = new IdentityHashMap<>();
-        Map<Fluid, String[]> out = new IdentityHashMap<>();
+    private static Fluid[] fluidsOf(FluidType type) {
+        if (!ensureBuilt()) return NO_FLUIDS;
+        Fluid[] fluids = byType.get(type);
+        return fluids == null ? NO_FLUIDS : fluids;
+    }
+
+    private static boolean ensureBuilt() {
+        if (byFluid != null && byType != null) return true;
+        // A failed build is NOT cached — retry next call rather than pinning
+        // an empty map for the rest of the session.
+        return build();
+    }
+
+    private static boolean build() {
+        Map<FluidType, List<String>> idsPerType = new IdentityHashMap<>();
+        Map<FluidType, List<Fluid>> fluidsPerType = new IdentityHashMap<>();
+        Map<Fluid, String[]> outFluid = new IdentityHashMap<>();
+        Map<FluidType, Fluid[]> outType = new IdentityHashMap<>();
         try {
             for (Fluid fluid : BuiltInRegistries.FLUID) {
                 Identifier key = BuiltInRegistries.FLUID.getKey(fluid);
                 if (key == null) continue;
-                perType.computeIfAbsent(fluid.getFluidType(), t -> new ArrayList<>())
-                    .add(PREFIX + key);
+                idsPerType.computeIfAbsent(fluid.getFluidType(), t -> new ArrayList<>())
+                    .add(key.toString());
+                fluidsPerType.computeIfAbsent(fluid.getFluidType(), t -> new ArrayList<>())
+                    .add(fluid);
             }
             for (Fluid fluid : BuiltInRegistries.FLUID) {
-                List<String> tags = perType.get(fluid.getFluidType());
-                if (tags != null && !tags.isEmpty()) {
-                    out.put(fluid, tags.toArray(new String[0]));
+                List<String> ids = idsPerType.get(fluid.getFluidType());
+                if (ids != null && !ids.isEmpty()) {
+                    outFluid.put(fluid, ids.toArray(new String[0]));
                 }
             }
+            fluidsPerType.forEach((type, fluids) -> outType.put(type, fluids.toArray(new Fluid[0])));
         } catch (RuntimeException e) {
             // Registry unavailable (harness / very early boot): behave as "ignores
             // nothing" rather than taking the game down, and leave the cache unset
             // so a later call can still build it.
-            return null;
+            return false;
         }
-        return out;
+        byType = outType;
+        byFluid = outFluid;
+        return true;
     }
 }
