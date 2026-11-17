@@ -11,7 +11,7 @@
     "type": {
       "type": "string",
       "description": "Fully-qualified condition verb. `apace:` aliases are accepted.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_effective_tool|using_item|weather|xp_level|xp_levels|xp_points)$"
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|raycast|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_effective_tool|using_item|weather|xp_level|xp_levels|xp_points)$"
     }
   },
   "oneOf": [
@@ -2374,6 +2374,52 @@
       ]
     },
     {
+      "$comment": "neoorigins:raycast",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:raycast",
+            "apace:raycast",
+            "origins:raycast",
+            "apoli:raycast",
+            "apugli:raycast"
+          ]
+        },
+        "distance": {
+          "description": "How far to trace, in blocks (default 10, as on the raycast action).",
+          "type": "number",
+          "default": 10.0
+        },
+        "shape_type": {
+          "description": "Block shape for the trace: visual (default), outline or collider. visual and collider pass through crops, saplings, short grass and flowers; use outline to hit them.",
+          "type": "string",
+          "enum": [
+            "visual",
+            "outline",
+            "collider"
+          ],
+          "default": "visual"
+        },
+        "fluid_handling": {
+          "description": "How fluids are treated (default none).",
+          "type": "string",
+          "enum": [
+            "none",
+            "source_only",
+            "any"
+          ],
+          "default": "none"
+        },
+        "block_condition": {
+          "description": "Condition on the block the trace hits. Without one, any block hit passes. Nothing hit within distance always fails.",
+          "$ref": "block_condition.schema.json"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
       "$comment": "neoorigins:relative_health",
       "properties": {
         "type": {
@@ -3154,6 +3200,7 @@
               "apace:power_active",
               "apace:power_type",
               "apace:predicate",
+              "apace:raycast",
               "apace:relative_health",
               "apace:replacable",
               "apace:replaceable",
@@ -3272,6 +3319,7 @@
               "apoli:power_active",
               "apoli:power_type",
               "apoli:predicate",
+              "apoli:raycast",
               "apoli:relative_health",
               "apoli:replacable",
               "apoli:replaceable",
@@ -3390,6 +3438,7 @@
               "apugli:power_active",
               "apugli:power_type",
               "apugli:predicate",
+              "apugli:raycast",
               "apugli:relative_health",
               "apugli:replacable",
               "apugli:replaceable",
@@ -3508,6 +3557,7 @@
               "neoorigins:power_active",
               "neoorigins:power_type",
               "neoorigins:predicate",
+              "neoorigins:raycast",
               "neoorigins:relative_health",
               "neoorigins:replacable",
               "neoorigins:replaceable",
@@ -3626,6 +3676,7 @@
               "origins:power_active",
               "origins:power_type",
               "origins:predicate",
+              "origins:raycast",
               "origins:relative_health",
               "origins:replacable",
               "origins:replaceable",

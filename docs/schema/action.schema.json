@@ -1950,10 +1950,11 @@
           "default": "none"
         },
         "shape_type": {
-          "description": "Block shape for the trace: visual (default) or collider.",
+          "description": "Block shape for the trace: visual (default), outline or collider. visual and collider pass through blocks with no collision (crops, saplings, short grass, flowers); use outline, the crosshair's shape, to hit those.",
           "type": "string",
           "enum": [
             "visual",
+            "outline",
             "collider"
           ],
           "default": "visual"

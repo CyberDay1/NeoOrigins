@@ -149,7 +149,7 @@ True when the entity's bounding box, shifted by `offset_x`/`offset_y`/`offset_z`
 | `offset_x` | float | no | `0.0` | Box X shift as a multiple of the entity's width |
 | `offset_y` | float | no | `0.0` | Box Y shift as a multiple of the entity's height |
 | `offset_z` | float | no | `0.0` | Box Z shift as a multiple of the entity's width |
-| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the `offset` wrapper. `inverted` is honoured on every node |
+| `block_condition` | block condition | no | any collidable block | Block filter; supports `block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `bonemealable`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the `offset` wrapper. `inverted` is honoured on every node |
 
 Unlike the other block-testing conditions, a `block_collision` block condition fails **open**: a node it cannot read (an unknown type, `offset` without `condition`, `adjacent` without `adjacent_condition`, `block_state` without `property`) matches every block, and is reported in the `[CompatB] Compatibility summary`. A node of any other type (or none) that carries `block`/`id` or `tag` is read as a block or tag test, and `tag` here takes no leading `#`.
 
@@ -504,7 +504,7 @@ True when the entity is on ground and the block directly below matches the neste
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `block_state`, `height`, `adjacent`, `offset`, or an `and`/`or` combinator (aliases `all_of`/`any_of`)); absent → on any ground |
+| `block_condition` | object | no | — | Nested block condition (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `bonemealable`, `block_state`, `height`, `adjacent`, `offset`, or an `and`/`or` combinator (aliases `all_of`/`any_of`)); absent → on any ground |
 | `block_condition.id` | resource location | no | — | Block ID to match (also accepts `block`) |
 
 Every node of `block_condition` honours its own `inverted` flag, at the root and inside `and`/`or`. Inverting `block_condition` negates only the block test: the entity must still be on the ground. An `inverted` on the `on_block` condition itself negates the whole result, ground check included.
@@ -515,7 +515,7 @@ Block check at the entity's current position: accepts either a nested `block_con
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `block_condition` | object | no | — | Optional wrapper; the full block-condition grammar (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)). When present, the top-level `block`/`id`/`tag` are ignored |
+| `block_condition` | object | no | — | Optional wrapper; the full block-condition grammar (`block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `bonemealable`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)). When present, the top-level `block`/`id`/`tag` are ignored |
 | `block` / `id` | resource location | no | — | Exact block ID; `block` wins over `id` |
 | `tag` | resource location | no | — | Block tag (leading `#` optional); read only when neither `block` nor `id` is set |
 
@@ -562,6 +562,42 @@ Numeric comparison against a block's destroy hardness. **Context-dependent:** in
 ```json
 { "type": "neoorigins:hardness", "comparison": "<=", "compare_to": 1.5 }
 ```
+
+## `neoorigins:raycast`
+
+True when a ray from the entity's eyes along its look direction hits a block within `distance`, and that block matches `block_condition` if one is given. It traces exactly as the [`raycast` action](../actions/targeted.md#neooriginsraycast) does, with the same fields and defaults, so an ability can check its target before it fires. Use it as an `active_ability` `condition` and a miss costs nothing: no hunger, no resource, no cooldown.
+
+Only block hits are read. A condition with `"block": false`, `"entity": true` or a `bientity_condition` (Apoli's entity half) never matches, and is reported in the `[CompatB] Compatibility summary`. So does a `block_condition` this version cannot read.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `distance` | double | no | `10.0` | How far to trace, in blocks |
+| `shape_type` | enum | no | `visual` | Block shape for the trace: `visual`, `outline` or `collider`. `visual` and `collider` pass through crops, saplings, short grass and flowers; use `outline` to hit them |
+| `fluid_handling` | enum | no | `none` | How fluids are treated: `none` / `source_only` / `any` |
+| `block_condition` | object | no | any block | Condition on the block the ray hits. Nothing hit within `distance` always fails |
+
+**Example: bonemeal only something that can grow, and charge only then**
+```json
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "hunger_cost": 4,
+  "condition": {
+    "type": "neoorigins:raycast",
+    "distance": 5.0,
+    "shape_type": "outline",
+    "block_condition": { "type": "neoorigins:bonemealable" }
+  },
+  "entity_action": {
+    "type": "neoorigins:raycast",
+    "distance": 5.0,
+    "shape_type": "outline",
+    "block_action": { "type": "neoorigins:grow" }
+  }
+}
+```
+
+`neoorigins:bonemealable` is a block condition that is true where bone meal would be accepted right now: the block takes bone meal and is not fully grown. It is the check `grow` makes before it rolls. It cannot see the roll itself: a sapling grows only some of the time, as it does with real bone meal, and an attempt that rolls badly is still charged.
 
 ## `neoorigins:entity_type`
 
@@ -977,7 +1013,7 @@ Intended for ambient proximity buffs (campfire warmth, lava-side speed, water-ne
 | `blocks` | list of resource location | no | `[]` | Additional block IDs to match |
 | `tag` | block tag | no | — | Single block tag (with or without leading `#`) |
 | `tags` | list of block tag | no | `[]` | Additional block tags |
-| `block_condition` | object | no | — | Origins-format nested block condition (`block`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)) |
+| `block_condition` | object | no | — | Origins-format nested block condition (`block`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `bonemealable`, `block_state`, `height`, `adjacent`, `offset`, `and`/`or` (aliases `all_of`/`any_of`)) |
 | `radius` | int (1–16) | no | `4` | Radius to scan around the player; values outside the range are clamped |
 | `shape` | string | no | `"cube"` | Scan volume: `cube` (Chebyshev), `star` (Manhattan), `sphere` (Euclidean); an unknown value falls back to `cube` |
 | `comparison` | string | no | `">="` | Comparison operator against the count of matching blocks |
