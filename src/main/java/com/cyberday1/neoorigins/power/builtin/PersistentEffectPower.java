@@ -404,6 +404,15 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
         }
     }
 
+    /**
+     * The effects are infinite, so a top-level {@code power_condition} that closes
+     * has to take them off here: {@link #onTick} no longer runs to do it.
+     */
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        clearEffects(player, config);
+    }
+
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         PlayerOriginData data = player.getData(OriginAttachments.originData());
