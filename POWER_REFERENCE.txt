@@ -5029,7 +5029,7 @@
 
   neoorigins:ignore_fluid
     Passive | Shipped powers: 0 | IgnoreFluidPower
-    Fields: fluid, fluids
+    Fields: fluid, fluids, mode
 
   neoorigins:ignore_water
     Passive | Shipped powers: 0 | IgnoreWaterPower

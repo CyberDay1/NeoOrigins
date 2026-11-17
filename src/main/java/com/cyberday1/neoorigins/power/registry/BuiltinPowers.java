@@ -374,7 +374,10 @@ public final class BuiltinPowers {
                 .doc("Fluid to ignore: a fluid id (\"minecraft:lava\"), a fluid tag (\"#c:milk\"), or an array of either. Omitting both fluid and fluids means water + lava."),
             new FieldSpec("fluids", Kind.ARRAY, false)
                 .itemPattern(FLUID_ENTRY_PATTERN)
-                .doc("Array form of `fluid`, for authors who prefer the plural key. Both keys are read and their entries merged.")));
+                .doc("Array form of `fluid`, for authors who prefer the plural key. Both keys are read and their entries merged."),
+            new FieldSpec("mode", Kind.ENUM, false)
+                .options("full", "physics").def("full")
+                .doc("full: the fluid stops existing for the player (no drowning, fog, overlay or in_water). physics: the fluid stays detected, so you still see it, drown in it and match in_water, but it no longer moves you: no current, buoyancy, drag or swimming, so you sink and walk the bottom at land speed.")));
         define("natural_glide",            NaturalGlidePower.class,           List.of(
             RENDER_ELYTRA_OFF_SPEC, ELYTRA_TEXTURE_SPEC));
         // elytra_flight: native mirror of apoli:elytra_flight. Reuses natural_glide

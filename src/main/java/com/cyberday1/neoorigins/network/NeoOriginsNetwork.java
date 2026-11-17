@@ -2014,12 +2014,17 @@ public class NeoOriginsNetwork {
         if (capabilities.contains("forced_pose_standing")) sig |= 128;
         // Fluid movement predicted on both sides from the synced set: a
         // power_condition or active_when flip must reach the client before it
-        // moves on a stale view.
+        // moves on a stale view. The ignore_fluid markers flip together with
+        // their per-fluid tags, so the marker alone is enough.
+        if (capabilities.contains("ignore_fluid")) sig |= 256;
+        if (capabilities.contains("ignore_fluid_physics")) sig |= 512;
         if (capabilities.contains("prevent_swim")) sig |= 1024;
         // breath_in_fluid's air drain is suppressed on both sides from its
-        // per-fluid tag (#150).
+        // per-fluid tag (#150); ignore_water rides along so its flip reaches the
+        // client too.
         if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "water")) sig |= 2048;
         if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "lava")) sig |= 4096;
+        if (capabilities.contains("ignore_water")) sig |= 8192;
         return sig;
     }
 

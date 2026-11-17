@@ -77,7 +77,7 @@ Start with [Power basics](concepts/power-basics.md) for the fields every power a
 | <a id="neooriginspose"></a>[`pose`](powers/movement.md#neooriginspose) | Hold the player's body in a chosen pose (prone, sneak height, upright) while the power is on. |
 | <a id="neooriginswalk_on_fluid"></a>[`walk_on_fluid`](powers/movement.md#neooriginswalk_on_fluid) | Walk on water, lava or both (default both), like a Strider. The surface stops being solid once you are submerged. |
 | <a id="neooriginsignore_water"></a>[`ignore_water`](powers/movement.md#neooriginsignore_water) | Full land speed in water + no current pushing. |
-| <a id="neooriginsignore_fluid"></a>[`ignore_fluid`](powers/movement.md#neooriginsignore_fluid) | Totally ignore named fluids (incl. modded): no buoyancy, drag, push, drowning, burn, fog or swim pose. |
+| <a id="neooriginsignore_fluid"></a>[`ignore_fluid`](powers/movement.md#neooriginsignore_fluid) | Totally ignore named fluids (incl. modded): no buoyancy, drag, push, drowning, burn, fog or swim pose. `mode: physics` keeps the fluid detectable and only stops it moving you, so you sink and walk the bottom. |
 | <a id="neooriginslike_air"></a>[`like_air`](powers/movement.md#neooriginslike_air) | Carry walking-speed modifiers into airborne control, as Origins' Avian does. |
 | <a id="neooriginscobweb_affinity"></a>[`cobweb_affinity`](powers/movement.md#neooriginscobweb_affinity) | Web mobility + 10× cobweb break speed. |
 | <a id="neooriginsbounce_on_land"></a>[`bounce_on_land`](powers/movement.md#neooriginsbounce_on_land) | Reflect fall impact back upward on landing, like a slime block. |

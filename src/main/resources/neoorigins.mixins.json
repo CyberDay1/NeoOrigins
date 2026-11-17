@@ -23,6 +23,8 @@
     "ItemStackEdibleAnimationMixin",
     "EntityIgnoreWaterMixin",
     "EntityIgnoreFluidMixin",
+    "EntityIgnoreFluidPhysicsMixin",
+    "LivingEntityIgnoreFluidPhysicsMixin",
     "BlockStateBaseIgnoreFluidMixin",
     "LivingEntityWalkOnFluidMixin",
     "LiquidBlockWalkOnFluidMixin",
