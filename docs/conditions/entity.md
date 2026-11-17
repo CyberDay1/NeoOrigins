@@ -565,14 +565,14 @@ Numeric comparison against a block's destroy hardness. **Context-dependent:** in
 
 ## `neoorigins:raycast`
 
-True when a ray from the entity's eyes along its look direction hits a block within `distance`, and that block matches `block_condition` if one is given. It traces exactly as the [`raycast` action](../actions/targeted.md#neooriginsraycast) does, with the same fields and defaults, so an ability can check its target before it fires. Use it as an `active_ability` `condition` and a miss costs nothing: no hunger, no resource, no cooldown.
+True when a ray from the entity's eyes along its look direction hits a block within `distance`, and that block matches `block_condition` if one is given. It traces exactly as the [`raycast` action](../actions/targeted.md#neooriginsraycast) does, with the same trace fields and defaults, so an ability can check its target before it fires. Use it as an `active_ability` `condition` and a miss costs nothing: no hunger, no resource, no cooldown.
 
 Only block hits are read. A condition with `"block": false`, `"entity": true` or a `bientity_condition` (Apoli's entity half) never matches, and is reported in the `[CompatB] Compatibility summary`. So does a `block_condition` this version cannot read.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `distance` | double | no | `10.0` | How far to trace, in blocks |
-| `shape_type` | enum | no | `visual` | Block shape for the trace: `visual`, `outline` or `collider`. `visual` and `collider` pass through crops, saplings, short grass and flowers; use `outline` to hit them |
+| `shape_type` | enum | no | `visual` | Block shape for the trace: `visual`, `outline` or `collider`. `visual` and `collider` pass through crops, saplings, short grass and flowers, and `visual` also through glass, glass panes and iron bars; use `outline` to hit them |
 | `fluid_handling` | enum | no | `none` | How fluids are treated: `none` / `source_only` / `any` |
 | `block_condition` | object | no | any block | Condition on the block the ray hits. Nothing hit within `distance` always fails |
 
