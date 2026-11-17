@@ -343,7 +343,7 @@ public final class ActionParser {
         // Apoli {@code shape_type}, default {@code visual} as in Apoli. Visual is
         // NOT the crosshair trace: a block's visual shape defaults to its
         // collision shape, so crops, saplings, short grass and flowers have none
-        // and the ray passes through them to the block underneath (issue #147).
+        // and the ray passes through them to the block behind them (issue #147).
         // {@code outline} is the selection-box shape vanilla's crosshair and
         // break/place targeting use; pick it to hit plants. {@code collider} is
         // the collision shape. Any other value also means outline.
