@@ -45,6 +45,7 @@ import com.cyberday1.neoorigins.power.morph.MorphSpec;
 import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.builtin.ConditionPassivePower;
+import com.cyberday1.neoorigins.power.builtin.BreathInFluidPower;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.PersistentEffectPower;
 import com.cyberday1.neoorigins.power.builtin.PosePower;
@@ -2089,6 +2090,10 @@ public class NeoOriginsNetwork {
         // power_condition or active_when flip must reach the client before it
         // moves on a stale view.
         if (capabilities.contains("prevent_swim")) sig |= 1024;
+        // breath_in_fluid's air drain is suppressed on both sides from its
+        // per-fluid tag (#150).
+        if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "water")) sig |= 2048;
+        if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "lava")) sig |= 4096;
         return sig;
     }
 

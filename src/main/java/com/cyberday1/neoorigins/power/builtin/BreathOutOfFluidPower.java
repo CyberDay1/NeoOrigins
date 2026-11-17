@@ -65,14 +65,27 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
     public static final int UNSET = -1;
 
     /**
-     * @param drainIntervalTicks ticks between air-bubble decrements while out
-     *     of the fluid. Higher value = slower drain. {@link #UNSET} means the
-     *     author set nothing and the global config supplies the value. Authors
-     *     who think in "units lost per second" can set {@code air_loss_per_second}
-     *     instead, which is converted to this internally via
-     *     {@code 20 / air_loss_per_second}.
+     * @param drainIntervalTicks ticks between 1-point air drains while out of
+     *     the fluid. Higher value = slower drain. {@link #UNSET} means the
+     *     author set nothing and the global config supplies the value. Ignored
+     *     when {@code airLossPerSecond} is set.
+     * @param airLossPerSecond air points lost per second, 0 when unset. Read
+     *     as a decimal and carried between ticks, as in {@link BreathInFluidPower}.
      */
-    public record Config(String fluid, int drainIntervalTicks, String type) implements PowerConfiguration {
+    public record Config(String fluid, int drainIntervalTicks, double airLossPerSecond, String type)
+            implements PowerConfiguration {
+
+        /**
+         * Air points the drain removes each tick, before Respiration. The
+         * config interval stands in for {@code drainIntervalTicks} when that is
+         * {@link #UNSET}.
+         */
+        public double airPerTick(int configFallbackTicks) {
+            if (airLossPerSecond > 0) return airLossPerSecond / 20.0;
+            int interval = resolveIntervalTicks(this, configFallbackTicks);
+            return interval > 0 ? 1.0 / interval : 0.0;
+        }
+
         public static final Codec<Config> CODEC = new Codec<>() {
             @Override
             public <T> DataResult<Pair<Config, T>> decode(DynamicOps<T> ops, T input) {
@@ -96,11 +109,15 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 //   2. drain_interval_ticks (clearer alias for drain_rate)
                 //   3. drain_rate (legacy)
                 //   4. UNSET → the global config decides
-                int intervalTicks;
+                // air_loss_per_second is kept as a rate, not turned into
+                // 20 / value whole ticks (3 used to drain 3.3 a second, 7 drained
+                // 10, 11 and up drained 20). 0 or less reads as unset.
+                double perSec = 0;
                 if (obj.has("air_loss_per_second") && obj.get("air_loss_per_second").isJsonPrimitive()) {
-                    int perSec = Math.max(1, obj.get("air_loss_per_second").getAsInt());
-                    intervalTicks = Math.max(1, 20 / perSec);
-                } else if (obj.has("drain_interval_ticks") && obj.get("drain_interval_ticks").isJsonPrimitive()) {
+                    perSec = Math.max(0, obj.get("air_loss_per_second").getAsDouble());
+                }
+                int intervalTicks;
+                if (obj.has("drain_interval_ticks") && obj.get("drain_interval_ticks").isJsonPrimitive()) {
                     intervalTicks = Math.max(1, obj.get("drain_interval_ticks").getAsInt());
                 } else if (obj.has("drain_rate") && obj.get("drain_rate").isJsonPrimitive()) {
                     intervalTicks = Math.max(1, obj.get("drain_rate").getAsInt());
@@ -108,7 +125,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                     intervalTicks = UNSET;
                 }
 
-                return DataResult.success(Pair.of(new Config(fluid, intervalTicks, t), ops.empty()));
+                return DataResult.success(Pair.of(new Config(fluid, intervalTicks, perSec, t), ops.empty()));
             }
 
             @Override
@@ -164,12 +181,16 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
     @EventBusSubscriber(modid = NeoOrigins.MOD_ID)
     public static final class Handler {
 
-        /** Virtual-air counter per player. Absent entry means "not currently drying". */
-        private static final Map<UUID, Integer> VIRTUAL_AIR = new ConcurrentHashMap<>();
+        /**
+         * Virtual-air counter per player, fractional so a drain that is not a
+         * whole point per tick stays exact. Absent entry means "not currently
+         * drying".
+         */
+        private static final Map<UUID, Double> VIRTUAL_AIR = new ConcurrentHashMap<>();
 
-        /** Scratch holder used to pull the tightest (min interval) config for the player. */
+        /** Scratch holder used to pull the fastest-draining config for the player. */
         private static final class Chosen {
-            int drainRate = -1;
+            double airPerTick = -1;
             String fluid = "water";
         }
 
@@ -182,7 +203,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             }
 
             // Find every breath_out_of_fluid power on the player and keep the
-            // tightest (smallest interval = fastest drain), so a pack that
+            // fastest drain, so a pack that
             // stacks a harsher dries-out power on top of a milder one gets the
             // harsher behaviour rather than whichever happened to iterate first.
             //
@@ -193,13 +214,13 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             final int configTicks = GameplayConfig.oceanOriginsDrainRateTicks();
             Chosen chosen = new Chosen();
             ActiveOriginService.forEachOfType(sp, BreathOutOfFluidPower.class, cfg -> {
-                int interval = resolveIntervalTicks(cfg, configTicks);
-                if (chosen.drainRate < 0 || interval < chosen.drainRate) {
-                    chosen.drainRate = interval;
+                double perTick = cfg.airPerTick(configTicks);
+                if (perTick > chosen.airPerTick) {
+                    chosen.airPerTick = perTick;
                     chosen.fluid = cfg.fluid();
                 }
             });
-            if (chosen.drainRate <= 0) {
+            if (chosen.airPerTick <= 0) {
                 VIRTUAL_AIR.remove(sp.getUUID());
                 return;
             }
@@ -238,22 +259,21 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
                 return;
             }
 
-            // Decrement once per drainRate ticks. Floor of -20 matches
-            // vanilla's drown-supply lower bound; each subsequent damage cycle
-            // happens every 20 ticks below 0 (mirroring AbstractFish /
+            // Drain airPerTick every tick, carrying the fraction. Floor of -20
+            // matches vanilla's drown-supply lower bound; each subsequent damage
+            // cycle happens every 20 ticks below 0 (mirroring AbstractFish /
             // WaterAnimal cadence).
             //
             // Respiration enchantment (OXYGEN_BONUS attribute) extends land
-            // time using the same probability vanilla uses for underwater air:
-            // each drain tick has a 1/(oxygenBonus+1) chance to actually
-            // decrement, so Resp III gives ~4x the land time.
-            int tracked = VIRTUAL_AIR.getOrDefault(sp.getUUID(), maxAir);
-            if (sp.tickCount % chosen.drainRate == 0 && tracked > -20) {
+            // time by the same factor vanilla's underwater air gets, as in
+            // BreathInFluidPower: the drain is scaled by 1/(oxygenBonus+1), so
+            // Resp III gives 4x the land time.
+            double tracked = VIRTUAL_AIR.getOrDefault(sp.getUUID(), (double) maxAir);
+            if (tracked > -20) {
                 AttributeInstance oxygenAttr = sp.getAttribute(Attributes.OXYGEN_BONUS);
                 double oxygenBonus = oxygenAttr != null ? oxygenAttr.getValue() : 0.0;
-                if (oxygenBonus <= 0.0 || sp.getRandom().nextDouble() < 1.0 / (oxygenBonus + 1.0)) {
-                    tracked--;
-                }
+                double loss = chosen.airPerTick / (Math.max(0.0, oxygenBonus) + 1.0);
+                tracked = Math.max(-20, tracked - loss);
             }
             VIRTUAL_AIR.put(sp.getUUID(), tracked);
 
@@ -261,7 +281,7 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             // LivingEntityAirRefillMixin suppresses vanilla's +4/tick out-of-water
             // refill so this value is no longer fought tick-to-tick — the
             // bubble row just slowly empties as tracked decrements.
-            sp.setAirSupply(Math.max(tracked, 0));
+            sp.setAirSupply(Math.max((int) Math.floor(tracked), 0));
 
             // Vanilla's drown damage code only fires when isEyeInFluid(WATER),
             // so on land the airSupply hitting 0 does nothing on its own.
@@ -310,10 +330,10 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
             if (!has[0]) return;
 
             int maxAir = sp.getMaxAirSupply();
-            int current = VIRTUAL_AIR.getOrDefault(sp.getUUID(), maxAir);
-            int restored = Math.min(current + maxAir / 2, maxAir);
+            double current = VIRTUAL_AIR.getOrDefault(sp.getUUID(), (double) maxAir);
+            double restored = Math.min(current + maxAir / 2, maxAir);
             VIRTUAL_AIR.put(sp.getUUID(), restored);
-            sp.setAirSupply(Math.max(restored, 0));
+            sp.setAirSupply(Math.max((int) Math.floor(restored), 0));
         }
 
         // ── Create Mod backtank compat ──────────────────────────────────
