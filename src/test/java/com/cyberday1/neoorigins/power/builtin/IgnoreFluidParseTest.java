@@ -189,4 +189,34 @@ class IgnoreFluidParseTest {
             { "type": "neoorigins:ignore_fluid", "fluid": "minecraft:water" }
             """).contains("ignore_water"));
     }
+
+    // ── Physics mode ────────────────────────────────────────────────────
+
+    @Test
+    void physicsModeEmitsOnlyThePhysicsTagFamily() {
+        // The detection mixins read the full-mode tags; a physics-mode power that
+        // also emitted them would hide the fluid it is meant to keep detectable.
+        assertEquals(
+            Set.of("ignore_fluid_physics", "ignore_fluid_physics:minecraft:water"),
+            caps("""
+                { "type": "neoorigins:ignore_fluid", "fluid": "minecraft:water", "mode": "physics" }
+                """));
+    }
+
+    @Test
+    void modeDefaultsToFullAndUnknownModesFallBackToIt() {
+        assertEquals("full", decode("""
+            { "type": "neoorigins:ignore_fluid", "fluid": "minecraft:water" }
+            """).mode());
+        assertEquals(Set.of("ignore_fluid", "ignore_fluid:minecraft:water"), caps("""
+            { "type": "neoorigins:ignore_fluid", "fluid": "minecraft:water", "mode": "sideways" }
+            """));
+    }
+
+    @Test
+    void physicsModeIsCaseInsensitive() {
+        assertTrue(decode("""
+            { "type": "neoorigins:ignore_fluid", "fluid": "minecraft:water", "mode": " Physics " }
+            """).physicsOnly());
+    }
 }

@@ -4832,6 +4832,15 @@
             "pattern": "^#?([a-z0-9_.-]+:)?[a-z0-9_./\\-]+$"
           }
         },
+        "mode": {
+          "description": "full: the fluid stops existing for the player (no drowning, fog, overlay or in_water). physics: the fluid stays detected, so you still see it, drown in it and match in_water, but it no longer moves you: no current, buoyancy, drag or swimming, so you sink and walk the bottom at land speed.",
+          "type": "string",
+          "enum": [
+            "full",
+            "physics"
+          ],
+          "default": "full"
+        },
         "condition": {
           "description": "Alias for power_condition with mode ALLOW: the power only acts while this condition holds. Takes one condition object. Prefer power_condition in new packs.",
           "$ref": "condition.schema.json"
