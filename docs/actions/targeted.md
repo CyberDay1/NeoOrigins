@@ -453,9 +453,25 @@ Applies one bonemeal-style growth tick to the **context block** if it's a boneme
 
 No fields.
 
+When `grow` runs from a `raycast`, give the raycast `"shape_type": "outline"`. Under the default `visual` shape, the ray passes through crops, saplings and short grass and hits whatever block is behind them, so the plant you aimed at never grows. The block a plant stands on can't take bone meal either: farmland never can, and a grass block only grows with air above it.
+
 **Example: a projectile that fertilises crops it hits**
 ```json
 { "type": "neoorigins:grow" }
+```
+
+**Example: bonemeal the plant you're looking at**
+```json
+{
+  "type": "neoorigins:active_ability",
+  "cooldown_ticks": 10,
+  "entity_action": {
+    "type": "neoorigins:raycast",
+    "distance": 5.0,
+    "shape_type": "outline",
+    "block_action": { "type": "neoorigins:grow" }
+  }
+}
 ```
 
 ## `neoorigins:transform_block`
@@ -553,7 +569,7 @@ Performs a block and/or entity raycast from the player's eye position along thei
 | `block` | bool | no | `true` | Include block hits |
 | `entity` | bool | no | `false` | Include entity hits |
 | `fluid_handling` | enum | no | `none` | How fluids are treated: `none` / `source_only` / `any` |
-| `shape_type` | enum | no | `visual` | Block shape used for the trace: `visual` or `collider` |
+| `shape_type` | enum | no | `visual` | Block shape used for the trace: `visual`, `outline` or `collider`. `visual` and `collider` both pass through blocks that have no collision, such as crops, saplings, short grass and flowers, and hit the block behind them. `outline` is the shape your crosshair targets, so use it when the ray should stop at plants |
 | `block_action` | object | no | — | Action to run at the hit block position (dispatched with `RaycastBlockContext` so `~ ~ ~` resolves to the hit block) |
 | `bientity_action` | object | no | — | Entity action run on the **caster** when a living entity is hit, with the hit entity published as the context target: wrap target-side effects in `target_action` (a bare `origins:damage` here hurts the caster). Entity hits are checked before blocks |
 | `miss_action` | object | no | — | Action to run when nothing is hit within range |

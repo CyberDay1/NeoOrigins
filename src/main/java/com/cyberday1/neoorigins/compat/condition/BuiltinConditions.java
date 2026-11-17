@@ -225,6 +225,72 @@ public final class BuiltinConditions {
                 new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
                     .ref("block_condition.schema.json")
                     .doc("Optional block filter; when present, at least one intersected block must match.")));
+        // raycast — the block the player is looking at, traced exactly as the
+        // raycast action traces it (same fields, same defaults), so an ability can
+        // test its target before it fires. Gating active_ability's condition on
+        // this is what keeps a raycast grow from charging for a miss (issue #148).
+        // Blocks only: Apoli's entity half of this condition is not read.
+        define("raycast",
+            (json, ctx) -> {
+                // An imported Apoli condition aimed at an entity would otherwise
+                // read as "any block in view" and pass almost everywhere: fail
+                // closed and say so instead.
+                boolean blockOff = json.has("block") && json.get("block").isJsonPrimitive()
+                    && !json.get("block").getAsBoolean();
+                boolean entityOn = json.has("entity") && json.get("entity").isJsonPrimitive()
+                    && json.get("entity").getAsBoolean();
+                if (blockOff || entityOn || json.has("bientity_condition")) {
+                    com.cyberday1.neoorigins.compat.CompatWarningCollector.recordUnsupportedCondition(
+                        "raycast", ctx, "entity raycasts are not supported; only block hits are read — never matches");
+                    return p -> false;
+                }
+                final double distance = json.has("distance") ? json.get("distance").getAsDouble() : 10.0;
+                final String shapeType = json.has("shape_type")
+                    ? json.get("shape_type").getAsString().toLowerCase() : "visual";
+                final String fluidHandling = json.has("fluid_handling")
+                    ? json.get("fluid_handling").getAsString().toLowerCase() : "none";
+                final var blockShape = switch (shapeType) {
+                    case "collider" -> net.minecraft.world.level.ClipContext.Block.COLLIDER;
+                    case "visual"   -> net.minecraft.world.level.ClipContext.Block.VISUAL;
+                    default         -> net.minecraft.world.level.ClipContext.Block.OUTLINE;
+                };
+                final var fluidMode = switch (fluidHandling) {
+                    case "any"         -> net.minecraft.world.level.ClipContext.Fluid.ANY;
+                    case "source_only" -> net.minecraft.world.level.ClipContext.Fluid.SOURCE_ONLY;
+                    default            -> net.minecraft.world.level.ClipContext.Fluid.NONE;
+                };
+                // The fail-closed compiler, as on_block uses: this gates whether a
+                // cost is paid, so an unreadable block condition must not pass.
+                final boolean hasBlockCond = json.has("block_condition") && json.get("block_condition").isJsonObject();
+                final ConditionParser.BlockPosCondition blockCond = hasBlockCond
+                    ? ConditionParser.compileInBlockPredicate(json.getAsJsonObject("block_condition"), ctx)
+                    : null;
+                if (hasBlockCond && blockCond == null) {
+                    com.cyberday1.neoorigins.compat.CompatWarningCollector.recordUnsupportedCondition(
+                        "raycast", ctx, "block_condition could not be read — never matches");
+                    return p -> false;
+                }
+                return p -> {
+                    var from = p.getEyePosition();
+                    var to = from.add(p.getLookAngle().scale(distance));
+                    var hit = p.level().clip(new net.minecraft.world.level.ClipContext(
+                        from, to, blockShape, fluidMode, p));
+                    if (hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) return false;
+                    return blockCond == null || blockCond.test(p.level(), hit.getBlockPos());
+                };
+            },
+            List.of(
+                new FieldSpec("distance", FormFieldSpec.Kind.NUMBER, false).def(10.0)
+                    .doc("How far to trace, in blocks (default 10, as on the raycast action)."),
+                new FieldSpec("shape_type", FormFieldSpec.Kind.ENUM, false).def("visual")
+                    .options("visual", "outline", "collider")
+                    .doc("Block shape for the trace: visual (default), outline or collider. visual and collider pass through crops, saplings, short grass and flowers; use outline to hit them."),
+                new FieldSpec("fluid_handling", FormFieldSpec.Kind.ENUM, false).def("none")
+                    .options("none", "source_only", "any")
+                    .doc("How fluids are treated (default none)."),
+                new FieldSpec("block_condition", FormFieldSpec.Kind.REF, false)
+                    .ref("block_condition.schema.json")
+                    .doc("Condition on the block the trace hits. Without one, any block hit passes. Nothing hit within distance always fails.")));
         // daytime — vanilla day window (0–13000 of the 24000-tick day).
         define("daytime",
             (json, ctx) -> p -> p.level().getDayTime() % 24000L < 13000L, List.of());

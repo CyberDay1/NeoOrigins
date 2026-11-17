@@ -340,16 +340,18 @@ public final class ActionParser {
             case "source_only"  -> net.minecraft.world.level.ClipContext.Fluid.SOURCE_ONLY;
             default             -> net.minecraft.world.level.ClipContext.Fluid.NONE;
         };
-        // Apoli {@code shape_type}: {@code visual} (default) uses the visual
-        // outline shape — same as vanilla's eye-trace and what
-        // PlayerInteractionManager uses for break/place targeting. {@code collider}
-        // uses the collision shape, which is tighter than visual for
-        // non-cube blocks (stairs, slabs, fences) — pack authors choose
-        // collider when they want "what the hitbox sees" semantics.
+        // Apoli {@code shape_type}, default {@code visual} as in Apoli. Visual is
+        // NOT the crosshair trace: a block's visual shape defaults to its
+        // collision shape, so crops, saplings, short grass and flowers have none
+        // and the ray passes through them to the block underneath (issue #147).
+        // {@code outline} is the selection-box shape vanilla's crosshair and
+        // break/place targeting use; pick it to hit plants. {@code collider} is
+        // the collision shape. Any other value also means outline.
         String shapeType = json.has("shape_type") ? json.get("shape_type").getAsString() : "visual";
         net.minecraft.world.level.ClipContext.Block blockShape = switch (shapeType.toLowerCase()) {
             case "collider"  -> net.minecraft.world.level.ClipContext.Block.COLLIDER;
             case "visual"    -> net.minecraft.world.level.ClipContext.Block.VISUAL;
+            case "outline"   -> net.minecraft.world.level.ClipContext.Block.OUTLINE;
             default          -> net.minecraft.world.level.ClipContext.Block.OUTLINE;
         };
         // Each of these may be a single object or an array (run sequentially).
