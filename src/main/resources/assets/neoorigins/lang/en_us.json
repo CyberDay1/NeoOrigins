@@ -1842,6 +1842,8 @@
   "neoorigins.configuration.scale_cost": "Scale cost",
   "neoorigins.configuration.scan_interval": "Scan interval",
   "neoorigins.configuration.show_origin_editor": "Show origin editor",
+  "neoorigins.configuration.show_resource_labels": "Show resource bar names",
+  "neoorigins.configuration.show_resource_values": "Show resource bar values",
   "neoorigins.configuration.skeleton": "Skeleton",
   "neoorigins.configuration.skeleton_apex_brittle_frame": "Skeleton Apex Brittle Frame",
   "neoorigins.configuration.skeleton_ascended_speed": "Skeleton Ascended Speed",
