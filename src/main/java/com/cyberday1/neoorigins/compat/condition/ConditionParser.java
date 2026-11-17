@@ -85,7 +85,7 @@ public final class ConditionParser {
         "neoorigins:on_block", "neoorigins:on_fire", "neoorigins:on_ground",
         "neoorigins:or", "neoorigins:origin", "neoorigins:out_of_combat", "neoorigins:passenger",
         "neoorigins:power", "neoorigins:power_active", "neoorigins:power_type",
-        "neoorigins:predicate", "neoorigins:relative_health", "neoorigins:replacable",
+        "neoorigins:predicate", "neoorigins:raycast", "neoorigins:relative_health", "neoorigins:replacable",
         "neoorigins:resource", "neoorigins:scoreboard", "neoorigins:sneaking",
         "neoorigins:sprinting", "neoorigins:statistic",
         "neoorigins:status_effect", "neoorigins:submerged_in",
@@ -1451,6 +1451,19 @@ public final class ConditionParser {
         // both non-blocking, which is exactly the distinction Giant's slam wants.
         if (bare.equals("movement_blocking")) {
             return (level, pos) -> level.getBlockState(pos).blocksMotion();
+        }
+        // bonemealable — bone meal would be accepted here right now: the block
+        // takes bone meal and is not fully grown. The same check grow makes before
+        // it rolls, so gating on this skips the cost of a grow that cannot work
+        // (issue #148). It cannot see that roll: a sapling still only grows
+        // sometimes, exactly as it does with real bone meal.
+        if (bare.equals("bonemealable")) {
+            return (level, pos) -> {
+                if (!(level instanceof net.minecraft.world.level.LevelReader reader)) return false;
+                var state = reader.getBlockState(pos);
+                return state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock b
+                    && b.isValidBonemealTarget(reader, pos, state);
+            };
         }
         // active_beacon — a beacon that is actually lit: a pyramid under it and a
         // clear beam. A bare beacon block is decoration and must not count.

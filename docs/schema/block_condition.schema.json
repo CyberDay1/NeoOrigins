@@ -10,8 +10,8 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "Block-condition verb (active_beacon / adjacent / all_of / and / any_of / block / block_state / exposed_to_sky / fluid / height / in_tag / light_level / movement_blocking / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:active_beacon|adjacent|all_of|and|any_of|block|block_state|exposed_to_sky|fluid|height|in_tag|light_level|movement_blocking|offset|or)$"
+      "description": "Block-condition verb (active_beacon / adjacent / all_of / and / any_of / block / block_state / bonemealable / exposed_to_sky / fluid / height / in_tag / light_level / movement_blocking / offset / or). The namespace is optional and any namespace is accepted: the parser strips it and matches the leaf.",
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:active_beacon|adjacent|all_of|and|any_of|block|block_state|bonemealable|exposed_to_sky|fluid|height|in_tag|light_level|movement_blocking|offset|or)$"
     }
   },
   "oneOf": [
@@ -200,6 +200,28 @@
       "required": [
         "type",
         "property"
+      ]
+    },
+    {
+      "$comment": "neoorigins:bonemealable",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:bonemealable",
+            "apace:bonemealable",
+            "origins:bonemealable",
+            "apoli:bonemealable",
+            "apugli:bonemealable"
+          ]
+        },
+        "inverted": {
+          "description": "When true, this node's result is negated.",
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "type"
       ]
     },
     {
@@ -478,6 +500,7 @@
               "apace:any_of",
               "apace:block",
               "apace:block_state",
+              "apace:bonemealable",
               "apace:exposed_to_sky",
               "apace:fluid",
               "apace:height",
@@ -493,6 +516,7 @@
               "apoli:any_of",
               "apoli:block",
               "apoli:block_state",
+              "apoli:bonemealable",
               "apoli:exposed_to_sky",
               "apoli:fluid",
               "apoli:height",
@@ -508,6 +532,7 @@
               "apugli:any_of",
               "apugli:block",
               "apugli:block_state",
+              "apugli:bonemealable",
               "apugli:exposed_to_sky",
               "apugli:fluid",
               "apugli:height",
@@ -523,6 +548,7 @@
               "neoorigins:any_of",
               "neoorigins:block",
               "neoorigins:block_state",
+              "neoorigins:bonemealable",
               "neoorigins:exposed_to_sky",
               "neoorigins:fluid",
               "neoorigins:height",
@@ -538,6 +564,7 @@
               "origins:any_of",
               "origins:block",
               "origins:block_state",
+              "origins:bonemealable",
               "origins:exposed_to_sky",
               "origins:fluid",
               "origins:height",

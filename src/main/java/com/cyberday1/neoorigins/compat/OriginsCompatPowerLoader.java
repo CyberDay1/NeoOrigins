@@ -3819,7 +3819,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         // `inverted`, which compileBlockPredicate applies, so it is negated once.
         if (bareType.equals("fluid") || bareType.equals("light_level")
                 || bareType.equals("exposed_to_sky") || bareType.equals("movement_blocking")
-                || bareType.equals("active_beacon")) {
+                || bareType.equals("active_beacon") || bareType.equals("bonemealable")) {
             var leaf = com.cyberday1.neoorigins.compat.condition.ConditionParser
                 .compileBlockLeaf(condJson, contextId);
             if (leaf == null) {

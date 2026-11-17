@@ -101,7 +101,7 @@
   neoorigins:transform_block
   neoorigins:trigger_cooldown
   neoorigins:trigger_morph_animation
-[condition] (108)
+[condition] (109)
   neoorigins:actor_condition
   neoorigins:advancement
   neoorigins:air
@@ -186,6 +186,7 @@
   neoorigins:power_active
   neoorigins:power_type
   neoorigins:predicate
+  neoorigins:raycast
   neoorigins:relative_health
   neoorigins:replacable
   neoorigins:resource
