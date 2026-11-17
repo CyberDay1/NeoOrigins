@@ -668,11 +668,13 @@ Grants permanent Water Breathing. The player never loses air while underwater.
 
 Drains the player's air supply when their eyes are submerged in the specified fluid. Useful for fire-themed origins that "drown" in water. Surfacing (head above water) restores air normally via vanilla breathing. While submerged, fully overrides vanilla's air management (suppresses both vanilla drowning and water-breathing refill), so the configured drain rate is the sole authority on how fast air depletes. Respiration enchantment extends survival time. Drown damage (2 HP/sec) applies once air is exhausted.
 
+Air is counted in points, not bubbles: a full bar is 300 points, and each of the 10 bubbles on the HUD is 30. Vanilla drowning loses 20 points a second, so a full bar lasts 15 seconds. To drown as fast as vanilla, set `air_loss_per_second` to `20`. The default, one point a second, takes 5 minutes.
+
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `fluid` | string | no | `water` | Fluid: `water` or `lava` |
-| `air_loss_per_second` | int | no | — | Intuitive form: how many air points are lost per second. Higher = faster drain. Internally converted to ticks via `20 / value`. |
-| `drain_interval_ticks` | int | no | — | Ticks between each air drain. Higher = slower drain. Equivalent to the legacy `drain_rate`. |
+| `air_loss_per_second` | number | no | — | How many air points are lost per second, out of 300. Higher = faster drain: `20` matches vanilla drowning, `60` empties the bar in 5 seconds. Decimals work, and the fraction carries over between ticks. `0` or less counts as unset |
+| `drain_interval_ticks` | int | no | — | Ticks between each 1-point air drain. Higher = slower drain. Equivalent to the legacy `drain_rate`. |
 | `drain_rate` | int | no | `20` | Legacy alias for `drain_interval_ticks`. Resolution priority: `air_loss_per_second` > `drain_interval_ticks` > `drain_rate` > default 20 (one decrement per second). |
 
 **Example:**
@@ -680,7 +682,7 @@ Drains the player's air supply when their eyes are submerged in the specified fl
 {
   "type": "neoorigins:breath_in_fluid",
   "fluid": "water",
-  "air_loss_per_second": 1,
+  "air_loss_per_second": 20,
   "name": "Hydrophobic",
   "description": "Cannot breathe in water."
 }
@@ -690,14 +692,14 @@ Drains the player's air supply when their eyes are submerged in the specified fl
 
 ## `neoorigins:breath_out_of_fluid`
 
-Drains the player's air supply while they are **not** submerged in the specified fluid: a fish out of water. Once the air supply reaches 0, vanilla drown damage applies. For the water form, rain, a bubble column and standing in a water cauldron all count as being in the fluid. Water Breathing and Conduit Power effects pause the drain, and drinking a water bottle restores half the air bar. Vanilla only grants Conduit Power to a player who is already in water or rain, which would put it out of reach of the one situation this power creates; the mod lifts that restriction for players holding this power, so an active conduit reaches them anywhere in its normal radius and the air bar refills while they stand there. Compatible with Create's Copper Backtank (worn in chestplate slot, consumes pressurized air to pause drain). Respiration enchantment extends land time using the same probability curve vanilla uses underwater. `fluid: lava` is the bare check: none of these reprieves reach it, only being in lava itself.
+Drains the player's air supply while they are **not** submerged in the specified fluid: a fish out of water. Once the air supply reaches 0, vanilla drown damage applies. For the water form, rain, a bubble column and standing in a water cauldron all count as being in the fluid. Water Breathing and Conduit Power effects pause the drain, and drinking a water bottle restores half the air bar. Vanilla only grants Conduit Power to a player who is already in water or rain, which would put it out of reach of the one situation this power creates; the mod lifts that restriction for players holding this power, so an active conduit reaches them anywhere in its normal radius and the air bar refills while they stand there. Compatible with Create's Copper Backtank (worn in chestplate slot, consumes pressurized air to pause drain). Respiration enchantment extends land time by the same factor vanilla gives it underwater. `fluid: lava` is the bare check: none of these reprieves reach it, only being in lava itself.
 
-The drain rate is per-power. Set one of the three fields below and that power drains at your rate; omit all three and the power falls back to the global `ocean_origins.drain_rate_ticks` config, which is how the four built-in `*_dries_out` powers are written. If a player holds more than one of these powers, the tightest interval wins.
+The drain rate is per-power. Set one of the three fields below and that power drains at your rate; omit all three and the power falls back to the global `ocean_origins.drain_rate_ticks` config, which is how the four built-in `*_dries_out` powers are written. If a player holds more than one of these powers, the fastest drain wins.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `fluid` | string | no | `water` | Fluid the player must stay in: `water` or `lava` |
-| `air_loss_per_second` | int | no | config | Highest priority: air points lost per **second** (higher = faster drain) |
+| `air_loss_per_second` | number | no | config | Highest priority. How many air points are lost per second, out of 300. Higher = faster drain: `20` empties a full bar in 15 seconds, `60` in 5. Decimals work, and the fraction carries over between ticks. `0` or less counts as unset |
 | `drain_interval_ticks` | int | no | config | Ticks between each 1-point drain (higher = slower drain; 20 = 1s) |
 | `drain_rate` | int | no | config | Legacy alias for `drain_interval_ticks`, lowest priority |
 
