@@ -28,6 +28,8 @@ public final class NeoOriginsClientConfig {
     public static final ModConfigSpec.BooleanValue HIDE_HUD_BARS;
     public static final ModConfigSpec.BooleanValue SHOW_COOLDOWN_COUNTDOWN;
     public static final ModConfigSpec.IntValue COOLDOWN_COUNTDOWN_OPACITY;
+    public static final ModConfigSpec.BooleanValue SHOW_RESOURCE_LABELS;
+    public static final ModConfigSpec.BooleanValue SHOW_RESOURCE_VALUES;
     public static final ModConfigSpec.EnumValue<HudAbilityDisplay> HUD_ABILITY_DISPLAY;
     public static final ModConfigSpec.BooleanValue ALWAYS_SHOW_ABILITY_ICONS;
     public static final ModConfigSpec.IntValue HOTKEY_POOL_SIZE;
@@ -144,6 +146,15 @@ public final class NeoOriginsClientConfig {
                      "as 5 when rendering (the font renderer drops text below that).")
             .defineInRange("cooldown_countdown_opacity", 70, 0, 100);
 
+        SHOW_RESOURCE_LABELS = BUILDER
+            .comment("Draw each resource bar's name above it. A pack can also hide one",
+                     "bar's name by giving it an empty hud_render label.")
+            .define("show_resource_labels", true);
+
+        SHOW_RESOURCE_VALUES = BUILDER
+            .comment("Draw each resource bar's value/max readout below it.")
+            .define("show_resource_values", true);
+
         HUD_ABILITY_DISPLAY = BUILDER
             .comment("What the ability HUD cluster shows besides live cooldowns.",
                      "COOLDOWNS_AND_TOGGLES (default): cooldown slots only while",
@@ -246,6 +257,12 @@ public final class NeoOriginsClientConfig {
 
     /** Opacity (0–100 percent) of the countdown number on cooldown icons. */
     public static int cooldownCountdownOpacity() { return COOLDOWN_COUNTDOWN_OPACITY.get(); }
+
+    /** True if resource bars draw their name above the bar on this client. */
+    public static boolean isShowResourceLabels() { return SHOW_RESOURCE_LABELS.get(); }
+
+    /** True if resource bars draw their value/max readout below the bar on this client. */
+    public static boolean isShowResourceValues() { return SHOW_RESOURCE_VALUES.get(); }
 
     /** True if folded power wings should only be drawn while gliding, on this client. */
     public static boolean isHideFoldedWings() { return HIDE_FOLDED_WINGS.get(); }

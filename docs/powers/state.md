@@ -70,7 +70,7 @@ Because Iron's changes mana out from under the game (regen, spellcasting), a man
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `label` | string | no | `"Resource"` | Display label on the HUD bar |
+| `label` | string | no | `"Resource"` | Display label on the HUD bar. `""` draws no name for this bar |
 | `color` | string | no | `"#55AAFF"` | Bar color in `#RRGGBB` or `#AARRGGBB` hex format. Any other value, such as `#FFF`, falls back to `#55AAFF` |
 | `should_render` | bool | no | `true` | When `false`, hides the bar (Origins compat). When set to `true`, the bar shows even on a power with `"hidden": true`, so the resource stays out of the origin menu but keeps its HUD bar. Left unset, the bar follows `hidden` |
 | `text_color` | string | no | `"#CCCCCC"` | Color of the bar's label and value readout, in `#RRGGBB` or `#AARRGGBB` hex. Any other value falls back to `#CCCCCC`, the default light grey |
@@ -103,7 +103,7 @@ The power is left out of the origin menu, and the bar still draws, with a white 
 
 Only bars that are drawn take a slot. A bar hidden by `should_render: false`, or by the full-bar hiding described under `always_render`, holds no slot, and neither does one the player has dragged to a saved position in the HUD editor: those draw where they were placed, and the automatic stack closes up behind them.
 
-Each slot is as tall as what its bar draws: the bar itself, the `label` line above it and the value line below it, with a small gap between one bar's value line and the label of the bar above. A taller style takes a taller slot, so a stack of the built-in framed styles steps 29 pixels and a bar with no `animated` style 26. A bar with an empty `label` (`"label": ""`) draws no name line and its slot shrinks to match, but never below the 16 pixels every bar used before 2.2.30. The value line always draws.
+Each slot is as tall as what its bar draws: the bar itself, the `label` line above it and the value line below it, with a small gap between one bar's value line and the label of the bar above. A taller style takes a taller slot, so a stack of the built-in framed styles steps 29 pixels and a bar with no `animated` style 26. A bar with an empty `label` (`"label": ""`) draws no name line and its slot shrinks to match, but never below the 16 pixels every bar used before 2.2.30. The value line always draws unless the player turns it off. Players can hide every bar's name or value line on their own client with the `show_resource_labels` and `show_resource_values` options (see [CLIENT_CONFIG.md](../CLIENT_CONFIG.md)), and the slots shrink the same way.
 
 Up to 2.2.29 none of this held. The vertical order followed an internal hash of the resource key, stable for a fixed set of bars but not predictable and not controllable. A hidden or repositioned bar still reserved its slot, leaving a gap in the stack. And every slot was 16 pixels whatever the bar drew, so each bar's value line ran into the label of the bar stacked on top of it.
 
