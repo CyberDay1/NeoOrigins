@@ -66,6 +66,12 @@ public class LessItemUseSlowdownPower extends PowerType<LessItemUseSlowdownPower
         if (speedAttr != null) speedAttr.removeModifier(modId());
     }
 
+    // A shut power_condition stops onTick, which would leave the modifier on.
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        onRevoked(player, config);
+    }
+
     private boolean matchesItem(ServerPlayer player, String itemType) {
         if ("any".equalsIgnoreCase(itemType)) return true;
         var item = player.getUseItem();

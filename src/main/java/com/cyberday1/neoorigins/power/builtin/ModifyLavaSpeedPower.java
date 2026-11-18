@@ -43,8 +43,7 @@ public class ModifyLavaSpeedPower extends PowerType<ModifyLavaSpeedPower.Config>
 
     @Override
     public void onGranted(ServerPlayer player, Config config) {
-        ResourceLocation powerId = PowerHolder.currentDispatchId();
-        String id = powerId != null ? powerId.toString() : "neoorigins:unknown_lava_speed";
+        String id = idOf();
         // Idempotent: onLogin/onRespawn both re-run onGranted, so drop this power's
         // prior entry first or every death and relog stacks another copy.
         NumericModifierRegistry.unregister(player, NumericModifierRegistry.Kind.LAVA_SPEED, id);
@@ -54,8 +53,27 @@ public class ModifyLavaSpeedPower extends PowerType<ModifyLavaSpeedPower.Config>
 
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
+        NumericModifierRegistry.unregister(player, NumericModifierRegistry.Kind.LAVA_SPEED, idOf());
+    }
+
+    // Registered once at grant: follow a top-level power_condition here, the
+    // way modify_flight_speed does.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (!NumericModifierRegistry.has(player, NumericModifierRegistry.Kind.LAVA_SPEED, idOf())) {
+            onGranted(player, config);
+        }
+    }
+
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        if (NumericModifierRegistry.has(player, NumericModifierRegistry.Kind.LAVA_SPEED, idOf())) {
+            onRevoked(player, config);
+        }
+    }
+
+    private static String idOf() {
         ResourceLocation powerId = PowerHolder.currentDispatchId();
-        String id = powerId != null ? powerId.toString() : "neoorigins:unknown_lava_speed";
-        NumericModifierRegistry.unregister(player, NumericModifierRegistry.Kind.LAVA_SPEED, id);
+        return powerId != null ? powerId.toString() : "neoorigins:unknown_lava_speed";
     }
 }

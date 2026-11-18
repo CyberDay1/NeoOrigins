@@ -71,4 +71,11 @@ public class SlimeLevelHPPower extends PowerType<SlimeLevelHPPower.Config> {
         var maxHpAttr = player.getAttribute(Attributes.MAX_HEALTH);
         if (maxHpAttr != null) maxHpAttr.removeModifier(modId());
     }
+
+    // A shut power_condition takes the bonus off; the next open 20-tick
+    // recompute puts it back.
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        onRevoked(player, config);
+    }
 }

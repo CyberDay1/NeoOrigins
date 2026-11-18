@@ -56,6 +56,20 @@ public final class NumericModifierRegistry {
         }
     }
 
+    /** True if {@code powerId} currently has an entry of {@code kind} for this player. */
+    public static boolean has(ServerPlayer player, Kind kind, String powerId) {
+        var byKind = ACTIVE.get(player.getUUID());
+        if (byKind == null) return false;
+        var list = byKind.get(kind);
+        if (list == null) return false;
+        synchronized (list) {
+            for (Entry e : list) {
+                if (e.powerId().equals(powerId)) return true;
+            }
+        }
+        return false;
+    }
+
     public static void unregister(ServerPlayer player, Kind kind, String powerId) {
         var byKind = ACTIVE.get(player.getUUID());
         if (byKind == null) return;

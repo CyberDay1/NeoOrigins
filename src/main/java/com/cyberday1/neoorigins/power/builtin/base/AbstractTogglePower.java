@@ -38,8 +38,32 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
             player, com.cyberday1.neoorigins.api.power.PowerHolder.currentDispatchId());
     }
 
+    /**
+     * Player and power ids whose top-level power_condition shut while the toggle
+     * was on. removeEffect is not quiet for every toggle (phantom_form resyncs
+     * abilities and zeroes fall distance), so it runs once, on the closing tick,
+     * not on every shut one.
+     */
+    private static final java.util.Set<String> GATED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private static String gateKey(ServerPlayer player) {
+        return player.getUUID() + "|" + PowerHolder.currentDispatchId();
+    }
+
+    /**
+     * A shut power_condition stops {@link #onTick}, which would leave whatever
+     * tickEffect last applied in place. Take it off without touching the toggle
+     * flag; the next open tick's tickEffect puts it back if the toggle is still on.
+     */
+    @Override
+    public void onTickBlocked(ServerPlayer player, C config) {
+        if (isToggledOff(player, config)) return;
+        if (GATED.add(gateKey(player))) removeEffect(player, config);
+    }
+
     @Override
     public final void onTick(ServerPlayer player, C config) {
+        if (!GATED.isEmpty()) GATED.remove(gateKey(player));
         if (isToggledOff(player, config)) return;
         if (chargesUpkeep(config)) {
             ResourceLocation id = PowerHolder.currentDispatchId();
@@ -68,6 +92,7 @@ public abstract class AbstractTogglePower<C extends PowerConfiguration> extends 
 
     @Override
     public void onRevoked(ServerPlayer player, C config) {
+        if (!GATED.isEmpty()) GATED.remove(gateKey(player));
         PlayerOriginData data = player.getData(OriginAttachments.originData());
         data.setPowerToggledOff(getToggleKey(config), getLegacyToggleKey(config), false);
         removeEffect(player, config);

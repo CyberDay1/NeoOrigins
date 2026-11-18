@@ -50,7 +50,7 @@ As with `neoorigins:natural_glide`, the flight runs with an empty chest slot, so
 
 True creative-style hover flight, as a **toggle**. Unlike `neoorigins:flight` and `natural_glide`, which are both elytra/fall-flying mechanics, this grants real `mayfly` hover: the player keeps solid block collision, normal visibility and gravity when not flying. Double-tap jump to take off, then jump to rise and sneak to descend, exactly like creative mode. Intended for "ride the sword" / levitating-cultivator fantasies.
 
-While the power is on and its condition holds, `mayfly` is re-asserted every tick and pushed to the client whenever it had been cleared. When the power is removed or toggled off, survival defaults are restored, but never for a creative or spectator player, so toggling off can't lock them out of their own game mode.
+While the power is on and its condition holds, `mayfly` is re-asserted every tick and pushed to the client whenever it had been cleared. When the power is removed or toggled off, survival defaults are restored, but never for a creative or spectator player, so toggling off can't lock them out of their own game mode. A shut `power_condition` takes the flight away the same way and leaves the toggle on, so when the gate opens the player can double-tap jump to fly again.
 
 Beyond `name` and `description`:
 
@@ -278,7 +278,7 @@ It does **not** affect elytra / fall-flying gliding, which is physics-driven and
 | `operation` | string | no | `"multiply_base"` | `"addition"`, `"multiply_base"`, or `"multiply_total"`. The two multiply operations are identical here; any other string is treated as `"addition"`. |
 | `value` | double | yes | — | Amount applied to the `0.05` base. `multiply_base 1.0` doubles flight speed, `-0.5` halves it, `-0.25` ≈ Pehkui flight scale `0.75`. |
 
-Multiple holders of this power stack the Apoli way (additions sum, then the multiplier deltas sum), exactly like `modify_lava_speed`.
+Multiple holders of this power stack the Apoli way (additions sum, then the multiplier deltas sum), exactly like `modify_lava_speed`. While a `power_condition` is shut the power's share comes off and flight speed goes back to what the other sources give.
 
 **Example: Pehkui flight scale 0.75 equivalent**
 ```json
@@ -295,7 +295,7 @@ Multiple holders of this power stack the Apoli way (additions sum, then the mult
 
 ## `neoorigins:modify_lava_speed`
 
-Modifies the player's movement speed while submerged in lava. Uses the `NumericModifierRegistry` system consumed by `LivingEntityLavaSpeedMixin`.
+Modifies the player's movement speed while submerged in lava. Uses the `NumericModifierRegistry` system consumed by `LivingEntityLavaSpeedMixin`. While a `power_condition` is shut the modifier is off and lava speed goes back to what the other sources give.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -345,7 +345,7 @@ be visible.
 
 ## `neoorigins:phantom_form`
 
-A toggle (on by default, switched with the skill key). While on, the player can fly, passes through blocks and takes no fall damage, whatever the fields say. `invisibility` adds a hidden Invisibility effect; `no_gravity` also turns gravity off.
+A toggle (on by default, switched with the skill key). While on, the player can fly, passes through blocks and takes no fall damage, whatever the fields say. `invisibility` adds a hidden Invisibility effect; `no_gravity` also turns gravity off. A shut `power_condition` ends the form the way the key does, so the player falls, and leaves the toggle on: the form comes back when the gate opens.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|

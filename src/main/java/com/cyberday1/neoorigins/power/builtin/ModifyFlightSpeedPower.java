@@ -84,6 +84,23 @@ public class ModifyFlightSpeedPower extends PowerType<ModifyFlightSpeedPower.Con
         apply(player);
     }
 
+    // Registered once at grant, so a top-level power_condition would never take
+    // it off: follow the gate here, dropping the entry on a shut tick and
+    // registering it again on the next open one.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        if (!NumericModifierRegistry.has(player, NumericModifierRegistry.Kind.FLYING_SPEED, idOf())) {
+            onGranted(player, config);
+        }
+    }
+
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        if (NumericModifierRegistry.has(player, NumericModifierRegistry.Kind.FLYING_SPEED, idOf())) {
+            onRevoked(player, config);
+        }
+    }
+
     /**
      * Recompute the combined flight speed from all registered modifiers and push
      * it onto the player's abilities (synced to the client via the abilities

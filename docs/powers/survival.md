@@ -194,6 +194,8 @@ Custom resource bar (0.0–1.0 float) that drains passively over time, faster in
 
 A cauldron is checked as a block rather than as a fluid, so the player has to be standing in it. A water bottle refills on the swallow, not on the click, and where a player holds more than one moisture power the most generous `water_bottle_refill` among them is the one that applies. Both affordances match what `breath_out_of_fluid` already gives aquatic origins.
 
+While a `power_condition` is shut the bar holds where it was and the armour penalty comes off. Both pick up again when the gate opens.
+
 **Example:**
 ```json
 {
