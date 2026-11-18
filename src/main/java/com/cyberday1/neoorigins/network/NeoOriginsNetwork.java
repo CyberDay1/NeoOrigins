@@ -46,6 +46,7 @@ import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.builtin.ConditionPassivePower;
 import com.cyberday1.neoorigins.power.builtin.BreathInFluidPower;
+import com.cyberday1.neoorigins.power.capability.IgnoreFluidCapabilities;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.PersistentEffectPower;
 import com.cyberday1.neoorigins.power.builtin.PosePower;
@@ -2045,7 +2046,7 @@ public class NeoOriginsNetwork {
      * added or dropped a phasing capability without any of the usual sync
      * triggers (origin change / toggle / dimension) firing.
      */
-    private static final Map<java.util.UUID, Integer> LAST_PHASE_GATE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<java.util.UUID, Long> LAST_PHASE_GATE = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * The entity_model power each player was last synced with, and the tick it
@@ -2067,7 +2068,7 @@ public class NeoOriginsNetwork {
      * wall_climb joined for issue #110: conditioned climbing powers flip on
      * block/toggle conditions with no origin/toggle/dimension sync trigger.
      */
-    private static int phaseGateSignature(Set<String> capabilities) {
+    static long phaseGateSignature(Set<String> capabilities) {
         int sig = 0;
         if (capabilities.contains("wall_phase")) sig |= 1;
         if (capabilities.contains("no_physics")) sig |= 2;
@@ -2088,8 +2089,7 @@ public class NeoOriginsNetwork {
         if (capabilities.contains("forced_pose_standing")) sig |= 128;
         // Fluid movement predicted on both sides from the synced set: a
         // power_condition or active_when flip must reach the client before it
-        // moves on a stale view. The ignore_fluid markers flip together with
-        // their per-fluid tags, so the marker alone is enough.
+        // moves on a stale view. The per-fluid tags are folded in below.
         if (capabilities.contains("ignore_fluid")) sig |= 256;
         if (capabilities.contains("ignore_fluid_physics")) sig |= 512;
         if (capabilities.contains("prevent_swim")) sig |= 1024;
@@ -2099,7 +2099,19 @@ public class NeoOriginsNetwork {
         if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "water")) sig |= 2048;
         if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "lava")) sig |= 4096;
         if (capabilities.contains("ignore_water")) sig |= 8192;
-        return sig;
+        // A second ignore_fluid power keeps the marker set while a gated one
+        // flips, so only the per-fluid tags show the change: fold a sum of
+        // them into the high half. Walked only when a marker is present.
+        int fluids = 0;
+        if ((sig & (256 | 512)) != 0) {
+            for (String cap : capabilities) {
+                if (cap.startsWith(IgnoreFluidCapabilities.PREFIX)
+                        || cap.startsWith(IgnoreFluidCapabilities.PHYSICS_PREFIX)) {
+                    fluids += cap.hashCode();
+                }
+            }
+        }
+        return ((long) fluids << 32) | (sig & 0xFFFFFFFFL);
     }
 
     /**
@@ -2115,8 +2127,8 @@ public class NeoOriginsNetwork {
         Set<String> capabilities = new HashSet<>();
         List<PowerHolder<?>> activeHolders = new ArrayList<>();
         collectActivePowers(player, powerMap, capabilities, activeHolders);
-        int sig = phaseGateSignature(capabilities);
-        Integer prev = LAST_PHASE_GATE.get(player.getUUID());
+        long sig = phaseGateSignature(capabilities);
+        Long prev = LAST_PHASE_GATE.get(player.getUUID());
         if (prev != null && prev == sig) {
             // Phasing is unchanged: resync only for a morph change, at most once
             // every MORPH_RESYNC_TICKS. A skipped change is still pending, so a
