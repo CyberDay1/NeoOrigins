@@ -1,5 +1,6 @@
 package com.cyberday1.neoorigins.network;
 
+import com.cyberday1.neoorigins.power.builtin.BreathOutOfFluidPower;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -37,6 +38,7 @@ class PhaseGateSignatureTest {
     void theFlagBitsAreUnchanged() {
         assertEquals(1L, NeoOriginsNetwork.phaseGateSignature(Set.of("wall_phase")));
         assertEquals(8192L, NeoOriginsNetwork.phaseGateSignature(Set.of("ignore_water")));
+        assertEquals(16384L, NeoOriginsNetwork.phaseGateSignature(Set.of(BreathOutOfFluidPower.DRAIN_CAPABILITY)));
         assertEquals(0L, NeoOriginsNetwork.phaseGateSignature(Set.of("ignore_fluid:minecraft:water")),
             "per-fluid tags are only read under their marker, as the mixins do");
     }

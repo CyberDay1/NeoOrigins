@@ -726,6 +726,8 @@ The drain rate is per-power. Set one of the three fields below and that power dr
 | `drain_interval_ticks` | int | no | config | Ticks between each 1-point drain (higher = slower drain; 20 = 1s) |
 | `drain_rate` | int | no | config | Legacy alias for `drain_interval_ticks`, lowest priority |
 
+The `ocean_origins.dries_out` config switches the drain off for every `breath_out_of_fluid` power, and a shut `power_condition` does the same for its own power. In both cases air refills on land the vanilla way instead of holding where it was.
+
 Air starts at 300, so land time in seconds is roughly `(300 × drain_interval_ticks) / 20`: `1` gives 15s (vanilla cod parity), `2` gives 30s, `4` gives a minute.
 
 **Count bars, not bubbles.** The interval is ticks per single air **point**, and the HUD draws 300 air as 10 bubbles, so one bubble is 30 points. At `1` a bubble lasts 1.5s and the whole bar 15s; at `10` a bubble lasts a full 15s and the bar 150s. Both figures have been reported as bugs by players reading the bubble as the unit, so it is worth checking which one you are timing. If your bar empties far slower than the table says, check `config/neoorigins/gameplay.toml`: `ModConfigSpec` writes that file once and never re-defaults it, so a world that was played before the default changed from `10` to `1` still holds the old value. As of 2.2.24 the mod corrects that one case itself on the first start and stamps the file with a `config_version`, after which the setting is yours: put it back to `10` and it stays there.
