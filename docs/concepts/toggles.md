@@ -17,6 +17,8 @@ Two different things are called a toggle:
 <!-- shared-fields: cooldown_icon, always_show_icon -->
 **Toggleable powers** (`flight`, `creative_flight`, `item_magnetism`, `no_mob_spawns_nearby`, `phantom_form`, `stealth`, `wraith_phase`, plus `persistent_effect`, `condition_passive` and `effect_over_time` when authored with `"toggleable": true` — `effect_over_time` is also toggleable under `"activation": "active"` — and `pose`, which is toggleable unless you set `"toggleable": false`) also accept `cooldown_icon` and `always_show_icon`. A toggle with an icon joins the HUD cluster: full-bright while toggled on, dimmed while off (no cooldown sweep).
 
+**A `power_condition` on a toggle type** switches its effect off while the gate is shut and leaves the toggle itself alone. The key does nothing until the gate opens. A toggle that was on comes back on when it does, and one that was off stays off.
+
 ## Chat messages
 
 <!-- shared-fields: toggle_messages -->
