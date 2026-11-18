@@ -52,7 +52,7 @@ import java.util.Objects;
  * <p>Dedup: like {@link StartingEquipmentPower}, the {@code grant_id} is stored
  * in {@link PlayerOriginData}'s shared grant-tracking attachment. Once granted,
  * subsequent activations are silent no-ops. The Orb of Origin and
- * {@code /origin reset} clear the set so re-rolls are possible.
+ * {@code /neoorigins reset} clear the set so re-rolls are possible.
  *
  * <p>FTBQ soft-compat: when {@code ftbquests} is loaded, the
  * {@link com.cyberday1.neoorigins.compat.FtbQuestsCompat} listener catches

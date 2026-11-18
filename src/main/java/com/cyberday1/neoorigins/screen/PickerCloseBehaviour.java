@@ -33,7 +33,7 @@ final class PickerCloseBehaviour {
      *   <li>{@code isOrb} — an orb re-roll is voluntary and
      *       {@link #onPickerClosed} refunds/cancels it.</li>
      *   <li>the player already has all origins (voluntary re-selection via the
-     *       editor / {@code /origin} command / VIEW_INFO recovery once done).</li>
+     *       editor / {@code /neoorigins} command / VIEW_INFO recovery once done).</li>
      *   <li>the local selection is already complete ({@code presenter.isDone()})
      *       — by then {@code confirm()} normally closes the screen anyway; this
      *       is just a safety net.</li>

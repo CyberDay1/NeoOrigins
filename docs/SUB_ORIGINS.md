@@ -191,7 +191,7 @@ Multiple sub-layers can share the same `order` value, but their relative order i
 
 ## Cascade Behavior
 
-When a player changes their parent layer choice (via Orb of Origin or `/origin gui`), sub-layer choices that are no longer valid are automatically cleared:
+When a player changes their parent layer choice (via Orb of Origin or `/neoorigins gui`), sub-layer choices that are no longer valid are automatically cleared:
 
 1. Player picks **Elf** → **High Elf** → **Firebolt**
 2. Player uses Orb of Origin, changes race to **Dwarf**

@@ -99,7 +99,7 @@ public class NeoOriginsNetwork {
     /** Game-master gate, mirroring the REQUIRE_GM predicate every admin
      *  command uses on 26.1 ({@code ServerPlayer.hasPermissions(int)} does not
      *  exist on this mapping). GM-only — no creative bypass — matching
-     *  {@code /origin reset}/{@code set}. */
+     *  {@code /neoorigins reset}/{@code set}. */
     private static final java.util.function.Predicate<net.minecraft.commands.CommandSourceStack> GM_PERMISSION =
         net.minecraft.commands.Commands.hasPermission(
             new net.minecraft.server.permissions.PermissionCheck.Require(
@@ -1057,7 +1057,7 @@ public class NeoOriginsNetwork {
             }
 
             // First commit after a scoped layer-picker was opened (Orb of Class,
-            // open_layer_picker action, /origin gui <player> <layer>): the scoped
+            // open_layer_picker action, /neoorigins gui <player> <layer>): the scoped
             // layers were cleared up front, so this fires on the first pick of any
             // of them. Charge the deferred XP cost and (for the Orb of Class)
             // consume one orb. Deferring to first pick means closing the picker is
@@ -1079,12 +1079,12 @@ public class NeoOriginsNetwork {
             // selection) is only permitted via an Orb of Origin commit (the
             // paid path — handled just above, which clears the layer so
             // oldOrigin is null here), an OP-granted re-selection
-            // (/origin gui <player>, sets pendingAdminReselect on the target),
+            // (/neoorigins gui <player>, sets pendingAdminReselect on the target),
             // or a sender who is themselves OP. First-time selection
             // (oldOrigin == null) and the initial multi-layer walkthrough
             // (hadAllOrigins still false, incl. back-button re-picks) are
             // always allowed. Without this a non-OP player could reset their
-            // origin for free via /origin gui or a crafted ChooseOrigin packet.
+            // origin for free via /neoorigins gui or a crafted ChooseOrigin packet.
             boolean isReselection = oldOrigin != null
                 && data.isHadAllOrigins()
                 && !oldOrigin.equals(originId);
@@ -1112,7 +1112,7 @@ public class NeoOriginsNetwork {
             // the vanilla respawn screen-swap before the remaining layers (class,
             // etc.) were ever shown, stranding the player with an incomplete
             // pick. This mirrors the spawn_location teleport gate below. Re-picks
-            // after completion (admin /origin gui, Orb of Origin — hadAllOrigins
+            // after completion (admin /neoorigins gui, Orb of Origin — hadAllOrigins
             // already true) still fire immediately.
             if (data.isHadAllOrigins()) {
                 com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
@@ -1157,7 +1157,7 @@ public class NeoOriginsNetwork {
                 if (!data.hasOriginForLayer(l.id())) { allFilled = false; break; }
             }
             // First-pick teleport gate: only fire spawn_location teleport on the
-            // pick that *first* completes every layer. Re-picks (via /origin gui)
+            // pick that *first* completes every layer. Re-picks (via /neoorigins gui)
             // and back-button replays must not trigger another teleport — the
             // player asked to change origin, not respawn at the new origin's
             // spawn_location. Capture before setHadAllOrigins flips the flag.

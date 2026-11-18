@@ -8,7 +8,7 @@ import net.minecraft.resources.Identifier;
 /**
  * Client → server: the origin picker just closed without the player committing
  * any layer. Lets the server clear {@code pendingOrbCommit} so a later pick via
- * {@code /origin gui} doesn't accidentally consume a still-undecided orb use.
+ * {@code /neoorigins gui} doesn't accidentally consume a still-undecided orb use.
  */
 public record CancelOrbPayload() implements CustomPacketPayload {
 
