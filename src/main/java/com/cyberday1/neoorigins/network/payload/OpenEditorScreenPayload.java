@@ -7,7 +7,7 @@ import net.minecraft.resources.Identifier;
 
 /**
  * Sent server→client to request that the client open the {@code OriginEditorScreen}.
- * Triggered by {@code /origin editor}.
+ * Triggered by {@code /neoorigins editor}.
  */
 public record OpenEditorScreenPayload() implements CustomPacketPayload {
 

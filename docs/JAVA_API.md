@@ -157,15 +157,15 @@ cancel the change or redirect it to another origin.
 | `CANCELLED` | An `OriginChangedEvent` listener cancelled it. |
 
 - It doesn't check the layer's own origin list or conditions, so it can assign
-  any loaded origin, the same as `/origin set`.
+  any loaded origin, the same as `/neoorigins set`.
 - It doesn't ask the player to confirm, open the picker or change the evolution
   tier.
 - `clearOrigin(player, layer)` empties one layer and revokes only its powers.
   Other layers, powers granted by `/power grant` or the `grant_power` action,
   and API grants not tied to that layer are kept. It fires no event.
 - `OriginChangedEvent` fires when an origin is set by the picker,
-  `/origin set`, an advancement upgrade, random assignment, auto-human or this
-  API. `/origin set`, random assignment and auto-human ignore a listener's
+  `/neoorigins set`, an advancement upgrade, random assignment, auto-human or this
+  API. `/neoorigins set`, random assignment and auto-human ignore a listener's
   cancel or redirect. Emptying a layer fires nothing.
 - An advancement upgrade into a unique origin another player holds doesn't
   happen.
@@ -202,7 +202,7 @@ How long a grant lasts:
   that layer's origin changes, is cleared or is reset. If the layer holds no
   origin yet, it ends at the layer's next change.
 - A grant with no layer lasts until revoked, including through a full
-  `/origin reset`.
+  `/neoorigins reset`.
 - If a datapack reload removes the power, the grant is kept but does nothing,
   and it works again if the power comes back.
 - Granting a power the player already has from an origin doesn't apply it

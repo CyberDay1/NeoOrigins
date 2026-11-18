@@ -1557,7 +1557,7 @@ public final class BuiltinPowers {
                 .doc("Optional sound-event id played on consumption; omit to use the default eat sound.")));
         define("loot_pool_grant", LootPoolGrantPower.class, List.of(
             new FieldSpec("grant_id", Kind.STRING, true)
-                .doc("Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both."),
+                .doc("Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /neoorigins reset clears both."),
             new FieldSpec("loot_table", Kind.STRING, true)
                 .doc("ResourceLocation of the vanilla loot table to roll on activation (e.g. 'neoorigins:rewards/wood_starter'). Reuses the full vanilla loot infrastructure (weighted entries, conditions, functions, modifiers).")
                 .pattern(RESOURCE_LOCATION_PATTERN),
@@ -1588,7 +1588,7 @@ public final class BuiltinPowers {
         define("starting_equipment", StartingEquipmentPower.class, List.of(
             new FieldSpec("grant_id", Kind.STRING, true)
                 .doc("Unique id tracked so the bundle is granted only once per player. "
-                   + "Dedups the whole bundle, not individual stacks, so a /origin reset "
+                   + "Dedups the whole bundle, not individual stacks, so a /neoorigins reset "
                    + "re-grants everything."),
             // No RESOURCE_LOCATION_PATTERN on the four id fields below, unlike most
             // sibling item specs. grantOneStack feeds both item and enchantment ids

@@ -8,7 +8,7 @@ Setup
 -----
 1. Drop this folder under <world>/datapacks/  (or originpacks/ for global).
 2. /reload  (or restart world).
-3. /origin set test_tame:origin <player> test_tame:tamer
+3. /neoorigins set <player> test_tame:origin test_tame:tamer
 
 Manual verification steps
 -------------------------
@@ -41,7 +41,7 @@ Test C — OWNER FORGIVENESS (regression guard)
   last-hurt-by reference each tick the attacker is the owner.
 
 Test D — CONTROL (regression guard)
-  1. /origin set test_tame:origin <player> test_tame:control
+  1. /neoorigins set <player> test_tame:origin test_tame:control
   2. Attempt to activate tame_mob — power should not exist for this
      origin (no keybind / no effect). Confirms power is opt-in.
 
