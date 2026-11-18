@@ -27,9 +27,12 @@ public final class PowerHolder<C extends PowerConfiguration> {
     // is safer than a static field if anything ever dispatches off-thread (and the
     // overhead is negligible). PowerType subclasses that need to know which power
     // they're being invoked as can read PowerHolder.currentDispatchId().
-    private static final ThreadLocal<Identifier> CURRENT_DISPATCH_ID = new ThreadLocal<>();
+    private static final ThreadLocal<PowerHolder<?>> CURRENT_DISPATCH = new ThreadLocal<>();
 
-    public static Identifier currentDispatchId() { return CURRENT_DISPATCH_ID.get(); }
+    public static Identifier currentDispatchId() { PowerHolder<?> h = CURRENT_DISPATCH.get(); return h == null ? null : h.id; }
+
+    /** The holder whose callback is running, or null outside one. Lets a type reach its own power_condition. */
+    public static PowerHolder<?> currentDispatchHolder() { return CURRENT_DISPATCH.get(); }
 
     /** Condition mode for the top-level power condition gate. */
     public enum ConditionMode {
@@ -101,17 +104,17 @@ public final class PowerHolder<C extends PowerConfiguration> {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Set<String> capabilities(ServerPlayer player) {
-        Identifier prev = CURRENT_DISPATCH_ID.get();
-        CURRENT_DISPATCH_ID.set(id);
+        PowerHolder<?> prev = CURRENT_DISPATCH.get();
+        CURRENT_DISPATCH.set(this);
         try { return ((PowerType) type).capabilities(player, config); }
-        finally { CURRENT_DISPATCH_ID.set(prev); }
+        finally { CURRENT_DISPATCH.set(prev); }
     }
 
     // Lifecycle methods that are NOT condition-gated (power is still owned):
-    public void onGranted(ServerPlayer player)          { if (!com.cyberday1.neoorigins.service.PowerReloadReconciler.dispatchLifecycle(player, id, true)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onRevoked(ServerPlayer player)          { if (!com.cyberday1.neoorigins.service.PowerReloadReconciler.dispatchLifecycle(player, id, false)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRevoked(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onLogin(ServerPlayer player)            { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onLogin(player, config);   } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onRespawn(ServerPlayer player)          { Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onRespawn(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onGranted(ServerPlayer player)          { if (!com.cyberday1.neoorigins.service.PowerReloadReconciler.dispatchLifecycle(player, id, true)) return; PowerHolder<?> prev = CURRENT_DISPATCH.get(); CURRENT_DISPATCH.set(this); try { type.onGranted(player, config); } finally { CURRENT_DISPATCH.set(prev); } }
+    public void onRevoked(ServerPlayer player)          { if (!com.cyberday1.neoorigins.service.PowerReloadReconciler.dispatchLifecycle(player, id, false)) return; PowerHolder<?> prev = CURRENT_DISPATCH.get(); CURRENT_DISPATCH.set(this); try { type.onRevoked(player, config); } finally { CURRENT_DISPATCH.set(prev); } }
+    public void onLogin(ServerPlayer player)            { PowerHolder<?> prev = CURRENT_DISPATCH.get(); CURRENT_DISPATCH.set(this); try { type.onLogin(player, config);   } finally { CURRENT_DISPATCH.set(prev); } }
+    public void onRespawn(ServerPlayer player)          { PowerHolder<?> prev = CURRENT_DISPATCH.get(); CURRENT_DISPATCH.set(this); try { type.onRespawn(player, config); } finally { CURRENT_DISPATCH.set(prev); } }
 
     // Mob-origin application — only meaningful when the type opts in via
     // appliesToMobs(); the caller (MobOriginService) checks that first.
@@ -122,10 +125,10 @@ public final class PowerHolder<C extends PowerConfiguration> {
     // Condition-gated methods — skipped when the top-level condition is not satisfied:
     public void onTick(ServerPlayer player) {
         boolean open = isConditionSatisfied(player);
-        Identifier prev = CURRENT_DISPATCH_ID.get();
-        CURRENT_DISPATCH_ID.set(id);
+        PowerHolder<?> prev = CURRENT_DISPATCH.get();
+        CURRENT_DISPATCH.set(this);
         try { if (open) type.onTick(player, config); else type.onTickBlocked(player, config); }
-        finally { CURRENT_DISPATCH_ID.set(prev); }
+        finally { CURRENT_DISPATCH.set(prev); }
     }
     // Every activation path funnels through here — the keybind packet, the
     // activate_power action, and the compat loader's programmatic fire — so the
@@ -151,11 +154,11 @@ public final class PowerHolder<C extends PowerConfiguration> {
     private void activate(ServerPlayer player, boolean announceRefusal) {
         if (!isConditionSatisfied(player)) return;
         if (PowerSuppression.refuseActivation(player, announceRefusal)) return;
-        Identifier prev = CURRENT_DISPATCH_ID.get();
-        CURRENT_DISPATCH_ID.set(id);
-        try { type.onActivated(player, config); } finally { CURRENT_DISPATCH_ID.set(prev); }
+        PowerHolder<?> prev = CURRENT_DISPATCH.get();
+        CURRENT_DISPATCH.set(this);
+        try { type.onActivated(player, config); } finally { CURRENT_DISPATCH.set(prev); }
     }
 
-    public void onHit(ServerPlayer player, float amount){ if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onHit(player, config, amount); } finally { CURRENT_DISPATCH_ID.set(prev); } }
-    public void onKill(ServerPlayer player, LivingEntity killed) { if (!isConditionSatisfied(player)) return; Identifier prev = CURRENT_DISPATCH_ID.get(); CURRENT_DISPATCH_ID.set(id); try { type.onKill(player, config, killed); } finally { CURRENT_DISPATCH_ID.set(prev); } }
+    public void onHit(ServerPlayer player, float amount){ if (!isConditionSatisfied(player)) return; PowerHolder<?> prev = CURRENT_DISPATCH.get(); CURRENT_DISPATCH.set(this); try { type.onHit(player, config, amount); } finally { CURRENT_DISPATCH.set(prev); } }
+    public void onKill(ServerPlayer player, LivingEntity killed) { if (!isConditionSatisfied(player)) return; PowerHolder<?> prev = CURRENT_DISPATCH.get(); CURRENT_DISPATCH.set(this); try { type.onKill(player, config, killed); } finally { CURRENT_DISPATCH.set(prev); } }
 }

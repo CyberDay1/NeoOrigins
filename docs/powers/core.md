@@ -81,7 +81,7 @@ The 2.0 generic event hook: fires an action and/or applies a float modifier when
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `event` | string | yes | — | Event name (case-insensitive). See [EVENTS.md](../EVENTS.md) for the full list. |
-| `condition` | EntityCondition | no | always-true | DSL gate: the event only fires when this is true |
+| `condition` | EntityCondition | no | always-true | Per-event gate: the action runs and the modifier applies only when this is true. Separate from the top-level `power_condition`, which gates the whole power. |
 | `entity_action` | EntityAction | no | noop | Side-effect run when the event fires |
 | `modifier` | FloatModifier or list | no | identity | Float modifier applied to the event's numeric payload (for modifier-style events). Each entry is `{ "operation": ..., "value": ... }`; a list applies in order. `value` defaults to `0` (`amount` is not read). Operations (case-sensitive): `addition`, `add_base`, `add_base_early`, `add_total`, `add_total_early` add `value`; `multiplication`, `multiply_base_multiplicative`, `multiply_total_multiplicative` multiply by `value`; `multiply_base_additive`, `multiply_total_additive` multiply by `1 + value`; `set` / `set_total` replace with `value`; `min_total` caps at `value`; `max_total` floors at `value`. Any other operation, including `multiply_base` and `multiply_total`, is logged as `defaulted to identity` and leaves the payload unchanged. |
 | `block_condition` | BlockCondition | no | — | Block-position gate for block events (`block_break`, `block_place`, `block_use`, `bonemeal`). Supports `block`/`id`, `in_tag`, `fluid`, `light_level`, `exposed_to_sky`, `movement_blocking`, `active_beacon` (a lit beacon), `bonemealable`, `and`/`or` (aliases `all_of`/`any_of`), `block_state`, `height`, `adjacent`, and the positional `offset` wrapper (see below). On any other event a set `block_condition` never matches, so `entity_action` does not run there. The `modifier` path does not check it. |
@@ -92,7 +92,7 @@ The 2.0 generic event hook: fires an action and/or applies a float modifier when
 | `effect_tag` | tag id | no | — | `effect_applied` only: pre-dispatch filter on this effect tag (leading `#` optional). OR-matched with `effect`. |
 | `immunity_ticks` | int ≥ 0 | no | 0 | `effect_applied` only: after a successful cancel, grant this many ticks of full immunity to the same effect id before re-rolling. |
 | `power` | id or list | no | — | `power_activated` only: pre-dispatch filter on the activated power's id (single id or array). Omit to fire on any activation. |
-| `cooldown_ticks` | int ≥ 0 | no | 0 | After `entity_action` fires, suppress further firings of this power for this many ticks (20 = 1s). Tracked per player per power instance and persisted across respawn/relog. Only gates the action path: `modifier` chains are unaffected. |
+| `cooldown_ticks` | int ≥ 0 | no | 0 | After `entity_action` fires, suppress further firings of this power for this many ticks (20 = 1s). Tracked per player per power instance and persisted across respawn/relog. Only gates the action path: `modifier` chains are unaffected. The timer only counts down while the `power_condition` gate is open. |
 
 **The `offset` block-condition wrapper.** Inside `block_condition`, `{ "type": "neoorigins:offset", "x": 0, "y": -2, "z": 0, "condition": { ... } }` evaluates its nested block condition at the event's block position shifted by the given block offsets, the Apoli structural wrapper for checks like "a basin two blocks below the block I clicked". Without a nested `condition` it matches all blocks (warned at load). The same wrapper works in `block_collision` and the `area_of_effect` block fan-out.
 
@@ -142,6 +142,8 @@ Any node also honours `"inverted": true`, which negates just that node.
 - Status effects: `EFFECT_APPLIED`
 
 For action-style events set `entity_action`; for modifier-style events set `modifier`. A single power may declare both: the action path fires on `dispatch` sites and the modifier path chains on `dispatchModifier` sites.
+
+**`condition` and `power_condition`.** `condition` is this type's own field, checked each time the event fires. A top-level `power_condition` (with `power_condition_mode`) gates the whole power, as on every other type: while it is shut the `entity_action` does not run, the `modifier` leaves the payload unchanged and no `cooldown_ticks` timer starts. Because this type has its own `condition`, a top-level `condition` is never read as `power_condition` here.
 
 **`neoorigins:cancel_event` support.** Using `cancel_event` as the `entity_action` vetoes the underlying game event, but only where NeoForge exposes a cancellable event:
 
