@@ -12,7 +12,7 @@ import java.util.List;
  * Opens the origin selection screen on the client. {@code scopedLayers}, when
  * non-empty, restricts the picker to that allowlist of layers (a scoped picker —
  * {@link com.cyberday1.neoorigins.network.NeoOriginsNetwork#beginLayerPicker}, the
- * Orb of Class, {@code /origin gui <player> <layer>}). An empty list = unscoped.
+ * Orb of Class, {@code /neoorigins gui <player> <layer>}). An empty list = unscoped.
  */
 public record OpenOriginScreenPayload(boolean isOrb, boolean forceReselect, List<ResourceLocation> scopedLayers)
         implements CustomPacketPayload {

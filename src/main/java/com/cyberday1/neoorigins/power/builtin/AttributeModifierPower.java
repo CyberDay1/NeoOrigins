@@ -402,7 +402,7 @@ public class AttributeModifierPower extends PowerType<AttributeModifierPower.Con
     /**
      * Wholesale sweep: removes every {@code neoorigins:power_*} modifier from
      * every attribute attached to the entity. Belt-and-suspenders cleanup for
-     * the {@code /origin reset} path — catches:
+     * the {@code /neoorigins reset} path — catches:
      * <ul>
      *   <li>Stale legacy-format IDs in NBT that don't match the current
      *       {@link #modIdFor} format and would otherwise survive a per-power

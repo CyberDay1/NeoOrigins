@@ -345,7 +345,7 @@ For other mods that need to read or change a player's origins programmatically.
 
 **Changing origins cleanly.** Because powers are derived, swapping an origin requires running the revoke/grant lifecycle (`onRevoked` / `onGranted`, attribute-modifier cleanup, event-handler teardown, client sync). Use the public facade:
 
-- `NeoOriginsAPI.setOrigin(player, layerId, originId)` transitions a **single** layer the way `/origin set` does, and `NeoOriginsAPI.clearOrigin(player, layerId)` empties one. See [Changing a player's origin](JAVA_API.md#changing-a-players-origin).
+- `NeoOriginsAPI.setOrigin(player, layerId, originId)` transitions a **single** layer the way `/neoorigins set` does, and `NeoOriginsAPI.clearOrigin(player, layerId)` empties one. See [Changing a player's origin](JAVA_API.md#changing-a-players-origin).
 - `reapplyOrigins(player, Map<layerId, originId>)` on the internal `com.cyberday1.neoorigins.service.ActiveOriginService` replaces a player's **entire** origin selection in one clean call: tears down all current powers, overwrites the layer map, regrants, restores server-global powers, and syncs the client. Intended for profile / loadout mods (e.g. Switchy) that restore a saved origin set. Call this instead of writing the attachment NBT directly to avoid leftover powers from the previous profile. An empty map clears the player to no origins.
 
 Both run the full lifecycle, so the client HUD, keybinds, and attribute state stay consistent. After either call you do not need a separate sync.

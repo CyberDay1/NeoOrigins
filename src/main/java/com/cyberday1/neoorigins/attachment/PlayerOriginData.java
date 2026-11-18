@@ -72,7 +72,7 @@ public class PlayerOriginData {
      *  picker shows only them); the first successful ChooseOrigin performs the
      *  deferred work, and a picker-close restores {@link #pendingLayerPickerPrev}.
      *  Generalizes the former Orb-of-Class flow to any layer subset (the
-     *  {@code neoorigins:open_layer_picker} action, {@code /origin gui <player> <layer>},
+     *  {@code neoorigins:open_layer_picker} action, {@code /neoorigins gui <player> <layer>},
      *  and the Orb of Class all route through it). */
     private transient boolean pendingLayerPickerCommit = false;
     /** Session-only — the prior origin of each scoped layer that HAD one before the
@@ -86,7 +86,7 @@ public class PlayerOriginData {
      *  {@code consume_item} is set. Null = consume nothing. */
     private transient net.minecraft.world.item.Item pendingLayerPickerConsumeItem = null;
     /** Session-only — true while an OP-initiated re-selection picker is open
-     *  ({@code /origin gui <player>}). Authorizes the target (a non-OP player)
+     *  ({@code /neoorigins gui <player>}). Authorizes the target (a non-OP player)
      *  to change an already-chosen origin for the duration of that picker
      *  session; cleared when the picker is abandoned or selection re-completes.
      *  Without it, a non-OP could reset their own origin for free via the

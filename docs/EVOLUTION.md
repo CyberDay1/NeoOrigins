@@ -106,7 +106,6 @@ shown yet.
 - `/neoorigins evolve accept`: accept a pending evolution prompt
 - `/neoorigins evolve decline`: decline a standing prompt; the tier can still
   be accepted later
-- `/origin evolve accept` / `/origin evolve decline`: legacy aliases
 
 **Admin commands** (permission level 2):
 - `/neoorigins evolve <player> <tier>`: force-set tier

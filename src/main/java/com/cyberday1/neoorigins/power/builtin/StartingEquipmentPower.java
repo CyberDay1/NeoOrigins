@@ -37,7 +37,7 @@ import java.util.List;
  *
  * <p>Dedup: {@code grantId} is stored in {@link PlayerOriginData#grantedEquipmentPowers} so the
  * same item can't be given twice. Only a full reset of the origin data clears the set
- * ({@link PlayerOriginData#clear}: {@code /origin reset} with no layer, the
+ * ({@link PlayerOriginData#clear}: {@code /neoorigins reset} with no layer, the
  * random-on-every-death reroll and a profile reapply). An Orb of Origin re-pick does
  * not, so picking the same class again never hands its starting items out twice.
  *

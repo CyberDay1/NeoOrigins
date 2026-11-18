@@ -865,7 +865,7 @@ Reopens the origin selection screen scoped to an author-specified subset of laye
 { "type": "neoorigins:open_layer_picker", "layers": ["neoorigins:class"], "commit_mode": "deferred", "cost": 3, "message": "Choose a new class", "consume_item": true }
 ```
 
-The `/neoorigins gui <player> <layers>` command (also reachable as `/origin gui`) is the admin equivalent; it takes one or more comma- or space-separated layer ids (e.g. `/neoorigins gui Steve neoorigins:origin,neoorigins:class`).
+The `/neoorigins gui <player> <layers>` command is the admin equivalent; it takes one or more comma- or space-separated layer ids (e.g. `/neoorigins gui Steve neoorigins:origin,neoorigins:class`).
 
 For a full worked example (binding one of the four inert orb items to a custom layer, granting the power, and adding a crafting recipe), see [COOKBOOK.md § 16](../COOKBOOK.md#reroll-my-custom-layer-wiring-up-a-spare-orb).
 

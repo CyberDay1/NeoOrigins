@@ -44,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The shared origin-change path behind the API, /origin set and reset, and the picker. */
+/** The shared origin-change path behind the API, /neoorigins set and reset, and the picker. */
 class OriginChangeServiceTest {
 
     private static final ResourceLocation ORIGIN = id("origin");
