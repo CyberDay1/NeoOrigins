@@ -547,7 +547,7 @@ Because every vanilla fluid behaviour reads those same values, they all fall awa
 
 Naming any fluid of a fluid type ignores the whole type, so `"minecraft:water"` also covers `minecraft:flowing_water` — that is what makes poured buckets work. Entries without a namespace get `minecraft:` (so `"lava"` means `"minecraft:lava"`). If neither key is given the power defaults to water and lava, so a marker-only entry is never a silent no-op. Unknown or misspelled ids are dropped quietly rather than failing the datapack load: the power simply ignores nothing for that entry.
 
-Emits the `ignore_fluid` capability tag plus one `ignore_fluid:<id>` tag per entry, so the client and server agree, and a condition that switches the power reaches the client straight away.
+Emits the `ignore_fluid` capability tag plus one `ignore_fluid:<id>` tag per entry, so the client and server agree, and a condition that switches the power reaches the client straight away. That holds when the player has more than one `ignore_fluid` power and only one of them switches.
 
 **Modded fluids on this version.** The field shape is identical across every branch of the mod, so a datapack naming a modded fluid loads and validates here exactly as it does on 1.21.1. NeoForge 26.3 keys entity fluid tracking by fluid type, so a modded fluid is tracked and its physics suppressed as on 1.21.1.
 
