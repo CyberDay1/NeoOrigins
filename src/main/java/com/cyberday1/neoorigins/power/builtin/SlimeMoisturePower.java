@@ -171,6 +171,14 @@ public class SlimeMoisturePower extends PowerType<SlimeMoisturePower.Config> {
         }
     }
 
+    // A shut power_condition freezes moisture where it was, but the armour
+    // penalty comes off with the rest of the power; the next open tick re-checks it.
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        var armorAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR);
+        if (armorAttr != null) armorAttr.removeModifier(armorPenaltyModId());
+    }
+
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
         // Clean up armor modifier

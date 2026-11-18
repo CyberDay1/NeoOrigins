@@ -187,6 +187,20 @@ public class KillLootDropsPower extends PowerType<KillLootDropsPower.Config> {
         }
     }
 
+    // Published once at grant, which a top-level power_condition never sees:
+    // withdraw the rules on a shut tick and publish them again on an open one.
+    @Override
+    public void onTick(ServerPlayer player, Config config) {
+        java.util.Map<String, List<Rule>> byConfig = perConfig.get(player.getUUID());
+        if (byConfig == null || !byConfig.containsKey(config.powerId())) onGranted(player, config);
+    }
+
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        java.util.Map<String, List<Rule>> byConfig = perConfig.get(player.getUUID());
+        if (byConfig != null && byConfig.containsKey(config.powerId())) onRevoked(player, config);
+    }
+
     /**
      * Remove all published rules for a player — safety sweep mirroring
      * {@link ActionOnEventPower#clearTokens(UUID)}, called after individual
