@@ -163,10 +163,30 @@ public class BreathOutOfFluidPower extends PowerType<BreathOutOfFluidPower.Confi
      */
     public static final String DRIES_OUT_CAPABILITY = "dries_out_of_water";
 
+    /**
+     * Holds off vanilla's out-of-water air refill ({@code LivingEntityAirRefillMixin}).
+     * Published only while {@code [ocean_origins] dries_out} is on, so the refill
+     * stops exactly when the drain runs. The client can't read the server's
+     * config, so it reads this synced, power_condition-gated tag instead.
+     */
+    public static final String DRAIN_CAPABILITY = "breath_out_of_fluid_drain";
+
     private static final java.util.Set<String> CAPS = java.util.Set.of(DRIES_OUT_CAPABILITY);
+    private static final java.util.Set<String> CAPS_DRAINING =
+        java.util.Set.of(DRIES_OUT_CAPABILITY, DRAIN_CAPABILITY);
+
+    /** The static set bounds the live one, so it carries the drain tag too. */
+    @Override
+    public java.util.Set<String> capabilities(Config config) { return CAPS_DRAINING; }
 
     @Override
-    public java.util.Set<String> capabilities(Config config) { return CAPS; }
+    public java.util.Set<String> capabilities(ServerPlayer player, Config config) {
+        return capabilitiesFor(GameplayConfig.isOceanOriginsDriesOutEnabled());
+    }
+
+    static java.util.Set<String> capabilitiesFor(boolean driesOut) {
+        return driesOut ? CAPS_DRAINING : CAPS;
+    }
 
     // onTick is intentionally a no-op — see class javadoc. The drain runs from
     // Handler below on PlayerTickEvent.Post so it overwrites baseTick's refill.

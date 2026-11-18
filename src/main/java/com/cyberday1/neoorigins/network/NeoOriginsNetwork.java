@@ -43,6 +43,7 @@ import com.cyberday1.neoorigins.api.origin.Origin;
 import com.cyberday1.neoorigins.data.PowerDataManager;
 import com.cyberday1.neoorigins.power.builtin.ConditionPassivePower;
 import com.cyberday1.neoorigins.power.builtin.BreathInFluidPower;
+import com.cyberday1.neoorigins.power.builtin.BreathOutOfFluidPower;
 import com.cyberday1.neoorigins.power.capability.IgnoreFluidCapabilities;
 import com.cyberday1.neoorigins.power.builtin.FlightPower;
 import com.cyberday1.neoorigins.power.builtin.PersistentEffectPower;
@@ -2064,6 +2065,8 @@ public class NeoOriginsNetwork {
         if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "water")) sig |= 2048;
         if (capabilities.contains(BreathInFluidPower.CAPABILITY_PREFIX + "lava")) sig |= 4096;
         if (capabilities.contains("ignore_water")) sig |= 8192;
+        // breath_out_of_fluid's refill block, read on both sides.
+        if (capabilities.contains(BreathOutOfFluidPower.DRAIN_CAPABILITY)) sig |= 16384;
         // A second ignore_fluid power keeps the marker set while a gated one
         // flips, so only the per-fluid tags show the change: fold a sum of
         // them into the high half. Walked only when a marker is present.
