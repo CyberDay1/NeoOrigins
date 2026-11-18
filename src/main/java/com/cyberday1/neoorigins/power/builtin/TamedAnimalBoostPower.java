@@ -43,6 +43,13 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
     @Override
     public Codec<Config> codec() { return Config.CODEC; }
 
+    /**
+     * Animals whose boost a shut power_condition took off, keyed with the health
+     * modifier id. Putting the boost back skips the heal to full for these, so
+     * flipping the gate is not a free heal.
+     */
+    private static final java.util.Set<String> GATED_OFF = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     @Override
     public void onTick(ServerPlayer player, Config config) {
         if (player.tickCount % 60 != 0) return;
@@ -66,7 +73,9 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
                 healthAttr.addPermanentModifier(new AttributeModifier(
                     healthModId, config.healthBonus(),
                     AttributeModifier.Operation.ADD_VALUE));
-                animal.setHealth(animal.getMaxHealth());
+                if (!GATED_OFF.remove(animal.getUUID() + "|" + healthModId)) {
+                    animal.setHealth(animal.getMaxHealth());
+                }
             }
 
             AttributeInstance speedAttr = animal.getAttribute(Attributes.MOVEMENT_SPEED);
@@ -78,8 +87,20 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
         }
     }
 
+    // A shut power_condition strips the boost from the owner's animals in range,
+    // on the same 60-tick scan; the next open scan puts it back.
+    @Override
+    public void onTickBlocked(ServerPlayer player, Config config) {
+        if (player.tickCount % 60 != 0) return;
+        strip(player, config, true);
+    }
+
     @Override
     public void onRevoked(ServerPlayer player, Config config) {
+        strip(player, config, false);
+    }
+
+    private static void strip(ServerPlayer player, Config config, boolean gated) {
         Identifier healthModId = modId("health_boost");
         Identifier speedModId = modId("speed_boost");
         AABB area = player.getBoundingBox().inflate(config.radius());
@@ -90,7 +111,11 @@ public class TamedAnimalBoostPower extends PowerType<TamedAnimalBoostPower.Confi
             if (owner == null || !player.getUUID().equals(owner.getUUID())) continue;
 
             AttributeInstance healthAttr = animal.getAttribute(Attributes.MAX_HEALTH);
-            if (healthAttr != null) healthAttr.removeModifier(healthModId);
+            if (healthAttr != null && healthAttr.removeModifier(healthModId)) {
+                String key = animal.getUUID() + "|" + healthModId;
+                if (gated) GATED_OFF.add(key);
+                else GATED_OFF.remove(key);
+            }
 
             AttributeInstance speedAttr = animal.getAttribute(Attributes.MOVEMENT_SPEED);
             if (speedAttr != null) speedAttr.removeModifier(speedModId);

@@ -32,7 +32,7 @@ Every power type (passive, toggle, active, persistent effect, compat) supports a
 - `"deny"` (default): the power is **disabled** when the condition evaluates to true. Use this to express "this power doesn't work when X".
 - `"allow"`: the power **only operates** when the condition evaluates to true. Use this to express "this power only works when X".
 
-**What gets gated:** `onTick`, `onActivated` (keybind), `onHit`, `onKill`, and capability checks are all suppressed when the condition is not satisfied. Lifecycle methods (`onGranted`, `onRevoked`, `onLogin`, `onRespawn`) are never gated, so powers can still set up and tear down correctly.
+**What gets gated:** `onTick`, `onActivated` (keybind), `onHit`, `onKill`, and capability checks are all suppressed when the condition is not satisfied. Lifecycle methods (`onGranted`, `onRevoked`, `onLogin`, `onRespawn`) are never gated, so powers can still set up and tear down correctly. While the gate is shut, what the power put on the player (attribute modifiers, effects, flight, gravity, size, and flight or lava speed changes) comes off, and it goes back on when the gate opens. See `power_condition` in [Power basics](concepts/power-basics.md) for the two exceptions.
 
 **Examples:**
 

@@ -184,7 +184,7 @@ Excluded entities can't be tamed (`tame_mob` shows its actionbar message) and ar
 
 ## `neoorigins:tamed_animal_boost`
 
-Boosts stats (max health, movement speed) on every tamed animal owned by the player within a radius. Every 60 ticks it adds permanent attribute modifiers with fixed ids (saved on the animal) and heals the animal to full the first time. Revoking the power only strips animals inside the radius at that moment.
+Boosts stats (max health, movement speed) on every tamed animal owned by the player within a radius. Every 60 ticks it adds permanent attribute modifiers with fixed ids (saved on the animal) and heals the animal to full the first time. Revoking the power only strips animals inside the radius at that moment. A shut `power_condition` strips them the same way on the next scan and the boost comes back once it opens, without the heal to full.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
