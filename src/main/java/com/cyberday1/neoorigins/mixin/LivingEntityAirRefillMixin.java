@@ -1,9 +1,7 @@
 package com.cyberday1.neoorigins.mixin;
 
-import com.cyberday1.neoorigins.client.ClientActivePowers;
 import com.cyberday1.neoorigins.power.builtin.BreathOutOfFluidPower;
-import com.cyberday1.neoorigins.service.ActiveOriginService;
-import net.minecraft.server.level.ServerPlayer;
+import com.cyberday1.neoorigins.power.capability.PowerCapabilities;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -14,7 +12,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 /**
  * Cancels vanilla's out-of-water airSupply refill while the player has a
- * {@code neoorigins:breath_out_of_fluid} power active. Applied on both client
+ * {@code neoorigins:breath_out_of_fluid} power draining them (its
+ * {@link BreathOutOfFluidPower#DRAIN_CAPABILITY} tag). Applied on both client
  * and server so client-side prediction agrees with server state — otherwise
  * the bubble HUD oscillates between the server's clamped value and the
  * client-predicted refilled value (one-tick flicker reported by tester on
@@ -22,11 +21,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  * {@link BreathOutOfFluidPower.Handler} fully owns the airSupply value while
  * the player is out of water.
  *
- * <p>Client check uses the {@code dries_out_of_water} capability tag synced
- * via the active-powers channel — same mechanism the {@code LightTextureMixin}
- * uses for the night-vision boost. The 26.1 {@code ClientPowerCache.Entry}
- * dropped the {@code typeId} field, so type-based lookups aren't available on
- * this branch; the capability tag is the cross-branch consistent path.
+ * <p>Both sides read the drain tag synced via the active-powers channel. It
+ * replaced {@code dries_out_of_water} here, which stayed on with the
+ * {@code [ocean_origins] dries_out} config off and froze the bubble row.
  */
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityAirRefillMixin {
@@ -56,16 +53,9 @@ public abstract class LivingEntityAirRefillMixin {
         // would look half-applied to the player standing beside the conduit.
         if (player.hasEffect(MobEffects.CONDUIT_POWER)) return false;
 
-        if (self.level().isClientSide()) {
-            // Client / integrated server. Capability tag is set on the local
-            // player when an aquatic origin is selected.
-            return ClientActivePowers.hasCapability(BreathOutOfFluidPower.DRIES_OUT_CAPABILITY);
-        }
-        if (self instanceof ServerPlayer sp) {
-            boolean[] has = {false};
-            ActiveOriginService.forEachOfType(sp, BreathOutOfFluidPower.class, cfg -> has[0] = true);
-            return has[0];
-        }
-        return false;
+        // The synced tag, gated by power_condition and by [ocean_origins]
+        // dries_out like the drain itself: when either stops the drain, the
+        // refill comes back on both sides instead of the air freezing.
+        return PowerCapabilities.hasActive(player, BreathOutOfFluidPower.DRAIN_CAPABILITY);
     }
 }
