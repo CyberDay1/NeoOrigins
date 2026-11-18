@@ -2,6 +2,7 @@ package com.cyberday1.neoorigins.power.builtin;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.power.PowerConfiguration;
+import com.cyberday1.neoorigins.api.power.PowerHolder;
 import com.cyberday1.neoorigins.api.power.PowerType;
 import com.cyberday1.neoorigins.compat.CompatEventAliases;
 import com.cyberday1.neoorigins.compat.action.ActionParser;
@@ -50,6 +51,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * A single power may specify both — the action runs on dispatch sites that call
  * {@link EventPowerIndex#dispatch}, the modifier chains on sites that call
  * {@link EventPowerIndex#dispatchModifier}.
+ *
+ * <p>A top-level {@code power_condition} gates both paths at dispatch time:
+ * while it is shut the action does not run and the modifier passes the value
+ * through. {@code condition} stays this type's own per-event check.
  */
 public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
 
@@ -291,6 +296,12 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
             }
         }
 
+        // power_condition is checked at dispatch, never by re-registering, so
+        // stacked modifiers keep their order when the gate flips. Null = no gate.
+        PowerHolder<?> self = PowerHolder.currentDispatchHolder();
+        PowerHolder<?> gate = self != null && self.config() == config && self.condition() != null
+            ? self : null;
+
         EventPowerIndex.Token actionTok = null;
         EventPowerIndex.Token modTok = null;
 
@@ -298,6 +309,7 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         if (config.action() != EntityAction.noop()) {
             EventPowerIndex.Handler handler = (sp, ctx) -> {
                 try {
+                    if (gate != null && !gate.isConditionSatisfied(sp)) return;
                     // EFFECT_APPLIED filter gate: only runs for that event; for
                     // other events the optionals are simply unread. Match if
                     // either `effect` or `effect_tag` matches (OR semantics).
@@ -354,7 +366,8 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
                     }
                     // cooldown_ticks gate: after the action fires, suppress
                     // re-fires for this power instance until the persisted
-                    // per-player timer (decremented in onTick) runs out.
+                    // per-player timer (decremented in onTick, so it pauses while
+                    // power_condition is shut) runs out.
                     // Checked LAST so a suppressed dispatch is exactly "all
                     // gates passed but the timer is still running".
                     if (config.cooldownTicks() > 0) {
@@ -393,6 +406,7 @@ public class ActionOnEventPower extends PowerType<ActionOnEventPower.Config> {
         if (config.modifier() != FloatModifier.identity()) {
             EventPowerIndex.ModifierHandler modHandler = (sp, ctx, base) -> {
                 try {
+                    if (gate != null && !gate.isConditionSatisfied(sp)) return base;
                     if (!config.condition().test(sp)) return base;
                     return config.modifier().apply(base);
                 } catch (Exception e) {
