@@ -5249,7 +5249,7 @@
           "const": "neoorigins:loot_pool_grant"
         },
         "grant_id": {
-          "description": "Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /origin reset clears both.",
+          "description": "Unique id tracked so the bundle is granted only once per player. Dedups the whole pool, not individual rolled stacks. Shares the starting_equipment grant attachment so a /neoorigins reset clears both.",
           "type": "string"
         },
         "loot_table": {
@@ -7618,7 +7618,7 @@
           "const": "neoorigins:starting_equipment"
         },
         "grant_id": {
-          "description": "Unique id tracked so the bundle is granted only once per player. Dedups the whole bundle, not individual stacks, so a /origin reset re-grants everything.",
+          "description": "Unique id tracked so the bundle is granted only once per player. Dedups the whole bundle, not individual stacks, so a /neoorigins reset re-grants everything.",
           "type": "string"
         },
         "item": {

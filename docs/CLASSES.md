@@ -199,7 +199,7 @@ for any layer subset, not just the class layer. Two author paths expose it:
   `commit_mode` (`deferred`/`immediate`), an XP `cost`, an optional `message` shown
   when the picker opens, and `consume_item` to spend the triggering item on commit.
   This lets a pack build its own re-pick items or powers for whatever layers it defines.
-- **Admin command** `/origin gui <player> <layers>`: opens the picker scoped to one or
+- **Admin command** `/neoorigins gui <player> <layers>`: opens the picker scoped to one or
   more comma- or space-separated layers for a single target player (permission level 2).
 
 ### Recipe
