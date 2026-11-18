@@ -510,7 +510,7 @@ Origins compat: translates `origins:walk_on_fluid`.
 
 ## `neoorigins:ignore_water`
 
-Makes the player unaffected by water: full movement speed in water (via `water_movement_efficiency` attribute) and immune to water-current pushing (via `EntityIgnoreWaterMixin`). Emits the `ignore_water` capability tag.
+Makes the player unaffected by water: full movement speed in water (via `water_movement_efficiency` attribute) and immune to water-current pushing (via `EntityIgnoreWaterMixin`). Emits the `ignore_water` capability tag. The current push is removed on the client as well as the server, from that synced tag, so the player's own movement is not pushed either and a condition that switches the power reaches the client straight away.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -555,7 +555,7 @@ Emits the `ignore_fluid` capability tag plus one `ignore_fluid:<id>` tag per ent
 
 One deliberate side effect: the `entityInside` guard is keyed on the block's fluid state, so a *waterlogged* block's own `entityInside` behaviour is suppressed too while you ignore water. In practice that means things like bubble columns stop pushing you, which is the intended reading of "water does not affect me".
 
-`ignore_water` is unchanged and still supported. It takes away water's slowdown and current push but keeps buoyancy and swimming. This power on water with `mode: physics` overlaps it and goes further: no buoyancy, drag or swim pose, so you sink and walk the bottom. Use the default `full` mode when you want the fluid to stop existing for the player.
+`ignore_water` is still supported. It takes away water's slowdown and current push but keeps buoyancy and swimming. This power on water with `mode: physics` overlaps it and goes further: no buoyancy, drag or swim pose, so you sink and walk the bottom. Use the default `full` mode when you want the fluid to stop existing for the player.
 
 **Example: swim through lava unharmed**
 ```json
@@ -578,7 +578,7 @@ One deliberate side effect: the `entityInside` guard is keyed on the block's flu
 ```
 
 <a id="ignore-fluid-physics-mode"></a>
-**Physics mode.** With `"mode": "physics"` the fluid is still there for the player. They see the fog and the underwater overlay, drown, get their fire put out, and match `in_water`, `submerged_in`, `fluid_height` and every other fluid condition. What goes is the fluid's hold on their movement: no current push, no buoyancy or drag, and no swim pose. They sink, walk along the bottom at their land speed, and jump off it the same height they would on land. This is how Origins' `ignore_water` behaved.
+**Physics mode.** With `"mode": "physics"` the fluid is still there for the player. They see the fog and the underwater overlay, drown, get their fire put out, and match `in_water`, `submerged_in`, `fluid_height` and every other fluid condition. What goes is the fluid's hold on their movement: no current push, no buoyancy or drag, and no swim pose. They sink, walk along the bottom at their land speed, and jump off it the same height they would on land. This is how Origins' `ignore_water` behaved, though Origins packs' `ignore_water` still loads as NeoOrigins' `ignore_water`.
 
 Because the fluid still counts, physics mode pairs with fluid-gated powers. To sink slower than you fall through air, add slow falling gated on `in_water`. A `movement_speed` penalty gated the same way slows walking along the bottom instead. That doesn't work in `full` mode, where `in_water` is never true for an ignored fluid.
 
