@@ -122,7 +122,8 @@ public final class ActiveOriginService {
      * returns nothing while a condition is present, enhanced_vision and
      * entity_model read live state (content.toml kill-switch, MorphDataManager)
      * that the cache tuple does not track, pose narrows by its own toggle, and
-     * compat and prevent_action (swim, narrowed by active_when) are grouped with
+     * compat, prevent_action (swim, narrowed by active_when) and
+     * breath_out_of_fluid (narrowed by the dries_out config) are grouped with
      * the other player-aware overriders even though they only ever narrow.
      */
     static boolean hasDynamicCapabilities(PowerType<?> type) {
@@ -136,7 +137,8 @@ public final class ActiveOriginService {
             || com.cyberday1.neoorigins.power.builtin.EnhancedVisionPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.power.builtin.EntityModelPower.class.isAssignableFrom(type)
             || com.cyberday1.neoorigins.power.builtin.PosePower.class.isAssignableFrom(type)
-            || com.cyberday1.neoorigins.power.builtin.PreventActionPower.class.isAssignableFrom(type);
+            || com.cyberday1.neoorigins.power.builtin.PreventActionPower.class.isAssignableFrom(type)
+            || com.cyberday1.neoorigins.power.builtin.BreathOutOfFluidPower.class.isAssignableFrom(type);
     }
 
     private static CacheEntry getOrBuild(ServerPlayer player) {
