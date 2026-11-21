@@ -110,6 +110,10 @@ public final class PowerOverridesConfig {
         p("abyssal_land_speed_penalty");f("amount", -0.1, -1, 1); ep();
         p("abyssal_summon_guardian");   fi("max_count", 2, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
 
+        // ── Air Mage ──
+        p("air_mage_apex_speed");       f("amount", 0.1, -1, 10); ep();
+        p("air_mage_zephyr");           f("amount", 0.02, -1, 10); ep();
+
         // ── Automaton ──
         p("automaton_iron_frame");      fi("amplifier", 0, 0, 4); ep();
         p("automaton_heavy_chassis");   f("amount", -0.15, -1, 1); ep();
@@ -119,6 +123,7 @@ public final class PowerOverridesConfig {
 
         // ── Avian ──
         p("avian_no_hunger_sprint");    f("multiplier", 0.25, 0, 10); at("modifier.value"); ep();
+        p("avian_apex_speed");          f("amount", 0.1, -1, 10); ep();
 
         // ── Blazeling ──
         p("blazeling_water_damage");    f("multiplier", 1.0, 0, 100); ep();
@@ -157,6 +162,7 @@ public final class PowerOverridesConfig {
         p("draconic_attack_bonus");     f("amount", 2.0, -100, 100); ep();
         p("draconic_hunger_drain");     f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
         p("draconic_water_weakness");   f("multiplier", 1.0, 0, 100); ep();
+        p("draconic_apex_speed");       f("amount", 0.1, -1, 10); ep();
 
         // ── Dwarf ──
         p("dwarf_compact_frame");       f("scale", 0.8, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
@@ -168,6 +174,7 @@ public final class PowerOverridesConfig {
 
         // ── Elytrian ──
         p("elytrian_elytra_boost");     f("strength", 1.5, 0, 10); fi("cooldown_ticks", 40, 0, 72000); ep();
+        p("elytrian_ascended_speed");   f("amount", 0.1, -1, 10); ep();
 
         // ── Enderian ──
         p("enderian_teleport");         f("range", 50.0, 1, 256); fi("cooldown_ticks", 60, 0, 72000); ep();
@@ -179,12 +186,14 @@ public final class PowerOverridesConfig {
         p("enderite_attack_bonus");     f("amount", 3.0, -100, 100); ep();
         p("enderite_water_damage");     f("multiplier", 1.0, 0, 100); ep();
         p("enderite_daylight_weakness");f("multiplier", 1.5, 0, 100); ep();
+        p("enderite_ascended_speed");   f("amount", 0.1, -1, 10); ep();
 
         // ── Feline ──
         p("feline_active_launch");      f("power", 2.2, 0, 10); at("entity_action.strength"); fi("cooldown_ticks", 80, 0, 72000); ep();
         p("feline_speed_boost");        f("amount", 0.1, -1, 10); ep();
         p("feline_hunger_drain");       f("multiplier", 1.3, 0, 10); at("modifier.value"); ep();
         p("feline_water_weakness");     f("multiplier", 1.0, 0, 100); ep();
+        p("feline_apex_speed");         f("amount", 0.15, -1, 10); ep();
 
         // ── Frostborn ──
         p("frostborn_freeze_aura");     fi("amplifier", 3, 0, 255); at("entity_action.on_hit_action.entity_action.entity_action.amplifier"); fi("duration_ticks", 100, 1, 72000); at("entity_action.on_hit_action.entity_action.entity_action.duration", "entity_action.on_hit_action.duration_ticks"); f("radius", 6.0, 0, 64); at("entity_action.on_hit_action.radius", "entity_action.on_hit_action.entity_action.radius"); fi("cooldown_ticks", 200, 0, 72000); ep();
@@ -208,6 +217,7 @@ public final class PowerOverridesConfig {
         p("gorgon_size");               f("scale", 1.15, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("gorgon_heavy_frame");        f("amount", -0.2, -1, 1); ep();
         p("gorgon_hunger_drain");       f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
+        p("gorgon_apex_speed");         f("amount", 0.15, -1, 10); ep();
 
         // ── Hiveling ──
         p("hiveling_sting");            f("speed", 1.8, 0, 10); at("entity_action.speed"); fi("cooldown_ticks", 120, 0, 72000); ep();
@@ -215,12 +225,17 @@ public final class PowerOverridesConfig {
         p("hiveling_size");             f("scale", 0.6, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.0, -10, 10); ep();
         p("hiveling_reduced_health");   f("amount", -6.0, -100, 100); ep();
         p("hiveling_hunger_drain");     f("multiplier", 1.5, 0, 10); at("modifier.value"); ep();
+        p("hiveling_ascended_speed");   f("amount", 0.1, -1, 10); ep();
+
+        // ── Human ──
+        p("human_ascended_speed");      f("amount", 0.1, -1, 10); ep();
 
         // ── Inchling ──
         p("inchling_size");             f("scale", 0.25, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 1.0, -10, 10); ep();
         p("inchling_speed_boost");      f("amount", 0.15, -1, 10); ep();
         p("inchling_reduced_health");   f("amount", -10.0, -100, 100); ep();
         p("inchling_hunger_efficiency");f("multiplier", 0.5, 0, 10); at("modifier.value"); ep();
+        p("inchling_ascended_speed");   f("amount", 0.15, -1, 10); ep();
 
         // ── Kraken ──
         p("kraken_tentacle_lash");      fi("amplifier", 2, 0, 255); at("entity_action.on_hit_action.entity_action.amplifier"); fi("duration_ticks", 80, 1, 72000); at("entity_action.on_hit_action.entity_action.duration"); f("radius", 5.0, 0, 64); at("entity_action.on_hit_action.radius"); fi("cooldown_ticks", 160, 0, 72000); ep();
@@ -240,6 +255,9 @@ public final class PowerOverridesConfig {
         // Pack authors who want different cooked-equivalent values should
         // copy aquatic_fish_diet_bonus.json into their pack and edit directly.)
 
+        // ── Monster Tamer ──
+        p("monster_tamer_apex_speed");  f("amount", 0.1, -1, 10); ep();
+
         // ── Necromancer ──
         p("necromancer_summon_skeleton");fi("max_count", 3, 1, 100); fi("cooldown_ticks", 400, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
         p("necromancer_summon_wither"); fi("max_count", 2, 1, 100); fi("cooldown_ticks", 600, 0, 72000); fi("hunger_cost", 4, 0, 100); fi("despawn_ticks", 18000, 0, 1000000); f("death_damage", 1.0, 0, 100); ep();
@@ -251,6 +269,7 @@ public final class PowerOverridesConfig {
         // ── Phantom ──
         p("phantom_form");              fb("invisibility", true); fb("no_gravity", true); ep();
         p("phantom_water_breathing");   fb("enabled", true); ep();
+        p("phantom_ascended_speed");    f("amount", 0.1, -1, 10); ep();
 
         // ── Piglin ──
         p("piglin_attack_bonus");       f("amount", 2.0, -100, 100); ep();
@@ -324,12 +343,14 @@ public final class PowerOverridesConfig {
         // shallow power_overrides can't reach it. Edit JSON directly to retune.)
         p("strider_natural_armor");     fi("amplifier", 0, 0, 4); ep();
         p("strider_water_weakness");    f("multiplier", 1.0, 0, 100); ep();
+        p("strider_ascended_speed");    f("amount", 0.1, -1, 10); ep();
 
         // ── Sylvan ──
         p("sylvan_active_root");        fi("amplifier", 5, 0, 255); at("entity_action.on_hit_action.entity_action.entity_action.amplifier"); fi("duration_ticks", 80, 1, 72000); at("entity_action.on_hit_action.entity_action.entity_action.duration", "entity_action.on_hit_action.duration_ticks"); f("radius", 6.0, 0, 64); at("entity_action.on_hit_action.radius", "entity_action.on_hit_action.entity_action.radius"); fi("cooldown_ticks", 200, 0, 72000); ep();
         p("sylvan_crop_growth");        fi("radius", 4, 1, 64); fi("tick_interval", 40, 1, 72000); fi("growths_per_interval", 2, 1, 100); ep();
         p("sylvan_regen_in_water");     f("amount_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
         p("sylvan_nether_damage");      f("damage_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
+        p("sylvan_apex_speed");         f("amount", 0.1, -1, 10); ep();
 
         // ── Tiny ──
         p("tiny_size");                 f("scale", 0.5, 0.1, 10); fb("modify_reach", false); f("reach_bonus", 0.5, -10, 10); ep();
@@ -337,6 +358,7 @@ public final class PowerOverridesConfig {
         p("tiny_item_magnetism");       f("radius", 4.0, 0, 64); ep();
         p("tiny_attack_penalty");       f("amount", -2.0, -100, 100); ep();
         p("tiny_hunger_drain");         f("multiplier", 1.8, 0, 10); at("modifier.value"); ep();
+        p("tiny_ascended_speed");       f("amount", 0.1, -1, 10); ep();
 
         // ── Umbral ──
         p("umbral_shadow_orb");         fi("max_orbs", 4, 1, 100); f("radius", 28.0, 1, 128); fi("cooldown_ticks", 60, 0, 72000); fi("tick_interval", 20, 1, 72000); ep();
@@ -344,6 +366,7 @@ public final class PowerOverridesConfig {
         // is at the top level on this active_ability JSON so it CAN be overridden.
         p("umbral_active_dash");        fi("cooldown_ticks", 60, 0, 72000); ep();
         p("umbral_daylight_damage");    f("damage_per_second", 1.0, 0, 100); at("entity_action.amount"); ep();
+        p("umbral_apex_speed");         f("amount", 0.15, -1, 10); ep();
 
         // ── Wraith ──
         // (wraith_ascended_daylight_damage and wraith_ascended_weakness_aura
@@ -364,10 +387,12 @@ public final class PowerOverridesConfig {
         p("vampire_slow_regen");        f("multiplier", 0.4, 0, 10); ep();
         p("vampire_water_weakness");    f("multiplier", 1.0, 0, 100); ep();
         p("vampire_water_breathing");   fb("enabled", true); ep();
+        p("vampire_evolved_speed");     f("amount", 0.2, -1, 10); ep();
 
         // ── Verdant ──
         p("verdant_harvest_bonus");     fi("extra_drops", 1, 0, 100); ep();
         p("verdant_nether_damage");     f("damage_per_second", 2.0, 0, 100); at("entity_action.amount"); ep();
+        p("verdant_ascended_speed");    f("amount", 0.1, -1, 10); ep();
 
         // ── Voidwalker ──
         p("voidwalker_active_teleport");f("range", 24.0, 1, 256); fi("cooldown_ticks", 80, 0, 72000); ep();
@@ -489,6 +514,7 @@ public final class PowerOverridesConfig {
         p("class_titan_size");          f("scale", 1.25, 0.1, 10); fb("modify_reach", true); f("reach_bonus", 0.0, -10, 10); ep();
         p("class_titan_health");        f("amount", 4.0, -100, 100); ep();
         p("class_titan_reach");         f("amount", 0.5, -10, 10); ep();
+        p("class_titan_heavy_steps");   f("amount", -0.1, -1, 1); ep();
         p("class_rogue_sneaky");        f("detection_multiplier", 0.3, 0, 10); ep();
         p("class_rogue_stealth");       fi("activation_ticks", 200, 0, 72000); ep();
         p("class_lumberjack_tree_felling");fi("max_blocks", 64, 1, 1024); ep();

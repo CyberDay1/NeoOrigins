@@ -16,6 +16,7 @@ nav_order: 13
 - An override follows the power id, not the file. If a datapack replaces a built-in power with its own JSON, the override still lands on the replacement; a nested key whose parent object is missing is skipped and logged.
 - Changes take effect on `/reload` or a restart. Ticks are game ticks: 20 ticks = 1 second.
 - `enabled = false`, where offered, keeps the power on the origin but switches it off. See [Power basics](concepts/power-basics.md).
+- An `amount` key on an attribute power sets the attribute modifier's amount. An override never changes the modifier's operation, so the same number can mean different things on different powers. These movement speed powers use `add_value`, which adds the amount flat to movement speed: `air_mage_zephyr`, `draconic_apex_speed`, `elytrian_ascended_speed`, `enderite_ascended_speed`, `golden_bell_heavy_stance`, `gorgon_apex_speed`, `hiveling_ascended_speed`, `human_ascended_speed`, `inchling_ascended_speed`, `monster_tamer_apex_speed`, `sylvan_apex_speed`, `tiny_ascended_speed`, `verdant_ascended_speed`, `windwalker_swift_current`. A player's base movement speed is 0.1, so a default of `0.1` doubles base speed. Every other movement speed power on this page uses `add_multiplied_base`, where the amount is a fraction of base speed: `0.1` means 10% faster and `-0.1` means 10% slower. That includes `air_mage_apex_speed`, `avian_apex_speed`, `feline_apex_speed`, `phantom_ascended_speed`, `skeleton_ascended_speed`, `strider_ascended_speed`, `umbral_apex_speed` and `vampire_evolved_speed`.
 
 Example:
 
@@ -47,6 +48,13 @@ The tables below list every key the file offers, grouped as the file groups them
 |  | `despawn_ticks` | `18000` | 0 to 1000000 |  |
 |  | `death_damage` | `1.0` | 0 to 100 |  |
 
+### Air Mage
+
+| Power | Key | Default | Range | Writes to |
+|---|---|---|---|---|
+| `air_mage_apex_speed` | `amount` | `0.1` | -1 to 10 |  |
+| `air_mage_zephyr` | `amount` | `0.02` | -1 to 10 |  |
+
 ### Automaton
 
 | Power | Key | Default | Range | Writes to |
@@ -62,6 +70,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | Power | Key | Default | Range | Writes to |
 |---|---|---|---|---|
 | `avian_no_hunger_sprint` | `multiplier` | `0.25` | 0 to 10 | `modifier.value` |
+| `avian_apex_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Blazeling
 
@@ -122,6 +131,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | `draconic_attack_bonus` | `amount` | `2.0` | -100 to 100 |  |
 | `draconic_hunger_drain` | `multiplier` | `1.5` | 0 to 10 | `modifier.value` |
 | `draconic_water_weakness` | `multiplier` | `1.0` | 0 to 100 |  |
+| `draconic_apex_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Dwarf
 
@@ -142,6 +152,7 @@ The tables below list every key the file offers, grouped as the file groups them
 |---|---|---|---|---|
 | `elytrian_elytra_boost` | `strength` | `1.5` | 0 to 10 |  |
 |  | `cooldown_ticks` | `40` | 0 to 72000 |  |
+| `elytrian_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Enderian
 
@@ -164,6 +175,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | `enderite_attack_bonus` | `amount` | `3.0` | -100 to 100 |  |
 | `enderite_water_damage` | `multiplier` | `1.0` | 0 to 100 |  |
 | `enderite_daylight_weakness` | `multiplier` | `1.5` | 0 to 100 |  |
+| `enderite_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Feline
 
@@ -174,6 +186,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | `feline_speed_boost` | `amount` | `0.1` | -1 to 10 |  |
 | `feline_hunger_drain` | `multiplier` | `1.3` | 0 to 10 | `modifier.value` |
 | `feline_water_weakness` | `multiplier` | `1.0` | 0 to 100 |  |
+| `feline_apex_speed` | `amount` | `0.15` | -1 to 10 |  |
 
 ### Frostborn
 
@@ -217,6 +230,7 @@ The tables below list every key the file offers, grouped as the file groups them
 |  | `reach_bonus` | `0.0` | -10 to 10 |  |
 | `gorgon_heavy_frame` | `amount` | `-0.2` | -1 to 1 |  |
 | `gorgon_hunger_drain` | `multiplier` | `1.5` | 0 to 10 | `modifier.value` |
+| `gorgon_apex_speed` | `amount` | `0.15` | -1 to 10 |  |
 
 ### Hiveling
 
@@ -232,6 +246,13 @@ The tables below list every key the file offers, grouped as the file groups them
 |  | `reach_bonus` | `0.0` | -10 to 10 |  |
 | `hiveling_reduced_health` | `amount` | `-6.0` | -100 to 100 |  |
 | `hiveling_hunger_drain` | `multiplier` | `1.5` | 0 to 10 | `modifier.value` |
+| `hiveling_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
+
+### Human
+
+| Power | Key | Default | Range | Writes to |
+|---|---|---|---|---|
+| `human_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Inchling
 
@@ -243,6 +264,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | `inchling_speed_boost` | `amount` | `0.15` | -1 to 10 |  |
 | `inchling_reduced_health` | `amount` | `-10.0` | -100 to 100 |  |
 | `inchling_hunger_efficiency` | `multiplier` | `0.5` | 0 to 10 | `modifier.value` |
+| `inchling_ascended_speed` | `amount` | `0.15` | -1 to 10 |  |
 
 ### Kraken
 
@@ -274,6 +296,12 @@ The tables below list every key the file offers, grouped as the file groups them
 | `merling_aquatic_speed` | `amount` | `0.6` | -1 to 10 |  |
 | `merling_land_slowdown` | `amount` | `-0.1` | -1 to 1 |  |
 
+### Monster Tamer
+
+| Power | Key | Default | Range | Writes to |
+|---|---|---|---|---|
+| `monster_tamer_apex_speed` | `amount` | `0.1` | -1 to 10 |  |
+
 ### Necromancer
 
 | Power | Key | Default | Range | Writes to |
@@ -300,6 +328,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | `phantom_form` | `invisibility` | `true` | true / false |  |
 |  | `no_gravity` | `true` | true / false |  |
 | `phantom_water_breathing` | `enabled` | `true` | true / false |  |
+| `phantom_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Piglin
 
@@ -421,6 +450,7 @@ The tables below list every key the file offers, grouped as the file groups them
 |---|---|---|---|---|
 | `strider_natural_armor` | `amplifier` | `0` | 0 to 4 |  |
 | `strider_water_weakness` | `multiplier` | `1.0` | 0 to 100 |  |
+| `strider_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Sylvan
 
@@ -435,6 +465,7 @@ The tables below list every key the file offers, grouped as the file groups them
 |  | `growths_per_interval` | `2` | 1 to 100 |  |
 | `sylvan_regen_in_water` | `amount_per_second` | `1.0` | 0 to 100 | `entity_action.amount` |
 | `sylvan_nether_damage` | `damage_per_second` | `1.0` | 0 to 100 | `entity_action.amount` |
+| `sylvan_apex_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Tiny
 
@@ -447,6 +478,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | `tiny_item_magnetism` | `radius` | `4.0` | 0 to 64 |  |
 | `tiny_attack_penalty` | `amount` | `-2.0` | -100 to 100 |  |
 | `tiny_hunger_drain` | `multiplier` | `1.8` | 0 to 10 | `modifier.value` |
+| `tiny_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Umbral
 
@@ -458,6 +490,7 @@ The tables below list every key the file offers, grouped as the file groups them
 |  | `tick_interval` | `20` | 1 to 72000 |  |
 | `umbral_active_dash` | `cooldown_ticks` | `60` | 0 to 72000 |  |
 | `umbral_daylight_damage` | `damage_per_second` | `1.0` | 0 to 100 | `entity_action.amount` |
+| `umbral_apex_speed` | `amount` | `0.15` | -1 to 10 |  |
 
 ### Wraith
 
@@ -484,6 +517,7 @@ The tables below list every key the file offers, grouped as the file groups them
 | `vampire_slow_regen` | `multiplier` | `0.4` | 0 to 10 |  |
 | `vampire_water_weakness` | `multiplier` | `1.0` | 0 to 100 |  |
 | `vampire_water_breathing` | `enabled` | `true` | true / false |  |
+| `vampire_evolved_speed` | `amount` | `0.2` | -1 to 10 |  |
 
 ### Verdant
 
@@ -491,6 +525,7 @@ The tables below list every key the file offers, grouped as the file groups them
 |---|---|---|---|---|
 | `verdant_harvest_bonus` | `extra_drops` | `1` | 0 to 100 |  |
 | `verdant_nether_damage` | `damage_per_second` | `2.0` | 0 to 100 | `entity_action.amount` |
+| `verdant_ascended_speed` | `amount` | `0.1` | -1 to 10 |  |
 
 ### Voidwalker
 
@@ -640,6 +675,7 @@ The tables below list every key the file offers, grouped as the file groups them
 |  | `reach_bonus` | `0.0` | -10 to 10 |  |
 | `class_titan_health` | `amount` | `4.0` | -100 to 100 |  |
 | `class_titan_reach` | `amount` | `0.5` | -10 to 10 |  |
+| `class_titan_heavy_steps` | `amount` | `-0.1` | -1 to 1 |  |
 | `class_rogue_sneaky` | `detection_multiplier` | `0.3` | 0 to 10 |  |
 | `class_rogue_stealth` | `activation_ticks` | `200` | 0 to 72000 |  |
 | `class_lumberjack_tree_felling` | `max_blocks` | `64` | 1 to 1024 |  |
