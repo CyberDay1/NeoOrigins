@@ -241,7 +241,7 @@ public final class PowerFormPanel {
                     : "item_action".equals(kind)
                         ? com.cyberday1.neoorigins.power.schemaform.FormModel.itemActionTypes()
                         : "condition".equals(kind)
-                            ? com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES
+                            ? com.cyberday1.neoorigins.compat.condition.ConditionParser.knownTypes()
                             : java.util.Collections.emptyList());
         java.util.Collections.sort(src);
         refPicker.open("pick " + kind, () -> src,
@@ -303,7 +303,7 @@ public final class PowerFormPanel {
                         ? com.cyberday1.neoorigins.power.schemaform.FormModel.itemConditionTypes()
                         : "item_action".equals(kind)
                             ? com.cyberday1.neoorigins.power.schemaform.FormModel.itemActionTypes()
-                            : com.cyberday1.neoorigins.compat.condition.ConditionParser.KNOWN_TYPES);
+                            : com.cyberday1.neoorigins.compat.condition.ConditionParser.knownTypes());
             java.util.Collections.sort(src);
         } else {
             src = com.cyberday1.neoorigins.screen.creator.CreatorAssets

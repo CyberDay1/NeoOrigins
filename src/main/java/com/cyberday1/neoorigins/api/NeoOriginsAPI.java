@@ -240,6 +240,18 @@ public final class NeoOriginsAPI {
         return ApiConditions.CODEC;
     }
 
+    /**
+     * Registers a player-targeted entity condition in your mod's namespace. Call once during
+     * mod construction or common setup, before datapacks load, on both physical sides.
+     * The codec reads the condition object (including its type field); the predicate runs
+     * on the server thread. {@code inverted} is applied for you. Duplicate ids and reserved
+     * namespaces are rejected. Registrations survive datapack reloads.
+     */
+    public static <C> void registerEntityCondition(ResourceLocation id, Codec<C> codec,
+            java.util.function.BiPredicate<ServerPlayer, C> predicate) {
+        com.cyberday1.neoorigins.compat.registry.CompatRegistries.registerEntityCondition(id, codec, predicate);
+    }
+
     // ---------------------------------------------------------------------
     // Actions
     // ---------------------------------------------------------------------
