@@ -221,6 +221,8 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         // internally-stored resources.
         if (!ResourceBackingRouter.isBacked(key)) {
             player.getData(CompatAttachments.resourceState()).set(key, config.startValue());
+        } else {
+            ResourceBackingRouter.onGranted(player, key);
         }
         CompatAttachments.syncResourcesToClient(player);
     }
@@ -266,7 +268,7 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
 
     /** Meta and backing are keyed by id and shared by every holder; a reload clears them. */
     private static void registerShared(String key, Config config) {
-        CompatAttachments.registerResourceBacking(key, config.backing());
+        ResourceBackingRouter.setupBar(key, config.backing(), config.min(), config.max(), config.startValue());
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(config.min(), config.max(), config.label(), config.color(),
                 config.hidden(), -1, -1, null, config.animated(), config.tint(), config.tintEnd(),
@@ -312,11 +314,13 @@ public class ResourcePower extends PowerType<ResourcePower.Config> {
         int cur = backed
             ? ResourceBackingRouter.read(player, key, config.min())
             : state.get(key, config.startValue());
+        // A backed bar's top is the backing's live max, not the declared one.
+        int max = backed ? ResourceBackingRouter.maxValue(player, key, config.max()) : config.max();
         String edgeKey = player.getUUID() + ":" + key;
         Integer prev = PREV_VALUES.put(edgeKey, cur);
         if (prev != null) {
             if (cur <= config.min() && prev > config.min()) config.minAction().execute(player);
-            if (cur >= config.max() && prev < config.max()) config.maxAction().execute(player);
+            if (cur >= max && prev < max) config.maxAction().execute(player);
         }
 
         if (backed) {

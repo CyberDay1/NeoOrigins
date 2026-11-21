@@ -399,4 +399,17 @@ public final class NeoOriginsAPI {
     public static void registerResourceBacking(ResourceLocation id, ResourceBacking backing) {
         ResourceBackingRouter.register(id.toString(), backing);
     }
+
+    /**
+     * Registers a backing built once per bar: {@code factory} receives each bar's id and
+     * declared {@code min}, {@code max} and {@code start_value} when the bar is set up, and
+     * is called again after a datapack reload. Same registration rules as the single-instance
+     * overload; the two share one id space.
+     *
+     * @throws IllegalStateException if {@code id} is already registered
+     */
+    public static void registerResourceBacking(ResourceLocation id,
+            java.util.function.Function<com.cyberday1.neoorigins.api.resource.ResourceBar, ResourceBacking> factory) {
+        ResourceBackingRouter.registerFactory(id.toString(), factory);
+    }
 }

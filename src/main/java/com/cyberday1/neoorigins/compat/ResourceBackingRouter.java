@@ -2,13 +2,16 @@ package com.cyberday1.neoorigins.compat;
 
 import com.cyberday1.neoorigins.NeoOrigins;
 import com.cyberday1.neoorigins.api.resource.ResourceBacking;
+import com.cyberday1.neoorigins.api.resource.ResourceBar;
 import com.cyberday1.neoorigins.compat.irons_spellbooks.IronsManaBacking;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * Routing layer for {@code neoorigins:resource} powers that declare an external
@@ -41,16 +44,85 @@ public final class ResourceBackingRouter {
     private static final Set<String> WARNED_ABSOLUTE_SET = ConcurrentHashMap.newKeySet();
     private static final Set<String> WARNED_FAILED = ConcurrentHashMap.newKeySet();
 
+    /** backing id -> per-bar factory. */
+    private static final Map<String, Function<ResourceBar, ResourceBacking>> FACTORIES = new ConcurrentHashMap<>();
+    /** resource key -> the backing its factory built; cleared on datapack reload. */
+    private static final Map<String, ResourceBacking> BAR_BACKINGS = new ConcurrentHashMap<>();
+
+    /** Stands in for a factory that threw or returned null: reads the fallback, writes nothing. */
+    private static final ResourceBacking BROKEN = new ResourceBacking() {
+        @Override public boolean available() { return false; }
+        @Override public int read(ServerPlayer player) { return 0; }
+        @Override public void add(ServerPlayer player, int delta) {}
+    };
+
     /** Registers a backing under {@code id}. Throws if the id is already taken. */
     public static void register(String id, ResourceBacking backing) {
-        if (BACKINGS.putIfAbsent(id, java.util.Objects.requireNonNull(backing, "backing")) != null) {
-            throw new IllegalStateException("A resource backing is already registered as '" + id + "'");
+        java.util.Objects.requireNonNull(backing, "backing");
+        synchronized (BACKINGS) {
+            if (FACTORIES.containsKey(id) || BACKINGS.putIfAbsent(id, backing) != null) {
+                throw new IllegalStateException("A resource backing is already registered as '" + id + "'");
+            }
         }
     }
 
-    /** The backing registered as {@code id}, or null. */
+    /** Registers a per-bar backing factory under {@code id}. Throws if the id is already taken. */
+    public static void registerFactory(String id, Function<ResourceBar, ResourceBacking> factory) {
+        java.util.Objects.requireNonNull(factory, "factory");
+        synchronized (BACKINGS) {
+            if (BACKINGS.containsKey(id) || FACTORIES.putIfAbsent(id, factory) != null) {
+                throw new IllegalStateException("A resource backing is already registered as '" + id + "'");
+            }
+        }
+    }
+
+    /** Internal test cleanup; registrations normally last for the process lifetime. */
+    public static void unregister(String id) {
+        BACKINGS.remove(id);
+        FACTORIES.remove(id);
+    }
+
+    /** The backing registered as {@code id}, or null. A factory id has no shared instance. */
     public static ResourceBacking backing(String id) {
         return id == null ? null : BACKINGS.get(id);
+    }
+
+    /**
+     * Records a bar's backing id and, when that id is a factory, builds the bar's backing
+     * once (until the next reload). Both resource bar loaders call this at bar setup.
+     */
+    public static void setupBar(String key, String backingId, int min, int max, int startValue) {
+        CompatAttachments.registerResourceBacking(key, backingId);
+        if (backingId == null || backingId.isBlank()) return;
+        Function<ResourceBar, ResourceBacking> factory = FACTORIES.get(backingId);
+        if (factory == null) return;
+        BAR_BACKINGS.computeIfAbsent(key, k -> {
+            ResourceLocation rid = ResourceLocation.tryParse(k);
+            try {
+                ResourceBacking built = rid == null ? null : factory.apply(new ResourceBar(rid, min, max, startValue));
+                if (built != null) return built;
+                NeoOrigins.LOGGER.error("resource '{}': backing factory \"{}\" returned no backing; the bar reads empty", k, backingId);
+            } catch (RuntimeException e) {
+                NeoOrigins.LOGGER.error("resource '{}': backing factory \"{}\" threw; the bar reads empty", k, backingId, e);
+            }
+            return BROKEN;
+        });
+    }
+
+    /** Lets a bar's backing apply its start value when the bar's power is granted. */
+    public static void onGranted(ServerPlayer player, String key) {
+        ResourceBacking b = usable(key);
+        if (b == null) return;
+        try {
+            b.onGranted(player);
+        } catch (RuntimeException e) {
+            warnFailed(key, e);
+        }
+    }
+
+    /** Drop factory-built backings; the bars rebuild them as they are set up again. */
+    public static void clearBars() {
+        BAR_BACKINGS.clear();
     }
 
     /** The registered backing a resource key declares, or null when it is internally stored. */
@@ -58,6 +130,10 @@ public final class ResourceBackingRouter {
         String id = CompatAttachments.resourceBacking(key);
         if (id == null) return null;
         ResourceBacking b = BACKINGS.get(id);
+        if (b == null && FACTORIES.containsKey(id)) {
+            b = BAR_BACKINGS.get(CompatAttachments.resolveLegacySyntheticId(key));
+            if (b == null) b = BROKEN;
+        }
         if (b == null && WARNED_UNKNOWN.add(key)) {
             NeoOrigins.LOGGER.warn(
                 "resource '{}' declares backing \"{}\", which no installed mod registers. The bar uses NeoOrigins' own store instead.",
