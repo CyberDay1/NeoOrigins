@@ -33,8 +33,8 @@ public final class Toggles {
         // Resolve pre-2.2.8 slash-form synthetic sub-power ids to their canonical
         // underscore ids so toggles inside an origins:multiple keep resolving.
         powerId = CompatAttachments.resolveLegacySyntheticId(powerId);
-        // Check native AbstractTogglePower subclasses first (wraith_phase, flight, phantom_form, etc.)
-        // These store toggle state in PlayerOriginData, not CompatAttachments.
+        // Off-flag toggles (AbstractTogglePower, toggleable persistent_effect, etc.)
+        // store their state in PlayerOriginData, not CompatAttachments.
         ResourceLocation id;
         try {
             id = ResourceLocation.parse(powerId);
@@ -42,13 +42,21 @@ public final class Toggles {
             return false;
         }
         var holder = PowerDataManager.INSTANCE.getPower(id);
-        if (holder != null && holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.AbstractTogglePower toggle
-                && player instanceof net.minecraft.server.level.ServerPlayer sp) {
+        if (holder != null && player instanceof net.minecraft.server.level.ServerPlayer sp
+                && isOffFlagToggle(holder)) {
+            var toggle = (com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle) holder.type();
             return !toggle.isToggledOff(sp, holder.config(), holder.id());
         }
         // Fall back to compat TogglePower facade
         boolean def = resolveDefault(powerId);
         return player.getData(CompatAttachments.toggleState()).isActive(powerId, def);
+    }
+
+    /** True when the holder's type keeps an off-flag toggle and its config actually has one. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static boolean isOffFlagToggle(com.cyberday1.neoorigins.api.power.PowerHolder<?> holder) {
+        return holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle toggle
+            && toggle.hasToggle(holder.config());
     }
 
     /** Force the toggle to a specific value. */
