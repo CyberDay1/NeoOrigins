@@ -1016,6 +1016,15 @@
             "apoli:exposed_to_sky",
             "apugli:exposed_to_sky"
           ]
+        },
+        "at": {
+          "description": "Which block to test: feet (default) or eyes. Eye height follows pose (sneaking, swimming) and size changes (size_scaling, Pehkui); a very small entity's eyes can sit in its feet block, and then eyes answers the same as feet. Any other value reads feet.",
+          "type": "string",
+          "enum": [
+            "feet",
+            "eyes"
+          ],
+          "default": "feet"
         }
       },
       "required": [
@@ -2365,6 +2374,21 @@
         "predicate": {
           "description": "The predicate JSON, parsed against the matching vanilla codec.",
           "type": "object"
+        },
+        "offsetX": {
+          "description": "Whole-block shift of the tested spot (default 0), as on vanilla location_check. Applies to location, block_state, fluid_state and biome; ignored by entity_properties and item. A value that is not a whole number makes the condition never match.",
+          "type": "integer",
+          "default": 0
+        },
+        "offsetY": {
+          "description": "Whole-block shift of the tested spot (default 0), as on vanilla location_check. Applies to location, block_state, fluid_state and biome; ignored by entity_properties and item. A value that is not a whole number makes the condition never match.",
+          "type": "integer",
+          "default": 0
+        },
+        "offsetZ": {
+          "description": "Whole-block shift of the tested spot (default 0), as on vanilla location_check. Applies to location, block_state, fluid_state and biome; ignored by entity_properties and item. A value that is not a whole number makes the condition never match.",
+          "type": "integer",
+          "default": 0
         }
       },
       "required": [

@@ -57,6 +57,12 @@ public final class BuiltinConditions {
         return new FieldSpec("compare_to", kind, false).def(def).doc(doc);
     }
 
+    /** predicate's offsetX/Y/Z, as vanilla location_check reads them. */
+    private static FieldSpec offsetField(String name) {
+        return new FieldSpec(name, FormFieldSpec.Kind.INTEGER, false).def(0)
+            .doc("Whole-block shift of the tested spot (default 0), as on vanilla location_check. Applies to location, block_state, fluid_state and biome; ignored by entity_properties and item. A value that is not a whole number makes the condition never match.");
+    }
+
     /** Insertion-ordered so registration/audit output is deterministic. */
     private static final Map<Identifier, ConditionType> DESCRIPTORS = new LinkedHashMap<>();
     /** Canonical {@code "neoorigins:<verb>"} string → descriptor, for hot-path dispatch. */
@@ -311,11 +317,19 @@ public final class BuiltinConditions {
             BlockPos pos = p.blockPosition();
             return sl.isRainingAt(pos) && sl.canSeeSky(pos);
         }, List.of());
-        // exposed_to_sky — open sky directly above the player.
-        define("exposed_to_sky", (json, ctx) -> p -> {
-            if (!(p.level() instanceof ServerLevel sl)) return false;
-            return sl.canSeeSky(p.blockPosition());
-        }, List.of());
+        // exposed_to_sky — open sky directly above the player's feet block, or
+        // the eye block with "at": "eyes" (issue #151). Any other "at" reads feet.
+        define("exposed_to_sky", (json, ctx) -> {
+            boolean eyes = json.has("at") && json.get("at").isJsonPrimitive()
+                && "eyes".equalsIgnoreCase(json.get("at").getAsString());
+            return p -> {
+                if (!(p.level() instanceof ServerLevel sl)) return false;
+                return sl.canSeeSky(eyes ? BlockPos.containing(p.getEyePosition()) : p.blockPosition());
+            };
+        }, List.of(
+            new FieldSpec("at", FormFieldSpec.Kind.ENUM, false).def("feet")
+                .options("feet", "eyes")
+                .doc("Which block to test: feet (default) or eyes. Eye height follows pose (sneaking, swimming) and size changes (size_scaling, Pehkui); a very small entity's eyes can sit in its feet block, and then eyes answers the same as feet. Any other value reads feet.")));
         // thundering — thunderstorm with rain falling at the player's position.
         define("thundering", (json, ctx) -> p -> {
             if (!(p.level() instanceof ServerLevel sl)) return false;
@@ -708,7 +722,8 @@ public final class BuiltinConditions {
                         .options("biome", "block_state", "entity_properties", "fluid_state", "item", "location", "damage")
                         .doc("Which vanilla predicate to compile (damage fails closed; needs hit-context)."),
                     new FieldSpec("predicate", FormFieldSpec.Kind.OBJECT, true)
-                        .doc("The predicate JSON, parsed against the matching vanilla codec.")));
+                        .doc("The predicate JSON, parsed against the matching vanilla codec."),
+                    offsetField("offsetX"), offsetField("offsetY"), offsetField("offsetZ")));
 
         // ---- Context-aware conditions (read the active ActionContextHolder) ----
         // These fail closed (false) outside their event context; delegated as-is.
