@@ -724,6 +724,7 @@ Whether a named toggle power is currently active (toggled on) on this entity. Wo
 
 - **`neoorigins:toggle`** powers: resolves the `default` field if the toggle has never been flipped.
 - **Native toggle powers**: `wraith_phase`, `flight`, `phantom_form`, and any other power that extends the internal toggle system (skill-key toggled powers).
+- **Toggleable passives**: a `persistent_effect`, `condition_passive`, `effect_over_time` or `pose` power with a toggle reads false while switched off (including a `default_off` power that was never switched on). Switched on, it reads like a non-toggle power below.
 
 Use this to gate other powers so they only tick while a specific toggle is on. For example, apply debuffs only while phasing is active, or drain a resource only while flight is toggled on.
 
