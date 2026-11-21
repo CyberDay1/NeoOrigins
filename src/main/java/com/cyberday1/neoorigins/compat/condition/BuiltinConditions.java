@@ -714,6 +714,23 @@ public final class BuiltinConditions {
                         .doc("Comparison operator against the count (default >)."),
                     new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(0)
                         .doc("Count threshold (default 0 — i.e. \"has at least one match\").")));
+        // has_ingredient — a stack in range is crafted (up to `depth` levels) from the item/tag.
+        define("has_ingredient",
+            HasIngredientCondition::parse,
+            List.of(new FieldSpec("item", FormFieldSpec.Kind.STRING, false)
+                        .pattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Item id to look for among recipe inputs. Set exactly one of item or tag; neither or both never matches (logged)."),
+                    new FieldSpec("tag", FormFieldSpec.Kind.STRING, false)
+                        .pattern(TAG_OR_ID_PATTERN)
+                        .doc("Item tag to look for among recipe inputs (an input accepting any item in the tag counts). Leading # optional."),
+                    new FieldSpec("slot", FormFieldSpec.Kind.ENUM, false)
+                        .options("held", "hotbar", "inventory").def("held")
+                        .doc("Which stacks to check: `held` (main hand or offhand, default), `hotbar` (the 9 hotbar slots) or `inventory` (every main slot including the hotbar, plus the offhand). An unknown value is logged and reads held."),
+                    new FieldSpec("depth", FormFieldSpec.Kind.INTEGER, false).def(1).range(1.0, 8.0)
+                        .doc("Recipe levels to follow: 1 (default) checks a stack's own recipe inputs; higher values also follow those inputs' recipes. Clamped to 1 to 8; recipe cycles are safe."),
+                    new FieldSpec("recipe_types", FormFieldSpec.Kind.ARRAY, false)
+                        .itemPattern(RESOURCE_LOCATION_PATTERN)
+                        .doc("Recipe type ids whose recipes count (default `[\"minecraft:crafting\"]`: shaped, shapeless and every other crafting-table recipe). Unknown ids are logged and skipped.")));
         // predicate — Apoli meta-wrapper compiling a vanilla MC predicate.
         define("predicate",
             (json, ctx) -> ConditionParser.parsePredicate(json, ctx),

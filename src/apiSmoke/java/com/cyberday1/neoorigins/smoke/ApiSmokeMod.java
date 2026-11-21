@@ -110,6 +110,14 @@ public final class ApiSmokeMod {
                 holder("inline").onActivated(player);
                 holder("named").onActivated(player);
                 require(actionTotal == 6, "nested and referenced custom actions must execute exactly once");
+                // has_ingredient against the server's real recipes: a chest is made from planks, planks from logs.
+                player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
+                    new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.CHEST));
+                require(ingredient(player, "\"tag\":\"minecraft:planks\""), "a chest must read as made from planks");
+                require(!ingredient(player, "\"item\":\"minecraft:oak_log\""), "depth 1 must not reach logs");
+                require(ingredient(player, "\"item\":\"minecraft:oak_log\",\"depth\":2"), "depth 2 must reach logs");
+                require(!ingredient(player, "\"item\":\"minecraft:diamond\",\"depth\":8"), "a chest has no diamond in it");
+                player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY);
                 require(!ActiveOriginService.activePowerIds(player).contains(id("inline/_embedded/child")),
                     "forwarding must not implicitly grant a child");
                 NeoOriginsAPI.grantPower(player, id("managed"), SOURCE);
@@ -141,6 +149,10 @@ public final class ApiSmokeMod {
         });
     }
 
+    private static boolean ingredient(ServerPlayer player, String fields) {
+        return NeoOriginsAPI.parseCondition(JsonParser.parseString(
+            "{\"type\":\"neoorigins:has_ingredient\"," + fields + "}").getAsJsonObject(), "api_smoke").test(player);
+    }
     private static Identifier id(String path) { return Identifier.fromNamespaceAndPath("api_smoke", path); }
     private static PowerHolder<?> holder(String path) {
         PowerHolder<?> power = PowerDataManager.INSTANCE.getPower(id(path));
