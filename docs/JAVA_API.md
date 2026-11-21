@@ -121,6 +121,7 @@ Full method list:
 | `registerPowerFromJson(id, type, config, display[, options])` | Register a code power whose config is the JSON a datapack power file would hold. |
 | `parseCondition(json, contextId)` | Parse a NeoOrigins entity condition into a `Predicate<ServerPlayer>`. See [Conditions in your own code](#conditions-in-your-own-code). |
 | `conditionCodec()` | A `Codec` for a condition field in your own power config. |
+| `registerEntityCondition(id, codec, predicate)` | Register a player-targeted entity condition in your own namespace. See [Registering your own entity conditions](#registering-your-own-entity-conditions). |
 | `parseAction(json, contextId)` | Parse a NeoOrigins entity action into a `Consumer<ServerPlayer>`. See [Actions in your own code](#actions-in-your-own-code). |
 | `actionCodec()` | A `Codec` for an action field in your own power config. |
 | `getResource(player, resource)` | A resource's current value as an `OptionalInt`, empty if the player doesn't have it. See [Resource values](#resource-values). |
@@ -400,6 +401,29 @@ This API targets players. It does not turn a player handler into a mob, block,
 item or bientity handler. Register on the client too for the in-game action picker;
 custom fields are authored in JSON and preserved when an existing form is edited.
 The static web editor cannot discover an installed mod's action fields.
+
+### Registering your own entity conditions
+
+`registerEntityCondition` is the condition counterpart. Register once, at the
+same point and on both sides. The codec reads the entire condition object; the
+predicate receives the player and decoded config on the server thread:
+
+```java
+NeoOriginsAPI.registerEntityCondition(
+    Identifier.fromNamespaceAndPath("mymod", "falling_at_least"),
+    Codec.FLOAT.fieldOf("distance").codec(),
+    (player, distance) -> player.fallDistance >= distance);
+```
+
+Pack authors can then write
+`{"type":"mymod:falling_at_least","distance":3}` anywhere an entity condition
+goes, including inside `and`, `or` and `if_else`. `inverted` works as on every
+other condition. `parseCondition` and `conditionCodec` resolve it too. Exact
+registered IDs win over the legacy namespace fallback. A malformed config is
+logged and evaluates false (true when inverted); it never falls back to a
+built-in. Duplicate IDs and the reserved namespaces are rejected, and
+registrations survive `/reload`. Register on the client too for the in-game
+condition picker.
 
 ### Powers inside a custom power
 

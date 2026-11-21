@@ -49,6 +49,8 @@ public final class ApiSmokeMod {
                     player.sendSystemMessage(net.minecraft.network.chat.Component.literal("Custom action executed: " + actionTotal));
                 }
             });
+        NeoOriginsAPI.registerEntityCondition(id("fall_at_least"), Codec.FLOAT.fieldOf("distance").codec(),
+            (player, distance) -> player.fallDistance >= distance);
         NeoForge.EVENT_BUS.addListener(this::started);
         NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.HIGHEST, this::login);
         NeoForge.EVENT_BUS.addListener(this::commands);
@@ -110,6 +112,12 @@ public final class ApiSmokeMod {
                 holder("inline").onActivated(player);
                 holder("named").onActivated(player);
                 require(actionTotal == 6, "nested and referenced custom actions must execute exactly once");
+                var falling = NeoOriginsAPI.parseCondition(JsonParser.parseString(
+                    "{\"type\":\"api_smoke:fall_at_least\",\"distance\":2}").getAsJsonObject(), "api_smoke");
+                player.fallDistance = 3;
+                require(falling.test(player), "a custom condition must read its config");
+                player.fallDistance = 0;
+                require(!falling.test(player), "a custom condition must evaluate on each test");
                 // has_ingredient against the server's real recipes: a chest is made from planks, planks from logs.
                 player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
                     new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.CHEST));

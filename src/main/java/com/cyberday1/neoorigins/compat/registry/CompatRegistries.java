@@ -114,7 +114,7 @@ public final class CompatRegistries {
         java.util.Objects.requireNonNull(id, "id");
         java.util.Objects.requireNonNull(codec, "codec");
         java.util.Objects.requireNonNull(handler, "handler");
-        if (Set.of("minecraft", "neoorigins", "origins", "apoli", "apace", "apugli").contains(id.getNamespace())) {
+        if (RESERVED_NAMESPACES.contains(id.getNamespace())) {
             throw new IllegalArgumentException("Register actions in your own mod namespace: " + id);
         }
         ActionType descriptor = new ActionType(id, (json, context) -> {
@@ -130,12 +130,48 @@ public final class CompatRegistries {
     /** Internal test cleanup; registrations normally last for the process lifetime. */
     public static void unregisterAddonAction(Identifier id) { ADDON_ACTIONS.remove(id); }
 
+    private static final Set<String> RESERVED_NAMESPACES =
+        Set.of("minecraft", "neoorigins", "origins", "apoli", "apace", "apugli");
+
+    // Addon conditions live in their own map: ConditionParser looks up only this map
+    // by exact id, so built-in dispatch never routes through the condition registry.
+    private static final java.util.Map<Identifier, ConditionType> ADDON_CONDITIONS =
+        new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Condition counterpart of {@link #registerEntityAction}. */
+    public static <C> void registerEntityCondition(Identifier id,
+            com.mojang.serialization.Codec<C> codec,
+            java.util.function.BiPredicate<net.minecraft.server.level.ServerPlayer, C> predicate) {
+        java.util.Objects.requireNonNull(id, "id");
+        java.util.Objects.requireNonNull(codec, "codec");
+        java.util.Objects.requireNonNull(predicate, "predicate");
+        if (RESERVED_NAMESPACES.contains(id.getNamespace())) {
+            throw new IllegalArgumentException("Register conditions in your own mod namespace: " + id);
+        }
+        ConditionType descriptor = new ConditionType(id, (json, context) -> {
+            C config = codec.parse(com.mojang.serialization.JsonOps.INSTANCE, json).getOrThrow();
+            return player -> predicate.test(player, config);
+        }, java.util.List.of());
+        if ((CONDITION_REGISTRY != null && CONDITION_REGISTRY.containsKey(id))
+                || ADDON_CONDITIONS.putIfAbsent(id, descriptor) != null) {
+            throw new IllegalStateException("An entity condition is already registered as '" + id + "'");
+        }
+    }
+
+    /** Internal test cleanup; registrations normally last for the process lifetime. */
+    public static void unregisterAddonCondition(Identifier id) { ADDON_CONDITIONS.remove(id); }
+
+    /** An addon condition registered through the Java API, or null. */
+    public static ConditionType addonCondition(Identifier id) { return ADDON_CONDITIONS.get(id); }
+
     public static ActionType action(Identifier id) {
         ActionType addon = ADDON_ACTIONS.get(id);
         return addon != null ? addon : ACTION_REGISTRY == null ? null
             : ACTION_REGISTRY.get(id).map(net.minecraft.core.Holder.Reference::value).orElse(null);
     }
     public static ConditionType condition(Identifier id) {
+        ConditionType addon = ADDON_CONDITIONS.get(id);
+        if (addon != null) return addon;
         return CONDITION_REGISTRY == null ? null
             : CONDITION_REGISTRY.get(id).map(net.minecraft.core.Holder.Reference::value).orElse(null);
     }
@@ -155,7 +191,9 @@ public final class CompatRegistries {
         return Set.copyOf(ids);
     }
     public static Set<Identifier> conditionKeys() {
-        return CONDITION_REGISTRY == null ? Set.of() : CONDITION_REGISTRY.keySet();
+        Set<Identifier> ids = new java.util.HashSet<>(ADDON_CONDITIONS.keySet());
+        if (CONDITION_REGISTRY != null) ids.addAll(CONDITION_REGISTRY.keySet());
+        return Set.copyOf(ids);
     }
     public static Set<Identifier> itemActionKeys() {
         return ITEM_ACTION_REGISTRY == null ? Set.of() : ITEM_ACTION_REGISTRY.keySet();
