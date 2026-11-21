@@ -11,6 +11,10 @@ import net.minecraft.server.level.ServerPlayer;
  * <p>The pool stays authoritative: NeoOrigins never stores a value for a backed bar, it
  * reads this backing on every check and routes every change through it. A backed bar runs
  * from 0 to {@link #max}. All methods are called on the server thread.
+ *
+ * <p>A backing registered as a single instance is shared by every bar that names it. One
+ * registered as a factory is built once per bar, from that bar's {@link ResourceBar}, and
+ * rebuilt after a datapack reload.
  */
 public interface ResourceBacking {
 
@@ -40,5 +44,12 @@ public interface ResourceBacking {
      */
     default boolean set(ServerPlayer player, int value) {
         return false;
+    }
+
+    /**
+     * Called when a player is granted the bar's power, where an internal bar would seed its
+     * {@code start_value}. A factory-built backing can apply {@link ResourceBar#startValue} here.
+     */
+    default void onGranted(ServerPlayer player) {
     }
 }
