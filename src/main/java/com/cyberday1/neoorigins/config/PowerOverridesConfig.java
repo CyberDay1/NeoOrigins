@@ -445,16 +445,14 @@ public final class PowerOverridesConfig {
         // Iron Monk
         p("iron_monk_stamina");         fi("min", 0, 0, 10000); fi("max", 100, 1, 100000); fi("start_value", 100, 0, 100000); fi("regen_rate", 2, -1000, 1000); fi("regen_interval", 10, 1, 72000); ep();
         p("iron_monk_guard");           fb("enabled", true); fi("amplifier", 0, 0, 255); ep();
-        // (iron_monk_guard_drain / iron_monk_sea_of_stamina stamina change is nested
-        // in entity_action; only interval sits at the top level.)
-        p("iron_monk_guard_drain");     fi("interval", 20, 1, 72000); fb("enabled", true); ep();
+        p("iron_monk_guard_drain");     fi("interval", 20, 1, 72000); fb("enabled", true); fi("stamina_change", -2, -1000, 1000); at("entity_action.change"); ep();
         p("iron_monk_guard_block");     f("multiplier", 0.1, 0, 100); ep();
         // (iron_monk_guard_react sound/stamina drain is nested in entity_action.)
         p("iron_monk_palm_strike");     fi("cooldown_ticks", 40, 0, 72000); fi("resource_cost_amount", 20, 0, 100000); ep();
         p("iron_monk_iron_resolve");    f("amount", 0.4, -1, 1); ep();
         // (iron_monk_counter_stance damage_attacker amount_ratio is nested in
         // entity_action; shallow overrides can't reach it.)
-        p("iron_monk_sea_of_stamina");  fi("interval", 20, 1, 72000); fb("enabled", true); ep();
+        p("iron_monk_sea_of_stamina");  fi("interval", 20, 1, 72000); fb("enabled", true); fi("stamina_change", 1, -1000, 1000); at("entity_action.change"); ep();
         p("iron_monk_lohan_palm");      fi("cooldown_ticks", 120, 0, 72000); fi("resource_cost_amount", 30, 0, 100000); ep();
 
         // Sword Immortal (jianxian_*)
