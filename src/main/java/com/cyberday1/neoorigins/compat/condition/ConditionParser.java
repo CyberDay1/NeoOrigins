@@ -522,6 +522,10 @@ public final class ConditionParser {
                 return com.cyberday1.neoorigins.compat.Toggles.isOn(player, resolved);
             }
             if (holder == null || !(player instanceof net.minecraft.server.level.ServerPlayer sp)) return false;
+            // Other off-flag toggles (toggleable persistent_effect, condition_passive...):
+            // switched off reads false; switched on still needs granted + condition (#153).
+            if (com.cyberday1.neoorigins.compat.Toggles.isOffFlagToggle(holder)
+                    && !com.cyberday1.neoorigins.compat.Toggles.isOn(sp, resolved)) return false;
             // Guard against condition cycles (power A's condition referencing
             // power_active(A)): a re-entered id fails closed for this evaluation.
             java.util.Set<String> inFlight = POWER_ACTIVE_EVAL.get();
