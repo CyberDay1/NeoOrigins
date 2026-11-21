@@ -303,7 +303,7 @@ public final class BuiltinConditions {
         // night — vanilla night window (>= 13000 of the day).
         define("night",
             (json, ctx) -> p -> p.level().getDefaultClockTime() % 24000L >= 13000L, List.of());
-        // in_rain — rain falling on the player, by vanilla's Entity.isInRain rule.
+        // in_rain: rain falling on the player, by vanilla's Entity.isInRain rule.
         // Umbrella-aware: an umbrella held in either hand or worn in a
         // Curios/Accessories slot shields the player from rain, mirroring
         // exposed_to_sun's sun shielding, so rain-damage origins (Wet Fur, True
@@ -316,7 +316,7 @@ public final class BuiltinConditions {
             if (ConditionParser.neoorigins$isHoldingUmbrella(p)) return false;
             return ConditionParser.isRainedOn(sl, p);
         }, List.of());
-        // exposed_to_sky — open sky directly above the player's feet block, or
+        // exposed_to_sky: open sky directly above the player's feet block, or
         // the eye block with "at": "eyes" (issue #151). Any other "at" reads feet.
         define("exposed_to_sky", (json, ctx) -> {
             boolean eyes = json.has("at") && json.get("at").isJsonPrimitive()
@@ -628,7 +628,7 @@ public final class BuiltinConditions {
         define("power_active",
             (json, ctx) -> ConditionParser.parsePowerActive(json, ctx),
             List.of(new FieldSpec("power", FormFieldSpec.Kind.STRING, true)
-                .doc("Toggle power id to test; `*` wildcard suffix-matches toggle keys.")));
+                .doc("Power id to test: true while the player has the power, it is switched on (for a toggle) and its conditions pass; a `*` wildcard suffix-matches toggle keys.")));
         // power_type — true when any granted power's type matches the given id.
         define("power_type",
             (json, ctx) -> ConditionParser.parsePowerType(json, ctx),
@@ -714,7 +714,7 @@ public final class BuiltinConditions {
                         .doc("Comparison operator against the count (default >)."),
                     new FieldSpec("compare_to", FormFieldSpec.Kind.INTEGER, false).def(0)
                         .doc("Count threshold (default 0 — i.e. \"has at least one match\").")));
-        // has_ingredient — a stack in range is crafted (up to `depth` levels) from the item/tag.
+        // has_ingredient: a stack in range is crafted (up to `depth` levels) from the item/tag.
         define("has_ingredient",
             HasIngredientCondition::parse,
             List.of(new FieldSpec("item", FormFieldSpec.Kind.STRING, false)
