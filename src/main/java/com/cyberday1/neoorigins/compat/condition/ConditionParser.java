@@ -72,7 +72,7 @@ public final class ConditionParser {
         "neoorigins:from_explosion", "neoorigins:from_fire", "neoorigins:from_projectile",
         "neoorigins:saturation_level",
         "neoorigins:hardness",
-        "neoorigins:has_effect", "neoorigins:health", "neoorigins:height",
+        "neoorigins:has_effect", "neoorigins:has_ingredient", "neoorigins:health", "neoorigins:height",
         "neoorigins:hit_dealt_amount", "neoorigins:hit_taken_amount",
         "neoorigins:in_block", "neoorigins:in_block_anywhere", "neoorigins:in_rain",
         "neoorigins:in_set", "neoorigins:in_tag", "neoorigins:in_water",

@@ -14,7 +14,7 @@ to the per-topic detail doc.
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
 - [Power types](#power-types): 122 registered types plus the `multiple` container, and 29 retired ids
-- [Condition verbs](#condition-verbs): 109 conditions
+- [Condition verbs](#condition-verbs): 110 conditions
 - [Action verbs](#action-verbs): 95 actions
 - [Event keys](#event-keys): 51 events
 - [Named keybinds](concepts/keybinds.md)
@@ -129,6 +129,7 @@ Alias spellings (dispatch to the same verb, not counted above): `riding` → `pa
 [`neoorigins:climbing`](conditions/entity.md#neooriginsclimbing) • [`neoorigins:climbing_gate`](conditions/entity.md#neooriginsclimbing_gate) •
 [`neoorigins:collided_horizontally`](conditions/entity.md#neooriginscollided_horizontally) • [`neoorigins:creative_mode`](conditions/entity.md#neooriginscreative_mode) •
 [`neoorigins:has_effect`](conditions/entity.md#neooriginshas_effect) • [`neoorigins:status_effect`](conditions/entity.md#neooriginsstatus_effect) • [`neoorigins:inventory`](conditions/entity.md#neooriginsinventory) •
+[`neoorigins:has_ingredient`](conditions/entity.md#neooriginshas_ingredient) •
 [`neoorigins:saturation_level`](conditions/entity.md#neooriginssaturation_level) • [`neoorigins:using_effective_tool`](conditions/entity.md#neooriginsusing_effective_tool) •
 [`neoorigins:xp_levels`](conditions/entity.md#neooriginsxp_levels)
 

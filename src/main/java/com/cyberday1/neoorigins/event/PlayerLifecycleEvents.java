@@ -350,6 +350,8 @@ public class PlayerLifecycleEvents {
      */
     @SubscribeEvent
     public static void onDatapackSync(OnDatapackSyncEvent event) {
+        // Recipes may have changed (a reload, or inline recipes injected on this sync).
+        com.cyberday1.neoorigins.compat.condition.HasIngredientCondition.clearCache();
         // A reload (no single joining player): move holders onto changed definitions first.
         if (event.getPlayer() == null) {
             com.cyberday1.neoorigins.service.PowerReloadReconciler.afterReload(event.getRelevantPlayers().toList());
