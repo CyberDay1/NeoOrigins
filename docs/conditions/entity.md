@@ -668,6 +668,36 @@ Apoli's `power` field (counting slots inside an `apoli:inventory` power's virtua
 }
 ```
 
+## `neoorigins:has_ingredient`
+
+True when a stack in the chosen slots is crafted from a given item or tag: some recipe that makes the stack's item has an input that accepts the target. With `depth` above 1 the check also follows the inputs' own recipes, so a chest held with `"item": "minecraft:oak_log", "depth": 2` matches through its planks. Empty slots never match. Unlike the `ingredient` item condition, which tests the stack itself, this tests what the stack is made from.
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `item` | resource location | one of `item`/`tag` | — | Item ID to look for among the recipe inputs |
+| `tag` | item tag | one of `item`/`tag` | — | Item tag to look for: an input that accepts any item in the tag counts. A leading `#` is optional |
+| `slot` | string | no | `"held"` | `"held"` (main hand or offhand), `"hotbar"` (the 9 hotbar slots) or `"inventory"` (every main slot, including the hotbar, plus the offhand; not armor). An unknown value is logged and reads `held` |
+| `depth` | int | no | `1` | Recipe levels to follow. `1` checks the stack's own recipe inputs. Clamped to 1 to 8; recipe loops are safe |
+| `recipe_types` | list of string | no | `["minecraft:crafting"]` | Recipe type IDs whose recipes count. The default covers shaped, shapeless and every other crafting-table recipe. Unknown IDs are logged and skipped |
+
+Set exactly one of `item` and `tag`. Neither, both, an unknown item, or no known recipe type fails closed with a load warning. Recipes are read from the server's recipe list and cached until the next `/reload`. An ingredient counts by the items it accepts, so a tag or custom ingredient is checked against every item it lists.
+
+**Example: holding anything made with diamonds**
+```json
+{ "type": "neoorigins:has_ingredient", "item": "minecraft:diamond" }
+```
+
+**Example: wood anywhere in the hotbar, two recipe levels deep, including smelted items**
+```json
+{
+  "type": "neoorigins:has_ingredient",
+  "tag": "minecraft:logs",
+  "slot": "hotbar",
+  "depth": 2,
+  "recipe_types": ["minecraft:crafting", "minecraft:smelting"]
+}
+```
+
 ## `neoorigins:enchantment`
 
 Checks the max level of a given enchantment across all equipment slots.

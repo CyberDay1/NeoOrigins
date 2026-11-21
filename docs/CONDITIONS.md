@@ -168,6 +168,7 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 | <a id="neooriginsentity_type"></a>[`neoorigins:entity_type`](conditions/entity.md#neooriginsentity_type) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsequipped_item"></a>[`neoorigins:equipped_item`](conditions/entity.md#neooriginsequipped_item) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsinventory"></a>[`neoorigins:inventory`](conditions/entity.md#neooriginsinventory) | [Entity conditions](conditions/entity.md) |
+| <a id="neooriginshas_ingredient"></a>[`neoorigins:has_ingredient`](conditions/entity.md#neooriginshas_ingredient) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsenchantment"></a>[`neoorigins:enchantment`](conditions/entity.md#neooriginsenchantment) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsresource"></a>[`neoorigins:resource`](conditions/entity.md#neooriginsresource) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginsresource_level"></a>[`neoorigins:resource_level`](conditions/entity.md#neooriginsresource_level) | [Entity conditions](conditions/entity.md) |
