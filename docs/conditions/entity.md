@@ -62,6 +62,17 @@ True for in-game times 0–12999. No fields.
 
 True when the sky is visible from the entity's block position (server-side only).
 
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `at` | string | no | `"feet"` | Which block to test: `"feet"` (the entity's block position) or `"eyes"` (the block holding its eyes). Any other value reads `"feet"`. |
+
+"Visible" means full sky light reaches the block, so the feet block reads false whenever that block itself dims the light, even under open sky: wading in water, standing in a waterlogged block, cobweb or powder snow, or standing on soul sand, mud or a honey block (their low top puts the feet inside the block). `"eyes"` tests the block vanilla checks when undead burn in daylight. Eye height follows pose (lower while sneaking, close to the feet while swimming or crawling) and size changes from `size_scaling` or Pehkui. A very small entity's eyes can sit in the same block as its feet, and then `"eyes"` gives the same answer as `"feet"`.
+
+**Example: the head is out in the open, even while wading**
+```json
+{ "type": "neoorigins:exposed_to_sky", "at": "eyes" }
+```
+
 ## `neoorigins:exposed_to_sun`
 
 True during daytime (time 0–11999) with sky access and no rain in the world (server-side only); returns false while mounted. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets that are innately fire/lava resistant — anything carrying the `minecraft:fire_resistant` component, which in vanilla means netherite alone — shade the player without losing any durability; unbreakable helmets already did. Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios/Accessories slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
@@ -877,12 +888,13 @@ True when the player has completed the given advancement (server-side only; unkn
 
 ## `neoorigins:predicate`
 
-Meta-wrapper around vanilla Minecraft predicates. **Unusual:** dispatches on `predicate_type`, and the inner `predicate` object is codec-parsed once at load.
+Meta-wrapper around vanilla Minecraft predicates. **Unusual:** dispatches on `predicate_type`, and the inner `predicate` object is codec-parsed once: at load, or on first use when it names registry entries (block, fluid, item or entity type lists, biome or structure sets), since those need the server's registries. One that still fails to parse never matches and logs a compat warning.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `predicate_type` | string | yes | — | One of `biome`, `block_state`, `entity_properties`, `fluid_state`, `item`, `location`, `damage` |
 | `predicate` | object | yes | — | Inner JSON in that predicate's vanilla codec |
+| `offsetX`, `offsetY`, `offsetZ` | int | no | `0` | Shift the tested spot by whole blocks, as on vanilla `location_check`. Used by `location`, `block_state`, `fluid_state` and `biome`; ignored by `entity_properties` and `item`. A value that is not a whole number (`1.5`, `"1"`) makes the condition never match and logs a compat warning. |
 
 Supported `predicate_type` values and the check they perform:
 - `biome`: biome at the entity's block position; inner shape `{ "biomes": ["..."], "tag": "..." }` (at least one required)
@@ -892,6 +904,30 @@ Supported `predicate_type` values and the check they perform:
 - `item`: vanilla `ItemPredicate` against the entity's mainhand
 - `location`: vanilla `LocationPredicate` at the entity's position
 - `damage`: **fails closed** (requires damage-source context; use action-on-hit hooks instead)
+
+The offsets sit beside `predicate`, not inside it. For `location` they are added to the entity's position; for the others they move the block position.
+
+**Example: can the player see the sky from one block up (head height)**
+```json
+{
+  "type": "neoorigins:predicate",
+  "predicate_type": "location",
+  "offsetY": 1,
+  "predicate": { "can_see_sky": true }
+}
+```
+
+**Example: standing on a diamond or emerald block**
+```json
+{
+  "type": "neoorigins:predicate",
+  "predicate_type": "block_state",
+  "offsetY": -1,
+  "predicate": { "blocks": ["minecraft:diamond_block", "minecraft:emerald_block"] }
+}
+```
+
+For "is the head exposed", [`exposed_to_sky`](#neooriginsexposed_to_sky) with `"at": "eyes"` follows the real eye height, so it stays right while sneaking, swimming or resized.
 
 ## `neoorigins:config_flag`
 
