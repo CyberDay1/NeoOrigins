@@ -2364,7 +2364,7 @@
           ]
         },
         "power": {
-          "description": "Toggle power id to test; `*` wildcard suffix-matches toggle keys.",
+          "description": "Power id to test: true while the player has the power, it is switched on (for a toggle) and its conditions pass; a `*` wildcard suffix-matches toggle keys.",
           "type": "string"
         }
       },
