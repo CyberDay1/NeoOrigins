@@ -53,6 +53,7 @@
     "LivingEntityPreventSwimMixin",
     "BlockStateBaseCobwebShapeMixin",
     "BeaconBlockEntityLevelsAccessor",
+    "LivingEntityLastHurtAccessor",
     "ServerPlayerGameModeMiningAccessor",
     "PlayerFlyingSpeedMixin",
     "ExhaustionMiningMixin",
