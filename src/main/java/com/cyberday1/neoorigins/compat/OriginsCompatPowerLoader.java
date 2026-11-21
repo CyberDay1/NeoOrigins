@@ -221,6 +221,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         CompatAttachments.clearResourceMeta();
         CompatAttachments.clearCooldownDurations();
         ResourceBackingRouter.clearWarnings();
+        ResourceBackingRouter.clearBars();
         com.cyberday1.neoorigins.service.InlineRecipeRegistry.resetPending();
         com.cyberday1.neoorigins.power.keybind.PowerKeybindRegistry.clear();
 
@@ -1782,7 +1783,7 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
         CompatAttachments.registerResourceMeta(key,
             new CompatAttachments.ResourceMeta(min, max, label, color, hidden, barIndex, iconIndex, spriteLocation, "", 0, 0, false, false));
         // Registered here, not on grant: a reload clears it and does not re-grant online players.
-        CompatAttachments.registerResourceBacking(key, backing);
+        ResourceBackingRouter.setupBar(key, backing, min, max, startValue);
         if (renderCondition != null) {
             CompatAttachments.registerResourceRenderCondition(key, renderCondition);
         } else {
@@ -1795,6 +1796,8 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 // Backed bars have no internal store to seed; the pool is authoritative.
                 if (!ResourceBackingRouter.isBacked(key)) {
                     player.getData(CompatAttachments.resourceState()).set(key, startValue);
+                } else {
+                    ResourceBackingRouter.onGranted(player, key);
                 }
                 CompatAttachments.syncResourcesToClient(player);
             })
@@ -1830,9 +1833,11 @@ public class OriginsCompatPowerLoader extends SimplePreparableReloadListener<Map
                 String edgeKey = player.getUUID() + ":" + key;
                 Integer prev = PREV_RESOURCE_VALUES.put(edgeKey, cur);
                 int prevVal = prev != null ? prev : startValue;
+                // A backed bar's top is the backing's live max, not the declared one.
+                int top = backed ? ResourceBackingRouter.maxValue(player, key, max) : max;
                 if (cur != prevVal) {
                     if (cur <= min && prevVal > min) minAction.execute(player);
-                    if (cur >= max && prevVal < max) maxAction.execute(player);
+                    if (cur >= top && prevVal < top) maxAction.execute(player);
                 }
                 // Sync to client every 10 ticks. A backed bar's pool changes out
                 // from under us (regen/casting), so sync unconditionally on the
