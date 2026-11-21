@@ -220,8 +220,8 @@ LAVA + HOT_FLOOR + FIREBALL in one rule. Bare `damage_type` strings
 ```
 
 `neoorigins:exposed_to_sun` is the canonical day-exposure condition: it
-checks both time-of-day and that the block column above the player lets
-skylight through.
+checks both time-of-day and that the block column above the player's eyes
+lets skylight through.
 
 ---
 
