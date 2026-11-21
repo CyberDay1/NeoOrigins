@@ -728,7 +728,7 @@ Whether a named toggle power is currently active (toggled on) on this entity. Wo
 
 Use this to gate other powers so they only tick while a specific toggle is on. For example, apply debuffs only while phasing is active, or drain a resource only while flight is toggled on.
 
-For a power that is not a toggle, the condition is true when the player has that power granted and the power's own condition currently holds (a power that refers back to itself through `power_active` reads false for that evaluation). A non-toggle ID the player does not have is false.
+For a power that is not a toggle, the condition is true when the player has that power granted and its `power_condition` currently passes (a power that refers back to itself through `power_active` reads false for that evaluation). A `persistent_effect`, `condition_passive` or `effect_over_time` also needs its own `condition` to hold, as in Apoli: a buff whose condition is false is not active. A `condition_passive` or `effect_over_time` with an `else_action` still acts when its `condition` fails, so there the `condition` does not count. A non-toggle ID the player does not have is false.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|

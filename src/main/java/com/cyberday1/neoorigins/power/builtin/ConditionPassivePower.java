@@ -136,6 +136,12 @@ public class ConditionPassivePower extends PowerType<ConditionPassivePower.Confi
     @Override
     public boolean hasToggle(Config config) { return config.toggleable(); }
 
+    /** With an else_action the power still acts when the condition fails, so only a bare condition gates. */
+    @Override
+    public boolean typeConditionHolds(ServerPlayer player, Config config) {
+        return config.elseAction() != EntityAction.noop() || config.condition().test(player);
+    }
+
     /** The pre-2.2.24 shared key, read as a fallback so saved toggles survive. */
     public String legacyToggleKey(Config config) {
         return getClass().getName() + ':' + config.type() + ':' + config.interval();
