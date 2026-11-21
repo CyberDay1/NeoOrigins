@@ -17,6 +17,9 @@ public interface OffFlagToggle<C extends PowerConfiguration> {
 
     String legacyToggleKey(C config);
 
+    /** The type's own {@code condition} gate, read by power_active; true when the type has none. */
+    default boolean typeConditionHolds(ServerPlayer player, C config) { return true; }
+
     /**
      * True when this type reads the shared toggle-upkeep fields into
      * {@link com.cyberday1.neoorigins.power.util.PowerUpkeep}'s table at load.

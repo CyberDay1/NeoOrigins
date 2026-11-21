@@ -175,6 +175,12 @@ public class EffectOverTimePower extends PowerType<EffectOverTimePower.Config> i
         return config.activation().equals(ACTIVE) || config.toggleable();
     }
 
+    /** With an else_action the aura still pulses when the condition fails, so only a bare condition gates. */
+    @Override
+    public boolean typeConditionHolds(ServerPlayer player, Config config) {
+        return config.elseAction() != EntityAction.noop() || config.condition().test(player);
+    }
+
     /**
      * Per-instance toggle key: the aura's own resource id.
      *

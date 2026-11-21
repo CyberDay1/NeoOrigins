@@ -232,6 +232,9 @@ public class PersistentEffectPower extends PowerType<PersistentEffectPower.Confi
     @Override
     public boolean hasToggle(Config config) { return config.toggleable(); }
 
+    @Override
+    public boolean typeConditionHolds(ServerPlayer player, Config config) { return config.condition().test(player); }
+
     /** The pre-2.2.24 effect-derived key, read as a fallback so saved toggles survive. */
     public String legacyToggleKey(Config config) {
         if (config.effects().isEmpty()) return getClass().getName();

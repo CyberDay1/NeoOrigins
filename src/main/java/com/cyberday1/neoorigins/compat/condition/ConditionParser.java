@@ -537,7 +537,7 @@ public final class ConditionParser {
             try {
                 for (var granted : com.cyberday1.neoorigins.service.ActiveOriginService.allPowers(sp)) {
                     if (granted.id().equals(rid)) {
-                        return granted.isConditionSatisfied(sp);
+                        return granted.isConditionSatisfied(sp) && typeConditionHolds(granted, sp);
                     }
                 }
                 return false;
@@ -545,6 +545,13 @@ public final class ConditionParser {
                 inFlight.remove(resolved);
             }
         };
+    }
+
+    /** Apoli isActive also needs the type's own condition (persistent_effect, condition_passive...). */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static boolean typeConditionHolds(com.cyberday1.neoorigins.api.power.PowerHolder<?> holder, ServerPlayer sp) {
+        return !(holder.type() instanceof com.cyberday1.neoorigins.power.builtin.base.OffFlagToggle toggle)
+            || toggle.typeConditionHolds(sp, holder.config());
     }
 
     /** Re-entrancy guard for {@link #parsePowerActive}'s granted+condition path. */
