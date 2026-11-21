@@ -310,10 +310,21 @@ public final class ConditionParser {
     }
 
     /**
-     * True if {@code p} is currently taking sun damage: daytime, sky-exposed,
-     * not raining, not shielded by an umbrella (any item in the
-     * {@code neoorigins:umbrellas} tag, or any Vampires Need Umbrellas item when
-     * that mod is installed) or — when {@code helmet_protection} is on — by a
+     * Vanilla {@code Entity.isInRain} (not public there): rain falls on the feet
+     * block or on the block at the top of the bounding box, so a player wading
+     * or standing on soul sand still gets wet. Shared by in_rain and thundering.
+     */
+    static boolean isRainedOn(ServerLevel sl, ServerPlayer p) {
+        BlockPos pos = p.blockPosition();
+        return sl.isRainingAt(pos)
+            || sl.isRainingAt(BlockPos.containing(pos.getX(), p.getBoundingBox().maxY, pos.getZ()));
+    }
+
+    /**
+     * True if {@code p} is currently taking sun damage: daytime, sky visible from
+     * the eye block, not raining, not in water or powder snow, not shielded by
+     * an umbrella (any item in the {@code neoorigins:umbrellas} tag, or any
+     * Vampires Need Umbrellas item when that mod is installed) or — when {@code helmet_protection} is on — by a
      * non-{@code sun_permeable} helmet. Shared by the
      * {@code exposed_to_sun} condition and the {@code entity_group}
      * {@code burns_in_sunlight} behaviour so both honour the identical rules
@@ -331,9 +342,13 @@ public final class ConditionParser {
             // Enderian, Cinderborn daylight variants) fail to damage
             // until around noon.
             long time = sl.getDefaultClockTime() % 24000L;
-            if (time >= 12000L
-                || !sl.canSeeSky(p.blockPosition())
-                || sl.isRaining()) return false;
+            if (time >= 12000L || sl.isRaining()) return false;
+            // Vanilla Mob.isSunBurnTick: sky tested at the eye block (the feet block
+            // reads dark on soul sand, mud or honey), and nothing burns while in
+            // water or powder snow. The time window above stands in for its
+            // brightness roll.
+            if (p.isInWater() || p.isInPowderSnow || p.wasInPowderSnow
+                || !sl.canSeeSky(BlockPos.containing(p.getX(), p.getEyeY(), p.getZ()))) return false;
             // Umbrella protection — an umbrella held in either hand or worn in
             // a Curios/Accessories slot blocks sun damage entirely, and takes
             // priority over helmet protection (so it costs no helmet durability).
