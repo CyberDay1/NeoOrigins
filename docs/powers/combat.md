@@ -245,7 +245,7 @@ Triggers an action each time the player deals damage to any living entity: mobs,
 | `bientity_action` | entity action (object or array) | no | noop | Parsed action run against the pair: actor = the attacker (you), target = the entity you hit. A bare verb (e.g. `apply_effect`) runs against the **victim**; wrap in `actor_action` / `target_action` to route explicitly. See [Caster & target actions: bientity actions](../actions/bientity.md). |
 | `entity_action` | entity action (object or array) | no | noop | Alias for `bientity_action`: the field name a pack copying the ACTIONS.md example uses. |
 
-Filters are combined with AND: every configured filter must match for the action to fire. The `chance` roll happens last. The same filter gates (`min_damage`, `damage_type`, `target_group`, `target_type`, `chance`) govern the `bientity_action` too.
+Filters are combined with AND: every configured filter must match for the action to fire. The `chance` roll happens last. A hit the target's damage cooldown drops (a hit no larger than the last one, within half a second of it) fires nothing. The same filter gates (`min_damage`, `damage_type`, `target_group`, `target_type`, `chance`) govern the `bientity_action` too.
 
 **Example: heal 0.5 hearts on striking any undead**
 ```json
