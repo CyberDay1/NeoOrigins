@@ -303,7 +303,7 @@ public final class BuiltinConditions {
         // night — vanilla night window (>= 13000 of the day).
         define("night",
             (json, ctx) -> p -> p.level().getDefaultClockTime() % 24000L >= 13000L, List.of());
-        // in_rain — raining at the player's exposed position (canSeeSky-gated).
+        // in_rain — rain falling on the player, by vanilla's Entity.isInRain rule.
         // Umbrella-aware: an umbrella held in either hand or worn in a
         // Curios/Accessories slot shields the player from rain, mirroring
         // exposed_to_sun's sun shielding, so rain-damage origins (Wet Fur, True
@@ -314,8 +314,7 @@ public final class BuiltinConditions {
             if (!(p.level() instanceof ServerLevel sl)) return false;
             if (p.isPassenger()) return false;
             if (ConditionParser.neoorigins$isHoldingUmbrella(p)) return false;
-            BlockPos pos = p.blockPosition();
-            return sl.isRainingAt(pos) && sl.canSeeSky(pos);
+            return ConditionParser.isRainedOn(sl, p);
         }, List.of());
         // exposed_to_sky — open sky directly above the player's feet block, or
         // the eye block with "at": "eyes" (issue #151). Any other "at" reads feet.
@@ -333,7 +332,7 @@ public final class BuiltinConditions {
         // thundering — thunderstorm with rain falling at the player's position.
         define("thundering", (json, ctx) -> p -> {
             if (!(p.level() instanceof ServerLevel sl)) return false;
-            return sl.isThundering() && sl.isRainingAt(p.blockPosition());
+            return sl.isThundering() && ConditionParser.isRainedOn(sl, p);
         }, List.of());
 
         // ---- Numeric comparison conditions (delegate to ConditionParser helpers) ----

@@ -271,7 +271,7 @@ A datapack can mint new groups, or override a built-in, with a JSON file at `dat
 | `ignored_by` | list of entity ids and/or `#tags` | `[]` | Mobs matching these entries never target the player. |
 | `targeted_by` | list of entity ids and/or `#tags` | `[]` | Mobs matching these entries proactively hunt the player, within ~16 blocks. Player-built iron golems are exempt even when `minecraft:iron_golem` is listed; only village-spawned golems hunt. |
 | `feared_by` | list of entity ids and/or `#tags` | `[]` | Mobs matching these entries flee the player, within ~8 blocks. |
-| `burns_in_sunlight` | bool | `false` | The player catches fire in daylight like a vanilla skeleton, honouring the same `[sun_damage]` config (helmet protection, `neoorigins:sun_permeable` helmets, umbrella) as the `exposed_to_sun` condition. |
+| `burns_in_sunlight` | bool | `false` | The player catches fire in daylight like a vanilla skeleton. It runs the `exposed_to_sun` check, so the sky is tested at the eye block and the same `[sun_damage]` config applies (helmet protection, `neoorigins:sun_permeable` helmets, umbrella). |
 
 **Example: `data/mypack/neoorigins/entity_groups/cursed.json`**
 ```json
