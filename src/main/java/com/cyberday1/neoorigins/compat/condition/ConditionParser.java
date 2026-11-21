@@ -98,6 +98,15 @@ public final class ConditionParser {
         "neoorigins:weather", "neoorigins:xp_level",
         "neoorigins:xp_levels", "neoorigins:xp_points");
 
+    /** Picker/discovery surface: built-ins plus Java API addon conditions. */
+    public static java.util.Set<String> knownTypes() {
+        java.util.Set<String> ids = new java.util.TreeSet<>(KNOWN_TYPES);
+        for (Identifier id : com.cyberday1.neoorigins.compat.registry.CompatRegistries.conditionKeys()) {
+            ids.add(id.toString());
+        }
+        return java.util.Collections.unmodifiableSet(ids);
+    }
+
     private static final EquipmentSlot[] EQUIPMENT_SLOTS = EquipmentSlot.values();
 
     /**
@@ -162,6 +171,14 @@ public final class ConditionParser {
 
     private static EntityCondition parseInner(JsonObject json, String contextId) {
         String type = json.has("type") ? json.get("type").getAsString() : "";
+        // Exact addon ids precede the namespace rewrite, including ids whose path matches a built-in.
+        Identifier exactId = Identifier.tryParse(type);
+        com.cyberday1.neoorigins.compat.registry.ConditionType addon = exactId == null ? null
+            : com.cyberday1.neoorigins.compat.registry.CompatRegistries.addonCondition(exactId);
+        if (addon != null) {
+            try { return addon.factory().create(json, contextId); }
+            catch (Exception e) { return failClosed(type, contextId, "parse error: " + e.getMessage()); }
+        }
         // Canonicalize: bare names default to neoorigins:; legacy origins:/apace:/apoli:
         // prefixes (the Origins/Apoli ecosystem aliases — these verbs share schemas)
         // get a one-shot [2.0-legacy] warning then are rewritten to neoorigins: for
