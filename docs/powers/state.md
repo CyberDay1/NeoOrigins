@@ -32,7 +32,7 @@ A named, persistent, HUD-visible resource bar. Values are stored per-player and 
 | `max_action` | EntityAction | no | noop | Action run once each time the value rises to `max` (not every tick while it stays there) |
 | `hud_render` | object | no | — | HUD display settings (see below) |
 | `hidden` | bool | no | `false` | Hides the power from the origin menu and its bar from the HUD. Set `hud_render.should_render` to `true` to keep the bar on the HUD while the menu row stays hidden |
-| `backing` | string | no | `""` | Optional external pool that backs the bar's value instead of the internal store: the id of a registered backing. `irons_spellbooks:mana` is built in (see below), and other mods can register their own (see [Resource backings](../JAVA_API.md#resource-backings)). When set, `min`/`max` are ignored and the bar auto-scales to the backing's live max. Empty = internally stored. |
+| `backing` | string | no | `""` | Optional external pool that backs the bar's value instead of the internal store: the id of a registered backing. `irons_spellbooks:mana` is built in (see below), and other mods can register their own (see [Resource backings](../JAVA_API.md#resource-backings)). When set, the bar auto-scales to the backing's live max and `max_action` fires there; `min`, `max` and `start_value` reach only a backing registered as a per-bar factory. Empty = internally stored. |
 
 **`backing`: bind the bar to Iron's Spells mana**
 
@@ -47,7 +47,7 @@ Set `"backing": "irons_spellbooks:mana"` to make the bar's value **read from and
 
 Because Iron's changes mana out from under the game (regen, spellcasting), a mana-backed bar re-syncs its value (and live max) to the client every 10 ticks so the HUD tracks the pool live.
 
-**Backings from other mods.** A mod can register its own pool with `NeoOriginsAPI.registerResourceBacking` (see [Resource backings](../JAVA_API.md#resource-backings)) and a bar names it the same way, e.g. `"backing": "mymod:stamina"`. It behaves like the mana backing above: reads come from the pool, changes go to it as additive deltas, `min`/`max` are ignored in favour of the pool's live max, and the bar re-syncs every 10 ticks. An absolute set works only if that backing accepts one; otherwise it is ignored with one warning. If the backing's mod is missing, the bar reads empty and writes do nothing. A `backing` id that no installed mod registers is ignored with one warning, and the bar keeps its value in NeoOrigins' own store.
+**Backings from other mods.** A mod can register its own pool with `NeoOriginsAPI.registerResourceBacking` (see [Resource backings](../JAVA_API.md#resource-backings)) and a bar names it the same way, e.g. `"backing": "mymod:stamina"`. It behaves like the mana backing above: reads come from the pool, changes go to it as additive deltas, the bar scales to the pool's live max (a per-bar factory also receives `min`, `max` and `start_value`), and the bar re-syncs every 10 ticks. An absolute set works only if that backing accepts one; otherwise it is ignored with one warning. If the backing's mod is missing, the bar reads empty and writes do nothing. A `backing` id that no installed mod registers is ignored with one warning, and the bar keeps its value in NeoOrigins' own store.
 
 ```json
 {
