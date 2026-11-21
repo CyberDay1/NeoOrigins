@@ -130,6 +130,7 @@ Full method list:
 | `setResource(player, resource, value)` | Set a resource's value directly. |
 | `spendResource(player, resource, amount)` | Take an amount only if the player has that much. Returns `false`, taking nothing, otherwise. |
 | `registerResourceBacking(id, backing)` | Register an external pool that resource bars can name with `"backing"`. See [Resource backings](#resource-backings). |
+| `registerResourceBacking(id, factory)` | Register a backing built once per bar from that bar's declared `min`, `max` and `start_value`. |
 
 Call these on the logical server: the player-facing methods take a
 `ServerPlayer` and read server-side state.
@@ -593,17 +594,32 @@ A pack then uses `"backing": "mymod:stamina"` on a resource power.
 | `max(player)` | no | The live maximum the bar scales to. Return 0 or less (the default) to use the bar's declared `max`. |
 | `set(player, value)` | no | Absolute set, for `set_resource` and `change_resource` with `"operation": "set"`. Return `false` (the default) to refuse it; the set is then ignored with one warning. |
 | `available()` | no | Return `false` while the pool can't be used, e.g. when an optional dependency is missing. The bar then reads empty and writes do nothing, with one warning. Default `true`. |
+| `onGranted(player)` | no | Runs when a player is granted the bar's power, where an internal bar would seed `start_value`. Does nothing by default. |
 
 - All methods are called on the server thread. NeoOrigins re-reads `read` and
   `max` every 10 ticks for the HUD, so keep them cheap.
-- A backed bar runs from 0 to `max`. NeoOrigins never stores a value for it,
-  and `start_value` is not applied.
+- A backed bar runs from 0 to `max`, and `max_action` fires at that live
+  `max`. NeoOrigins never stores a value for it and does not apply
+  `start_value` itself.
 - An exception thrown from a backing is caught and logged once. While it keeps
   throwing, the bar reads empty and writes do nothing.
 - Registering an id twice, including `irons_spellbooks:mana`, throws
-  `IllegalStateException`.
+  `IllegalStateException`. The two overloads share one id space.
 - A `backing` id that no mod registers leaves the bar in NeoOrigins' own store,
   with one warning.
+
+When bars need their own state, register a factory instead. It is called once
+per bar that names the id, with a `ResourceBar` (the bar's resource id and its
+declared `min`, `max` and `start_value`), and again after a datapack reload:
+
+```java
+NeoOriginsAPI.registerResourceBacking(
+    Identifier.fromNamespaceAndPath("mymod", "charge"),
+    bar -> new ChargePool(bar.resource(), bar.min(), bar.max(), bar.startValue()));
+```
+
+A factory that throws or returns null leaves its bar reading empty, with one
+logged error.
 
 ---
 
