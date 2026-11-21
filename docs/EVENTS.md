@@ -147,6 +147,11 @@ rage meter, spawn a visual shockwave.
 
 Fires when the player takes damage (post-cancel, before final apply).
 
+A hit that vanilla's damage cooldown will drop does not fire it. For half a
+second after a hit lands, a new hit lands only if it is larger than that one,
+and then only for the difference. `thorns_on_hit`, `action_on_hit` and the
+other on-hit reactions follow the same rule, on the victim's cooldown.
+
 **Context:** `HitTakenContext(amount, source, event)`. The amount is the
 incoming damage after NeoOrigins' own `modify_damage` (incoming) scaling;
 armour, enchantment and resistance reductions are applied later by vanilla.
@@ -171,7 +176,8 @@ attacker-side mirror of `hit_taken`. Unlike `attack` (which fires *pre-damage*),
 this fires from a LOW-priority `LivingIncomingDamageEvent` listener, so the
 amount already includes NeoOrigins' own damage modifiers (which run at HIGH
 priority). Armour and resistance on the target are applied later by vanilla.
-Not dispatched if another listener cancelled the damage.
+Not dispatched if another listener cancelled the damage, or if the target's
+damage cooldown will drop the hit (see `hit_taken`).
 
 **Context:** `HitDealtContext(amount, target, source)`. `amount` is the
 incoming damage as seen at LOW priority, `target` is the `LivingEntity` that

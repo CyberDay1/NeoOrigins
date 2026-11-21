@@ -78,35 +78,38 @@ public class CombatPowerEvents {
                 event.setAmount(scaled);
             });
 
-            // ActionOnHitPower — fire when the attacker's filters match any target (mob or player).
-            final float outHitAmount = event.getAmount();
-            ActiveOriginService.forEachOfType(outAttacker, ActionOnHitPower.class, config -> {
-                if (outHitAmount < config.minDamage()) return;
-                if (config.damageType().isPresent()
-                        && !matchesDamageType(event.getSource(), config.damageType().get())) return;
-                if (config.targetGroup().isPresent() && !matchesEntityGroup(outTarget, config.targetGroup().get())) return;
-                if (config.targetType().isPresent()
-                        && !matchesEntityIdOrTag(outTarget, config.targetType().get())) return;
-                if (!ActionOnHitPower.rollChance(config)) return;
-                ActionOnHitPower.execute(outAttacker, config, outTarget);
-                // Documented Apoli-style path: a parsed bientity_action /
-                // entity_action runs against the victim (actor = attacker),
-                // gated by the same filters that just passed above. Backward-
-                // compatible: powers using only the flat `action` schema leave
-                // this at noop().
-                if (config.onHitAction() != com.cyberday1.neoorigins.compat.action.BiEntityAction.noop()) {
-                    config.onHitAction().execute(outAttacker, outTarget);
-                }
-            });
-
-            // Route B self_action_on_hit / action_on_hit / target_action_on_hit —
-            // fires when the holder deals damage; passes the victim directly so
-            // the parsed bientity_action can resolve (actor=holder, target=victim).
-            final LivingEntity dealTarget = outTarget;
-            ActiveOriginService.forEachOfType(outAttacker,
-                com.cyberday1.neoorigins.compat.CompatPower.class, cfg -> {
-                    if (cfg.onDealDamage() != null) cfg.onDealDamage().accept(outAttacker, dealTarget);
+            // A hit the victim's damage cooldown will drop fires no on-hit reactions.
+            if (!DamageCooldownGate.discards(outTarget, event.getSource(), event.getAmount())) {
+                // ActionOnHitPower — fire when the attacker's filters match any target (mob or player).
+                final float outHitAmount = event.getAmount();
+                ActiveOriginService.forEachOfType(outAttacker, ActionOnHitPower.class, config -> {
+                    if (outHitAmount < config.minDamage()) return;
+                    if (config.damageType().isPresent()
+                            && !matchesDamageType(event.getSource(), config.damageType().get())) return;
+                    if (config.targetGroup().isPresent() && !matchesEntityGroup(outTarget, config.targetGroup().get())) return;
+                    if (config.targetType().isPresent()
+                            && !matchesEntityIdOrTag(outTarget, config.targetType().get())) return;
+                    if (!ActionOnHitPower.rollChance(config)) return;
+                    ActionOnHitPower.execute(outAttacker, config, outTarget);
+                    // Documented Apoli-style path: a parsed bientity_action /
+                    // entity_action runs against the victim (actor = attacker),
+                    // gated by the same filters that just passed above. Backward-
+                    // compatible: powers using only the flat `action` schema leave
+                    // this at noop().
+                    if (config.onHitAction() != com.cyberday1.neoorigins.compat.action.BiEntityAction.noop()) {
+                        config.onHitAction().execute(outAttacker, outTarget);
+                    }
                 });
+
+                // Route B self_action_on_hit / action_on_hit / target_action_on_hit —
+                // fires when the holder deals damage; passes the victim directly so
+                // the parsed bientity_action can resolve (actor=holder, target=victim).
+                final LivingEntity dealTarget = outTarget;
+                ActiveOriginService.forEachOfType(outAttacker,
+                    com.cyberday1.neoorigins.compat.CompatPower.class, cfg -> {
+                        if (cfg.onDealDamage() != null) cfg.onDealDamage().accept(outAttacker, dealTarget);
+                    });
+            }
         }
 
         if (!(event.getEntity() instanceof ServerPlayer sp)) return;
@@ -231,6 +234,7 @@ public class CombatPowerEvents {
         // off the weapon and summed; the total adds sum*2.5 damage (the exact
         // per-level number preserved from the original). Bane of Arthropods
         // additionally applies the vanilla slowness-on-hit.
+        int baneSlowLvl = 0;
         if (event.getSource().getEntity() instanceof LivingEntity groupAttacker) {
             var weapon = groupAttacker.getMainHandItem();
             if (!weapon.isEmpty()) {
@@ -257,11 +261,7 @@ public class CombatPowerEvents {
                 if (totalLvl > 0) {
                     event.setAmount(event.getAmount() + totalLvl * 2.5f);
                 }
-                if (baneLvl > 0) {
-                    // Vanilla Bane applies slowness IV for 1–1.5s at level 1+.
-                    sp.addEffect(new net.minecraft.world.effect.MobEffectInstance(
-                        net.minecraft.world.effect.MobEffects.SLOWNESS, 20 + 10 * baneLvl, 3));
-                }
+                baneSlowLvl = baneLvl;
             }
         }
 
@@ -291,6 +291,13 @@ public class CombatPowerEvents {
 
         if (!event.isCanceled()) {
             float amount = event.getAmount();
+            // Vanilla drops a hit inside the damage cooldown after this event: no reactions for it.
+            if (DamageCooldownGate.discards(sp, event.getSource(), amount)) return;
+            if (baneSlowLvl > 0) {
+                // Vanilla Bane applies slowness IV for 1–1.5s at level 1+.
+                sp.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                    net.minecraft.world.effect.MobEffects.SLOWNESS, 20 + 10 * baneSlowLvl, 3));
+            }
             // Publish the HitTakenContext to ActionContextHolder so any
             // bi-entity actions parsed in OriginsCompatPowerLoader.parseSelfActionWhenHit
             // can read source.getEntity() back from inside CompatPower.onHit.
@@ -402,6 +409,7 @@ public class CombatPowerEvents {
     public static void onPlayerDealDamage(LivingIncomingDamageEvent event) {
         if (event.isCanceled()) return;
         if (!(event.getSource().getEntity() instanceof ServerPlayer attacker)) return;
+        if (DamageCooldownGate.discards(event.getEntity(), event.getSource(), event.getAmount())) return;
         var hitDealt = new com.cyberday1.neoorigins.service.EventPowerIndex.HitDealtContext(
             event.getAmount(), event.getEntity(), event.getSource());
         com.cyberday1.neoorigins.service.EventPowerIndex.dispatch(
