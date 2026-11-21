@@ -587,12 +587,14 @@ The tables below list every key the file offers, grouped as the file groups them
 |  | `amplifier` | `0` | 0 to 255 |  |
 | `iron_monk_guard_drain` | `interval` | `20` | 1 to 72000 |  |
 |  | `enabled` | `true` | true / false |  |
+|  | `stamina_change` | `-2` | -1000 to 1000 | `entity_action.change` |
 | `iron_monk_guard_block` | `multiplier` | `0.1` | 0 to 100 |  |
 | `iron_monk_palm_strike` | `cooldown_ticks` | `40` | 0 to 72000 |  |
 |  | `resource_cost_amount` | `20` | 0 to 100000 |  |
 | `iron_monk_iron_resolve` | `amount` | `0.4` | -1 to 1 |  |
 | `iron_monk_sea_of_stamina` | `interval` | `20` | 1 to 72000 |  |
 |  | `enabled` | `true` | true / false |  |
+|  | `stamina_change` | `1` | -1000 to 1000 | `entity_action.change` |
 | `iron_monk_lohan_palm` | `cooldown_ticks` | `120` | 0 to 72000 |  |
 |  | `resource_cost_amount` | `30` | 0 to 100000 |  |
 | `jianxian_sword_heart` | `amount` | `4` | -100 to 100 |  |
