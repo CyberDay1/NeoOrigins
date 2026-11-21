@@ -7,6 +7,7 @@ import com.cyberday1.neoorigins.compat.CompatPolicy;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.advancements.criterion.BlockPredicate;
@@ -20,6 +21,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -1744,6 +1746,10 @@ public final class ConditionParser {
 
     // ---- origins:predicate (Apoli meta-wrapper around vanilla MC predicates) ----
 
+    // Optional integer offsetX/offsetY/offsetZ siblings of `predicate` shift the
+    // tested spot, as vanilla location_check does (issue #151): added to the
+    // position for location, to the blockPosition for biome/block_state/
+    // fluid_state, ignored by the rest. A non-whole value fails closed.
     static EntityCondition parsePredicate(JsonObject json, String contextId) {
         String predicateType = json.has("predicate_type") ? json.get("predicate_type").getAsString() : null;
         JsonElement predicateJson = json.has("predicate") ? json.get("predicate") : null;
@@ -1751,13 +1757,25 @@ public final class ConditionParser {
             return failClosed("origins:predicate", contextId,
                 "missing required field 'predicate_type' or 'predicate'");
         }
+        int[] off = new int[3];
+        String[] offKeys = {"offsetX", "offsetY", "offsetZ"};
+        for (int i = 0; i < 3; i++) {
+            if (!json.has(offKeys[i])) continue;
+            Integer v = wholeInt(json.get(offKeys[i]));
+            if (v == null) {
+                return failClosed("origins:predicate", contextId,
+                    "'" + offKeys[i] + "' must be a whole number, got " + json.get(offKeys[i]));
+            }
+            off[i] = v;
+        }
+        BlockPos offset = new BlockPos(off[0], off[1], off[2]);
         return switch (predicateType) {
-            case "biome"             -> parseBiomePredicate(predicateJson, contextId);
-            case "block_state"       -> parseBlockStatePredicate(predicateJson, contextId);
+            case "biome"             -> parseBiomePredicate(predicateJson, offset, contextId);
+            case "block_state"       -> parseBlockStatePredicate(predicateJson, offset, contextId);
             case "entity_properties" -> parseEntityPropertiesPredicate(predicateJson, contextId);
-            case "fluid_state"       -> parseFluidStatePredicate(predicateJson, contextId);
+            case "fluid_state"       -> parseFluidStatePredicate(predicateJson, offset, contextId);
             case "item"              -> parseItemPredicate(predicateJson, contextId);
-            case "location"          -> parseLocationPredicate(predicateJson, contextId);
+            case "location"          -> parseLocationPredicate(predicateJson, offset, contextId);
             case "damage"            -> failClosed("origins:predicate", contextId,
                 "predicate_type 'damage' requires damage-source context (use action-on-hit hooks)");
             default                  -> failClosed("origins:predicate", contextId,
@@ -1765,7 +1783,18 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseBiomePredicate(JsonElement predicateJson, String contextId) {
+    /** A JSON number with no fractional part that fits an int, else null. */
+    private static Integer wholeInt(JsonElement el) {
+        if (!el.isJsonPrimitive() || !el.getAsJsonPrimitive().isNumber()) return null;
+        java.math.BigDecimal d = el.getAsBigDecimal();
+        try {
+            return d.stripTrailingZeros().scale() <= 0 ? d.intValueExact() : null;
+        } catch (ArithmeticException e) {
+            return null;
+        }
+    }
+
+    private static EntityCondition parseBiomePredicate(JsonElement predicateJson, BlockPos offset, String contextId) {
         if (!predicateJson.isJsonObject()) {
             return failClosed("origins:predicate/biome", contextId, "predicate must be a JSON object");
         }
@@ -1785,7 +1814,7 @@ public final class ConditionParser {
         }
         final TagKey<Biome> fTagKey = tagKey;
         return player -> {
-            Holder<Biome> holder = player.level().getBiome(player.blockPosition());
+            Holder<Biome> holder = player.level().getBiome(player.blockPosition().offset(offset));
             if (fTagKey != null && holder.is(fTagKey)) return true;
             for (ResourceKey<Biome> key : biomeKeys) {
                 if (holder.is(key)) return true;
@@ -1794,66 +1823,79 @@ public final class ConditionParser {
         };
     }
 
-    private static EntityCondition parseBlockStatePredicate(JsonElement predicateJson, String contextId) {
-        DataResult<BlockPredicate> result = BlockPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
-        if (result.error().isPresent()) {
-            return failClosed("origins:predicate/block_state", contextId,
-                result.error().get().message());
+    /**
+     * Compiles the inner JSON of a {@code neoorigins:predicate} against a vanilla codec.
+     * Plain JsonOps first. Fields naming registry entries (block, fluid, item and entity
+     * type lists, biome and structure sets, enchantments) cannot parse without registries,
+     * and pack load does not hand us any, so such a predicate is parsed again through
+     * RegistryOps over the server's registries on first evaluation and cached. Failing
+     * there too fails closed with a CompatB report, once.
+     */
+    private static <P> EntityCondition compilePredicate(Codec<P> codec, JsonElement predicateJson,
+            String type, String contextId, java.util.function.BiPredicate<P, ServerPlayer> check) {
+        Optional<P> plain = codec.parse(JsonOps.INSTANCE, predicateJson).result();
+        if (plain.isPresent()) {
+            P pred = plain.get();
+            return player -> check.test(pred, player);
         }
-        BlockPredicate pred = result.result().orElseThrow();
-        return player -> {
-            if (!(player.level() instanceof ServerLevel sl)) return false;
-            return pred.matches(sl, player.blockPosition());
+        JsonElement source = predicateJson.deepCopy();
+        return new EntityCondition() {
+            private P pred;
+            private boolean failed;
+
+            @Override
+            public boolean test(ServerPlayer player) {
+                if (pred == null && !failed) {
+                    DataResult<P> result = codec.parse(
+                        RegistryOps.create(JsonOps.INSTANCE, player.level().registryAccess()), source);
+                    if (result.error().isPresent()) {
+                        failed = true;
+                        failClosed(type, contextId, result.error().get().message());
+                    } else {
+                        pred = result.result().orElseThrow();
+                    }
+                }
+                return pred != null && check.test(pred, player);
+            }
         };
+    }
+
+    private static EntityCondition parseBlockStatePredicate(JsonElement predicateJson, BlockPos offset, String contextId) {
+        return compilePredicate(BlockPredicate.CODEC, predicateJson, "origins:predicate/block_state", contextId,
+            (pred, player) -> {
+                if (!(player.level() instanceof ServerLevel sl)) return false;
+                return pred.matches(sl, player.blockPosition().offset(offset));
+            });
     }
 
     private static EntityCondition parseEntityPropertiesPredicate(JsonElement predicateJson, String contextId) {
-        DataResult<EntityPredicate> result = EntityPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
-        if (result.error().isPresent()) {
-            return failClosed("origins:predicate/entity_properties", contextId,
-                result.error().get().message());
-        }
-        EntityPredicate pred = result.result().orElseThrow();
-        return player -> {
-            if (!(player.level() instanceof ServerLevel sl)) return false;
-            return pred.matches(sl, player.position(), player);
-        };
+        return compilePredicate(EntityPredicate.CODEC, predicateJson, "origins:predicate/entity_properties", contextId,
+            (pred, player) -> {
+                if (!(player.level() instanceof ServerLevel sl)) return false;
+                return pred.matches(sl, player.position(), player);
+            });
     }
 
-    private static EntityCondition parseFluidStatePredicate(JsonElement predicateJson, String contextId) {
-        DataResult<FluidPredicate> result = FluidPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
-        if (result.error().isPresent()) {
-            return failClosed("origins:predicate/fluid_state", contextId,
-                result.error().get().message());
-        }
-        FluidPredicate pred = result.result().orElseThrow();
-        return player -> {
-            if (!(player.level() instanceof ServerLevel sl)) return false;
-            return pred.matches(sl, player.blockPosition());
-        };
+    private static EntityCondition parseFluidStatePredicate(JsonElement predicateJson, BlockPos offset, String contextId) {
+        return compilePredicate(FluidPredicate.CODEC, predicateJson, "origins:predicate/fluid_state", contextId,
+            (pred, player) -> {
+                if (!(player.level() instanceof ServerLevel sl)) return false;
+                return pred.matches(sl, player.blockPosition().offset(offset));
+            });
     }
 
     private static EntityCondition parseItemPredicate(JsonElement predicateJson, String contextId) {
-        DataResult<ItemPredicate> result = ItemPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
-        if (result.error().isPresent()) {
-            return failClosed("origins:predicate/item", contextId,
-                result.error().get().message());
-        }
-        ItemPredicate pred = result.result().orElseThrow();
-        return player -> pred.test(player.getItemBySlot(EquipmentSlot.MAINHAND));
+        return compilePredicate(ItemPredicate.CODEC, predicateJson, "origins:predicate/item", contextId,
+            (pred, player) -> pred.test(player.getItemBySlot(EquipmentSlot.MAINHAND)));
     }
 
-    private static EntityCondition parseLocationPredicate(JsonElement predicateJson, String contextId) {
-        DataResult<LocationPredicate> result = LocationPredicate.CODEC.parse(JsonOps.INSTANCE, predicateJson);
-        if (result.error().isPresent()) {
-            return failClosed("origins:predicate/location", contextId,
-                result.error().get().message());
-        }
-        LocationPredicate pred = result.result().orElseThrow();
-        return player -> {
-            if (!(player.level() instanceof ServerLevel sl)) return false;
-            return pred.matches(sl, player.getX(), player.getY(), player.getZ());
-        };
+    private static EntityCondition parseLocationPredicate(JsonElement predicateJson, BlockPos offset, String contextId) {
+        return compilePredicate(LocationPredicate.CODEC, predicateJson, "origins:predicate/location", contextId,
+            (pred, player) -> {
+                if (!(player.level() instanceof ServerLevel sl)) return false;
+                return pred.matches(sl, player.getX() + offset.getX(),
+                    player.getY() + offset.getY(), player.getZ() + offset.getZ());
+            });
     }
 
     static EntityCondition parseTimeOfDay(JsonObject json) {
