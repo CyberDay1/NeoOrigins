@@ -50,7 +50,7 @@ True while horizontal delta-movement is nonzero. No fields.
 
 ## `neoorigins:in_rain`
 
-True when rain is falling at the entity's block position with sky access (server-side only); returns false while mounted. An umbrella held in either hand or worn in a Curios/Accessories slot blocks the rain entirely (mirroring `exposed_to_sun`), so rain/water-damage origins like Wet Fur and True Hydrophobia stop hurting while you carry one. See [Umbrella items](#umbrella-items) for what counts as an umbrella.
+True when rain falls on the entity (server-side only); returns false while mounted. This is vanilla's own rule for a mob getting wet: rain reaches either its feet block or the block at the top of its hitbox, so a player wading or standing on soul sand, mud or a honey block is rained on. An umbrella held in either hand or worn in a Curios/Accessories slot blocks the rain entirely (mirroring `exposed_to_sun`), so rain/water-damage origins like Wet Fur and True Hydrophobia stop hurting while you carry one. See [Umbrella items](#umbrella-items) for what counts as an umbrella.
 
 > **1.21.1 vs 26.x:** umbrellas worn in Accessories (Wisp Forest) slots are detected on 1.21.1 only; 26.x checks the hands and Curios slots.
 
@@ -75,7 +75,7 @@ True when the sky is visible from the entity's block position (server-side only)
 
 ## `neoorigins:exposed_to_sun`
 
-True during daytime (time 0–11999) with sky access and no rain in the world (server-side only); returns false while mounted. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets that are innately fire/lava resistant — anything carrying the `minecraft:fire_resistant` component, which in vanilla means netherite alone — shade the player without losing any durability; unbreakable helmets already did. Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios/Accessories slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
+True during daytime (time 0–11999) when the sky is visible from the entity's eye block and no rain is falling anywhere in the world (server-side only); returns false while mounted, in water or in powder snow. The eye block and the water and powder snow rule are vanilla's own sunburn check for undead, so standing on soul sand, mud or a honey block (whose low top puts the feet inside the block) gives no shade. Includes helmet protection (damageable helmets absorb the burn at the cost of durability). Helmets that are innately fire/lava resistant — anything carrying the `minecraft:fire_resistant` component, which in vanilla means netherite alone — shade the player without losing any durability; unbreakable helmets already did. Helmets in the `neoorigins:sun_permeable` item tag (open/mesh helmets, `minecraft:chainmail_helmet` by default) do **not** shade the player; add modded see-through helmets to that tag via a datapack. Helmet protection as a whole can be disabled with the `[sun_damage] helmet_protection` config. An umbrella held in either hand or worn in a Curios/Accessories slot blocks sun damage entirely, and is checked before helmets, so it costs no helmet durability.
 
 > **1.21.1 vs 26.x:** a fire-resistant helmet is one with the `minecraft:fire_resistant` component on 1.21.1 and one with `minecraft:damage_resistant` covering fire on 26.x (netherite in vanilla on both). Umbrellas in Accessories slots are detected on 1.21.1 only.
 
@@ -962,7 +962,7 @@ True while the level's in-game time is past 13000 ticks (nightfall) and before t
 
 ## `neoorigins:thundering`
 
-True when there's an active thunderstorm **and** rain is falling at the player's position (biome supports rain). Stricter than vanilla's global `isThundering()`: won't fire in dry biomes even during a global thunderstorm.
+True when there's an active thunderstorm **and** rain falls on the player, by the same rule as [`in_rain`](#neooriginsin_rain): its feet block or the top of its hitbox, in a biome where it rains. Stricter than vanilla's global `isThundering()`: won't fire in dry biomes even during a global thunderstorm.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
