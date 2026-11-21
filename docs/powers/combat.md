@@ -206,7 +206,7 @@ No fields beyond `name` / `description`.
 
 ## `neoorigins:thorns_on_hit`
 
-Passive thorns: when the player takes damage from a living attacker (including the owner of a projectile), the attacker takes damage back. Optionally sets the attacker on fire. Applied via `CombatPowerEvents`.
+Passive thorns: when the player takes damage from a living attacker (including the owner of a projectile), the attacker takes damage back. Optionally sets the attacker on fire. A hit that the player's damage cooldown will drop does not trigger it. Applied via `CombatPowerEvents`.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -316,7 +316,7 @@ Fires when the holder deals damage to a living entity. Apoli compat (Route B), r
 
 Every spelling lands here: `neoorigins:self_action_on_hit` (recognized since 2.2.6), `origins:` / `apace:` / `apoli:` / `apugli:self_action_on_hit`, and `origins:action_on_hit` / `apace:action_on_hit`. Mind the namespace on that last pair: `neoorigins:action_on_hit` is the *native* type with the filter surface, while `origins:action_on_hit` is Apoli's and loads as this one.
 
-The type carries no `min_damage`, `chance` or victim filters: every hit fires it, subject only to `cooldown` and the holder-side `condition`. For a damage threshold, a chance roll or target-group / target-type gates, write the native [`neoorigins:action_on_hit`](#neooriginsaction_on_hit) instead.
+The type carries no `min_damage`, `chance` or victim filters: every hit that lands fires it (one the target's damage cooldown drops fires nothing), subject to `cooldown` and the holder-side `condition`. For a damage threshold, a chance roll or target-group / target-type gates, write the native [`neoorigins:action_on_hit`](#neooriginsaction_on_hit) instead.
 
 **Example: lifesteal that poisons what you hit**
 ```json

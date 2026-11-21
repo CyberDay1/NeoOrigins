@@ -66,25 +66,25 @@ public final class HasIngredientCondition {
         String itemId = string(json, "item");
         String tagId = string(json, "tag");
         if ((itemId == null) == (tagId == null)) {
-            return fail(ctx, "needs exactly one of 'item' or 'tag' — never matches");
+            return fail(ctx, "needs exactly one of 'item' or 'tag': never matches");
         }
         Item item = null;
         TagKey<Item> tag = null;
         if (itemId != null) {
             ResourceLocation id = ResourceLocation.tryParse(itemId);
             if (id == null || !BuiltInRegistries.ITEM.containsKey(id)) {
-                return fail(ctx, "unknown item '" + itemId + "' — never matches");
+                return fail(ctx, "unknown item '" + itemId + "': never matches");
             }
             item = BuiltInRegistries.ITEM.get(id);
         } else {
             ResourceLocation id = ResourceLocation.tryParse(tagId.startsWith("#") ? tagId.substring(1) : tagId);
-            if (id == null) return fail(ctx, "invalid tag '" + tagId + "' — never matches");
+            if (id == null) return fail(ctx, "invalid tag '" + tagId + "': never matches");
             tag = TagKey.create(Registries.ITEM, id);
         }
         Slot slot = parseSlot(string(json, "slot"), ctx);
         int depth = json.has("depth") ? Math.max(1, Math.min(MAX_DEPTH, json.get("depth").getAsInt())) : 1;
         Set<ResourceLocation> types = parseRecipeTypes(json, ctx);
-        if (types.isEmpty()) return fail(ctx, "no known recipe_types — never matches");
+        if (types.isEmpty()) return fail(ctx, "no known recipe_types: never matches");
         return new Spec(item, tag, slot, depth, Set.copyOf(types));
     }
 
