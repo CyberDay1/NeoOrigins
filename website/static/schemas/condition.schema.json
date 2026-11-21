@@ -11,7 +11,7 @@
     "type": {
       "type": "string",
       "description": "Condition verb. The namespace is optional and any namespace is accepted (`origins:`, `apoli:`, `apugli:`, `apace:`, a bare leaf, or an addon prefix): the parser canonicalises the prefix away and dispatches on the leaf, so it is the leaf that must be a known verb.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|raycast|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_effective_tool|using_item|weather|xp_level|xp_levels|xp_points)$"
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|has_ingredient|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|raycast|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_effective_tool|using_item|weather|xp_level|xp_levels|xp_points)$"
     }
   },
   "oneOf": [
@@ -1348,6 +1348,58 @@
         "effect": {
           "description": "Mob-effect id the player must currently have (absent → false).",
           "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    {
+      "$comment": "neoorigins:has_ingredient",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:has_ingredient",
+            "apace:has_ingredient",
+            "origins:has_ingredient",
+            "apoli:has_ingredient",
+            "apugli:has_ingredient"
+          ]
+        },
+        "item": {
+          "description": "Item id to look for among recipe inputs. Set exactly one of item or tag; neither or both never matches (logged).",
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+        },
+        "tag": {
+          "description": "Item tag to look for among recipe inputs (an input accepting any item in the tag counts). Leading # optional.",
+          "type": "string",
+          "pattern": "^#?[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+        },
+        "slot": {
+          "description": "Which stacks to check: `held` (main hand or offhand, default), `hotbar` (the 9 hotbar slots) or `inventory` (every main slot including the hotbar, plus the offhand). An unknown value is logged and reads held.",
+          "type": "string",
+          "enum": [
+            "held",
+            "hotbar",
+            "inventory"
+          ],
+          "default": "held"
+        },
+        "depth": {
+          "description": "Recipe levels to follow: 1 (default) checks a stack's own recipe inputs; higher values also follow those inputs' recipes. Clamped to 1 to 8; recipe cycles are safe.",
+          "type": "integer",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 8
+        },
+        "recipe_types": {
+          "description": "Recipe type ids whose recipes count (default `[\"minecraft:crafting\"]`: shaped, shapeless and every other crafting-table recipe). Unknown ids are logged and skipped.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]+:[a-z0-9_./\\-]+$"
+          }
         }
       },
       "required": [
@@ -3188,6 +3240,7 @@
               "apace:from_projectile",
               "apace:hardness",
               "apace:has_effect",
+              "apace:has_ingredient",
               "apace:health",
               "apace:height",
               "apace:hit_dealt_amount",
@@ -3307,6 +3360,7 @@
               "apoli:from_projectile",
               "apoli:hardness",
               "apoli:has_effect",
+              "apoli:has_ingredient",
               "apoli:health",
               "apoli:height",
               "apoli:hit_dealt_amount",
@@ -3426,6 +3480,7 @@
               "apugli:from_projectile",
               "apugli:hardness",
               "apugli:has_effect",
+              "apugli:has_ingredient",
               "apugli:health",
               "apugli:height",
               "apugli:hit_dealt_amount",
@@ -3545,6 +3600,7 @@
               "neoorigins:from_projectile",
               "neoorigins:hardness",
               "neoorigins:has_effect",
+              "neoorigins:has_ingredient",
               "neoorigins:health",
               "neoorigins:height",
               "neoorigins:hit_dealt_amount",
@@ -3664,6 +3720,7 @@
               "origins:from_projectile",
               "origins:hardness",
               "origins:has_effect",
+              "origins:has_ingredient",
               "origins:health",
               "origins:height",
               "origins:hit_dealt_amount",

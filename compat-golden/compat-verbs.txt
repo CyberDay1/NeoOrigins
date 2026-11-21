@@ -102,7 +102,7 @@
   neoorigins:transform_block
   neoorigins:trigger_cooldown
   neoorigins:trigger_morph_animation
-[condition] (109)
+[condition] (110)
   neoorigins:actor_condition
   neoorigins:advancement
   neoorigins:air
@@ -152,6 +152,7 @@
   neoorigins:from_projectile
   neoorigins:hardness
   neoorigins:has_effect
+  neoorigins:has_ingredient
   neoorigins:health
   neoorigins:height
   neoorigins:hit_dealt_amount
