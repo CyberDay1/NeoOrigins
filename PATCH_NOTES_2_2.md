@@ -1,5 +1,29 @@
 # NeoOrigins 2.2 — Patch Notes
 
+## v2.2.42
+
+> `if_else`, `if_else_list`, `chance` and `choice` now reach mobs inside an `area_of_effect` or `target_action`, and `target_condition` works in a projectile's `on_hit_action`, so an ability can branch on the entity it struck. `entity_type` conditions on the player now accept `#tag` values and bare ids, and the in-game creator saves them. Verbs written in an Apoli addon's namespace now reach mobs too, and the example pack's Drowning Bolt now hits monsters.
+>
+> **Supports:** Minecraft 26.1.x (Java 25) · Minecraft 26.2 (Java 25) · Minecraft 26.3 (Java 25) · Minecraft 1.21.1 (Java 21)
+
+### Bug Fixes
+
+- **`target_condition` works as an ordinary entity condition (#155).** It was read only inside `bientity_condition` slots. Written anywhere else, such as the `if_else` in a projectile's `on_hit_action`, it never passed, so the branch could not tell which entity the projectile struck. It now tests the target of the event in progress: the entity a player hit, was hit by, killed or interacted with, or the one their projectile struck. When the target is a mob, conditions that only read players are false, and with no target at all the condition is false. See [`target_condition`](docs/conditions/meta.md#neooriginstarget_condition).
+
+- **`if_else`, `if_else_list`, `chance` and `choice` reach mobs (#155).** In an `area_of_effect` `entity_action` or a `target_action`, these skipped every mob and ran only on players, even with an `always_active` condition. They now run on mobs too when their condition and every branch use verbs that work on any entity, and the condition is checked on each entity the action reaches. Players in the radius are now checked themselves as well, where before the check read the entity the event targeted. A branch with a player-only verb still keeps the whole action to players, and `area_of_effect` logs a warning when it loads one. `delay` stays player-only. See [`area_of_effect`](docs/actions/meta.md#neooriginsarea_of_effect) and [`if_else`](docs/actions/meta.md#neooriginsif_else).
+
+- **`entity_type` matches tags and bare ids on the player (#156).** On the player, `entity_type` compared the value exactly as written, so a `#tag` never matched and neither did a bare `player`, though both already worked where another entity was being tested. Both now work everywhere: a `#tag` tests membership, and a bare id means `minecraft:`. A malformed id or tag is false and logs a warning when packs load. `target_type` reads its value the same way, and on the player it now reads `type_id` when `entity_type` is missing, as its field list says. See [`entity_type`](docs/conditions/entity.md#neooriginsentity_type) and [`target_type`](docs/conditions/context.md#neooriginstarget_type).
+
+- **The in-game creator saves `#tag` entity types (#156).** Save checked every `entity_type` value against the entity registry, so a valid `#tag` was reported as unregistered and Save stayed blocked. A well-formed `#tag` is now accepted as written, since a datapack's tags may not exist on the client, and plain ids are still checked. A `#tag` in `spawn_projectile`'s `entity_type`, which takes only an id, no longer blocks Save either, though the power still skips it with a warning when it loads.
+
+- **The example pack's Drowning Bolt hits monsters.** The Tidecaller's bolt checked `target_group` `monster`, which looks for a `#minecraft:monster` tag that vanilla does not have, so it never slowed or hurt anything. It now checks the vanilla tags that group hostile mobs: `#minecraft:undead`, `#minecraft:arthropod`, `#minecraft:raiders` and `#minecraft:axolotl_always_hostiles`. That covers zombies, skeletons, spiders, illagers, witches, drowned and guardians, but not creepers, endermen or other hostile mobs no vanilla tag groups. It also reaches bees and the skeleton and zombie horses, which share those tags.
+
+### Compatibility (Apoli / Origins)
+
+- **Verbs in an addon's namespace reach mobs (#155).** On players, NeoOrigins reads any namespace as its own, so `apugli:`, `medievalorigins:` and other addons built on Apoli run their verbs as the matching `neoorigins:` ones. On mobs only `origins:`, `apace:` and `apoli:` were read that way, so an `area_of_effect` that spelled a verb in another addon's namespace skipped every mob. Mob-side actions and conditions now read every namespace the same way. A verb an addon registers under its own id is left alone and still runs on players only.
+
+---
+
 ## v2.2.41
 
 > Iron Monk stamina now regenerates while Guard is lowered, and Guard's upkeep, blocking and counters work only while it is raised. Sun damage now tests the sky at a player's eyes, so standing on soul sand or mud no longer shades sun-burning origins, and rain now reaches players in those spots. Hit reactions no longer fire for hits that vanilla's damage cooldown drops, and more speed powers can be tuned in the config. Pack authors can offset `predicate` checks, test the sky at a player's eyes and check what an item is crafted from, and mods can add their own entity conditions.
