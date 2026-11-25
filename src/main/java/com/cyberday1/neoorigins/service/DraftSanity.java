@@ -44,6 +44,7 @@ public final class DraftSanity {
      *  false-flagged as a hard Save error. If the registry isn't available
      *  (e.g. {@code RegistryAccess.EMPTY}), degrade to "don't flag". */
     private static boolean idExists(RegistryAccess ra, String field, String value) {
+        if (field.equals("entity") || field.equals("entity_type")) return entityTypeRefOk(ra, value);
         Identifier rl;
         try { rl = Identifier.parse(value); } catch (RuntimeException e) { return false; }
         try {
@@ -56,8 +57,6 @@ public final class DraftSanity {
                     .get(ResourceKey.create(Registries.BLOCK, rl)).isPresent();
                 case "item" -> ra.lookupOrThrow(Registries.ITEM)
                     .get(ResourceKey.create(Registries.ITEM, rl)).isPresent();
-                case "entity", "entity_type" -> ra.lookupOrThrow(Registries.ENTITY_TYPE)
-                    .get(ResourceKey.create(Registries.ENTITY_TYPE, rl)).isPresent();
                 // Attributes need the same prefix tolerance the loader applies
                 // (packs may write generic./player. or the de-prefixed form).
                 // Delegate to the shared resolver so the Save gate matches what
@@ -70,6 +69,22 @@ public final class DraftSanity {
             };
         } catch (RuntimeException e) {
             return true; // registry unavailable (e.g. RegistryAccess.EMPTY) — don't false-flag
+        }
+    }
+
+    /**
+     * An entity-type id, or any well-formed {@code #tag}. Tags are not looked up:
+     * datapack tags may be missing on the client.
+     */
+    static boolean entityTypeRefOk(RegistryAccess ra, String value) {
+        if (value.startsWith("#")) return Identifier.tryParse(value.substring(1)) != null;
+        Identifier rl = Identifier.tryParse(value);
+        if (rl == null) return false;
+        try {
+            return ra.lookupOrThrow(Registries.ENTITY_TYPE)
+                .get(ResourceKey.create(Registries.ENTITY_TYPE, rl)).isPresent();
+        } catch (RuntimeException e) {
+            return true; // registry unavailable: don't false-flag
         }
     }
 
