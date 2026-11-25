@@ -91,8 +91,9 @@ public final class ConditionParser {
         "neoorigins:resource", "neoorigins:scoreboard", "neoorigins:sneaking",
         "neoorigins:sprinting", "neoorigins:statistic",
         "neoorigins:status_effect", "neoorigins:submerged_in",
-        "neoorigins:submerged_in_water", "neoorigins:swimming", "neoorigins:target_group",
-        "neoorigins:target_type", "neoorigins:temperature", "neoorigins:thundering",
+        "neoorigins:submerged_in_water", "neoorigins:swimming", "neoorigins:target_condition",
+        "neoorigins:target_group", "neoorigins:target_type", "neoorigins:temperature",
+        "neoorigins:thundering",
         "neoorigins:ticking", "neoorigins:time_of_day",
         "neoorigins:using_effective_tool", "neoorigins:using_item",
         "neoorigins:weather", "neoorigins:xp_level",
@@ -2644,6 +2645,37 @@ public final class ConditionParser {
             return ConditionParser.parse(json.getAsJsonObject("condition"), contextId);
         }
         return failClosed("neoorigins:actor_condition", contextId, "missing 'condition' field");
+    }
+
+    /**
+     * target_condition in an entity slot: the inner condition reads the context target.
+     * A player target runs the full condition with the actor published, as target_action
+     * does; a mob target runs the entity-general form, false when there is none.
+     */
+    static EntityCondition parseTargetCondition(JsonObject json, String contextId) {
+        if (!json.has("condition") || !json.get("condition").isJsonObject()) {
+            return failClosed("neoorigins:target_condition", contextId, "missing 'condition' field");
+        }
+        JsonObject inner = json.getAsJsonObject("condition");
+        EntityCondition playerCond = ConditionParser.parse(inner, contextId);
+        TargetCondition mobCond = TargetConditionParser.parse(inner, contextId);
+        if (mobCond == null) {
+            // Advisory only: no recordFailClosed, which parseBiEntity counts to refuse compiling.
+            com.cyberday1.neoorigins.compat.CompatWarningCollector.recordUnsupportedCondition(
+                "neoorigins:target_condition", contextId,
+                "on a mob target, since the inner condition only reads players");
+        }
+        return actor -> {
+            var target = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
+            if (target == null) return false;
+            if (target instanceof ServerPlayer tp) {
+                Object prev = com.cyberday1.neoorigins.service.ActionContextHolder.set(
+                    new com.cyberday1.neoorigins.service.EventPowerIndex.EntityInteractContext(actor));
+                try { return playerCond.test(tp); }
+                finally { com.cyberday1.neoorigins.service.ActionContextHolder.restore(prev); }
+            }
+            return mobCond != null && mobCond.test(target, actor);
+        };
     }
 
     /** origins:advancement — true when the player has completed a specific advancement. */

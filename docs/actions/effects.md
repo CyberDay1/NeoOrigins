@@ -353,7 +353,7 @@ Spawns a projectile from the target's eye height, aimed along their look vector.
 | `no_gravity` | bool | no | `false` | When `true` the projectile ignores gravity and flies straight along its launch vector (drag still applies). Works for any projectile entity, not just the magic orb. |
 | `tag` | string | no | — | SNBT compound merged onto each spawned projectile (e.g. `"{pickup:1b}"` so fired arrows can be picked up). An unparseable tag warns and is ignored |
 | `projectile_action` | object | no | — | Entity action applied to the spawned projectile itself (actor = projectile), immediately on launch. Object only. On a non-living projectile only `set_on_fire`, `extinguish`, `add_velocity`, `execute_command` / `command`, `and` and `nothing` apply; other verbs are skipped |
-| `on_hit_action` | object | no | — | Action fired when the projectile impacts. `area_of_effect` inside this auto-rebases to the impact point. Object only (an array is ignored) |
+| `on_hit_action` | object | no | — | Action fired when the projectile impacts. It runs on the caster, with the struck entity as the context target: reach that entity with `target_action`, [`target_condition`](../conditions/meta.md#neooriginstarget_condition) or `target_type`. `area_of_effect` inside this auto-rebases to the impact point. Object only (an array is ignored) |
 
 **Example: magic-orb with impact-AoE**
 ```json

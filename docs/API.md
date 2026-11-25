@@ -14,7 +14,7 @@ to the per-topic detail doc.
 - [Layer model](#layer-model)
 - [Documents in this API](#documents-in-this-api)
 - [Power types](#power-types): 120 registered types plus the `multiple` container, and 29 retired ids
-- [Condition verbs](#condition-verbs): 110 conditions
+- [Condition verbs](#condition-verbs): 111 conditions
 - [Action verbs](#action-verbs): 94 actions
 - [Event keys](#event-keys): 51 events
 - [Named keybinds](concepts/keybinds.md)
@@ -142,6 +142,7 @@ Alias spellings (dispatch to the same verb, not counted above): `riding` → `pa
 [`neoorigins:can_see`](conditions/context.md#neooriginscan_see) • [`neoorigins:damage_type`](conditions/context.md#neooriginsdamage_type) • [`neoorigins:damage_tag`](conditions/context.md#neooriginsdamage_tag) •
 [`neoorigins:damage_name`](conditions/context.md#neooriginsdamage_name-alias-neooriginsname) • [`neoorigins:from_fire`](conditions/context.md#neooriginsfrom_fire) • [`neoorigins:from_projectile`](conditions/context.md#neooriginsfrom_projectile) •
 [`neoorigins:from_explosion`](conditions/context.md#neooriginsfrom_explosion) • [`neoorigins:actor_condition`](conditions/meta.md#neooriginsactor_condition) •
+[`neoorigins:target_condition`](conditions/meta.md#neooriginstarget_condition) •
 [`neoorigins:hit_dealt_amount`](conditions/context.md#neooriginshit_dealt_amount) • [`neoorigins:hit_taken_amount`](conditions/context.md#neooriginshit_taken_amount) •
 [`neoorigins:out_of_combat`](conditions/entity.md#neooriginsout_of_combat)
 
