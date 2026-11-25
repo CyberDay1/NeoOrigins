@@ -158,13 +158,22 @@ public final class TargetConditionParser {
         }
     }
 
-    /** Canonicalise the {@code type} field to the {@code neoorigins:} namespace. */
+    /**
+     * Canonicalise the {@code type} field to the {@code neoorigins:} namespace, any
+     * namespace as ConditionParser does. An addon condition's own id is left alone,
+     * so it stays player-only (null) here.
+     */
     private static String canonicalType(JsonObject json) {
         String type = json.has("type") ? json.get("type").getAsString() : "";
         if (!type.isEmpty() && type.indexOf(':') < 0) {
             return "neoorigins:" + type;
         }
-        if (type.startsWith("origins:") || type.startsWith("apace:") || type.startsWith("apoli:")) {
+        if (!type.isEmpty() && !type.startsWith("neoorigins:")) {
+            Identifier exactId = Identifier.tryParse(type);
+            if (exactId != null
+                    && com.cyberday1.neoorigins.compat.registry.CompatRegistries.addonCondition(exactId) != null) {
+                return type;
+            }
             return "neoorigins:" + type.substring(type.indexOf(':') + 1);
         }
         return type;
