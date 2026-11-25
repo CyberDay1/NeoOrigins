@@ -462,9 +462,9 @@ public final class BuiltinConditions {
         define("entity_type",
             (json, ctx) -> ConditionParser.parseEntityType(json),
             List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
-                        .doc("Entity-type id to match (player is always minecraft:player; absent → always true)."),
+                        .doc("Entity-type id or #tag. A bare id means minecraft:. The holder is always minecraft:player. Absent: always true."),
                     new FieldSpec("type_id", FormFieldSpec.Kind.STRING, false)
-                        .doc("Alias for entity_type (entity_type condition only).")));
+                        .doc("Alias for entity_type, read when entity_type is absent.")));
         define("enchantment",
             (json, ctx) -> ConditionParser.parseEnchantment(json),
             List.of(new FieldSpec("enchantment", FormFieldSpec.Kind.STRING, false)
@@ -524,7 +524,7 @@ public final class BuiltinConditions {
             List.of(new FieldSpec("entity_type", FormFieldSpec.Kind.STRING, false)
                         .doc("Target entity-type id, or #tag (absent → false)."),
                     new FieldSpec("type_id", FormFieldSpec.Kind.STRING, false)
-                        .doc("Alias for entity_type (entity_type condition only).")));
+                        .doc("Alias for entity_type, read when entity_type is absent.")));
         define("target_group",
             (json, ctx) -> ConditionParser.parseTargetGroup(json),
             List.of(new FieldSpec("group", FormFieldSpec.Kind.STRING, false)

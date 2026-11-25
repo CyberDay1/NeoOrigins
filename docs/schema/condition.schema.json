@@ -920,11 +920,11 @@
           ]
         },
         "entity_type": {
-          "description": "Entity-type id to match (player is always minecraft:player; absent → always true).",
+          "description": "Entity-type id or #tag. A bare id means minecraft:. The holder is always minecraft:player. Absent: always true.",
           "type": "string"
         },
         "type_id": {
-          "description": "Alias for entity_type (entity_type condition only).",
+          "description": "Alias for entity_type, read when entity_type is absent.",
           "type": "string"
         }
       },
@@ -2910,7 +2910,7 @@
           "type": "string"
         },
         "type_id": {
-          "description": "Alias for entity_type (entity_type condition only).",
+          "description": "Alias for entity_type, read when entity_type is absent.",
           "type": "string"
         }
       },

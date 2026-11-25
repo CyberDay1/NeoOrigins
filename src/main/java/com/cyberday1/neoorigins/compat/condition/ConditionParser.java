@@ -1767,16 +1767,12 @@ public final class ConditionParser {
     }
 
     static EntityCondition parseEntityType(JsonObject json) {
-        // For a player context, player entity type is always minecraft:player.
-        // A JSON author using this against the player really only has one meaningful match.
+        // The holder is always minecraft:player, so this matches that id or a tag holding it.
         String expected = json.has("entity_type") ? json.get("entity_type").getAsString()
                         : json.has("type_id") ? json.get("type_id").getAsString() : "";
         if (expected.isEmpty()) return EntityCondition.alwaysTrue();
-        final String target = expected;
-        return p -> {
-            Identifier typeId = BuiltInRegistries.ENTITY_TYPE.getKey(p.getType());
-            return typeId != null && typeId.toString().equals(target);
-        };
+        var matcher = EntityTypeMatcher.compile(expected);
+        return p -> matcher.test(p.getType());
     }
 
     static EntityCondition parsePowerType(JsonObject json, String contextId) {
@@ -2321,20 +2317,13 @@ public final class ConditionParser {
     }
 
     static EntityCondition parseTargetType(JsonObject json) {
-        String et = json.has("entity_type") ? json.get("entity_type").getAsString() : null;
+        String et = json.has("entity_type") ? json.get("entity_type").getAsString()
+                  : json.has("type_id") ? json.get("type_id").getAsString() : null;
         if (et == null || et.isBlank()) return CompatPolicy.FALSE_CONDITION;
-        final String target = et;
+        var matcher = EntityTypeMatcher.compile(et);
         return p -> {
             var le = extractTarget(com.cyberday1.neoorigins.service.ActionContextHolder.get());
-            if (le == null) return false;
-            if (target.startsWith("#")) {
-                TagKey<net.minecraft.world.entity.EntityType<?>> tag = TagKey.create(
-                    Registries.ENTITY_TYPE, Identifier.parse(target.substring(1)));
-                return le.getType().getTags().anyMatch(t -> t.equals(tag));
-            }
-            Identifier expected = Identifier.parse(target);
-            Identifier actual = BuiltInRegistries.ENTITY_TYPE.getKey(le.getType());
-            return expected.equals(actual);
+            return le != null && matcher.test(le.getType());
         };
     }
 
