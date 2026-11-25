@@ -137,11 +137,12 @@ True when target UUID == actor UUID. No fields.
 
 ## `neoorigins:target_type`
 
-Checks target's entity-type ID or tag. **Unusual:** a leading `#` denotes a tag.
+Checks the target's entity-type ID or tag (a leading `#`), matched as [`entity_type`](entity.md#neooriginsentity_type) does.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
 | `entity_type` | string | yes | — | e.g. `"minecraft:zombie"` or `"#minecraft:undead"`; always-false when blank |
+| `type_id` | string | no | — | Alias for `entity_type`, read when `entity_type` is absent |
 
 ## `neoorigins:target_group`
 

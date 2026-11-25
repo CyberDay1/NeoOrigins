@@ -405,7 +405,7 @@ An unrecognised sub-type logs a warning and **fails closed**: the power will not
 
 ## `neoorigins:in_tag`
 
-Biome tag check (equivalent to `neoorigins:biome` with `tag`).
+Biome tag check (equivalent to `neoorigins:biome` with `tag`). In a slot that tests another entity (`target_condition`, an `area_of_effect` `entity_condition`, and similar), `in_tag` is an **entity-type** tag check instead.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
@@ -612,14 +612,14 @@ Only block hits are read. A condition with `"block": false`, `"entity": true` or
 
 ## `neoorigins:entity_type`
 
-Checks entity type against a resource location. For a player entity this is always `minecraft:player`.
+Checks the entity's type against an entity-type ID or a `#tag`. A bare ID means `minecraft:`, so `player` and `minecraft:player` are the same. On the holder, which is always a player, this matches only `minecraft:player` or a tag that contains it. Where the entity under test is another entity (inside [`target_condition`](meta.md#neooriginstarget_condition), an `area_of_effect` `entity_condition` or `entity_action`, `prevent_entity_render`, and similar slots), it tests that entity.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `entity_type` | resource location | no | — | Full entity type ID, matched exactly as written (no `#tag` form) |
-| `type_id` | resource location | no | — | Alias for `entity_type` (read when `entity_type` is absent) |
+| `entity_type` | resource location or `#tag` | no | — | Entity type ID (a bare ID means `minecraft:`), or a `#tag` such as `#minecraft:undead` |
+| `type_id` | resource location or `#tag` | no | — | Alias for `entity_type` (read when `entity_type` is absent) |
 
-Always-true when both fields are absent.
+Always-true when both fields are absent. A malformed ID or tag fails closed with a warning at load; `inverted: true` then makes it true.
 
 ## `neoorigins:equipped_item`
 

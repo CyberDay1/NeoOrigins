@@ -365,14 +365,8 @@ public final class TargetConditionParser {
         String et = json.has("entity_type") ? json.get("entity_type").getAsString()
                   : json.has("type_id") ? json.get("type_id").getAsString() : null;
         if (et == null || et.isBlank()) return (t, a) -> true; // absent → always true (Apoli)
-        final String target = et;
-        if (target.startsWith("#")) {
-            TagKey<EntityType<?>> tag = TagKey.create(
-                Registries.ENTITY_TYPE, Identifier.parse(target.substring(1)));
-            return (t, a) -> t.getType().getTags().anyMatch(tk -> tk.equals(tag));
-        }
-        Identifier expected = Identifier.parse(target);
-        return (t, a) -> expected.equals(BuiltInRegistries.ENTITY_TYPE.getKey(t.getType()));
+        var matcher = EntityTypeMatcher.compile(et);
+        return (t, a) -> matcher.test(t.getType());
     }
 
     /**
