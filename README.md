@@ -4,7 +4,7 @@ A modern, ground-up reimplementation of the Origins experience for **NeoForge**.
 
 Supports **MC 1.21.1** (Java 21), **MC 26.1**, **MC 26.2** and **MC 26.3** (Java 25).
 
-📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/). Full reference for all 124 power types, 110 entity conditions, 94 entity actions, and 51 events.
+📖 **Pack-author docs**: [cyberday1.github.io/NeoOrigins](https://cyberday1.github.io/NeoOrigins/). Full reference for all 124 power types, 111 entity conditions, 94 entity actions, and 51 events.
 
 🛠️ **Web editor**: [cyberday1.github.io/NeoOrigins/editor](https://cyberday1.github.io/NeoOrigins/editor/). Build origin and mob-origin JSON in the browser, no install needed.
 
@@ -20,7 +20,7 @@ Highlights this release:
 - **Mod compat**: `LightTexture` and water-vision mixins now apply at higher priority so they survive other mods (Alex's Caves, etc.) that touch the same vanilla pipelines.
 - **Dedicated-server stable** on both 1.21.1 and 26.1 (singleplayer-tested through alpha.27 hid six classes of dist crash; all fixed).
 - **New `throw_target` action**: raycast the entity under your crosshair and hurl them away + upward.
-- **124 power types, 110 entity conditions, 94 entity actions, 51 events**. The DSL surface has kept growing since 2.0: visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), `near_entity` and friends, and near-complete Origins compat coverage.
+- **124 power types, 111 entity conditions, 94 entity actions, 51 events**. The DSL surface has kept growing since 2.0: visual/interaction power types (burn, ignore_water, overlay, model_color, lava_vision, shader), `near_entity` and friends, and near-complete Origins compat coverage.
 
 ---
 
