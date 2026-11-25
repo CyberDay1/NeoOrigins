@@ -35,7 +35,8 @@ import net.minecraft.world.entity.LivingEntity;
  * {@code living}, {@code on_fire}, {@code health}, {@code relative_health},
  * {@code has_effect}/{@code status_effect}, {@code nbt}, {@code in_block_anywhere},
  * {@code equipped_item} (the six vanilla slots; {@code accessory} is player-typed),
- * {@code constant}, and the boolean
+ * {@code constant}, {@code always_active}, {@code target_condition} (transparent: the
+ * inner condition reads the target), and the boolean
  * combinators {@code and}/{@code all_of}, {@code or}/{@code any_of}, {@code not}
  * (generalizable only when every child is). The Apoli {@code inverted:true} flag
  * is honoured.
@@ -56,6 +57,12 @@ public final class TargetConditionParser {
             case "neoorigins:constant" -> {
                 boolean v = json.has("value") && json.get("value").getAsBoolean();
                 yield (t, a) -> v;
+            }
+            case "neoorigins:always_active"     -> (t, a) -> true;
+            // In a target-typed slot t already is the target, so the wrapper is transparent.
+            case "neoorigins:target_condition"  -> {
+                if (!json.has("condition") || !json.get("condition").isJsonObject()) yield null;
+                yield parse(json.getAsJsonObject("condition"), contextId);
             }
             case "neoorigins:living"            -> (t, a) -> t.isAlive();
             case "neoorigins:on_fire",

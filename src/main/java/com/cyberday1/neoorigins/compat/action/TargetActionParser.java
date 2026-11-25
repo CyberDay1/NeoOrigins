@@ -1,6 +1,8 @@
 package com.cyberday1.neoorigins.compat.action;
 
 import com.cyberday1.neoorigins.NeoOrigins;
+import com.cyberday1.neoorigins.compat.condition.TargetCondition;
+import com.cyberday1.neoorigins.compat.condition.TargetConditionParser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -118,7 +120,14 @@ public final class TargetActionParser {
             // Without this, AoE powers that wrap their leaves in `and` (e.g. Golem
             // Ground Slam = and[damage, apply_effect]) produced a null TargetAction
             // and silently did nothing to mobs.
-            case "neoorigins:and" -> parseAnd(json, contextId);
+            case "neoorigins:and", "neoorigins:all_of" -> parseAnd(json, contextId);
+
+            // Control flow: generalizable only when the condition and every branch are,
+            // as with `and`; otherwise null keeps the whole verb on the player path.
+            case "neoorigins:if_else"      -> parseIfElse(json, contextId);
+            case "neoorigins:if_else_list" -> parseIfElseList(json, contextId);
+            case "neoorigins:chance"       -> parseChance(json, contextId);
+            case "neoorigins:choice"       -> parseChoice(json, contextId);
 
             // Item 4 entity-target spells. These are entity-general (they touch only
             // the LivingEntity target + the actor that TargetAction already supplies),
@@ -185,6 +194,95 @@ public final class TargetActionParser {
         final java.util.List<TargetAction> fChildren = children;
         return (t, a) -> {
             for (TargetAction c : fChildren) c.execute(t, a);
+        };
+    }
+
+    private static final TargetAction NOOP = (t, a) -> {};
+
+    /** A branch field, object or array as in ActionParser.parseField: absent is a no-op, null if not generalizable. */
+    private static TargetAction branch(JsonObject parent, String field, String contextId) {
+        if (!parent.has(field)) return NOOP;
+        var el = parent.get(field);
+        if (el.isJsonObject()) return parse(el.getAsJsonObject(), contextId);
+        if (el.isJsonArray()) {
+            if (el.getAsJsonArray().isEmpty()) return NOOP;
+            JsonObject and = new JsonObject();
+            and.addProperty("type", "neoorigins:and");
+            and.add("actions", el);
+            return parseAnd(and, contextId);
+        }
+        return NOOP;
+    }
+
+    /** The branch condition: absent is false, as on the entity side; null if not generalizable. */
+    private static TargetCondition condition(JsonObject parent, String contextId) {
+        if (!parent.has("condition") || !parent.get("condition").isJsonObject()) return (t, a) -> false;
+        return TargetConditionParser.parse(parent.getAsJsonObject("condition"), contextId);
+    }
+
+    private static TargetAction parseIfElse(JsonObject json, String contextId) {
+        TargetCondition cond = condition(json, contextId);
+        TargetAction ifAction = branch(json, "if_action", contextId);
+        TargetAction elseAction = branch(json, "else_action", contextId);
+        if (cond == null || ifAction == null || elseAction == null) return null;
+        return (t, a) -> {
+            if (cond.test(t, a)) ifAction.execute(t, a);
+            else elseAction.execute(t, a);
+        };
+    }
+
+    private static TargetAction parseIfElseList(JsonObject json, String contextId) {
+        JsonArray arr = com.cyberday1.neoorigins.compat.util.JsonHelpers.asArray(json, "actions");
+        java.util.List<TargetCondition> conds = new java.util.ArrayList<>();
+        java.util.List<TargetAction> actions = new java.util.ArrayList<>();
+        for (var el : arr) {
+            if (!el.isJsonObject()) continue;
+            TargetCondition cond = condition(el.getAsJsonObject(), contextId);
+            TargetAction action = branch(el.getAsJsonObject(), "action", contextId);
+            if (cond == null || action == null) return null;
+            conds.add(cond);
+            actions.add(action);
+        }
+        return (t, a) -> {
+            for (int i = 0; i < conds.size(); i++) {
+                if (conds.get(i).test(t, a)) { actions.get(i).execute(t, a); return; }
+            }
+        };
+    }
+
+    private static TargetAction parseChance(JsonObject json, String contextId) {
+        float chance = json.has("chance") ? json.get("chance").getAsFloat() : 0.5f;
+        TargetAction action = branch(json, "action", contextId);
+        if (action == null) return null;
+        return (t, a) -> { if (t.getRandom().nextFloat() < chance) action.execute(t, a); };
+    }
+
+    /** Entries are {element|action, weight}, `element` first, as in BuiltinActions.choice. */
+    private static TargetAction parseChoice(JsonObject json, String contextId) {
+        if (!json.has("actions") || !json.get("actions").isJsonArray()) return NOOP;
+        java.util.List<TargetAction> actions = new java.util.ArrayList<>();
+        java.util.List<Integer> weights = new java.util.ArrayList<>();
+        int total = 0;
+        for (var el : json.getAsJsonArray("actions")) {
+            if (!el.isJsonObject()) continue;
+            JsonObject entry = el.getAsJsonObject();
+            TargetAction action = branch(entry, entry.has("element") ? "element" : "action", contextId);
+            if (action == null) return null;
+            int weight = entry.has("weight") ? entry.get("weight").getAsInt() : 1;
+            actions.add(action);
+            weights.add(weight);
+            total += weight;
+        }
+        if (actions.isEmpty() || total <= 0) return NOOP;
+        final int fTotal = total;
+        return (t, a) -> {
+            int roll = t.getRandom().nextInt(fTotal);
+            int cumulative = 0;
+            for (int i = 0; i < actions.size(); i++) {
+                cumulative += weights.get(i);
+                if (roll < cumulative) { actions.get(i).execute(t, a); return; }
+            }
+            actions.getLast().execute(t, a);
         };
     }
 
