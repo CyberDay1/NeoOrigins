@@ -524,9 +524,9 @@ with an `on_hit_action` attached.
   your action; `area_of_effect` reads it and rebuilds its AABB.
 - **Undead-only filter**: `entity_condition` with `target_group: undead`
   filters each caught entity (mobs and players alike) before the
-  damage+effect runs, so normal mobs and players aren't caught. Put the
-  filter here, not in an `if_else` inside `entity_action`: `if_else` has no
-  mob-target form, so an `if_else` there only ever runs on caught players.
+  damage+effect runs, so normal mobs and players aren't caught. An
+  `if_else` inside `entity_action` works too, and its `else_action` gives
+  the entities that fail the check an action of their own.
 - **Drown-tagged damage**: `source: { name: "drown" }` makes the hit read
   as drowning, with the correct sound and hit indicator.
 
