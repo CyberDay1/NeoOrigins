@@ -102,7 +102,7 @@
   neoorigins:transform_block
   neoorigins:trigger_cooldown
   neoorigins:trigger_morph_animation
-[condition] (110)
+[condition] (111)
   neoorigins:actor_condition
   neoorigins:advancement
   neoorigins:air
@@ -201,6 +201,7 @@
   neoorigins:submerged_in
   neoorigins:submerged_in_water
   neoorigins:swimming
+  neoorigins:target_condition
   neoorigins:target_group
   neoorigins:target_type
   neoorigins:temperature

@@ -19,10 +19,12 @@ Bientity actions are how a single power can affect *both* sides of an interactio
 
 - `action_on_hit.bientity_action`: actor = the attacker (you), target = the entity you hit
 - `action_on_hit_taken.bientity_action`: actor = you, target = the entity that hit you
-- `action_when_hit` / projectile on-hit (`action_on_hit` on a thrown/launched entity): actor = the launcher, target = the entity struck
+- `action_when_hit.bientity_action`: actor = you, target = the entity that hit you
 - entity-interact powers: actor = you, target = the entity you interacted with
 
 Both the caster and the target are available at the same time. To route an effect to one side or the other, wrap it in `actor_action` or `target_action`.
+
+`spawn_projectile`'s `on_hit_action` is **not** a bientity slot. It is an ordinary entity action, run on the caster with the struck entity as the context target. Reach the struck entity from there with `target_action`, [`target_condition`](../conditions/meta.md#neooriginstarget_condition) or `target_type`.
 
 **The namespace matters in a bientity slot.** The pair forms below (`actor_action`, `target_action`, `and`, `chance`, `invert`, `if_else`, `damage`, `mount`) are selected only by an `origins:`, `apoli:` or `apace:` prefix (`nothing` by `origins:` / `apoli:`). Any other type there, including a `neoorigins:` one or a bare name, is parsed as an ordinary entity action and run on the **actor**, with the target published to the dispatch context. Context-reading verbs still reach the target that way (`neoorigins:target_action`, `neoorigins:actor_action`, the set verbs, `shear`, …), but `neoorigins:damage` hurts the actor rather than the target, `neoorigins:invert` does nothing, and `neoorigins:if_else` tests its condition against the actor. The inner `action` of `actor_action` / `target_action` is an ordinary entity action from this reference.
 

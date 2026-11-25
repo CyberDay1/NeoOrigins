@@ -93,7 +93,7 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 
 ## Pages
 
-- <a id="meta-conditions"></a>[Meta conditions](conditions/meta.md): Combinators and constants: `and`, `or`, `not`, `actor_condition` and `constant`.
+- <a id="meta-conditions"></a>[Meta conditions](conditions/meta.md): Combinators, wrappers and constants: `and`, `or`, `not`, `actor_condition`, `target_condition` and `constant`.
 - <a id="entity-conditions"></a><a id="more-entity-conditions"></a>[Entity conditions](conditions/entity.md): Conditions on an entity, usually the player: environment, state, equipment, resources and powers.
 - <a id="context-aware-conditions"></a><a id="bientity-conditions"></a><a id="damage-conditions"></a>[Context, bientity & damage conditions](conditions/context.md): Conditions that need a dispatch context: the event in progress, a second entity, or a damage source. Outside that context they return false.
 
@@ -107,6 +107,7 @@ The `inverted` flag is also honored on nested conditions inside `and` / `or` / `
 | <a id="neooriginsor-alias-neooriginsany_of"></a>[`neoorigins:or` (alias `neoorigins:any_of`)](conditions/meta.md#neooriginsor-alias-neooriginsany_of) | [Meta conditions](conditions/meta.md) |
 | <a id="neooriginsnot"></a>[`neoorigins:not`](conditions/meta.md#neooriginsnot) | [Meta conditions](conditions/meta.md) |
 | <a id="neooriginsactor_condition"></a>[`neoorigins:actor_condition`](conditions/meta.md#neooriginsactor_condition) | [Meta conditions](conditions/meta.md) |
+| <a id="neooriginstarget_condition"></a>[`neoorigins:target_condition`](conditions/meta.md#neooriginstarget_condition) | [Meta conditions](conditions/meta.md) |
 | <a id="neooriginsconstant"></a>[`neoorigins:constant`](conditions/meta.md#neooriginsconstant) | [Meta conditions](conditions/meta.md) |
 | <a id="neooriginssneaking"></a>[`neoorigins:sneaking`](conditions/entity.md#neooriginssneaking) | [Entity conditions](conditions/entity.md) |
 | <a id="neooriginssprinting"></a>[`neoorigins:sprinting`](conditions/entity.md#neooriginssprinting) | [Entity conditions](conditions/entity.md) |
