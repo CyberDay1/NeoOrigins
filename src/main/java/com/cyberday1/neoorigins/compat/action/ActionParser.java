@@ -547,6 +547,19 @@ public final class ActionParser {
     /** Block fan-out radius when an area_of_effect gives none (the only known pack uses 2). */
     static final float BLOCK_SWEEP_DEFAULT_RADIUS = 2.0f;
 
+    private static final java.util.Set<String> CONTROL_FLOW_LEAVES =
+        java.util.Set.of("if_else", "if_else_list", "chance", "choice", "delay");
+
+    /** A control-flow entity_action with no mob form skips mobs; say so, since the cause is a nested part. */
+    private static void warnPlayerOnlyControlFlow(JsonObject innerJson, String contextId) {
+        if (innerJson == null || !innerJson.has("type") || !innerJson.get("type").isJsonPrimitive()) return;
+        String type = innerJson.get("type").getAsString();
+        String leaf = type.substring(type.indexOf(':') + 1);
+        if (!CONTROL_FLOW_LEAVES.contains(leaf)) return;
+        NeoOrigins.LOGGER.warn("[CompatB] area_of_effect in {}: entity_action '{}' has no mob form (a player-only "
+            + "condition or branch, or delay), so it affects players only", contextId, type);
+    }
+
     static EntityAction parseAreaOfEffect(JsonObject json, String contextId) {
         // AoE: scan every LivingEntity within radius once and dispatch the inner
         // action per entity. The inner action is parsed two ways:
@@ -638,6 +651,7 @@ public final class ActionParser {
         }
         EntityAction action = innerJson != null ? parse(innerJson, contextId) : EntityAction.noop();
         TargetAction targetAction = innerJson != null ? TargetActionParser.parse(innerJson, contextId) : null;
+        if (biAction == null && targetAction == null) warnPlayerOnlyControlFlow(innerJson, contextId);
         // entity_condition is parsed two ways, mirroring the action above:
         //   - as a player-typed EntityCondition (legacy: only player targets are
         //     gated by it), and
