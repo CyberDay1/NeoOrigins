@@ -11,7 +11,7 @@
     "type": {
       "type": "string",
       "description": "Condition verb. The namespace is optional and any namespace is accepted (`origins:`, `apoli:`, `apugli:`, `apace:`, a bare leaf, or an addon prefix): the parser canonicalises the prefix away and dispatches on the leaf, so it is the leaf that must be a known verb.",
-      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|has_ingredient|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|raycast|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_group|target_type|temperature|thundering|ticking|time_of_day|using_effective_tool|using_item|weather|xp_level|xp_levels|xp_points)$"
+      "pattern": "^(?:[a-z0-9_.-]+:)?(?:actor_condition|advancement|air|all_of|always_active|amount|and|any_of|armor_value|biome|block|block_collision|block_in_radius|body_temperature|brightness|can_see|climbing|climbing_gate|collided_horizontally|command|config_flag|constant|cooldown|cover|covered_by_block|creative_flying|creative_mode|damage_name|damage_tag|damage_type|daytime|dimension|distance|distance_from_coordinates|enchantment|entity_type|equal|equipped_item|exists|exposed_to_sky|exposed_to_sun|fall_distance|fall_flying|fire|fluid_height|food|food_item_id|food_item_in_config_list|food_item_in_tag|food_level|from_explosion|from_fire|from_projectile|hardness|has_effect|has_ingredient|health|height|hit_dealt_amount|hit_taken_amount|in_block|in_block_anywhere|in_rain|in_set|in_tag|in_water|inventory|invisible|light_level|living|moon_phase|moving|name|nbt|near_block|near_entity|near_villager|nearby_entities|night|no_minions_alive|not|on_block|on_fire|on_ground|or|origin|out_of_combat|passenger|power|power_active|power_type|predicate|raycast|relative_health|replacable|replaceable|resource|resource_level|riding|saturation_level|scoreboard|sneaking|sprinting|statistic|status_effect|submerged_in|submerged_in_water|swimming|target_condition|target_group|target_type|temperature|thundering|ticking|time_of_day|using_effective_tool|using_item|weather|xp_level|xp_levels|xp_points)$"
     }
   },
   "oneOf": [
@@ -2851,6 +2851,28 @@
       ]
     },
     {
+      "$comment": "neoorigins:target_condition",
+      "properties": {
+        "type": {
+          "enum": [
+            "neoorigins:target_condition",
+            "apace:target_condition",
+            "origins:target_condition",
+            "apoli:target_condition",
+            "apugli:target_condition"
+          ]
+        },
+        "condition": {
+          "description": "Inner condition evaluated on the context target (the entity hit, struck, killed or interacted with). False when no target resolves.",
+          "$ref": "#"
+        }
+      },
+      "required": [
+        "type",
+        "condition"
+      ]
+    },
+    {
       "$comment": "neoorigins:target_group",
       "properties": {
         "type": {
@@ -3293,6 +3315,7 @@
               "apace:submerged_in",
               "apace:submerged_in_water",
               "apace:swimming",
+              "apace:target_condition",
               "apace:target_group",
               "apace:target_type",
               "apace:temperature",
@@ -3413,6 +3436,7 @@
               "apoli:submerged_in",
               "apoli:submerged_in_water",
               "apoli:swimming",
+              "apoli:target_condition",
               "apoli:target_group",
               "apoli:target_type",
               "apoli:temperature",
@@ -3533,6 +3557,7 @@
               "apugli:submerged_in",
               "apugli:submerged_in_water",
               "apugli:swimming",
+              "apugli:target_condition",
               "apugli:target_group",
               "apugli:target_type",
               "apugli:temperature",
@@ -3653,6 +3678,7 @@
               "neoorigins:submerged_in",
               "neoorigins:submerged_in_water",
               "neoorigins:swimming",
+              "neoorigins:target_condition",
               "neoorigins:target_group",
               "neoorigins:target_type",
               "neoorigins:temperature",
@@ -3773,6 +3799,7 @@
               "origins:submerged_in",
               "origins:submerged_in_water",
               "origins:swimming",
+              "origins:target_condition",
               "origins:target_group",
               "origins:target_type",
               "origins:temperature",

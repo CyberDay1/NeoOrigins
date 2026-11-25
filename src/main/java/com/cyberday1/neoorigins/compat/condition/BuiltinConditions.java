@@ -866,6 +866,12 @@ public final class BuiltinConditions {
             List.of(new FieldSpec("condition", FormFieldSpec.Kind.REF, true)
                 .ref("#")
                 .doc("Inner condition evaluated on the actor (the player).")));
+        // target_condition: evaluate the inner condition on the context target.
+        define("target_condition",
+            (json, ctx) -> ConditionParser.parseTargetCondition(json, ctx),
+            List.of(new FieldSpec("condition", FormFieldSpec.Kind.REF, true)
+                .ref("#")
+                .doc("Inner condition evaluated on the context target (the entity hit, struck, killed or interacted with). False when no target resolves.")));
         // advancement — player has completed the given advancement.
         define("advancement",
             (json, ctx) -> ConditionParser.parseAdvancement(json, ctx),
