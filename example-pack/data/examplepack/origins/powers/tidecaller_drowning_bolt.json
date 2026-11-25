@@ -15,7 +15,15 @@
       "include_source": false,
       "entity_action": {
         "type": "neoorigins:if_else",
-        "condition": { "type": "neoorigins:target_group", "group": "monster" },
+        "condition": {
+          "type": "neoorigins:or",
+          "conditions": [
+            { "type": "neoorigins:entity_type", "entity_type": "#minecraft:undead" },
+            { "type": "neoorigins:entity_type", "entity_type": "#minecraft:arthropod" },
+            { "type": "neoorigins:entity_type", "entity_type": "#minecraft:raiders" },
+            { "type": "neoorigins:entity_type", "entity_type": "#minecraft:axolotl_always_hostiles" }
+          ]
+        },
         "if_action": {
           "type": "neoorigins:and",
           "actions": [

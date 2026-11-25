@@ -53,8 +53,6 @@ class TargetActionControlFlowTest {
 
     private static final TagKey<EntityType<?>> UNDEAD = TagKey.create(Registries.ENTITY_TYPE,
         ResourceLocation.withDefaultNamespace("undead"));
-    private static final TagKey<EntityType<?>> MONSTER = TagKey.create(Registries.ENTITY_TYPE,
-        ResourceLocation.withDefaultNamespace("monster"));
 
     private MockedStatic<GameplayConfig> config;
     private MockedStatic<MinionTracker> minions;
@@ -71,8 +69,7 @@ class TargetActionControlFlowTest {
         config = Mockito.mockStatic(GameplayConfig.class);
         minions = Mockito.mockStatic(MinionTracker.class);
         BuiltInRegistries.ENTITY_TYPE.bindTags(Map.of(
-            UNDEAD, List.of(EntityType.ZOMBIE.builtInRegistryHolder()),
-            MONSTER, List.of(EntityType.ZOMBIE.builtInRegistryHolder())));
+            UNDEAD, List.of(EntityType.ZOMBIE.builtInRegistryHolder())));
     }
 
     @AfterEach

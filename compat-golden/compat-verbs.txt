@@ -3,7 +3,7 @@
 # recognition-source: parser KNOWN_TYPES  (post-migration: CompatRegistries.*Keys())
 # Re-run after each verb migration; this file must stay byte-identical.
 # corpus: src/main/resources/data, example-pack/data
-# files-scanned: 1001   typed-objects: 1627   distinct-types: 194
+# files-scanned: 1001   typed-objects: 1631   distinct-types: 194
 
 == RECOGNIZED VERBS ==
 [action] (95)
@@ -309,6 +309,7 @@ neoorigins:ender_gaze_immunity	x1	recognized=-	fields={description,name}
 neoorigins:enhanced_vision	x5	recognized=-	fields={condition,description,exposure,name}
 neoorigins:entity_glow	x1	recognized=-	fields={description,entity_condition,hidden,name}
 neoorigins:entity_group	x7	recognized=-	fields={description,group,hidden,name}
+neoorigins:entity_type	x4	recognized=condition	fields={entity_type}
 neoorigins:equipped_item	x10	recognized=condition	fields={equipment_slot,item_condition}
 neoorigins:exhaust	x1	recognized=action	fields={amount}
 neoorigins:exhaustion_filter	x1	recognized=-	fields={description,name,sources}
@@ -366,7 +367,7 @@ neoorigins:nothing	x1	recognized=action	fields={}
 neoorigins:on_block	x1	recognized=condition	fields={block_condition}
 neoorigins:on_fire	x1	recognized=condition	fields={}
 neoorigins:on_ground	x2	recognized=condition	fields={inverted}
-neoorigins:or	x7	recognized=condition,item_condition	fields={conditions}
+neoorigins:or	x8	recognized=condition,item_condition	fields={conditions}
 neoorigins:out_of_combat	x1	recognized=condition	fields={ticks}
 neoorigins:particle	x2	recognized=-	fields={description,frequency,hidden,name,particle}
 neoorigins:persistent_effect	x70	recognized=-	fields={ambient,amplifier,condition,cooldown_icon,default_off,description,effect,effects,name,show_icon,show_particles,toggleable}
@@ -414,7 +415,6 @@ neoorigins:tame_mob	x1	recognized=-	fields={cooldown_icon,cooldown_ticks,death_d
 neoorigins:tamed_animal_boost	x1	recognized=-	fields={description,name}
 neoorigins:tamed_potion_diffusal	x1	recognized=-	fields={}
 neoorigins:target_action	x1	recognized=action	fields={action}
-neoorigins:target_group	x1	recognized=condition	fields={group}
 neoorigins:thorns_on_hit	x4	recognized=-	fields={damage,description,fire_ticks,name}
 neoorigins:tidal_wave	x1	recognized=-	fields={cone_angle,cooldown_icon,cooldown_ticks,damage,knockback_strength,range}
 neoorigins:toggle	x9	recognized=action	fields={default,description,hidden,name,power,value}
