@@ -42,13 +42,17 @@ public final class TargetActionParser {
     public static TargetAction parse(JsonObject json, String contextId) {
         if (json == null) return null;
         String type = json.has("type") ? json.get("type").getAsString() : "";
-        // Same canonicalization as ActionParser (bare -> neoorigins:, and the
-        // origins:/apace:/apoli: ecosystem aliases -> neoorigins:). No legacy
-        // warning here: for a mob target only this path runs, and ActionParser
-        // already warns on the player path, so we avoid double-warning.
+        // Same canonicalization as ActionParser: bare -> neoorigins:, any other
+        // namespace -> neoorigins:<leaf>, but an addon's own id keeps its handler
+        // (player-only). No legacy warning here: ActionParser already warns on the
+        // player path, so we avoid double-warning.
         if (!type.isEmpty() && type.indexOf(':') < 0) {
             type = "neoorigins:" + type;
-        } else if (type.startsWith("origins:") || type.startsWith("apace:") || type.startsWith("apoli:")) {
+        } else if (!type.isEmpty() && !type.startsWith("neoorigins:")) {
+            ResourceLocation exactId = ResourceLocation.tryParse(type);
+            if (exactId != null && com.cyberday1.neoorigins.compat.registry.CompatRegistries.action(exactId) != null) {
+                return null;
+            }
             type = "neoorigins:" + type.substring(type.indexOf(':') + 1);
         }
 
